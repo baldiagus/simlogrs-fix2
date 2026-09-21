@@ -34,8 +34,18 @@ class ShieldRolePermissionSeeder extends Seeder
         $superAdmin = Role::findByName('super_admin', 'web');
         $superAdmin->syncPermissions(Permission::all());
 
-        // Helper untuk filter permissions
-        $givePermissions = function (string $roleName, array $patterns) {
+        // Build entity→page mapping from registry
+        $entityPageMap = [];
+        foreach (PagePermissionRegistry::getDomains() as $domain) {
+            foreach ($domain['modules'] as $mod) {
+                if (! empty($mod['entity']) && ! empty($mod['page'])) {
+                    $entityPageMap[$mod['entity']] = $mod['page'];
+                }
+            }
+        }
+
+        // Helper untuk filter permissions + auto-grant page_* for view_any_*
+        $givePermissions = function (string $roleName, array $patterns) use ($entityPageMap) {
             $role = Role::findByName($roleName, 'web');
             if (! $role) return;
 
@@ -49,7 +59,19 @@ class ShieldRolePermissionSeeder extends Seeder
                 }
             })->pluck('name')->toArray();
 
-            $role->givePermissionTo(array_unique(array_merge(['panel_user'], $matched)));
+            // Auto-grant page_* for every view_any_* that was matched
+            $pagePerms = [];
+            foreach ($matched as $perm) {
+                if (str_starts_with($perm, 'view_any_')) {
+                    $entity = substr($perm, 9); // strip 'view_any_'
+                    if (isset($entityPageMap[$entity])) {
+                        $pagePerms[] = $entityPageMap[$entity];
+                    }
+                }
+            }
+
+            $all = array_unique(array_merge(['panel_user'], $matched, $pagePerms));
+            $role->givePermissionTo($all);
         };
 
         // 5. Role: admin_logistik
@@ -101,7 +123,9 @@ class ShieldRolePermissionSeeder extends Seeder
             '%_layanan_unit::stok::ruangan%',
             '%_pengadaan::permintaan::pengadaan%',
             'view_any_master::barang%',
+            'view_master::barang%',
             'view_any_master::aset%',
+            'view_master::aset%',
         ]);
 
         // 10. Role: petugas_unit
@@ -112,17 +136,23 @@ class ShieldRolePermissionSeeder extends Seeder
             'view_layanan_unit::permintaan::barang',
             'create_layanan_unit::peminjaman::aset',
             'view_any_layanan_unit::peminjaman::aset',
+            'view_layanan_unit::peminjaman::aset',
             'create_layanan_unit::lapor::servis',
             'view_any_layanan_unit::lapor::servis',
+            'view_layanan_unit::lapor::servis',
             'view_any_layanan_unit::stok::ruangan',
+            'view_layanan_unit::stok::ruangan',
             'update_layanan_unit::penerimaan::barang',
             'view_any_layanan_unit::penerimaan::barang',
+            'view_layanan_unit::penerimaan::barang',
             'create_pengadaan::permintaan::pengadaan',
             'view_any_pengadaan::permintaan::pengadaan',
+            'view_pengadaan::permintaan::pengadaan',
             'view_any_master::barang',
+            'view_master::barang',
             'view_any_master::aset',
+            'view_master::aset',
         ]);
-
         // 11. Role: teknisi
         $givePermissions('teknisi', [
             'page_TeknisiDashboard',
