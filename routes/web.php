@@ -21,6 +21,7 @@ use App\Livewire\Master\KategoriBarangIndex;
 use App\Livewire\Master\SatuanBarangIndex;
 use App\Livewire\Master\MerekBarangIndex;
 use App\Livewire\Master\PemasokIndex;
+use App\Livewire\Master\BarangIndex;
 // Root Gateway & Login Form
 Route::get('/', function () {
     return redirect()->route('login');
@@ -46,6 +47,7 @@ Route::middleware(['auth', 'portal.access:super-admin'])->prefix('super-admin')-
     Route::get('/satuan', SatuanBarangIndex::class)->name('satuan');
     Route::get('/merek', MerekBarangIndex::class)->name('merek');
     Route::get('/pemasok', PemasokIndex::class)->name('pemasok');
+    Route::get('/barang', BarangIndex::class)->name('barang');
 });
 
 // 2. Portal Admin Logistik Sentral
@@ -58,21 +60,25 @@ Route::middleware(['auth', 'portal.access:admin-logistik'])->prefix('admin-logis
     Route::get('/satuan', SatuanBarangIndex::class)->name('satuan');
     Route::get('/merek', MerekBarangIndex::class)->name('merek');
     Route::get('/pemasok', PemasokIndex::class)->name('pemasok');
+    Route::get('/barang', BarangIndex::class)->name('barang');
 });
 
 // 3. Portal Kepala Gudang
 Route::middleware(['auth', 'portal.access:kepala-gudang'])->prefix('kepala-gudang')->name('kepala-gudang.')->group(function () {
     Route::get('/dashboard', KepalaGudangDashboard::class)->name('dashboard');
+    Route::get('/barang', BarangIndex::class)->name('barang');
 });
 
 // 4. Portal Petugas Gudang
 Route::middleware(['auth', 'portal.access:petugas-gudang'])->prefix('petugas-gudang')->name('petugas-gudang.')->group(function () {
     Route::get('/dashboard', GudangDashboard::class)->name('dashboard');
+    Route::get('/barang', BarangIndex::class)->name('barang');
 });
 
 // 5. Portal Bagian Pengadaan
 Route::middleware(['auth', 'portal.access:pengadaan'])->prefix('pengadaan')->name('pengadaan.')->group(function () {
     Route::get('/dashboard', PengadaanDashboard::class)->name('dashboard');
+    Route::get('/barang', BarangIndex::class)->name('barang');
 });
 
 // 6. Portal Kepala Unit / Karu
