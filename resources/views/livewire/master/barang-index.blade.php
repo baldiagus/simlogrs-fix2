@@ -116,10 +116,15 @@
                             <div class="font-mono text-[11px] text-zinc-400">Satuan: {{ $item->satuan?->nama ?? '-' }} ({{ $item->satuan?->simbol ?? $item->satuan?->kode ?? '-' }})</div>
                         </flux:table.cell>
                         <flux:table.cell class="text-right font-mono text-xs tabular-nums">
-                            <span class="font-semibold {{ $item->titik_pesan > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-400' }}">
-                                {{ number_format($item->titik_pesan, 0, ',', '.') }}
-                            </span>
-                            <div class="text-[10px] text-zinc-400">Min: {{ number_format($item->stok_minimum, 0, ',', '.') }} | Max: {{ number_format($item->stok_maksimum, 0, ',', '.') }}</div>
+                            @if($item->titik_pesan > 0)
+                                <span class="font-semibold text-amber-600 dark:text-amber-400">{{ number_format($item->titik_pesan, 0, ',', '.') }}</span>
+                            @else
+                                <span class="text-zinc-300 dark:text-zinc-600 italic font-sans">—</span>
+                            @endif
+                            <div class="text-[10px] text-zinc-400">
+                                Min: {{ $item->stok_minimum > 0 ? number_format($item->stok_minimum, 0, ',', '.') : '—' }}
+                                | Max: {{ $item->stok_maksimum > 0 ? number_format($item->stok_maksimum, 0, ',', '.') : '—' }}
+                            </div>
                         </flux:table.cell>
                         <flux:table.cell class="text-right font-mono text-xs tabular-nums">
                             <x-rupiah :value="$item->harga_beli_terakhir" class="font-semibold text-zinc-900 dark:text-zinc-100" />
@@ -227,9 +232,9 @@
             <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 space-y-3">
                 <div class="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">Parameter Pengendalian Stok (Buffer & ROP)</div>
                 <div class="grid grid-cols-3 gap-3">
-                    <x-number-input model="stok_minimum" label="Stok Minimum" required />
-                    <x-number-input model="titik_pesan" label="Titik Pesan (ROP)" required />
-                    <x-number-input model="stok_maksimum" label="Stok Maksimum" required />
+                    <x-number-input model="stok_minimum" label="Stok Minimum" placeholder="Tanpa Batas" />
+                    <x-number-input model="titik_pesan" label="Titik Pesan (ROP)" placeholder="Tanpa Batas" />
+                    <x-number-input model="stok_maksimum" label="Stok Maksimum" placeholder="Tanpa Batas" />
                 </div>
             </div>
 

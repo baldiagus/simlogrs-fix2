@@ -2,6 +2,7 @@
     'model' => '',
     'label' => '',
     'prefix' => null,
+    'placeholder' => '',
     'required' => false,
 ])
 
@@ -9,9 +10,9 @@
     raw: @entangle($model),
     display: '',
     format(v) {
-        if (v === null || v === '' || v === 0) return '0';
+        if (v === null || v === '') return '';
         let s = String(v).replace(/[^\d]/g, '');
-        if (s === '') return '0';
+        if (s === '' || s === '0') return s === '0' && v !== null ? '0' : '';
         s = s.replace(/^0+/, '') || '0';
         return s.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     },
@@ -23,8 +24,8 @@
         let pos = e.target.selectionStart;
         let before = this.display;
         let clean = e.target.value.replace(/[^\d]/g, '');
-        this.raw = clean === '' ? 0 : parseInt(clean, 10);
-        this.display = this.format(this.raw);
+        this.raw = clean === '' ? null : parseInt(clean, 10);
+        this.display = clean === '' ? '' : this.format(this.raw);
         this.$nextTick(() => {
             let diff = this.display.length - before.length;
             e.target.setSelectionRange(pos + diff, pos + diff);
@@ -43,9 +44,10 @@
             inputmode="numeric"
             x-model="display"
             x-on:input="onInput($event)"
+            placeholder="{{ $placeholder }}"
             {{ $required ? 'required' : '' }}
             {{ $attributes->class([
-                'w-full text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 text-right font-mono tabular-nums',
+                'w-full text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 text-right font-mono tabular-nums placeholder:text-zinc-400 placeholder:font-sans placeholder:text-xs placeholder:not-italic',
                 'shadow-xs outline-none focus:border-zinc-400 dark:focus:border-zinc-500 focus:ring-1 focus:ring-zinc-400/30 dark:focus:ring-zinc-500/30',
                 'ps-10' => $prefix,
             ]) }}

@@ -52,14 +52,14 @@ class BarangIndex extends Component
     #[Validate('required|in:HABIS_PAKAI,ASET,SPAREPART')]
     public string $tipe = 'HABIS_PAKAI';
 
-    #[Validate('required|integer|min:0')]
-    public int $stok_minimum = 0;
+    #[Validate('nullable|integer|min:0')]
+    public ?int $stok_minimum = null;
 
-    #[Validate('required|integer|min:0')]
-    public int $stok_maksimum = 0;
+    #[Validate('nullable|integer|min:0')]
+    public ?int $stok_maksimum = null;
 
-    #[Validate('required|integer|min:0')]
-    public int $titik_pesan = 0;
+    #[Validate('nullable|integer|min:0')]
+    public ?int $titik_pesan = null;
 
     #[Validate('required|numeric|min:0')]
     public float $harga_beli_terakhir = 0;
@@ -124,9 +124,9 @@ class BarangIndex extends Component
         $this->kode = $barang->kode;
         $this->nama = $barang->nama;
         $this->tipe = $barang->tipe;
-        $this->stok_minimum = $barang->stok_minimum;
-        $this->stok_maksimum = $barang->stok_maksimum;
-        $this->titik_pesan = $barang->titik_pesan;
+        $this->stok_minimum = $barang->stok_minimum ?: null;
+        $this->stok_maksimum = $barang->stok_maksimum ?: null;
+        $this->titik_pesan = $barang->titik_pesan ?: null;
         $this->harga_beli_terakhir = (float) $barang->harga_beli_terakhir;
         $this->harga_estimasi = (float) $barang->harga_estimasi;
         $this->status = $barang->status;
@@ -143,9 +143,9 @@ class BarangIndex extends Component
             'kode'        => 'nullable|string|max:50|unique:barang,kode,' . ($this->editingId ?? 'NULL') . ',id',
             'nama'        => 'required|string|max:255',
             'tipe'        => 'required|in:HABIS_PAKAI,ASET,SPAREPART',
-            'stok_minimum' => 'required|integer|min:0',
-            'stok_maksimum' => 'required|integer|min:0',
-            'titik_pesan' => 'required|integer|min:0',
+            'stok_minimum' => 'nullable|integer|min:0',
+            'stok_maksimum' => 'nullable|integer|min:0',
+            'titik_pesan' => 'nullable|integer|min:0',
             'harga_beli_terakhir' => 'required|numeric|min:0',
             'harga_estimasi' => 'required|numeric|min:0',
             'status'      => 'required|in:AKTIF,NONAKTIF',
@@ -161,9 +161,9 @@ class BarangIndex extends Component
                 'pemasok_default_id' => $this->pemasok_default_id,
                 'nama'        => $this->nama,
                 'tipe'        => $this->tipe,
-                'stok_minimum' => $this->stok_minimum,
-                'stok_maksimum' => $this->stok_maksimum,
-                'titik_pesan' => $this->titik_pesan,
+                'stok_minimum' => $this->stok_minimum ?? 0,
+                'stok_maksimum' => $this->stok_maksimum ?? 0,
+                'titik_pesan' => $this->titik_pesan ?? 0,
                 'harga_beli_terakhir' => $this->harga_beli_terakhir,
                 'harga_estimasi' => $this->harga_estimasi,
                 'status'      => $this->status,
@@ -180,9 +180,9 @@ class BarangIndex extends Component
                 'kode'        => $kodeFinal,
                 'nama'        => $this->nama,
                 'tipe'        => $this->tipe,
-                'stok_minimum' => $this->stok_minimum,
-                'stok_maksimum' => $this->stok_maksimum,
-                'titik_pesan' => $this->titik_pesan,
+                'stok_minimum' => $this->stok_minimum ?? 0,
+                'stok_maksimum' => $this->stok_maksimum ?? 0,
+                'titik_pesan' => $this->titik_pesan ?? 0,
                 'harga_beli_terakhir' => $this->harga_beli_terakhir,
                 'harga_estimasi' => $this->harga_estimasi,
                 'status'      => $this->status,
