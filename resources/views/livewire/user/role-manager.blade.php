@@ -51,17 +51,14 @@
                     @endif
                 </div>
 
-                {{-- Tabs 5 Kolom --}}
-                <flux:tab.group>
-                    <flux:tabs wire:model="activeTab" variant="pills">
-                        <flux:tab name="pages" wire:click="setTab('pages')">Akses Halaman</flux:tab>
-                        <flux:tab name="view_any" wire:click="setTab('view_any')">Lihat Data</flux:tab>
-                        <flux:tab name="create" wire:click="setTab('create')">Tambah Data</flux:tab>
-                        <flux:tab name="update" wire:click="setTab('update')">Ubah Data</flux:tab>
-                        <flux:tab name="delete" wire:click="setTab('delete')">Hapus Data</flux:tab>
-                    </flux:tabs>
-                </flux:tab.group>
-
+                {{-- Navbar Tabs 5 Kolom --}}
+                <flux:navbar scrollable class="border-b border-zinc-200 dark:border-zinc-800 -mb-px">
+                    <flux:navbar.item wire:click="setTab('pages')" :current="$activeTab === 'pages'" href="#">Akses Halaman</flux:navbar.item>
+                    <flux:navbar.item wire:click="setTab('view_any')" :current="$activeTab === 'view_any'" href="#">Lihat Data</flux:navbar.item>
+                    <flux:navbar.item wire:click="setTab('create')" :current="$activeTab === 'create'" href="#">Tambah Data</flux:navbar.item>
+                    <flux:navbar.item wire:click="setTab('update')" :current="$activeTab === 'update'" href="#">Ubah Data</flux:navbar.item>
+                    <flux:navbar.item wire:click="setTab('delete')" :current="$activeTab === 'delete'" href="#">Hapus Data</flux:navbar.item>
+                </flux:navbar>
                 {{-- Konten Matriks per Domain --}}
                 <div class="space-y-6">
                     @foreach ($domains as $domainKey => $domain)

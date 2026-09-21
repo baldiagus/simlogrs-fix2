@@ -4,9 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'SIMLOG RS Non-Medis v2' }}</title>
+    
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
-    @fluxStyles
+    @fluxAppearance
 </head>
 <body class="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 antialiased font-sans flex flex-col">
     {{-- Banner Jaringan Offline (Basement) --}}
@@ -41,11 +47,13 @@
     <flux:header container class="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
         <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
-        <flux:brand href="/{{ $portalKey }}/dashboard" name="SIMLOG RS" class="font-bold tracking-tight">
-            <span class="text-xs px-2 py-0.5 rounded-full font-semibold uppercase bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+        <div class="flex items-center gap-3">
+            <flux:brand href="/{{ $portalKey }}/dashboard" name="SIMLOG RS" class="font-extrabold text-base tracking-tight" />
+            <flux:separator vertical variant="subtle" class="h-4 my-auto hidden sm:block" />
+            <flux:badge size="sm" :color="$currentPortal['badge']" class="hidden sm:inline-flex font-semibold uppercase tracking-wider text-[10px]">
                 {{ $currentPortal['label'] }}
-            </span>
-        </flux:brand>
+            </flux:badge>
+        </div>
 
         <flux:spacer />
 
@@ -57,6 +65,8 @@
                 </flux:button>
 
                 <flux:menu>
+                    <div class="px-2.5 py-1 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Pilih Ruang Kerja</div>
+                    <flux:menu.separator />
                     @foreach ($portalMeta as $pKey => $pData)
                         <flux:menu.item href="/{{ $pKey }}/dashboard" :current="$portalKey === $pKey">
                             <flux:badge size="sm" :color="$pData['badge']" class="mr-2"></flux:badge>
@@ -69,15 +79,15 @@
 
         {{-- Profil Pengguna & Logout --}}
         <flux:dropdown position="top" align="start">
-            <flux:button variant="ghost" class="flex items-center gap-2">
-                <span class="text-xs font-semibold">{{ $user?->nama ?? 'Pengguna' }}</span>
+            <flux:button variant="ghost" size="sm" class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{{ $user?->nama ?? 'Pengguna' }}</span>
                 <flux:icon icon="chevron-down" size="xs" />
             </flux:button>
 
             <flux:menu>
                 <div class="px-3 py-2 text-xs border-b border-zinc-100 dark:border-zinc-800">
                     <div class="font-bold text-zinc-900 dark:text-zinc-100">{{ $user?->nama }}</div>
-                    <div class="font-mono text-zinc-400">{{ $user?->email }}</div>
+                    <div class="font-mono text-[11px] text-zinc-400">{{ $user?->email }}</div>
                 </div>
 
                 <form method="POST" action="/logout">
@@ -94,31 +104,37 @@
     <div class="flex-1 flex">
         {{-- Sidebar Flux --}}
         <flux:sidebar sticky collapsible="mobile" class="bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 w-64 shrink-0">
-            <div class="p-3">
+            <div class="p-3 space-y-4">
                 <flux:navlist>
-                    <flux:navlist.item icon="home" href="/{{ $portalKey }}/dashboard" :current="request()->is('*/dashboard')">
-                        Dashboard
-                    </flux:navlist.item>
+                    <flux:navlist.group heading="Menu Utama">
+                        <flux:navlist.item icon="home" href="/{{ $portalKey }}/dashboard" :current="request()->is('*/dashboard')">
+                            Dashboard
+                        </flux:navlist.item>
+                    </flux:navlist.group>
 
                     @can('view_any_user::role')
-                        <flux:navlist.item icon="shield-check" href="/super-admin/roles" :current="request()->is('*/roles')">
-                            Peran & Hak Akses
-                        </flux:navlist.item>
+                        <flux:navlist.group heading="Konfigurasi & Hak Akses">
+                            <flux:navlist.item icon="shield-check" href="/super-admin/roles" :current="request()->is('*/roles')">
+                                Peran & Hak Akses
+                            </flux:navlist.item>
+                        </flux:navlist.group>
                     @endcan
 
                     @can('view_any_master::barang')
-                        <flux:navlist.item icon="cube" href="/{{ $portalKey }}/barang" :current="request()->is('*/barang')">
-                            Katalog Barang
-                        </flux:navlist.item>
+                        <flux:navlist.group heading="Katalog & Logistik">
+                            <flux:navlist.item icon="cube" href="/{{ $portalKey }}/barang" :current="request()->is('*/barang')">
+                                Katalog Barang
+                            </flux:navlist.item>
+                        </flux:navlist.group>
                     @endcan
                 </flux:navlist>
             </div>
 
             <flux:sidebar.spacer />
 
-            <div class="p-4 border-t border-zinc-100 dark:border-zinc-800 text-[11px] text-zinc-400">
-                <div class="font-semibold text-zinc-500">SIMLOG RS Non-Medis v2</div>
-                <div class="font-mono text-[10px]">Livewire 3 • Flux UI Free</div>
+            <div class="p-4 border-t border-zinc-100 dark:border-zinc-800 text-[11px] text-zinc-400 space-y-1">
+                <div class="font-semibold text-zinc-600 dark:text-zinc-400">SIMLOG RS Non-Medis v2</div>
+                <div class="font-mono text-[10px] text-zinc-400">Livewire 3 • Flux UI Free</div>
             </div>
         </flux:sidebar>
 

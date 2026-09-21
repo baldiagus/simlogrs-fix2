@@ -116,6 +116,8 @@ class RoleManager extends Component
         return view('livewire.user.role-manager', [
             'roles' => $roles,
             'selectedRole' => $selectedRole,
+            'selectedRoleId' => $this->selectedRoleId,
+            'activeTab' => $this->activeTab,
             'domains' => $domains,
         ])->layout('layouts.portal', ['portal' => 'super-admin']);
     }
