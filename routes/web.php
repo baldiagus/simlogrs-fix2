@@ -23,6 +23,10 @@ use App\Livewire\Master\MerekBarangIndex;
 use App\Livewire\Master\PemasokIndex;
 use App\Livewire\Master\BarangIndex;
 use App\Livewire\Master\AsetIndex;
+use App\Livewire\Pengadaan\PermintaanPengadaanIndex;
+use App\Livewire\Pengadaan\PesananPembelianIndex;
+use App\Livewire\Pengadaan\TrackingPoIndex;
+use App\Livewire\Pengadaan\PenerimaanPoIndex;
 // Root Gateway & Login Form
 Route::get('/', function () {
     return redirect()->route('login');
@@ -50,6 +54,10 @@ Route::middleware(['auth', 'portal.access:super-admin'])->prefix('super-admin')-
     Route::get('/pemasok', PemasokIndex::class)->name('pemasok');
     Route::get('/barang', BarangIndex::class)->name('barang');
     Route::get('/aset', AsetIndex::class)->name('aset');
+    Route::get('/permintaan-pengadaan', PermintaanPengadaanIndex::class)->name('permintaan-pengadaan');
+    Route::get('/pesanan-pembelian', PesananPembelianIndex::class)->name('pesanan-pembelian');
+    Route::get('/tracking-po', TrackingPoIndex::class)->name('tracking-po');
+    Route::get('/penerimaan-po', PenerimaanPoIndex::class)->name('penerimaan-po');
 });
 
 // 2. Portal Admin Logistik Sentral
@@ -64,34 +72,43 @@ Route::middleware(['auth', 'portal.access:admin-logistik'])->prefix('admin-logis
     Route::get('/pemasok', PemasokIndex::class)->name('pemasok');
     Route::get('/barang', BarangIndex::class)->name('barang');
     Route::get('/aset', AsetIndex::class)->name('aset');
+    Route::get('/permintaan-pengadaan', PermintaanPengadaanIndex::class)->name('permintaan-pengadaan');
+    Route::get('/penerimaan-po', PenerimaanPoIndex::class)->name('penerimaan-po');
 });
 
 // 3. Portal Kepala Gudang
 Route::middleware(['auth', 'portal.access:kepala-gudang'])->prefix('kepala-gudang')->name('kepala-gudang.')->group(function () {
     Route::get('/dashboard', KepalaGudangDashboard::class)->name('dashboard');
     Route::get('/barang', BarangIndex::class)->name('barang');
+    Route::get('/permintaan-pengadaan', PermintaanPengadaanIndex::class)->name('permintaan-pengadaan');
 });
 
 // 4. Portal Petugas Gudang
 Route::middleware(['auth', 'portal.access:petugas-gudang'])->prefix('petugas-gudang')->name('petugas-gudang.')->group(function () {
     Route::get('/dashboard', GudangDashboard::class)->name('dashboard');
     Route::get('/barang', BarangIndex::class)->name('barang');
+    Route::get('/penerimaan-po', PenerimaanPoIndex::class)->name('penerimaan-po');
 });
 
 // 5. Portal Bagian Pengadaan
 Route::middleware(['auth', 'portal.access:pengadaan'])->prefix('pengadaan')->name('pengadaan.')->group(function () {
     Route::get('/dashboard', PengadaanDashboard::class)->name('dashboard');
     Route::get('/barang', BarangIndex::class)->name('barang');
+    Route::get('/permintaan-pengadaan', PermintaanPengadaanIndex::class)->name('permintaan-pengadaan');
+    Route::get('/pesanan-pembelian', PesananPembelianIndex::class)->name('pesanan-pembelian');
+    Route::get('/tracking-po', TrackingPoIndex::class)->name('tracking-po');
 });
 
 // 6. Portal Kepala Unit / Karu
 Route::middleware(['auth', 'portal.access:kepala-unit'])->prefix('kepala-unit')->name('kepala-unit.')->group(function () {
     Route::get('/dashboard', KepalaUnitDashboard::class)->name('dashboard');
+    Route::get('/permintaan-pengadaan', PermintaanPengadaanIndex::class)->name('permintaan-pengadaan');
 });
 
 // 7. Portal Petugas / Staf Ruangan
 Route::middleware(['auth', 'portal.access:petugas-unit'])->prefix('petugas-unit')->name('petugas-unit.')->group(function () {
     Route::get('/dashboard', UnitDashboard::class)->name('dashboard');
+    Route::get('/permintaan-pengadaan', PermintaanPengadaanIndex::class)->name('permintaan-pengadaan');
 });
 
 // 8. Portal Teknisi IPSRS

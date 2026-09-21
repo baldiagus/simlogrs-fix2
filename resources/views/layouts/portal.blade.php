@@ -116,6 +116,29 @@
                     @endcan
                 </flux:sidebar.group>
             @endcan
+
+            @can('view_any_pengadaan::permintaan::pengadaan')
+                <flux:sidebar.group expandable heading="Pengadaan" class="grid">
+                    <flux:sidebar.item icon="document-text" href="/{{ $portalKey }}/permintaan-pengadaan" :current="request()->is('*/permintaan-pengadaan')">
+                        Permintaan (PR)
+                    </flux:sidebar.item>
+                    @can('view_any_pengadaan::pesanan::pembelian')
+                        <flux:sidebar.item icon="clipboard-document-list" href="/{{ $portalKey }}/pesanan-pembelian" :current="request()->is('*/pesanan-pembelian')">
+                            Pesanan (PO)
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_pengadaan::tracking::po')
+                        <flux:sidebar.item icon="truck" href="/{{ $portalKey }}/tracking-po" :current="request()->is('*/tracking-po')">
+                            Tracking Vendor
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_gudang_stok::penerimaan::po')
+                        <flux:sidebar.item icon="inbox-arrow-down" href="/{{ $portalKey }}/penerimaan-po" :current="request()->is('*/penerimaan-po')">
+                            Penerimaan (Inbound)
+                        </flux:sidebar.item>
+                    @endcan
+                </flux:sidebar.group>
+            @endcan
         </flux:sidebar.nav>
 
         <flux:sidebar.spacer />
