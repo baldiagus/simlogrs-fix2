@@ -95,7 +95,6 @@ class BarangIndex extends Component
             'satuan_id',
             'merek_id',
             'pemasok_default_id',
-            'kode',
             'nama',
             'stok_minimum',
             'stok_maksimum',
@@ -104,6 +103,7 @@ class BarangIndex extends Component
             'harga_estimasi',
         ]);
 
+        $this->kode = CodeGenerator::generate('BRG', Barang::class);
         $this->kategori_id = KategoriBarang::where('status', 'AKTIF')->value('id');
         $this->satuan_id = SatuanBarang::where('status', 'AKTIF')->value('id');
         $this->tipe = 'HABIS_PAKAI';
@@ -151,35 +151,43 @@ class BarangIndex extends Component
             'status'      => 'required|in:AKTIF,NONAKTIF',
         ]);
 
-        $kodeFinal = ! empty($this->kode)
-            ? strtoupper(trim($this->kode))
-            : CodeGenerator::generate('BRG', Barang::class);
-
-        $data = [
-            'kategori_id' => $this->kategori_id,
-            'satuan_id'   => $this->satuan_id,
-            'merek_id'    => $this->merek_id,
-            'pemasok_default_id' => $this->pemasok_default_id,
-            'kode'        => $kodeFinal,
-            'nama'        => $this->nama,
-            'tipe'        => $this->tipe,
-            'stok_minimum' => $this->stok_minimum,
-            'stok_maksimum' => $this->stok_maksimum,
-            'titik_pesan' => $this->titik_pesan,
-            'harga_beli_terakhir' => $this->harga_beli_terakhir,
-            'harga_estimasi' => $this->harga_estimasi,
-            'status'      => $this->status,
-        ];
-
         if ($this->editingId) {
             abort_unless(auth()->user()?->can('update_master::barang'), 403);
             $barang = Barang::findOrFail($this->editingId);
-            $barang->update($data);
+            $barang->update([
+                'kategori_id' => $this->kategori_id,
+                'satuan_id'   => $this->satuan_id,
+                'merek_id'    => $this->merek_id,
+                'pemasok_default_id' => $this->pemasok_default_id,
+                'nama'        => $this->nama,
+                'tipe'        => $this->tipe,
+                'stok_minimum' => $this->stok_minimum,
+                'stok_maksimum' => $this->stok_maksimum,
+                'titik_pesan' => $this->titik_pesan,
+                'harga_beli_terakhir' => $this->harga_beli_terakhir,
+                'harga_estimasi' => $this->harga_estimasi,
+                'status'      => $this->status,
+            ]);
             $this->toast("Barang '{$barang->nama}' berhasil diperbarui.", 'success');
         } else {
             abort_unless(auth()->user()?->can('create_master::barang'), 403);
-            Barang::create($data);
-            $this->toast("Barang '{$this->nama}' berhasil didaftarkan.", 'success');
+            $kodeFinal = $this->kode ?: CodeGenerator::generate('BRG', Barang::class);
+            Barang::create([
+                'kategori_id' => $this->kategori_id,
+                'satuan_id'   => $this->satuan_id,
+                'merek_id'    => $this->merek_id,
+                'pemasok_default_id' => $this->pemasok_default_id,
+                'kode'        => $kodeFinal,
+                'nama'        => $this->nama,
+                'tipe'        => $this->tipe,
+                'stok_minimum' => $this->stok_minimum,
+                'stok_maksimum' => $this->stok_maksimum,
+                'titik_pesan' => $this->titik_pesan,
+                'harga_beli_terakhir' => $this->harga_beli_terakhir,
+                'harga_estimasi' => $this->harga_estimasi,
+                'status'      => $this->status,
+            ]);
+            $this->toast("Barang '{$this->nama}' ({$kodeFinal}) berhasil didaftarkan.", 'success');
         }
 
         $this->showModal = false;

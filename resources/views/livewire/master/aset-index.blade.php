@@ -239,7 +239,7 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <flux:input wire:model="kode_aset" label="Kode Register Aset (Opsional)" placeholder="Auto: AST-YYYY-XXX" uppercase />
+                <flux:input wire:model="kode_aset" label="Kode Register Aset (Otomatis)" disabled readonly class="font-mono bg-zinc-100 dark:bg-zinc-800/80 cursor-not-allowed font-semibold" />
                 <flux:input wire:model="nomor_seri" label="Nomor Seri Pabrik (SN)" placeholder="misal: SN-88492048" />
             </div>
 

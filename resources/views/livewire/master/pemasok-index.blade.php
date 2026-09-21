@@ -83,7 +83,7 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <flux:input wire:model="kode" label="Kode Vendor" placeholder="misal: VDR-001" required uppercase />
+                <flux:input wire:model="kode" label="Kode Vendor (Otomatis)" disabled readonly class="font-mono bg-zinc-100 dark:bg-zinc-800/80 cursor-not-allowed font-semibold" />
                 <flux:input wire:model="npwp" label="NPWP Perusahaan" placeholder="00.000.000.0-000.000" />
             </div>
 

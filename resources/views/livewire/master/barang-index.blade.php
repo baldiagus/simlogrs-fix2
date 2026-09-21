@@ -158,7 +158,7 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <flux:input wire:model="kode" label="Kode Barang (Opsional)" placeholder="Auto: BRG-YYYY-XXX" uppercase />
+                <flux:input wire:model="kode" label="Kode Barang (Otomatis)" disabled readonly class="font-mono bg-zinc-100 dark:bg-zinc-800/80 cursor-not-allowed font-semibold" />
                 <div>
                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Tipe Komoditas</label>
                     <select wire:model="tipe" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">

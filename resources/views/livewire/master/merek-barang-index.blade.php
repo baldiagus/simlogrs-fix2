@@ -68,7 +68,7 @@
                 <flux:subheading>Kelola data pabrikan atau produsen komoditas.</flux:subheading>
             </div>
 
-            <flux:input wire:model="kode" label="Kode Merek" placeholder="misal: MRK-001" required uppercase />
+            <flux:input wire:model="kode" label="Kode Merek (Otomatis)" disabled readonly class="font-mono bg-zinc-100 dark:bg-zinc-800/80 cursor-not-allowed font-semibold" />
             <flux:input wire:model="nama" label="Nama Merek / Brand" placeholder="misal: Sinar Dunia, Phillips, Canon" required />
 
             <div>

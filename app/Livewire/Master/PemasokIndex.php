@@ -6,6 +6,7 @@ use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\Pemasok;
+use App\Support\Generator\CodeGenerator;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
@@ -47,7 +48,8 @@ class PemasokIndex extends Component
     {
         abort_unless(auth()->user()?->can('create_master::pemasok'), 403);
 
-        $this->reset(['editingId', 'kode', 'nama', 'npwp', 'alamat', 'kota', 'no_telepon', 'email', 'nama_kontak', 'status']);
+        $this->reset(['editingId', 'nama', 'npwp', 'alamat', 'kota', 'no_telepon', 'email', 'nama_kontak', 'status']);
+        $this->kode = CodeGenerator::generate('VDR', Pemasok::class);
         $this->status = 'AKTIF';
         $this->showModal = true;
     }
@@ -98,10 +100,10 @@ class PemasokIndex extends Component
             $this->toast("Pemasok '{$pemasok->nama}' berhasil diperbarui.", 'success');
         } else {
             abort_unless(auth()->user()?->can('create_master::pemasok'), 403);
+            $data['kode'] = $this->kode ?: CodeGenerator::generate('VDR', Pemasok::class);
             Pemasok::create($data);
-            $this->toast("Pemasok baru berhasil ditambahkan.", 'success');
+            $this->toast("Pemasok '{$this->nama}' ({$data['kode']}) berhasil ditambahkan.", 'success');
         }
-
         $this->showModal = false;
     }
 

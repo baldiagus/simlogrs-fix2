@@ -108,12 +108,12 @@ class AsetIndex extends Component
         $this->reset([
             'editingId',
             'barang_id',
-            'kode_aset',
             'nomor_seri',
             'lokasi_gudang_id',
             'nilai_perolehan',
         ]);
 
+        $this->kode_aset = CodeGenerator::generate('AST', Aset::class, 'kode_aset');
         $this->barang_id = Barang::where('tipe', 'ASET')->where('status', 'AKTIF')->value('id');
         $this->lokasi_tipe = 'RUANGAN';
         $this->unit_id = Unit::where('status', 'AKTIF')->value('id');

@@ -6,6 +6,7 @@ use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\MerekBarang;
+use App\Support\Generator\CodeGenerator;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
@@ -29,7 +30,8 @@ class MerekBarangIndex extends Component
     {
         abort_unless(auth()->user()?->can('create_master::merek::barang'), 403);
 
-        $this->reset(['editingId', 'kode', 'nama', 'status']);
+        $this->reset(['editingId', 'nama', 'status']);
+        $this->kode = CodeGenerator::generate('MRK', MerekBarang::class);
         $this->status = 'AKTIF';
         $this->showModal = true;
     }
@@ -49,28 +51,28 @@ class MerekBarangIndex extends Component
     public function save()
     {
         $this->validate([
-            'kode' => 'required|string|max:50|unique:merek_barang,kode,' . ($this->editingId ?? 'NULL') . ',id',
             'nama' => 'required|string|max:100',
             'status' => 'required|in:AKTIF,NONAKTIF',
         ]);
 
-        $data = [
-            'kode' => strtoupper($this->kode),
-            'nama' => $this->nama,
-            'status' => $this->status,
-        ];
-
         if ($this->editingId) {
             abort_unless(auth()->user()?->can('update_master::merek::barang'), 403);
             $merek = MerekBarang::findOrFail($this->editingId);
-            $merek->update($data);
+            $merek->update([
+                'nama' => $this->nama,
+                'status' => $this->status,
+            ]);
             $this->toast("Merek '{$merek->nama}' berhasil diperbarui.", 'success');
         } else {
             abort_unless(auth()->user()?->can('create_master::merek::barang'), 403);
-            MerekBarang::create($data);
-            $this->toast("Merek baru berhasil ditambahkan.", 'success');
+            $kodeFinal = $this->kode ?: CodeGenerator::generate('MRK', MerekBarang::class);
+            MerekBarang::create([
+                'kode' => $kodeFinal,
+                'nama' => $this->nama,
+                'status' => $this->status,
+            ]);
+            $this->toast("Merek '{$this->nama}' ({$kodeFinal}) berhasil ditambahkan.", 'success');
         }
-
         $this->showModal = false;
     }
 
