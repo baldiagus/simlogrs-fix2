@@ -129,12 +129,14 @@ class PemasokIndex extends Component
                         ->orWhere('kota', 'ilike', "%{$this->search}%");
                 });
             })
-            ->orderBy('id', 'desc')
+            ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
         return view('livewire.master.pemasok-index', [
             'items' => $items,
             'editingId' => $this->editingId,
+            'sortBy' => $this->sortBy,
+            'sortDirection' => $this->sortDirection,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Pemasok & Rekanan Vendor']);
     }
 }

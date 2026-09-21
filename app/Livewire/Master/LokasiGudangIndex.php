@@ -134,13 +134,15 @@ class LokasiGudangIndex extends Component
                         ->orWhere('kode', 'ilike', "%{$this->search}%");
                 });
             })
-            ->orderBy('id', 'desc')
+            ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
         return view('livewire.master.lokasi-gudang-index', [
             'items' => $items,
             'daftarGudang' => $daftarGudang,
             'editingId' => $this->editingId,
+            'sortBy' => $this->sortBy,
+            'sortDirection' => $this->sortDirection,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Tata Letak Rak & Bin']);
     }
 }

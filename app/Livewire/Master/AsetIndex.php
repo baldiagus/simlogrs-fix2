@@ -253,7 +253,7 @@ class AsetIndex extends Component
                         ->orWhereHas('barang', fn ($b) => $b->where('nama', 'ilike', "%{$this->search}%"));
                 });
             })
-            ->orderBy('id', 'desc')
+            ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
         return view('livewire.master.aset-index', [
@@ -269,6 +269,8 @@ class AsetIndex extends Component
             'filterLokasi' => $this->filterLokasi,
             'filterStatus' => $this->filterStatus,
             'filterKondisi' => $this->filterKondisi,
+            'sortBy' => $this->sortBy,
+            'sortDirection' => $this->sortDirection,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Register Master Aset']);
     }
 }

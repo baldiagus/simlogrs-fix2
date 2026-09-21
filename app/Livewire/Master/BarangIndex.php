@@ -216,7 +216,7 @@ class BarangIndex extends Component
                         ->orWhere('kode', 'ilike', "%{$this->search}%");
                 });
             })
-            ->orderBy('id', 'desc')
+            ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
         return view('livewire.master.barang-index', [
@@ -229,6 +229,8 @@ class BarangIndex extends Component
             'filterTipe' => $this->filterTipe,
             'filterKategoriId' => $this->filterKategoriId,
             'filterStatus' => $this->filterStatus,
+            'sortBy' => $this->sortBy,
+            'sortDirection' => $this->sortDirection,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Katalog Master Barang']);
     }
 }

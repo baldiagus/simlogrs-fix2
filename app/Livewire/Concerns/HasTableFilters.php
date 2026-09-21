@@ -14,6 +14,23 @@ trait HasTableFilters
 
     public int $perPage = 15;
 
+    #[Url(history: true)]
+    public string $sortBy = 'id';
+
+    #[Url(history: true)]
+    public string $sortDirection = 'desc';
+
+    public function sort(string $column): void
+    {
+        if ($this->sortBy === $column) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortBy = $column;
+            $this->sortDirection = 'asc';
+        }
+        $this->resetPage();
+    }
+
     public function updatedSearch(): void
     {
         $this->resetPage();

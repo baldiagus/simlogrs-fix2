@@ -25,27 +25,17 @@
                 />
             </div>
 
-            <div class="flex items-center gap-2 text-xs text-zinc-500">
-                <span>Tampilkan:</span>
-                <select wire:model.live="perPage" class="border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-md px-2 py-1 text-xs">
-                    <option value="10">10</option>
-                    <option value="15">15</option>
-                    <option value="25">25</option>
-                </select>
-            </div>
         </div>
     </flux:card>
 
-    {{-- Tabel Data --}}
-    <flux:card class="p-0 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-xs">
-        <flux:table :paginate="$items">
-            <flux:table.columns sticky>
-                <flux:table.column class="w-32">Kode</flux:table.column>
-                <flux:table.column>Nama Merek / Produsen</flux:table.column>
-                <flux:table.column class="text-center w-24">Status</flux:table.column>
-                <flux:table.column class="text-right w-28">Aksi</flux:table.column>
-            </flux:table.columns>
-
+    {{-- Tabel Data Full-Bleed --}}
+    <flux:table>
+        <flux:table.columns sticky>
+            <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-32">Kode</flux:table.column>
+            <flux:table.column sortable :sorted="$sortBy === 'nama'" :direction="$sortDirection" wire:click="sort('nama')">Nama Merek / Produsen</flux:table.column>
+            <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-24">Status</flux:table.column>
+            <flux:table.column class="text-right w-28">Aksi</flux:table.column>
+        </flux:table.columns>
             <flux:table.rows>
                 @forelse ($items as $item)
                     <flux:table.row :key="$item->id">
@@ -67,9 +57,21 @@
                     <x-empty-state message="Belum ada merek komoditas yang terdaftar." cols="4" />
                 @endforelse
             </flux:table.rows>
-        </flux:table>
-    </flux:card>
+    </flux:table>
 
+    {{-- Pagination & Baris Per Halaman --}}
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+        <div class="flex items-center gap-2 text-xs text-zinc-500">
+            <span>Baris per halaman:</span>
+            <select wire:model.live="perPage" class="border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-md px-2 py-1 text-xs">
+                <option value="10">10</option>
+                <option value="15">15</option>
+                <option value="25">25</option>
+            </select>
+        </div>
+
+        <flux:pagination :paginator="$items" />
+    </div>
     {{-- Modal Form Tambah / Ubah Merek --}}
     <flux:modal name="modal-merek-form" wire:model="showModal" class="md:w-[28rem]">
         <form wire:submit="save" class="space-y-4">

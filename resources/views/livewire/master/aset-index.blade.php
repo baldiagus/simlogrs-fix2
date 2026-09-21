@@ -76,34 +76,22 @@
                         </select>
                     </div>
                 </div>
-
-                <div class="flex items-center gap-2 text-xs text-zinc-500 self-end lg:self-center">
-                    <span>Per halaman:</span>
-                    <select wire:model.live="perPage" class="border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-md px-2 py-1 text-xs">
-                        <option value="10">10</option>
-                        <option value="15">15</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                    </select>
-                </div>
             </div>
         </flux:card>
     </div>
 
-    {{-- Tabel Data --}}
-    <flux:card class="p-0 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-xs">
-        <flux:table :paginate="$items">
-            <flux:table.columns sticky>
-                <flux:table.column class="w-32">Kode Register</flux:table.column>
-                <flux:table.column>Nama Komoditas & Seri</flux:table.column>
-                <flux:table.column>Penempatan Lokasi</flux:table.column>
-                <flux:table.column class="text-center">Kondisi</flux:table.column>
-                <flux:table.column class="text-right">Nilai Perolehan</flux:table.column>
-                <flux:table.column class="text-center w-24">Status</flux:table.column>
-                <flux:table.column class="text-right w-28">Aksi</flux:table.column>
-            </flux:table.columns>
-
-            <flux:table.rows>
+    {{-- Tabel Data Full-Bleed --}}
+    <flux:table>
+        <flux:table.columns sticky>
+            <flux:table.column sortable :sorted="$sortBy === 'kode_aset'" :direction="$sortDirection" wire:click="sort('kode_aset')" class="w-32">Kode Register</flux:table.column>
+            <flux:table.column>Nama Komoditas & Seri</flux:table.column>
+            <flux:table.column>Penempatan Lokasi</flux:table.column>
+            <flux:table.column sortable :sorted="$sortBy === 'kondisi'" :direction="$sortDirection" wire:click="sort('kondisi')" class="text-center">Kondisi</flux:table.column>
+            <flux:table.column sortable :sorted="$sortBy === 'nilai_perolehan'" :direction="$sortDirection" wire:click="sort('nilai_perolehan')" class="text-right">Nilai Perolehan</flux:table.column>
+            <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-24">Status</flux:table.column>
+            <flux:table.column class="text-right w-28">Aksi</flux:table.column>
+        </flux:table.columns>
+        <flux:table.rows>
                 @forelse ($items as $item)
                     <flux:table.row :key="$item->id">
                         {{-- Kode Aset --}}
@@ -183,9 +171,22 @@
                     <x-empty-state message="Belum ada unit fisik aset yang terdaftar atau sesuai filter." cols="7" />
                 @endforelse
             </flux:table.rows>
-        </flux:table>
-    </flux:card>
+    </flux:table>
 
+    {{-- Pagination & Baris Per Halaman --}}
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+        <div class="flex items-center gap-2 text-xs text-zinc-500">
+            <span>Baris per halaman:</span>
+            <select wire:model.live="perPage" class="border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-md px-2 py-1 text-xs">
+                <option value="10">10</option>
+                <option value="15">15</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+
+        <flux:pagination :paginator="$items" />
+    </div>
     {{-- Modal Form Tambah / Ubah Aset --}}
     <flux:modal name="modal-aset-form" wire:model="showModal" class="md:w-[38rem]">
         <form wire:submit="save" class="space-y-4">
