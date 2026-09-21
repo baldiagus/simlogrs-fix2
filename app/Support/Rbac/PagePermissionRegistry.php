@@ -148,29 +148,47 @@ class PagePermissionRegistry
     }
 
     /**
-     * Mengonversi state matriks form ke array permission Spatie.
+     * Mengonversi state matriks 4-kolom ke array permission Spatie.
+     * Centang 'Lihat Data' otomatis mencakup 'Akses Halaman' (page_*) dan view_any_*.
      */
     public static function toPermissions(array $state): array
     {
         $assigned = ['panel_user'];
+        $domains = static::getDomains();
 
-        // 1. Page permissions
-        if (! empty($state['pages']) && is_array($state['pages'])) {
-            foreach ($state['pages'] as $perm => $checked) {
+        // 1. Dashboard portal permissions
+        if (! empty($state['dashboards']) && is_array($state['dashboards'])) {
+            foreach ($state['dashboards'] as $perm => $checked) {
                 if ($checked) {
                     $assigned[] = $perm;
                 }
             }
         }
 
-        // 2. CRUD actions
-        $actions = ['view_any', 'view', 'create', 'update', 'delete'];
-        foreach ($actions as $action) {
-            if (! empty($state[$action]) && is_array($state[$action])) {
-                foreach ($state[$action] as $entity => $checked) {
-                    if ($checked) {
-                        $assigned[] = "{$action}_{$entity}";
+        // 2. Operasional 4-Kolom Actions
+        foreach ($domains as $domainKey => $domain) {
+            if ($domainKey === 'dashboard_portal') continue;
+
+            foreach ($domain['modules'] as $modKey => $mod) {
+                $entity = $mod['entity'];
+
+                // Jika "Lihat Data" dicentang -> otomatis sertakan Akses Halaman + view_any + view
+                if (! empty($state['view_any'][$entity])) {
+                    $assigned[] = "view_any_{$entity}";
+                    $assigned[] = "view_{$entity}";
+                    if (! empty($mod['page'])) {
+                        $assigned[] = $mod['page'];
                     }
+                }
+
+                if (! empty($state['create'][$entity])) {
+                    $assigned[] = "create_{$entity}";
+                }
+                if (! empty($state['update'][$entity])) {
+                    $assigned[] = "update_{$entity}";
+                }
+                if (! empty($state['delete'][$entity])) {
+                    $assigned[] = "delete_{$entity}";
                 }
             }
         }
@@ -179,38 +197,36 @@ class PagePermissionRegistry
     }
 
     /**
-     * Membaca permission database peran dan menyusun kembali ke format state matriks.
+     * Membaca permission database peran dan menyusun kembali ke format state matriks 4-kolom.
      */
     public static function fromRole(Role $role): array
     {
         $rolePermissions = $role->permissions->pluck('name')->flip()->toArray();
 
         $state = [
-            'pages' => [],
+            'dashboards' => [],
             'view_any' => [],
-            'view' => [],
             'create' => [],
             'update' => [],
             'delete' => [],
         ];
 
         $domains = static::getDomains();
-        foreach ($domains as $domain) {
+        foreach ($domains as $domainKey => $domain) {
             foreach ($domain['modules'] as $modKey => $mod) {
-                if (! empty($mod['page_only'])) {
+                if ($domainKey === 'dashboard_portal') {
                     $perm = $mod['permission'];
-                    $state['pages'][$perm] = isset($rolePermissions[$perm]);
+                    $state['dashboards'][$perm] = isset($rolePermissions[$perm]);
                 } else {
                     $entity = $mod['entity'];
-                    if (! empty($mod['page'])) {
-                        $pagePerm = $mod['page'];
-                        $state['pages'][$pagePerm] = isset($rolePermissions[$pagePerm]);
-                    }
-                    $state['view_any'][$entity] = isset($rolePermissions["view_any_{$entity}"]);
-                    $state['view'][$entity]     = isset($rolePermissions["view_{$entity}"]);
-                    $state['create'][$entity]   = isset($rolePermissions["create_{$entity}"]);
-                    $state['update'][$entity]   = isset($rolePermissions["update_{$entity}"]);
-                    $state['delete'][$entity]   = isset($rolePermissions["delete_{$entity}"]);
+                    // Lihat data aktif jika memiliki view_any atau akses halaman
+                    $pagePerm = $mod['page'] ?? null;
+                    $state['view_any'][$entity] = isset($rolePermissions["view_any_{$entity}"])
+                        || ($pagePerm && isset($rolePermissions[$pagePerm]));
+
+                    $state['create'][$entity] = isset($rolePermissions["create_{$entity}"]);
+                    $state['update'][$entity] = isset($rolePermissions["update_{$entity}"]);
+                    $state['delete'][$entity] = isset($rolePermissions["delete_{$entity}"]);
                 }
             }
         }
