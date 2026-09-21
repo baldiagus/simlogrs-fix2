@@ -2,13 +2,12 @@
 
 namespace App\Livewire\Concerns;
 
+use Flux;
+
 trait HasToast
 {
-    /**
-     * Dispatch notification event to Flux toast.
-     */
     public function toast(string $message, string $variant = 'success', string $heading = ''): void
     {
-        $this->dispatch('toast', text: $message, variant: $variant, heading: $heading);
+        Flux::toast(text: $message, heading: $heading ?: null, variant: $variant);
     }
 }

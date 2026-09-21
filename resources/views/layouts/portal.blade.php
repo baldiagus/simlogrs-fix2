@@ -191,7 +191,7 @@
         {{ $slot }}
     </flux:main>
 
-    <flux:toast />
+    <flux:toast position="top end" />
 
     @livewireScripts
     @fluxScripts
