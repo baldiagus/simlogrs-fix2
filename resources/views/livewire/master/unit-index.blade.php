@@ -1,0 +1,126 @@
+<div class="space-y-6">
+    {{-- Header --}}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+        <div>
+            <flux:heading size="xl" level="1">Unit Kerja & Ruangan</flux:heading>
+            <flux:subheading>Daftar instalasi pelayanan medis, penunjang, dan operasional rumah sakit.</flux:subheading>
+        </div>
+
+        @can('create_master::unit')
+            <flux:button wire:click="create" variant="primary" icon="plus" wire:loading.attr="disabled">
+                Tambah Unit
+            </flux:button>
+        @endcan
+    </div>
+
+    {{-- Filter Toolbar --}}
+    <flux:card class="p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+        <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div class="w-full sm:w-80">
+                <flux:input
+                    wire:model.live.debounce.300ms="search"
+                    placeholder="Cari unit, kode, atau penanggung jawab..."
+                    icon="magnifying-glass"
+                    clearable
+                />
+            </div>
+
+            <div class="flex items-center gap-2 text-xs text-zinc-500">
+                <span>Tampilkan:</span>
+                <select wire:model.live="perPage" class="border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-md px-2 py-1 text-xs">
+                    <option value="10">10</option>
+                    <option value="15">15</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+        </div>
+    </flux:card>
+
+    {{-- Tabel Data --}}
+    <flux:card class="p-0 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-xs">
+        <flux:table :paginate="$items">
+            <flux:table.columns sticky>
+                <flux:table.column class="w-24">Kode</flux:table.column>
+                <flux:table.column>Nama Ruangan / Instalasi</flux:table.column>
+                <flux:table.column>Jenis Pelayanan</flux:table.column>
+                <flux:table.column>Penanggung Jawab</flux:table.column>
+                <flux:table.column>Lokasi Gedung</flux:table.column>
+                <flux:table.column class="text-center w-24">Status</flux:table.column>
+                <flux:table.column class="text-right w-28">Aksi</flux:table.column>
+            </flux:table.columns>
+
+            <flux:table.rows>
+                @forelse ($items as $item)
+                    <flux:table.row :key="$item->id">
+                        <flux:table.cell class="font-mono font-semibold text-xs">{{ $item->kode }}</flux:table.cell>
+                        <flux:table.cell class="font-medium">{{ $item->nama }}</flux:table.cell>
+                        <flux:table.cell>
+                            <span class="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-medium">
+                                {{ str_replace('_', ' ', $item->jenis) }}
+                            </span>
+                        </flux:table.cell>
+                        <flux:table.cell class="text-zinc-500">{{ $item->penanggung_jawab ?? '-' }}</flux:table.cell>
+                        <flux:table.cell class="text-zinc-500">{{ $item->lokasi_gedung ?? '-' }}</flux:table.cell>
+                        <flux:table.cell class="text-center">
+                            <x-status-badge :status="$item->status" />
+                        </flux:table.cell>
+                        <flux:table.cell class="text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                @can('update_master::unit')
+                                    <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
+                                    <flux:button wire:click="toggleStatus({{ $item->id }})" size="xs" variant="ghost" icon="arrow-path" title="Ubah Status" />
+                                @endcan
+                            </div>
+                        </flux:table.cell>
+                    </flux:table.row>
+                @empty
+                    <x-empty-state message="Belum ada unit kerja yang terdaftar atau sesuai pencarian." cols="7" />
+                @endforelse
+            </flux:table.rows>
+        </flux:table>
+    </flux:card>
+
+    {{-- Modal Form Tambah / Ubah Unit --}}
+    <flux:modal name="modal-unit-form" wire:model="showModal" class="md:w-[32rem]">
+        <form wire:submit="save" class="space-y-4">
+            <div>
+                <flux:heading size="lg">{{ $editingId ? 'Ubah Data Unit' : 'Tambah Unit Kerja Baru' }}</flux:heading>
+                <flux:subheading>Lengkapi data identitas ruangan atau instalasi rumah sakit.</flux:subheading>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <flux:input wire:model="kode" label="Kode Unit" placeholder="misal: IGD" required uppercase />
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Jenis Unit</label>
+                    <select wire:model="jenis" class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                        <option value="PELAYANAN_MEDIS">Pelayanan Medis</option>
+                        <option value="PENUNJANG_MEDIS">Penunjang Medis</option>
+                        <option value="ADMINISTRASI">Administrasi</option>
+                        <option value="OPERASIONAL">Operasional</option>
+                    </select>
+                </div>
+            </div>
+
+            <flux:input wire:model="nama" label="Nama Ruangan / Unit" placeholder="misal: Instalasi Gawat Darurat" required />
+            <flux:input wire:model="penanggung_jawab" label="Penanggung Jawab / Kepala Unit" placeholder="misal: dr. Pratama, Sp.EM" />
+            <flux:input wire:model="lokasi_gedung" label="Lokasi Gedung / Lantai" placeholder="misal: Gedung A Lantai 1" />
+
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Status Unit</label>
+                <select wire:model="status" class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                    <option value="AKTIF">AKTIF</option>
+                    <option value="NONAKTIF">NONAKTIF</option>
+                </select>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">Batal</flux:button>
+                <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="save">Simpan</span>
+                    <span wire:loading wire:target="save">Menyimpan...</span>
+                </flux:button>
+            </div>
+        </form>
+    </flux:modal>
+</div>

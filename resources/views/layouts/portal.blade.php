@@ -73,9 +73,46 @@
             @endcan
 
             @can('view_any_master::barang')
-                <flux:sidebar.item icon="cube" href="/{{ $portalKey }}/barang" :current="request()->is('*/barang')">
-                    Katalog Barang
-                </flux:sidebar.item>
+                <flux:sidebar.group expandable heading="Master & Logistik" class="grid">
+                    <flux:sidebar.item icon="cube" href="/{{ $portalKey }}/barang" :current="request()->is('*/barang')">
+                        Katalog Barang
+                    </flux:sidebar.item>
+                    @can('view_any_master::unit')
+                        <flux:sidebar.item icon="building-office" href="/{{ $portalKey }}/unit" :current="request()->is('*/unit')">
+                            Unit & Ruangan
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_master::gudang')
+                        <flux:sidebar.item icon="building-storefront" href="/{{ $portalKey }}/gudang" :current="request()->is('*/gudang')">
+                            Gudang Logistik
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_master::lokasi::gudang')
+                        <flux:sidebar.item icon="table-cells" href="/{{ $portalKey }}/lokasi-gudang" :current="request()->is('*/lokasi-gudang')">
+                            Lokasi Rak / Bin
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_master::kategori::barang')
+                        <flux:sidebar.item icon="tag" href="/{{ $portalKey }}/kategori" :current="request()->is('*/kategori')">
+                            Kategori Barang
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_master::satuan::barang')
+                        <flux:sidebar.item icon="scale" href="/{{ $portalKey }}/satuan" :current="request()->is('*/satuan')">
+                            Satuan Kemasan
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_master::merek::barang')
+                        <flux:sidebar.item icon="bookmark" href="/{{ $portalKey }}/merek" :current="request()->is('*/merek')">
+                            Merek Barang
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_master::pemasok')
+                        <flux:sidebar.item icon="truck" href="/{{ $portalKey }}/pemasok" :current="request()->is('*/pemasok')">
+                            Pemasok / Vendor
+                        </flux:sidebar.item>
+                    @endcan
+                </flux:sidebar.group>
             @endcan
 
             {{-- Switcher Portal untuk Super Admin --}}

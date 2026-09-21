@@ -14,7 +14,13 @@ use App\Livewire\Dashboard\UnitDashboard;
 use App\Livewire\Dashboard\TeknisiDashboard;
 use App\Livewire\Dashboard\ManajemenDashboard;
 use App\Livewire\Dashboard\AuditorDashboard;
-
+use App\Livewire\Master\UnitIndex;
+use App\Livewire\Master\GudangIndex;
+use App\Livewire\Master\LokasiGudangIndex;
+use App\Livewire\Master\KategoriBarangIndex;
+use App\Livewire\Master\SatuanBarangIndex;
+use App\Livewire\Master\MerekBarangIndex;
+use App\Livewire\Master\PemasokIndex;
 // Root Gateway & Login Form
 Route::get('/', function () {
     return redirect()->route('login');
@@ -33,11 +39,25 @@ Route::post('/logout', function () {
 Route::middleware(['auth', 'portal.access:super-admin'])->prefix('super-admin')->name('super-admin.')->group(function () {
     Route::get('/dashboard', SuperAdminDashboard::class)->name('dashboard');
     Route::get('/roles', RoleManager::class)->name('roles');
+    Route::get('/unit', UnitIndex::class)->name('unit');
+    Route::get('/gudang', GudangIndex::class)->name('gudang');
+    Route::get('/lokasi-gudang', LokasiGudangIndex::class)->name('lokasi-gudang');
+    Route::get('/kategori', KategoriBarangIndex::class)->name('kategori');
+    Route::get('/satuan', SatuanBarangIndex::class)->name('satuan');
+    Route::get('/merek', MerekBarangIndex::class)->name('merek');
+    Route::get('/pemasok', PemasokIndex::class)->name('pemasok');
 });
 
 // 2. Portal Admin Logistik Sentral
 Route::middleware(['auth', 'portal.access:admin-logistik'])->prefix('admin-logistik')->name('admin-logistik.')->group(function () {
     Route::get('/dashboard', AdminLogistikDashboard::class)->name('dashboard');
+    Route::get('/unit', UnitIndex::class)->name('unit');
+    Route::get('/gudang', GudangIndex::class)->name('gudang');
+    Route::get('/lokasi-gudang', LokasiGudangIndex::class)->name('lokasi-gudang');
+    Route::get('/kategori', KategoriBarangIndex::class)->name('kategori');
+    Route::get('/satuan', SatuanBarangIndex::class)->name('satuan');
+    Route::get('/merek', MerekBarangIndex::class)->name('merek');
+    Route::get('/pemasok', PemasokIndex::class)->name('pemasok');
 });
 
 // 3. Portal Kepala Gudang

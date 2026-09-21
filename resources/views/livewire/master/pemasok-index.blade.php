@@ -1,0 +1,131 @@
+<div class="space-y-6">
+    {{-- Header --}}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+        <div>
+            <flux:heading size="xl" level="1">Pemasok & Rekanan Vendor</flux:heading>
+            <flux:subheading>Daftar mitra penyedia komoditas logistik dan suku cadang rumah sakit.</flux:subheading>
+        </div>
+
+        @can('create_master::pemasok')
+            <flux:button wire:click="create" variant="primary" icon="plus" wire:loading.attr="disabled">
+                Tambah Pemasok
+            </flux:button>
+        @endcan
+    </div>
+
+    {{-- Filter Toolbar --}}
+    <flux:card class="p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+        <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div class="w-full sm:w-80">
+                <flux:input
+                    wire:model.live.debounce.300ms="search"
+                    placeholder="Cari nama vendor, PIC, atau kota..."
+                    icon="magnifying-glass"
+                    clearable
+                />
+            </div>
+
+            <div class="flex items-center gap-2 text-xs text-zinc-500">
+                <span>Tampilkan:</span>
+                <select wire:model.live="perPage" class="border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-md px-2 py-1 text-xs">
+                    <option value="10">10</option>
+                    <option value="15">15</option>
+                    <option value="25">25</option>
+                </select>
+            </div>
+        </div>
+    </flux:card>
+
+    {{-- Tabel Data --}}
+    <flux:card class="p-0 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-xs">
+        <flux:table :paginate="$items">
+            <flux:table.columns sticky>
+                <flux:table.column class="w-28">Kode</flux:table.column>
+                <flux:table.column>Nama Perusahaan Vendor</flux:table.column>
+                <flux:table.column>PIC / Kontak</flux:table.column>
+                <flux:table.column>Telepon & Email</flux:table.column>
+                <flux:table.column>Kota</flux:table.column>
+                <flux:table.column class="text-center w-24">Status</flux:table.column>
+                <flux:table.column class="text-right w-28">Aksi</flux:table.column>
+            </flux:table.columns>
+
+            <flux:table.rows>
+                @forelse ($items as $item)
+                    <flux:table.row :key="$item->id">
+                        <flux:table.cell class="font-mono font-semibold text-xs">{{ $item->kode }}</flux:table.cell>
+                        <flux:table.cell>
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->nama }}</div>
+                            @if ($item->npwp)
+                                <div class="font-mono text-[11px] text-zinc-400">NPWP: {{ $item->npwp }}</div>
+                            @endif
+                        </flux:table.cell>
+                        <flux:table.cell class="text-zinc-700 dark:text-zinc-300">{{ $item->nama_kontak ?? '-' }}</flux:table.cell>
+                        <flux:table.cell>
+                            <div class="font-mono text-xs">{{ $item->no_telepon ?? '-' }}</div>
+                            <div class="text-[11px] text-zinc-400">{{ $item->email ?? '-' }}</div>
+                        </flux:table.cell>
+                        <flux:table.cell class="text-zinc-500">{{ $item->kota ?? '-' }}</flux:table.cell>
+                        <flux:table.cell class="text-center">
+                            <x-status-badge :status="$item->status" />
+                        </flux:table.cell>
+                        <flux:table.cell class="text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                @can('update_master::pemasok')
+                                    <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
+                                    <flux:button wire:click="toggleStatus({{ $item->id }})" size="xs" variant="ghost" icon="arrow-path" title="Ubah Status" />
+                                @endcan
+                            </div>
+                        </flux:table.cell>
+                    </flux:table.row>
+                @empty
+                    <x-empty-state message="Belum ada data rekanan vendor yang terdaftar." cols="7" />
+                @endforelse
+            </flux:table.rows>
+        </flux:table>
+    </flux:card>
+
+    {{-- Modal Form Tambah / Ubah Pemasok --}}
+    <flux:modal name="modal-pemasok-form" wire:model="showModal" class="md:w-[32rem]">
+        <form wire:submit="save" class="space-y-4">
+            <div>
+                <flux:heading size="lg">{{ $editingId ? 'Ubah Data Pemasok' : 'Tambah Pemasok Baru' }}</flux:heading>
+                <flux:subheading>Informasi legalitas dan kontak resmi perusahaan rekanan.</flux:subheading>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <flux:input wire:model="kode" label="Kode Vendor" placeholder="misal: VDR-001" required uppercase />
+                <flux:input wire:model="npwp" label="NPWP Perusahaan" placeholder="00.000.000.0-000.000" />
+            </div>
+
+            <flux:input wire:model="nama" label="Nama Perusahaan" placeholder="misal: PT. Logistik Medika Abadi" required />
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <flux:input wire:model="nama_kontak" label="Nama PIC / Kontak" placeholder="misal: Bpk. Gunawan" />
+                <flux:input wire:model="no_telepon" label="Nomor Telepon / WA" placeholder="08123456789" />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <flux:input wire:model="email" label="Email Resmi" type="email" placeholder="kontak@vendor.com" />
+                <flux:input wire:model="kota" label="Kota Domisili" placeholder="misal: Jakarta Selatan" />
+            </div>
+
+            <flux:textarea wire:model="alamat" label="Alamat Kantor" placeholder="Alamat lengkap perusahaan..." rows="2" />
+
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Status Pemasok</label>
+                <select wire:model="status" class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                    <option value="AKTIF">AKTIF</option>
+                    <option value="NONAKTIF">NONAKTIF</option>
+                </select>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">Batal</flux:button>
+                <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="save">Simpan</span>
+                    <span wire:loading wire:target="save">Menyimpan...</span>
+                </flux:button>
+            </div>
+        </form>
+    </flux:modal>
+</div>

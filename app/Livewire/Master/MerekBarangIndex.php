@@ -1,0 +1,107 @@
+<?php
+
+namespace App\Livewire\Master;
+
+use App\Livewire\Concerns\HasPortalLayout;
+use App\Livewire\Concerns\HasTableFilters;
+use App\Livewire\Concerns\HasToast;
+use App\Models\MerekBarang;
+use Livewire\Attributes\Validate;
+use Livewire\Component;
+
+class MerekBarangIndex extends Component
+{
+    use HasTableFilters, HasToast, HasPortalLayout;
+
+    public bool $showModal = false;
+    public ?int $editingId = null;
+
+    #[Validate('required|string|max:50')]
+    public string $kode = '';
+
+    #[Validate('required|string|max:100')]
+    public string $nama = '';
+
+    #[Validate('required|in:AKTIF,NONAKTIF')]
+    public string $status = 'AKTIF';
+
+    public function create()
+    {
+        abort_unless(auth()->user()?->can('create_master::merek::barang'), 403);
+
+        $this->reset(['editingId', 'kode', 'nama', 'status']);
+        $this->status = 'AKTIF';
+        $this->showModal = true;
+    }
+
+    public function edit(int $id)
+    {
+        abort_unless(auth()->user()?->can('update_master::merek::barang'), 403);
+
+        $merek = MerekBarang::findOrFail($id);
+        $this->editingId = $merek->id;
+        $this->kode = $merek->kode;
+        $this->nama = $merek->nama;
+        $this->status = $merek->status;
+        $this->showModal = true;
+    }
+
+    public function save()
+    {
+        $this->validate([
+            'kode' => 'required|string|max:50|unique:merek_barang,kode,' . ($this->editingId ?? 'NULL') . ',id',
+            'nama' => 'required|string|max:100',
+            'status' => 'required|in:AKTIF,NONAKTIF',
+        ]);
+
+        $data = [
+            'kode' => strtoupper($this->kode),
+            'nama' => $this->nama,
+            'status' => $this->status,
+        ];
+
+        if ($this->editingId) {
+            abort_unless(auth()->user()?->can('update_master::merek::barang'), 403);
+            $merek = MerekBarang::findOrFail($this->editingId);
+            $merek->update($data);
+            $this->toast("Merek '{$merek->nama}' berhasil diperbarui.", 'success');
+        } else {
+            abort_unless(auth()->user()?->can('create_master::merek::barang'), 403);
+            MerekBarang::create($data);
+            $this->toast("Merek baru berhasil ditambahkan.", 'success');
+        }
+
+        $this->showModal = false;
+    }
+
+    public function toggleStatus(int $id)
+    {
+        abort_unless(auth()->user()?->can('update_master::merek::barang'), 403);
+
+        $merek = MerekBarang::findOrFail($id);
+        $newStatus = $merek->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
+        $merek->update(['status' => $newStatus]);
+
+        $this->toast("Status merek '{$merek->nama}' diubah menjadi {$newStatus}.", 'info');
+    }
+
+    public function render()
+    {
+        abort_unless(auth()->user()?->can('view_any_master::merek::barang') || auth()->user()?->can('view_master::merek::barang'), 403);
+
+        $items = MerekBarang::query()
+            ->when($this->search, function ($q) {
+                $q->where(function ($sub) {
+                    $sub->where('nama', 'ilike', "%{$this->search}%")
+                        ->orWhere('kode', 'ilike', "%{$this->search}%");
+                });
+            })
+            ->orderBy('id', 'desc')
+            ->paginate($this->perPage);
+
+        return view('livewire.master.merek-barang-index', [
+            'items' => $items,
+            'editingId' => $this->editingId,
+        ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Merek Barang']);
+    }
+}
