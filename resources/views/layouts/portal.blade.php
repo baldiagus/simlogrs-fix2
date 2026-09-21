@@ -40,82 +40,13 @@
         $currentPortal = $portalMeta[$portalKey] ?? $portalMeta['super-admin'];
     @endphp
 
-    {{-- Official Full Header --}}
-    <flux:header container class="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700">
-        <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
-
-        <div class="flex items-center gap-3">
-            <flux:brand
-                href="/{{ $portalKey }}/dashboard"
-                name="SIMLOG RS"
-                class="font-extrabold text-base tracking-tight"
-            >
-                <div class="size-6 rounded bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                    RS
-                </div>
-            </flux:brand>
-
-            <flux:separator vertical variant="subtle" class="my-2 max-lg:hidden" />
-
-            <flux:badge size="sm" :color="$currentPortal['badge']" class="max-lg:hidden font-semibold uppercase tracking-wider text-[10px]">
-                {{ $currentPortal['label'] }}
-            </flux:badge>
-        </div>
-
-        <flux:spacer />
-
-        {{-- Dropdown Ganti Ruang Kerja (Portal Role Switcher) disamping kiri profile --}}
-        @if ($user && $user->can('page_Dashboard'))
-            <flux:dropdown class="mr-3">
-                <flux:button icon:trailing="chevron-down" size="sm" variant="subtle">
-                    Ganti Ruang Kerja
-                </flux:button>
-
-                <flux:menu>
-                    <flux:menu.submenu heading="Pilih Portal (10 Peran)">
-                        <flux:menu.radio.group>
-                            @foreach ($portalMeta as $pKey => $pData)
-                                <a href="/{{ $pKey }}/dashboard" class="block">
-                                    <flux:menu.radio :checked="$portalKey === $pKey">
-                                        {{ $pData['label'] }}
-                                    </flux:menu.radio>
-                                </a>
-                            @endforeach
-                        </flux:menu.radio.group>
-                    </flux:menu.submenu>
-                </flux:menu>
-            </flux:dropdown>
-        @endif
-
-        {{-- Dropdown Profile di ujung kanan --}}
-        <flux:dropdown position="top" align="start">
-            <flux:profile :name="$user?->nama ?? 'Pengguna'" :initials="substr($user?->nama ?? 'P', 0, 2)" />
-
-            <flux:menu>
-                <div class="px-3 py-2 text-xs border-b border-zinc-100 dark:border-zinc-800">
-                    <div class="font-bold text-zinc-900 dark:text-zinc-100">{{ $user?->nama }}</div>
-                    <div class="font-mono text-[11px] text-zinc-400">{{ $user?->email }}</div>
-                    <div class="text-[10px] text-zinc-500 mt-1 uppercase font-semibold">Peran: {{ $currentPortal['label'] }}</div>
-                </div>
-
-                <flux:menu.separator />
-
-                <form method="POST" action="/logout">
-                    @csrf
-                    <flux:menu.item icon="arrow-right-start-on-rectangle" variant="danger" type="submit">
-                        Logout
-                    </flux:menu.item>
-                </form>
-            </flux:menu>
-        </flux:dropdown>
-    </flux:header>
-
-    {{-- Official Flux Sidebar --}}
+    {{-- Official Flux Sidebar (Full Height di Kolom Kiri) --}}
     <flux:sidebar sticky collapsible="mobile" class="bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700">
         <flux:sidebar.header>
             <flux:sidebar.brand
                 href="/{{ $portalKey }}/dashboard"
                 name="SIMLOG RS"
+                class="font-extrabold tracking-tight"
             >
                 <div class="size-6 rounded bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
                     RS
@@ -195,13 +126,71 @@
         </div>
     </flux:sidebar>
 
-    {{-- Main Container --}}
+    {{-- Header di dalam Konten (Sebelah Kanan Sidebar) --}}
+    <flux:header class="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700 px-6 lg:px-8 flex items-center">
+        <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
+
+        <div class="flex items-center gap-2">
+            <span class="text-xs text-zinc-400 font-medium hidden sm:inline">Ruang Kerja:</span>
+            <flux:badge size="sm" :color="$currentPortal['badge']" class="font-semibold uppercase tracking-wider text-[10px]">
+                {{ $currentPortal['label'] }}
+            </flux:badge>
+        </div>
+
+        <flux:spacer />
+
+        {{-- Dropdown Ganti Ruang Kerja (Portal Switcher) di sebelah kiri profile --}}
+        @if ($user && $user->can('page_Dashboard'))
+            <flux:dropdown class="mr-3">
+                <flux:button icon:trailing="chevron-down" size="sm" variant="subtle">
+                    Ganti Ruang Kerja
+                </flux:button>
+
+                <flux:menu>
+                    <flux:menu.submenu heading="Pilih Portal (10 Peran)">
+                        <flux:menu.radio.group>
+                            @foreach ($portalMeta as $pKey => $pData)
+                                <a href="/{{ $pKey }}/dashboard" class="block">
+                                    <flux:menu.radio :checked="$portalKey === $pKey">
+                                        {{ $pData['label'] }}
+                                    </flux:menu.radio>
+                                </a>
+                            @endforeach
+                        </flux:menu.radio.group>
+                    </flux:menu.submenu>
+                </flux:menu>
+            </flux:dropdown>
+        @endif
+
+        {{-- Dropdown Profile Pengguna di ujung kanan --}}
+        <flux:dropdown position="top" align="start">
+            <flux:profile :name="$user?->nama ?? 'Pengguna'" :initials="substr($user?->nama ?? 'P', 0, 2)" />
+
+            <flux:menu>
+                <div class="px-3 py-2 text-xs border-b border-zinc-100 dark:border-zinc-800">
+                    <div class="font-bold text-zinc-900 dark:text-zinc-100">{{ $user?->nama }}</div>
+                    <div class="font-mono text-[11px] text-zinc-400">{{ $user?->email }}</div>
+                    <div class="text-[10px] text-zinc-500 mt-1 uppercase font-semibold">Peran: {{ $currentPortal['label'] }}</div>
+                </div>
+
+                <flux:menu.separator />
+
+                <form method="POST" action="/logout">
+                    @csrf
+                    <flux:menu.item icon="arrow-right-start-on-rectangle" variant="danger" type="submit">
+                        Logout
+                    </flux:menu.item>
+                </form>
+            </flux:menu>
+        </flux:dropdown>
+    </flux:header>
+
+    {{-- Main Container Langsung di Bawah Header Konten --}}
     <flux:main container>
         <x-context-banner />
         {{ $slot }}
     </flux:main>
 
-    {{-- Flux Toast --}}
     <flux:toast />
 
     @livewireScripts
