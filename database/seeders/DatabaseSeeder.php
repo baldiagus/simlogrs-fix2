@@ -1,0 +1,22 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+
+class DatabaseSeeder extends Seeder
+{
+    /**
+     * Menjalankan seluruh pipeline seeder resmi secara berurutan.
+     */
+    public function run(): void
+    {
+        $this->call([
+            UnitSeeder::class,
+            GudangSeeder::class,
+            PeranSeeder::class,
+            ShieldRolePermissionSeeder::class,
+            PenggunaSeeder::class,
+        ]);
+    }
+}
