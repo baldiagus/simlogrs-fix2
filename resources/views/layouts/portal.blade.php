@@ -41,7 +41,7 @@
     @endphp
 
     {{-- Official Flux Sidebar (Full Height di Kolom Kiri) --}}
-    <flux:sidebar sticky collapsible="mobile" class="bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700">
+    <flux:sidebar sticky collapsible class="bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700">
         <flux:sidebar.header>
             <flux:sidebar.brand
                 href="/{{ $portalKey }}/dashboard"
@@ -128,7 +128,7 @@
 
     {{-- Header di dalam Konten (Sebelah Kanan Sidebar) --}}
     <flux:header class="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700 px-6 lg:px-8 flex items-center">
-        <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
+        <flux:sidebar.toggle icon="bars-2" inset="left" class="mr-3" />
 
         <div class="flex items-center gap-2">
             <span class="text-xs text-zinc-400 font-medium hidden sm:inline">Ruang Kerja:</span>
