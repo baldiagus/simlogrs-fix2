@@ -37,9 +37,30 @@ class RoleManager extends Component
     }
 
     /**
-     * Interaktivitas reaktif: Ketika 'Lihat Data' dimatikan,
+     * Hook reaktif Livewire: Ketika 'Lihat Data' dimatikan via wire:model,
      * otomatis matikan Tambah, Ubah, dan Hapus pada modul tersebut.
      */
+    public function updated($property, $value): void
+    {
+        if (str_starts_with($property, 'state.view_any.')) {
+            $entityKey = substr($property, 15);
+
+            // Anti self-lockout khusus super_admin pada user::role
+            $role = Role::find($this->selectedRoleId);
+            if ($role && $role->name === 'super_admin' && $entityKey === 'user::role') {
+                $this->state['view_any'][$entityKey] = true;
+                return;
+            }
+
+            // Jika 'Lihat Data' dimatikan, otomatis matikan izin Tambah, Ubah, dan Hapus
+            if (! $value) {
+                $this->state['create'][$entityKey] = false;
+                $this->state['update'][$entityKey] = false;
+                $this->state['delete'][$entityKey] = false;
+            }
+        }
+    }
+
     public function toggleViewAny(string $entityKey)
     {
         $role = Role::find($this->selectedRoleId);

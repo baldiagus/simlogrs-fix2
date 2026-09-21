@@ -87,9 +87,10 @@
                                     $permName = $mod['permission'];
                                     $isSuperAdminLocked = ($selectedRole->name === 'super_admin' && $permName === 'page_Dashboard');
                                 @endphp
-                                <div class="p-2.5 rounded-lg border border-zinc-200/70 dark:border-zinc-800/70 bg-white dark:bg-zinc-900">
+                                <div class="p-2.5 rounded-lg border border-zinc-200/70 dark:border-zinc-800/70 bg-white dark:bg-zinc-900" wire:key="role-{{ $selectedRole->id }}-dash-{{ $permName }}">
                                     <flux:checkbox
                                         wire:model="state.dashboards.{{ $permName }}"
+                                        wire:key="role-{{ $selectedRole->id }}-dashchk-{{ $permName }}"
                                         :label="$mod['label']"
                                         :description="$permName"
                                         :disabled="$isSuperAdminLocked"
@@ -141,7 +142,7 @@
                                                     $isSuperAdminLocked = ($selectedRole->name === 'super_admin' && $modKey === 'user::role');
                                                     $hasViewAccess = ! empty($state['view_any'][$entityKey]);
                                                 @endphp
-                                                <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors {{ $isSuperAdminLocked ? 'bg-amber-50/20 dark:bg-amber-950/10' : '' }}">
+                                                <tr wire:key="role-{{ $selectedRole->id }}-mod-{{ $entityKey }}" class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors {{ $isSuperAdminLocked ? 'bg-amber-50/20 dark:bg-amber-950/10' : '' }}">
                                                     {{-- Nama Modul --}}
                                                     <td class="py-3 px-4">
                                                         <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $mod['label'] }}</div>
@@ -155,8 +156,8 @@
                                                     <td class="py-3 px-4 text-center">
                                                         <div class="flex justify-center">
                                                             <flux:checkbox
-                                                                wire:click="toggleViewAny('{{ $entityKey }}')"
-                                                                :checked="$hasViewAccess"
+                                                                wire:model.live="state.view_any.{{ $entityKey }}"
+                                                                wire:key="role-{{ $selectedRole->id }}-va-{{ $entityKey }}"
                                                                 :disabled="$isSuperAdminLocked"
                                                             />
                                                         </div>
@@ -167,6 +168,7 @@
                                                         <div class="flex justify-center">
                                                             <flux:checkbox
                                                                 wire:model="state.create.{{ $entityKey }}"
+                                                                wire:key="role-{{ $selectedRole->id }}-c-{{ $entityKey }}"
                                                                 :disabled="$isSuperAdminLocked || ! $hasViewAccess"
                                                             />
                                                         </div>
@@ -177,6 +179,7 @@
                                                         <div class="flex justify-center">
                                                             <flux:checkbox
                                                                 wire:model="state.update.{{ $entityKey }}"
+                                                                wire:key="role-{{ $selectedRole->id }}-u-{{ $entityKey }}"
                                                                 :disabled="$isSuperAdminLocked || ! $hasViewAccess"
                                                             />
                                                         </div>
@@ -187,6 +190,7 @@
                                                         <div class="flex justify-center">
                                                             <flux:checkbox
                                                                 wire:model="state.delete.{{ $entityKey }}"
+                                                                wire:key="role-{{ $selectedRole->id }}-d-{{ $entityKey }}"
                                                                 :disabled="$isSuperAdminLocked || ! $hasViewAccess"
                                                             />
                                                         </div>
