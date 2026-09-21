@@ -245,7 +245,7 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <flux:input wire:model="tanggal_perolehan" label="Tanggal Perolehan" type="date" required />
-                <flux:input wire:model="nilai_perolehan" label="Nilai Perolehan (Rp)" type="number" min="0" step="0.01" required />
+                <x-number-input model="nilai_perolehan" label="Nilai Perolehan" prefix="Rp" required />
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
