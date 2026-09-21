@@ -22,6 +22,7 @@ use App\Livewire\Master\SatuanBarangIndex;
 use App\Livewire\Master\MerekBarangIndex;
 use App\Livewire\Master\PemasokIndex;
 use App\Livewire\Master\BarangIndex;
+use App\Livewire\Master\AsetIndex;
 // Root Gateway & Login Form
 Route::get('/', function () {
     return redirect()->route('login');
@@ -48,6 +49,7 @@ Route::middleware(['auth', 'portal.access:super-admin'])->prefix('super-admin')-
     Route::get('/merek', MerekBarangIndex::class)->name('merek');
     Route::get('/pemasok', PemasokIndex::class)->name('pemasok');
     Route::get('/barang', BarangIndex::class)->name('barang');
+    Route::get('/aset', AsetIndex::class)->name('aset');
 });
 
 // 2. Portal Admin Logistik Sentral
@@ -61,6 +63,7 @@ Route::middleware(['auth', 'portal.access:admin-logistik'])->prefix('admin-logis
     Route::get('/merek', MerekBarangIndex::class)->name('merek');
     Route::get('/pemasok', PemasokIndex::class)->name('pemasok');
     Route::get('/barang', BarangIndex::class)->name('barang');
+    Route::get('/aset', AsetIndex::class)->name('aset');
 });
 
 // 3. Portal Kepala Gudang

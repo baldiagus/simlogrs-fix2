@@ -77,6 +77,11 @@
                     <flux:sidebar.item icon="cube" href="/{{ $portalKey }}/barang" :current="request()->is('*/barang')">
                         Katalog Barang
                     </flux:sidebar.item>
+                    @can('view_any_master::aset')
+                        <flux:sidebar.item icon="archive-box" href="/{{ $portalKey }}/aset" :current="request()->is('*/aset')">
+                            Register Aset
+                        </flux:sidebar.item>
+                    @endcan
                     @can('view_any_master::unit')
                         <flux:sidebar.item icon="building-office" href="/{{ $portalKey }}/unit" :current="request()->is('*/unit')">
                             Unit & Ruangan
