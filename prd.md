@@ -83,6 +83,14 @@ Seluruh perintah CLI (artisan, composer, migrasi, seeder, test) \*\*wajib diekse
 simlog-fix2/
 ├── app/
 │   ├── Http/
+│   │   ├── Controllers/
+│   │   │   └── Api/
+│   │   │       └── V1/                         # API Controllers untuk Klien Mobile
+│   │   │           ├── AuthController.php      # Login Bearer token, logout, profile
+│   │   │           ├── ApprovalController.php  # Fast-approval PR & Amprah mobile
+│   │   │           ├── GudangApiController.php # Scanner barcode/QR batch & opname
+│   │   │           ├── AsetApiController.php   # Scanner QR aset & sirkulasi pinjam
+│   │   │           └── MaintenanceApiController.php # Lapor cepat foto HP & lembar kerja
 │   │   └── Middleware/
 │   │       └── PortalAccessMiddleware.php      # Guard isolasi 10 portal & pencegah URL tampering
 │   ├── Livewire/                               # 58 Modul Operasional Livewire 3
@@ -117,12 +125,68 @@ simlog-fix2/
 │       └── pdf/                                # Template PDF PO, SPPB, SPK
 ├── routes/
 │   ├── web.php                                 # Root gateway & 10 Route Groups portal
+│   ├── api.php                                 # RESTful API v1 (Sanctum) untuk Mobile Klien
 │   └── console.php                             # 3 Task scheduler harian (cron)
 ├── docker-compose.yml                          # 4 Services: app, web, postgres, redis
 ├── composer.json
 ├── package.json
 └── vite.config.js
 ```
+### 1.6 Arsitektur RESTful API Mobile (Sanctum v1)
+
+#### A. Topologi Integrasi Klien Mobile
+```
+[ APLIKASI MOBILE RS ]
+(Android / iOS: Flutter, React Native, Kotlin)
+        │
+   Bearer Token (Laravel Sanctum)
+        ▼
+[ routes/api.php (Prefix: /api/v1/*) ]
+        │
+   API Controllers (JSON Response Standard)
+        │
+   [ Shared Domain Services ] ◄─── (Dipanggil bersama oleh Web & Mobile)
+   • DistribusiService::eksekusiPickingFefo()
+   • PeminjamanAsetService::serahTerimaFisik()
+   • CodeGenerator::generate()
+        ▼
+[ PostgreSQL 16 ]
+```
+
+#### B. Standar Format Response JSON
+Seluruh endpoint API mengembalikan payload JSON seragam:
+```json
+{
+    "sukses": true,
+    "pesan": "Keterangan hasil operasi",
+    "data": {},
+    "meta": {
+        "waktu_eksekusi_ms": 12.4,
+        "versi_api": "v1.0"
+    }
+}
+```
+
+#### C. Katalog Endpoint Resmi API v1
+1. **Autentikasi & Profil Pengguna (`/api/v1/auth/*`)**:
+   - `POST /api/v1/auth/login`: Autentikasi email & password -> menghasilkan `token` (Sanctum PlainTextToken).
+   - `POST /api/v1/auth/logout`: Revoke token aktif (`$user->currentAccessToken()->delete()`).
+   - `GET /api/v1/auth/me`: Profil pengguna, unit dinas, gudang dinas, roles, dan permissions aktif.
+2. **Persetujuan Cepat Pejabat / Karu (`/api/v1/approval/*`)**:
+   - `GET /api/v1/approval/pending`: Mengambil seluruh antrean PR dan amprah ruangan yang membutuhkan persetujuan.
+   - `POST /api/v1/approval/pr/{id}`: Approve atau reject permohonan pengadaan (PR).
+   - `POST /api/v1/approval/amprah/{id}`: Approve atau reject permohonan distribusi (amprah ruangan).
+3. **Operasional Gudang & Scanner Barcode (`/api/v1/gudang/*`)**:
+   - `POST /api/v1/gudang/scan-batch`: Verifikasi barcode/QR code nomor batch saat inbound dan picking FEFO.
+   - `POST /api/v1/gudang/opname-count`: Input kuantitas hitung fisik *blind count* langsung di depan rak.
+4. **Sirkulasi Aset & Scanner QR (`/api/v1/aset/*`)**:
+   - `POST /api/v1/aset/scan-qr`: Pindai stiker QR code fisik aset -> tampilkan riwayat servis, lokasi, dan status pinjam.
+   - `POST /api/v1/aset/serah-terima`: Konfirmasi serah terima fisik peminjaman aset via scan QR.
+   - `POST /api/v1/aset/kembalikan`: Konfirmasi pengembalian aset dan cek kondisi fisik.
+5. **Pemeliharaan Fasilitas & Teknisi (`/api/v1/maintenance/*`)**:
+   - `POST /api/v1/maintenance/lapor-cepat`: Unggah foto fasilitas rusak langsung dari kamera HP dan terbitkan tiket.
+   - `POST /api/v1/maintenance/spk/{id}/log`: Teknisi memperbarui lembar kerja pengerjaan dan pemakaian suku cadang.
+
 ---
 
 ## 2. Design System & UI Guidelines

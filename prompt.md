@@ -57,6 +57,9 @@ Seluruh file yang dibuat dalam prompt-prompt di bawah wajib ditempatkan sesuai h
 simlog-fix2/
 ├── app/
 │   ├── Http/
+│   │   ├── Controllers/
+│   │   │   └── Api/
+│   │   │       └── V1/ (AuthController, ApprovalController, GudangApiController, AsetApiController, MaintenanceApiController)
 │   │   └── Middleware/PortalAccessMiddleware.php
 │   ├── Livewire/
 │   │   ├── Auth/LoginGateway.php
@@ -89,7 +92,9 @@ simlog-fix2/
 │       ├── livewire/ (Blade views 58 komponen)
 │       └── pdf/ (po, sppb, spk)
 ├── routes/
-│   ├── web.php & console.php
+│   ├── web.php
+│   ├── api.php
+│   └── console.php
 ├── docker-compose.yml, composer.json, package.json, vite.config.js
 ```
 ---
@@ -308,6 +313,19 @@ Buatkan pipeline seeder resmi menggunakan kredensial autentikasi EMAIL tanpa dat
 6. Jalankan seeder di dalam container: `docker compose exec app php artisan migrate:fresh --seed` dan verifikasi bahwa 10 akun dan permissions berhasil tertanam, serta tabel transaksi dan barang dalam kondisi kosong (0 records).
 ```
 
+### Prompt 1.6: RESTful API v1 Autentikasi & Profil Pengguna (`routes/api.php`, `AuthController`)
+```text
+Siapkan fondasi API v1 untuk klien mobile menggunakan Laravel Sanctum:
+1. Konfigurasikan `routes/api.php` dengan prefix `/api/v1`:
+   - `POST /auth/login` -> `App\Http\Controllers\Api\V1\AuthController@login`: Menerima input `email` dan `password`, validasi status akun aktif, kembalikan Bearer Token (Sanctum PlainTextToken) dan info wewenang portal.
+   - `POST /auth/logout` -> `App\Http\Controllers\Api\V1\AuthController@logout`: Revoke personal access token aktif (`$user->currentAccessToken()->delete()`).
+   - `GET /auth/me` -> `App\Http\Controllers\Api\V1\AuthController@me`: Kembalikan profil user, unit dinas, gudang dinas, roles, dan permissions aktif.
+2. Standar Format JSON:
+   - Seluruh respon API wajib mematuhi format:
+     `{"sukses": true, "pesan": "...", "data": {...}, "meta": {"versi_api": "v1.0"}}`.
+3. Uji coba via curl / tinker: Pastikan token berhasil diterbitkan dan endpoint terproteksi mengembalikan 401 Unauthorized jika tanpa token.
+```
+
 ---
 
 ## FASE 2: Proses Bisnis Master Data & Katalog Logistik
@@ -407,6 +425,14 @@ Bangun modul siklus pengadaan lengkap dari PR ke PO hingga Inbound:
 5. Verifikasi: Buat 1 transaksi PR -> Approve Karu -> Konversi ke PO -> Penerimaan Inbound di Gudang. Buktikan saldo `stok_batch` bertambah otomatis.
 ```
 
+### Prompt 3.3: Endpoint API v1 Persetujuan PR Mobile (`ApprovalController`)
+```text
+Sediakan endpoint API untuk persetujuan pengadaan via mobile:
+1. Daftarkan di `routes/api.php` (middleware: `auth:sanctum`):
+   - `GET /approval/pending`: Menampilkan daftar PR dan amprah yang menunggu approval user login.
+   - `POST /approval/pr/{id}`: Otorisasi persetujuan/penolakan PR oleh Kepala Ruangan / Kepala Gudang.
+2. Validasi wewenang via Spatie: `$request->user()->can('update_pengadaan::permintaan::pengadaan')`.
+
 ---
 
 ## FASE 4: Proses Bisnis 2 - Siklus Distribusi Ruangan & Picking FEFO (Amprah Cycle)
@@ -449,6 +475,13 @@ Implementasikan alur amprah dan algoritma pengeluaran barang FEFO otomatis:
    - `PenerimaanBarangIndex` (Portal Petugas Unit): Konfirmasi penerimaan fisik. Kuantitas otomatis masuk ke tabel `stok_ruangan` dan transaksi berstatus `SELESAI`.
 3. Verifikasi: Simulasikan 1 alur amprah penuh dari pengajuan ruangan hingga penerimaan barang di ruangan. Buktikan batch terdekat yang terpotong pertama kali.
 ```
+
+### Prompt 4.3: Endpoint API v1 Distribusi & Picking Scanner (`GudangApiController`)
+```text
+Sediakan endpoint API untuk operasional mobile gudang:
+1. Daftarkan di `routes/api.php` (middleware: `auth:sanctum`):
+   - `POST /approval/amprah/{id}`: Otorisasi persetujuan amprah ruangan oleh Karu dan Admin Logistik.
+   - `POST /gudang/scan-batch`: Verifikasi barcode/QR code batch saat picking FEFO, memanggil `DistribusiService::eksekusiPickingFefo()`.
 
 ---
 
@@ -493,6 +526,14 @@ Bangun antarmuka peminjaman aset dengan komponen Flux UI yang rapi tanpa duplika
 5. Verifikasi: Lakukan pengujian peminjaman proyektor/kursi roda -> Approve Karu -> Serah Terima -> Kembalikan dengan kondisi Rusak Ringan. Buktikan tiket maintenance otomatis tercipta di antrean IPSRS.
 ```
 
+### Prompt 5.3: Endpoint API v1 Scanner QR Aset & Peminjaman (`AsetApiController`)
+```text
+Sediakan endpoint API untuk scanner QR code aset fisik via kamera HP:
+1. Daftarkan di `routes/api.php` (middleware: `auth:sanctum`):
+   - `POST /aset/scan-qr`: Pindai QR code aset -> kembalikan detail aset, status pinjam, riwayat servis.
+   - `POST /aset/serah-terima`: Konfirmasi serah terima fisik via scan QR peminjam.
+   - `POST /aset/kembalikan`: Konfirmasi pengembalian dan input kondisi fisik aktual.
+
 ---
 
 ## FASE 6: Proses Bisnis 4 - Siklus Pemeliharaan Sarana & IPSRS (Maintenance Cycle)
@@ -530,6 +571,13 @@ Bangun modul pemeliharaan fasilitas IPSRS menggunakan Livewire & Flux UI:
 5. `RekamMedisAsetIndex`: Buku rekam jejak digital per aset yang menampilkan riwayat servis, penggantian suku cadang, dan akumulasi biaya pemeliharaan via `<flux:table>`.
 6. Verifikasi: Simulasikan 1 laporan kerusakan AC ruangan -> Terbitkan SPK -> Teknisi input pergantian filter/freon -> Tutup SPK. Buktikan status aset kembali Normal dan stok sparepart terpotong.
 ```
+
+### Prompt 6.3: Endpoint API v1 Lapor Cepat Kerusakan & SPK Teknisi (`MaintenanceApiController`)
+```text
+Sediakan endpoint API untuk pelaporan kerusakan via foto HP dan mobile teknisi:
+1. Daftarkan di `routes/api.php` (middleware: `auth:sanctum`):
+   - `POST /maintenance/lapor-cepat`: Menerima upload foto kerusakan fisik dari kamera HP, deskripsi, dan unit pelapor.
+   - `POST /maintenance/spk/{id}/log`: Teknisi mengunggah progres pengerjaan dan pencatatan suku cadang langsung dari HP.
 
 ---
 
@@ -574,6 +622,12 @@ Bangun halaman kontrol persediaan gudang menggunakan Livewire & Flux UI:
    - Visualisasi tata letak fisik rak gudang dan kapasitas isi komoditas.
 5. Verifikasi: Lakukan input stock opname dengan selisih -2 unit -> Ajukan penyesuaian -> Otorisasi Kepala Gudang. Buktikan saldo batch berkurang 2 dan tercatat di kartu stok.
 ```
+
+### Prompt 7.3: Endpoint API v1 Stock Opname Blind Count Scanner (`GudangApiController`)
+```text
+Sediakan endpoint API untuk petugas gudang saat hitung fisik di depan rak:
+1. Daftarkan di `routes/api.php` (middleware: `auth:sanctum`):
+   - `POST /gudang/opname-count`: Input hitung fisik *blind count* per barcode rak/batch tanpa melihat angka sistem.
 
 ---
 
