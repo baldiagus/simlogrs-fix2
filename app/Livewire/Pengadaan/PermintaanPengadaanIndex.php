@@ -191,12 +191,12 @@ class PermintaanPengadaanIndex extends Component
             $query->where('unit_id', $user->unit_id);
         }
 
-        $items = $query
+        $daftarPr = $query
             ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
         return view('livewire.pengadaan.permintaan-pengadaan-index', [
-            'items'        => $items,
+            'daftarPr'     => $daftarPr,
             'daftarBarang' => $daftarBarang,
             'daftarUnit'   => $daftarUnit,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Permintaan Pengadaan (PR)']);

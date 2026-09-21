@@ -58,7 +58,7 @@
             </flux:table.columns>
 
             <flux:table.rows>
-                @forelse ($items as $item)
+                @forelse ($daftarPr as $item)
                     <flux:table.row :key="$item->id">
                         <flux:table.cell class="font-mono font-semibold text-xs">{{ $item->kode }}</flux:table.cell>
                         <flux:table.cell>
@@ -95,7 +95,7 @@
         </flux:table>
 
         {{-- Pagination --}}
-        <x-table-pagination :paginator="$items" />
+        <x-table-pagination :paginator="$daftarPr" />
     </flux:card>
 
     {{-- Modal Form Tambah PR --}}
