@@ -1,20 +1,19 @@
 <div class="space-y-6">
-    {{-- Header --}}
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div>
-            <flux:heading size="xl" level="1">Register Master Aset</flux:heading>
-            <flux:subheading>Pencatatan inventaris aktiva fisik rumah sakit, nomor seri, penempatan lokasi, dan kode QR aset.</flux:subheading>
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+        {{-- Header & Tombol Tambah --}}
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <flux:heading size="xl" level="1">Register Master Aset</flux:heading>
+                <flux:subheading>Pencatatan inventaris aktiva fisik rumah sakit, nomor seri, penempatan lokasi, dan kode QR aset.</flux:subheading>
+            </div>
+
+            @can('create_master::aset')
+                <flux:button wire:click="create" variant="primary" icon="plus" wire:loading.attr="disabled">
+                    Register Aset Baru
+                </flux:button>
+            @endcan
         </div>
 
-        @can('create_master::aset')
-            <flux:button wire:click="create" variant="primary" icon="plus" wire:loading.attr="disabled">
-                Register Aset Baru
-            </flux:button>
-        @endcan
-    </div>
-
-    {{-- Filter Lokasi & Toolbar --}}
-    <div class="space-y-4">
         {{-- Filter Lokasi Penempatan (Pills) --}}
         <div class="flex flex-wrap items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl w-fit text-xs font-medium border border-zinc-200/60 dark:border-zinc-700/60">
             <button
@@ -40,58 +39,51 @@
             </button>
         </div>
 
-        {{-- Filter Toolbar --}}
-        <flux:card class="p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-            <div class="flex flex-col lg:flex-row gap-3 items-center justify-between">
-                <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                    {{-- Pencarian --}}
-                    <div class="w-full sm:w-80">
-                        <flux:input
-                            wire:model.live.debounce.300ms="search"
-                            placeholder="Cari kode aset, nomor seri, nama barang..."
-                            icon="magnifying-glass"
-                            clearable
-                        />
-                    </div>
-
-                    {{-- Filter Status --}}
-                    <div class="w-full sm:w-44">
-                        <select wire:model.live="filterStatus" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                            <option value="">Semua Status Aset</option>
-                            <option value="TERSEDIA">TERSEDIA</option>
-                            <option value="DIGUNAKAN">DIGUNAKAN</option>
-                            <option value="DIPINJAM">DIPINJAM</option>
-                            <option value="DALAM_MAINTENANCE">DALAM MAINTENANCE</option>
-                            <option value="DIHAPUSKAN">DIHAPUSKAN</option>
-                        </select>
-                    </div>
-
-                    {{-- Filter Kondisi --}}
-                    <div class="w-full sm:w-40">
-                        <select wire:model.live="filterKondisi" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                            <option value="">Semua Kondisi Fisik</option>
-                            <option value="BAIK">Kondisi BAIK</option>
-                            <option value="RUSAK_RINGAN">RUSAK RINGAN</option>
-                            <option value="RUSAK_BERAT">RUSAK BERAT</option>
-                        </select>
-                    </div>
-                </div>
+        {{-- Toolbar Filter & Pencarian --}}
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="w-full sm:w-80">
+                <flux:input
+                    wire:model.live.debounce.300ms="search"
+                    placeholder="Cari kode aset, nomor seri, nama barang..."
+                    icon="magnifying-glass"
+                    clearable
+                />
             </div>
-        </flux:card>
-    </div>
 
-    {{-- Tabel Data Full-Bleed --}}
-    <flux:table>
-        <flux:table.columns sticky>
-            <flux:table.column sortable :sorted="$sortBy === 'kode_aset'" :direction="$sortDirection" wire:click="sort('kode_aset')" class="w-32">Kode Register</flux:table.column>
-            <flux:table.column>Nama Komoditas & Seri</flux:table.column>
-            <flux:table.column>Penempatan Lokasi</flux:table.column>
-            <flux:table.column sortable :sorted="$sortBy === 'kondisi'" :direction="$sortDirection" wire:click="sort('kondisi')" class="text-center">Kondisi</flux:table.column>
-            <flux:table.column sortable :sorted="$sortBy === 'nilai_perolehan'" :direction="$sortDirection" wire:click="sort('nilai_perolehan')" class="text-right">Nilai Perolehan</flux:table.column>
-            <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-24">Status</flux:table.column>
-            <flux:table.column class="text-right w-28">Aksi</flux:table.column>
-        </flux:table.columns>
-        <flux:table.rows>
+            <div class="w-full sm:w-44">
+                <select wire:model.live="filterStatus" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                    <option value="">Semua Status Aset</option>
+                    <option value="TERSEDIA">TERSEDIA</option>
+                    <option value="DIGUNAKAN">DIGUNAKAN</option>
+                    <option value="DIPINJAM">DIPINJAM</option>
+                    <option value="DALAM_MAINTENANCE">DALAM MAINTENANCE</option>
+                    <option value="DIHAPUSKAN">DIHAPUSKAN</option>
+                </select>
+            </div>
+
+            <div class="w-full sm:w-40">
+                <select wire:model.live="filterKondisi" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                    <option value="">Semua Kondisi Fisik</option>
+                    <option value="BAIK">Kondisi BAIK</option>
+                    <option value="RUSAK_RINGAN">RUSAK RINGAN</option>
+                    <option value="RUSAK_BERAT">RUSAK BERAT</option>
+                </select>
+            </div>
+        </div>
+
+        {{-- Tabel Bleed dalam Card --}}
+        <flux:table bleed container:class="mt-4">
+            <flux:table.columns sticky>
+                <flux:table.column sortable :sorted="$sortBy === 'kode_aset'" :direction="$sortDirection" wire:click="sort('kode_aset')" class="w-32">Kode Register</flux:table.column>
+                <flux:table.column>Nama Komoditas & Seri</flux:table.column>
+                <flux:table.column>Penempatan Lokasi</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'kondisi'" :direction="$sortDirection" wire:click="sort('kondisi')" class="text-center">Kondisi</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'nilai_perolehan'" :direction="$sortDirection" wire:click="sort('nilai_perolehan')" class="text-right">Nilai Perolehan</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-24">Status</flux:table.column>
+                <flux:table.column class="text-right w-28">Aksi</flux:table.column>
+            </flux:table.columns>
+
+            <flux:table.rows>
                 @forelse ($items as $item)
                     <flux:table.row :key="$item->id">
                         {{-- Kode Aset --}}
@@ -158,7 +150,6 @@
                         {{-- Aksi --}}
                         <flux:table.cell class="text-right">
                             <div class="flex items-center justify-end gap-1.5">
-                                {{-- Tombol Cetak QR Code --}}
                                 <flux:button wire:click="showQr({{ $item->id }})" size="xs" variant="ghost" icon="qr-code" title="Cetak Stiker QR Code" />
 
                                 @can('update_master::aset')
@@ -171,22 +162,12 @@
                     <x-empty-state message="Belum ada unit fisik aset yang terdaftar atau sesuai filter." cols="7" />
                 @endforelse
             </flux:table.rows>
-    </flux:table>
+        </flux:table>
 
-    {{-- Pagination & Baris Per Halaman --}}
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-        <div class="flex items-center gap-2 text-xs text-zinc-500">
-            <span>Baris per halaman:</span>
-            <select wire:model.live="perPage" class="border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-md px-2 py-1 text-xs">
-                <option value="10">10</option>
-                <option value="15">15</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-            </select>
-        </div>
+        {{-- Footer Pagination Terpadu: Kiri (Showing), Tengah (Baris per halaman), Kanan (Tombol) --}}
+        <x-table-pagination :paginator="$items" />
+    </flux:card>
 
-        <flux:pagination :paginator="$items" />
-    </div>
     {{-- Modal Form Tambah / Ubah Aset --}}
     <flux:modal name="modal-aset-form" wire:model="showModal" class="md:w-[38rem]">
         <form wire:submit="save" class="space-y-4">
@@ -195,7 +176,6 @@
                 <flux:subheading>Pencatatan aktiva inventaris, nomor seri, dan lokasi penempatan.</flux:subheading>
             </div>
 
-            {{-- Pilihan Barang Aset --}}
             <div>
                 <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Komoditas Aset</label>
                 <select wire:model="barang_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
@@ -207,7 +187,6 @@
                 @error('barang_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Penempatan Lokasi XOR --}}
             <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 space-y-3">
                 <div class="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">Penempatan Lokasi Fisik (Ruangan ATAU Gudang)</div>
 
@@ -310,7 +289,6 @@
                     <flux:subheading>Tempelkan stiker ini pada unit fisik barang inventaris.</flux:subheading>
                 </div>
 
-                {{-- QR Code Container --}}
                 <div id="print-area" class="p-6 bg-white dark:bg-zinc-900 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-2xl inline-block shadow-xs">
                     <div class="flex justify-center mb-3">
                         {!! $qrCodeSvg !!}

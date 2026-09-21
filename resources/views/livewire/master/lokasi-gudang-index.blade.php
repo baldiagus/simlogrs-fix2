@@ -1,56 +1,53 @@
 <div class="space-y-6">
-    {{-- Header --}}
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div>
-            <flux:heading size="xl" level="1">Tata Letak Rak & Bin</flux:heading>
-            <flux:subheading>Pemetaan fisik lokasi simpan komoditas per gudang (baris, kolom, dan level rak).</flux:subheading>
-        </div>
-
-        @can('create_master::lokasi::gudang')
-            <flux:button wire:click="create" variant="primary" icon="plus" wire:loading.attr="disabled">
-                Tambah Rak / Bin
-            </flux:button>
-        @endcan
-    </div>
-
-    {{-- Filter Toolbar --}}
-    <flux:card class="p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
-            <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                <div class="w-full sm:w-72">
-                    <flux:input
-                        wire:model.live.debounce.300ms="search"
-                        placeholder="Cari nama rak atau kode bin..."
-                        icon="magnifying-glass"
-                        clearable
-                    />
-                </div>
-
-                <div class="w-full sm:w-64">
-                    <select wire:model.live="filterGudangId" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                        <option value="">Semua Fasilitas Gudang</option>
-                        @foreach ($daftarGudang as $gudang)
-                            <option value="{{ $gudang->id }}">{{ $gudang->nama }} ({{ $gudang->kode }})</option>
-                        @endforeach
-                    </select>
-                </div>
+    <flux:card class="space-y-4 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+        {{-- Header --}}
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <flux:heading size="xl" level="1">Tata Letak Rak & Bin</flux:heading>
+                <flux:subheading>Pemetaan fisik lokasi simpan komoditas per gudang (baris, kolom, dan level rak).</flux:subheading>
             </div>
 
+            @can('create_master::lokasi::gudang')
+                <flux:button wire:click="create" variant="primary" icon="plus" wire:loading.attr="disabled">
+                    Tambah Rak / Bin
+                </flux:button>
+            @endcan
         </div>
-    </flux:card>
 
-    {{-- Tabel Data Full-Bleed --}}
-    <flux:table>
-        <flux:table.columns sticky>
-            <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-32">Kode Bin</flux:table.column>
-            <flux:table.column sortable :sorted="$sortBy === 'nama'" :direction="$sortDirection" wire:click="sort('nama')">Nama Rak Simpan</flux:table.column>
-            <flux:table.column>Gudang</flux:table.column>
-            <flux:table.column sortable :sorted="$sortBy === 'baris'" :direction="$sortDirection" wire:click="sort('baris')" class="text-center w-24">Baris</flux:table.column>
-            <flux:table.column sortable :sorted="$sortBy === 'kolom'" :direction="$sortDirection" wire:click="sort('kolom')" class="text-center w-24">Kolom</flux:table.column>
-            <flux:table.column sortable :sorted="$sortBy === 'level'" :direction="$sortDirection" wire:click="sort('level')" class="text-center w-24">Level</flux:table.column>
-            <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-24">Status</flux:table.column>
-            <flux:table.column class="text-right w-28">Aksi</flux:table.column>
-        </flux:table.columns>
+        {{-- Toolbar Filter & Pencarian --}}
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="w-full sm:w-80">
+                <flux:input
+                    wire:model.live.debounce.300ms="search"
+                    placeholder="Cari nama rak atau kode bin..."
+                    icon="magnifying-glass"
+                    clearable
+                />
+            </div>
+
+            <div class="w-full sm:w-64">
+                <select wire:model.live="filterGudangId" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                    <option value="">Semua Fasilitas Gudang</option>
+                    @foreach ($daftarGudang as $gudang)
+                        <option value="{{ $gudang->id }}">{{ $gudang->nama }} ({{ $gudang->kode }})</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
+        {{-- Tabel Bleed dalam Card --}}
+        <flux:table bleed container:class="mt-4">
+            <flux:table.columns sticky>
+                <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-32">Kode Bin</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'nama'" :direction="$sortDirection" wire:click="sort('nama')">Nama Rak Simpan</flux:table.column>
+                <flux:table.column>Gudang</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'baris'" :direction="$sortDirection" wire:click="sort('baris')" class="text-center w-24">Baris</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'kolom'" :direction="$sortDirection" wire:click="sort('kolom')" class="text-center w-24">Kolom</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'level'" :direction="$sortDirection" wire:click="sort('level')" class="text-center w-24">Level</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-24">Status</flux:table.column>
+                <flux:table.column class="text-right w-28">Aksi</flux:table.column>
+            </flux:table.columns>
+
             <flux:table.rows>
                 @forelse ($items as $item)
                     <flux:table.row :key="$item->id">
@@ -80,22 +77,12 @@
                     <x-empty-state message="Belum ada lokasi rak/bin yang terdaftar atau sesuai pencarian." cols="8" />
                 @endforelse
             </flux:table.rows>
-    </flux:table>
+        </flux:table>
 
-    {{-- Pagination & Baris Per Halaman --}}
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-        <div class="flex items-center gap-2 text-xs text-zinc-500">
-            <span>Baris per halaman:</span>
-            <select wire:model.live="perPage" class="border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-md px-2 py-1 text-xs">
-                <option value="10">10</option>
-                <option value="15">15</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-            </select>
-        </div>
+        {{-- Footer Pagination Terpadu: Kiri (Showing), Tengah (Baris per halaman), Kanan (Tombol) --}}
+        <x-table-pagination :paginator="$items" />
+    </flux:card>
 
-        <flux:pagination :paginator="$items" />
-    </div>
     {{-- Modal Form Tambah / Ubah Rak --}}
     <flux:modal name="modal-lokasi-form" wire:model="showModal" class="md:w-[32rem]">
         <form wire:submit="save" class="space-y-4">

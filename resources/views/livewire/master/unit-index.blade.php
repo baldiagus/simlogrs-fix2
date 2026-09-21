@@ -1,44 +1,41 @@
 <div class="space-y-6">
-    {{-- Header --}}
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div>
-            <flux:heading size="xl" level="1">Unit Kerja & Ruangan</flux:heading>
-            <flux:subheading>Daftar instalasi pelayanan medis, penunjang, dan operasional rumah sakit.</flux:subheading>
-        </div>
-
-        @can('create_master::unit')
-            <flux:button wire:click="create" variant="primary" icon="plus" wire:loading.attr="disabled">
-                Tambah Unit
-            </flux:button>
-        @endcan
-    </div>
-
-    {{-- Filter Toolbar --}}
-    <flux:card class="p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
-            <div class="w-full sm:w-80">
-                <flux:input
-                    wire:model.live.debounce.300ms="search"
-                    placeholder="Cari unit, kode, atau penanggung jawab..."
-                    icon="magnifying-glass"
-                    clearable
-                />
+    <flux:card class="space-y-4 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+        {{-- Header --}}
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <flux:heading size="xl" level="1">Unit Kerja & Ruangan</flux:heading>
+                <flux:subheading>Daftar instalasi pelayanan medis, penunjang, dan operasional rumah sakit.</flux:subheading>
             </div>
 
+            @can('create_master::unit')
+                <flux:button wire:click="create" variant="primary" icon="plus" wire:loading.attr="disabled">
+                    Tambah Unit
+                </flux:button>
+            @endcan
         </div>
-    </flux:card>
 
-    {{-- Tabel Data Full-Bleed --}}
-    <flux:table>
-        <flux:table.columns sticky>
-            <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-24">Kode</flux:table.column>
-            <flux:table.column sortable :sorted="$sortBy === 'nama'" :direction="$sortDirection" wire:click="sort('nama')">Nama Ruangan / Instalasi</flux:table.column>
-            <flux:table.column sortable :sorted="$sortBy === 'jenis'" :direction="$sortDirection" wire:click="sort('jenis')">Jenis Pelayanan</flux:table.column>
-            <flux:table.column sortable :sorted="$sortBy === 'penanggung_jawab'" :direction="$sortDirection" wire:click="sort('penanggung_jawab')">Penanggung Jawab</flux:table.column>
-            <flux:table.column>Lokasi Gedung</flux:table.column>
-            <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-24">Status</flux:table.column>
-            <flux:table.column class="text-right w-28">Aksi</flux:table.column>
-        </flux:table.columns>
+        {{-- Toolbar Pencarian --}}
+        <div>
+            <flux:input
+                wire:model.live.debounce.300ms="search"
+                placeholder="Cari unit, kode, atau penanggung jawab..."
+                icon="magnifying-glass"
+                clearable
+            />
+        </div>
+
+        {{-- Tabel Bleed dalam Card --}}
+        <flux:table bleed container:class="mt-4">
+            <flux:table.columns sticky>
+                <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-24">Kode</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'nama'" :direction="$sortDirection" wire:click="sort('nama')">Nama Ruangan / Instalasi</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'jenis'" :direction="$sortDirection" wire:click="sort('jenis')">Jenis Pelayanan</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'penanggung_jawab'" :direction="$sortDirection" wire:click="sort('penanggung_jawab')">Penanggung Jawab</flux:table.column>
+                <flux:table.column>Lokasi Gedung</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-24">Status</flux:table.column>
+                <flux:table.column class="text-right w-28">Aksi</flux:table.column>
+            </flux:table.columns>
+
             <flux:table.rows>
                 @forelse ($items as $item)
                     <flux:table.row :key="$item->id">
@@ -67,22 +64,12 @@
                     <x-empty-state message="Belum ada unit kerja yang terdaftar atau sesuai pencarian." cols="7" />
                 @endforelse
             </flux:table.rows>
-    </flux:table>
+        </flux:table>
 
-    {{-- Pagination & Baris Per Halaman --}}
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-        <div class="flex items-center gap-2 text-xs text-zinc-500">
-            <span>Baris per halaman:</span>
-            <select wire:model.live="perPage" class="border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-md px-2 py-1 text-xs">
-                <option value="10">10</option>
-                <option value="15">15</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-            </select>
-        </div>
+        {{-- Footer Pagination Terpadu: Kiri (Showing), Tengah (Baris per halaman), Kanan (Tombol) --}}
+        <x-table-pagination :paginator="$items" />
+    </flux:card>
 
-        <flux:pagination :paginator="$items" />
-    </div>
     {{-- Modal Form Tambah / Ubah Unit --}}
     <flux:modal name="modal-unit-form" wire:model="showModal" class="md:w-[32rem]">
         <form wire:submit="save" class="space-y-4">
