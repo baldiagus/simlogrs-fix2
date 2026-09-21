@@ -49,4 +49,9 @@ class Barang extends BaseModel
     {
         return $this->hasMany(Aset::class, 'barang_id');
     }
+
+    public function stokBatch(): HasMany
+    {
+        return $this->hasMany(StokBatch::class, 'barang_id');
+    }
 }
