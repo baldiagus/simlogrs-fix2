@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\ApprovalController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -23,5 +24,9 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
+
+        // 4. Persetujuan Cepat Pejabat / Karu
+        Route::get('/approval/pending', [ApprovalController::class, 'pending']);
+        Route::post('/approval/pr/{id}', [ApprovalController::class, 'approvePr']);
     });
 });
