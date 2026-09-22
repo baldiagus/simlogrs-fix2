@@ -12,4 +12,14 @@ class Gudang extends BaseModel
     {
         return $this->hasMany(User::class, 'gudang_id');
     }
+
+    public function lokasiGudang(): HasMany
+    {
+        return $this->hasMany(LokasiGudang::class, 'gudang_id');
+    }
+
+    public function stokBatch(): HasMany
+    {
+        return $this->hasMany(StokBatch::class, 'gudang_id');
+    }
 }

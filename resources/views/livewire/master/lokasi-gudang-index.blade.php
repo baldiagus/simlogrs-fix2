@@ -66,6 +66,7 @@
                         </flux:table.cell>
                         <flux:table.cell class="text-right">
                             <div class="flex items-center justify-end gap-1.5">
+                                <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail" />
                                 @can('update_master::lokasi::gudang')
                                     <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
                                     <flux:button wire:click="confirmToggleStatus({{ $item->id }})" size="xs" variant="ghost" icon="arrow-path" title="Ubah Status" />
@@ -129,6 +130,49 @@
                 </flux:button>
             </div>
         </form>
+    </flux:modal>
+
+    {{-- Modal Detail Lokasi Gudang --}}
+    <flux:modal name="modal-lokasi-detail" wire:model="showDetailModal" class="md:w-[28rem]">
+        <div class="space-y-4">
+            <div>
+                <flux:heading size="lg">Detail Lokasi Rak</flux:heading>
+                <flux:subheading>Informasi lengkap lokasi penyimpanan.</flux:subheading>
+            </div>
+
+            @if ($selectedItem)
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 p-4">
+                    <div>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Kode Bin</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->kode }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Nama Rak Simpan</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->nama }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Gudang Induk</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->gudang?->nama ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Baris</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->baris ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Kolom</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->kolom ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Level</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->level ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Status</dt>
+                        <dd><x-status-badge :status="$selectedItem->status" /></dd>
+                    </div>
+                </div>
+            @endif
+        </div>
     </flux:modal>
 
     <x-confirm-modal

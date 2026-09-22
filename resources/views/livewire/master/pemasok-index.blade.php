@@ -57,6 +57,7 @@
                         </flux:table.cell>
                         <flux:table.cell class="text-right">
                             <div class="flex items-center justify-end gap-1.5">
+                                <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail" />
                                 @can('update_master::pemasok')
                                     <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
                                     <flux:button wire:click="confirmToggleStatus({{ $item->id }})" size="xs" variant="ghost" icon="arrow-path" title="Ubah Status" />
@@ -117,6 +118,65 @@
                 </flux:button>
             </div>
         </form>
+    </flux:modal>
+
+    {{-- Modal Detail Pemasok --}}
+    <flux:modal name="modal-pemasok-detail" wire:model="showDetailModal" class="md:w-[32rem]">
+        <div class="space-y-4">
+            <div>
+                <flux:heading size="lg">Detail Pemasok: {{ $selectedItem?->nama }}</flux:heading>
+                <flux:subheading>Informasi lengkap perusahaan rekanan vendor.</flux:subheading>
+            </div>
+
+            @if ($selectedItem)
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 p-4 text-xs">
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Kode</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100 font-mono">{{ $selectedItem->kode }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Nama Perusahaan Vendor</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->nama }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">NPWP</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100 font-mono">{{ $selectedItem->npwp ?? '-' }}</dd>
+                    </div>
+                    <div class="sm:col-span-2 lg:col-span-3">
+                        <dt class="text-zinc-500 dark:text-zinc-400">Alamat</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->alamat ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Kota</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->kota ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">PIC/Nama Kontak</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->nama_kontak ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">No. Telepon</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100 font-mono">{{ $selectedItem->no_telepon ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Email</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->email ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Status</dt>
+                        <dd class="mt-1"><x-status-badge :status="$selectedItem->status" /></dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Jumlah PO Pernah Diterbitkan</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->pesanan_pembelian_count }} PO</dd>
+                    </div>
+                </div>
+            @endif
+
+            <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <flux:button variant="ghost" wire:click="$set('showDetailModal', false)">Tutup</flux:button>
+            </div>
+        </div>
     </flux:modal>
 
     <x-confirm-modal

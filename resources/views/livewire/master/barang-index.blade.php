@@ -137,6 +137,7 @@
                         </flux:table.cell>
                         <flux:table.cell class="text-right">
                             <div class="flex items-center justify-end gap-1.5">
+                                <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail" />
                                 @can('update_master::barang')
                                     <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
                                     <flux:button wire:click="confirmToggleStatus({{ $item->id }})" size="xs" variant="ghost" icon="arrow-path" title="Ubah Status" />
@@ -259,4 +260,82 @@
         :confirmText="$confirmButtonText"
         :variant="$confirmButtonVariant"
     />
+
+    <flux:modal wire:model="showDetailModal" class="md:w-[42rem]">
+        @if ($selectedBarang)
+            <div>
+                <flux:heading size="lg">Detail Komoditas: {{ $selectedBarang->nama }}</flux:heading>
+                <flux:subheading>Informasi lengkap data komoditas logistik.</flux:subheading>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-xs">
+                <div>
+                    <div class="text-zinc-500 dark:text-zinc-400">Kode</div>
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100 font-mono">{{ $selectedBarang->kode }}</div>
+                </div>
+                <div>
+                    <div class="text-zinc-500 dark:text-zinc-400">Nama Komoditas</div>
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedBarang->nama }}</div>
+                </div>
+                <div>
+                    <div class="text-zinc-500 dark:text-zinc-400">Tipe</div>
+                    <div class="mt-0.5">
+                        @php
+                            $detailTipeColor = match($selectedBarang->tipe) {
+                                'HABIS_PAKAI' => 'blue',
+                                'ASET' => 'indigo',
+                                'SPAREPART' => 'violet',
+                                default => 'zinc',
+                            };
+                        @endphp
+                        <flux:badge size="sm" :color="$detailTipeColor">{{ str_replace('_', ' ', $selectedBarang->tipe) }}</flux:badge>
+                    </div>
+                </div>
+                <div>
+                    <div class="text-zinc-500 dark:text-zinc-400">Kategori</div>
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedBarang->kategori?->nama ?? '-' }}</div>
+                </div>
+                <div>
+                    <div class="text-zinc-500 dark:text-zinc-400">Satuan</div>
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedBarang->satuan?->nama ?? '-' }} ({{ $selectedBarang->satuan?->simbol ?? $selectedBarang->satuan?->kode ?? '-' }})</div>
+                </div>
+                <div>
+                    <div class="text-zinc-500 dark:text-zinc-400">Merek</div>
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedBarang->merek?->nama ?? '-' }}</div>
+                </div>
+                <div class="col-span-2 sm:col-span-3">
+                    <div class="text-zinc-500 dark:text-zinc-400">Pemasok Default</div>
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedBarang->pemasokDefault?->nama ?? '-' }}</div>
+                </div>
+                <div>
+                    <div class="text-zinc-500 dark:text-zinc-400">Stok Minimum</div>
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedBarang->stok_minimum > 0 ? number_format($selectedBarang->stok_minimum, 0, ',', '.') : '-' }}</div>
+                </div>
+                <div>
+                    <div class="text-zinc-500 dark:text-zinc-400">Stok Maksimum</div>
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedBarang->stok_maksimum > 0 ? number_format($selectedBarang->stok_maksimum, 0, ',', '.') : '-' }}</div>
+                </div>
+                <div>
+                    <div class="text-zinc-500 dark:text-zinc-400">Titik Pesan (ROP)</div>
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedBarang->titik_pesan > 0 ? number_format($selectedBarang->titik_pesan, 0, ',', '.') : '-' }}</div>
+                </div>
+                <div>
+                    <div class="text-zinc-500 dark:text-zinc-400">Harga Beli Terakhir</div>
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100"><x-rupiah :value="$selectedBarang->harga_beli_terakhir" /></div>
+                </div>
+                <div>
+                    <div class="text-zinc-500 dark:text-zinc-400">Harga Estimasi</div>
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100"><x-rupiah :value="$selectedBarang->harga_estimasi" /></div>
+                </div>
+                <div>
+                    <div class="text-zinc-500 dark:text-zinc-400">Status</div>
+                    <div class="mt-0.5"><x-status-badge :status="$selectedBarang->status" /></div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">Tutup</flux:button>
+            </div>
+        @endif
+    </flux:modal>
 </div>

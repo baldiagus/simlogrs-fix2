@@ -53,6 +53,7 @@
                         </flux:table.cell>
                         <flux:table.cell class="text-right">
                             <div class="flex items-center justify-end gap-1.5">
+                                <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail" />
                                 @can('update_master::gudang')
                                     <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
                                     <flux:button wire:click="confirmToggleStatus({{ $item->id }})" size="xs" variant="ghost" icon="arrow-path" title="Ubah Status" />
@@ -111,6 +112,57 @@
                 </flux:button>
             </div>
         </form>
+    </flux:modal>
+
+    {{-- Modal Detail Gudang --}}
+    <flux:modal name="modal-gudang-detail" wire:model="showDetailModal" class="md:w-[32rem]">
+        <div class="space-y-4">
+            <div>
+                <flux:heading size="lg">Detail Gudang Logistik: {{ $selectedItem->nama ?? '' }}</flux:heading>
+                <flux:subheading>Informasi lengkap fasilitas penyimpanan logistik.</flux:subheading>
+            </div>
+
+            @if ($selectedItem)
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 p-4 text-xs">
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Kode</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100 font-mono">{{ $selectedItem->kode }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Nama Fasilitas Gudang</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->nama }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Jenis Gudang</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->jenis }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Penanggung Jawab</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->penanggung_jawab ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Lokasi Gedung</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->lokasi_gedung ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Status</dt>
+                        <dd class="mt-1"><x-status-badge :status="$selectedItem->status" /></dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Jumlah Rak/Bin Aktif</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->lokasi_gudang_count }} lokasi</dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500 dark:text-zinc-400">Jumlah Batch Stok Tersimpan</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->stok_batch_count }} batch</dd>
+                    </div>
+                </div>
+            @endif
+
+            <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <flux:button variant="ghost" wire:click="$set('showDetailModal', false)">Tutup</flux:button>
+            </div>
+        </div>
     </flux:modal>
 
     <x-confirm-modal

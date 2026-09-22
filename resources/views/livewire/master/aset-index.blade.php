@@ -150,6 +150,7 @@
                         {{-- Aksi --}}
                         <flux:table.cell class="text-right">
                             <div class="flex items-center justify-end gap-1.5">
+                                <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail Aset" />
                                 <flux:button wire:click="showQr({{ $item->id }})" size="xs" variant="ghost" icon="qr-code" title="Cetak Stiker QR Code" />
 
                                 @can('update_master::aset')
@@ -310,6 +311,89 @@
                 <div class="flex justify-center gap-2 pt-2">
                     <flux:button variant="ghost" wire:click="$set('showQrModal', false)">Tutup</flux:button>
                     <flux:button variant="primary" icon="printer" onclick="window.print()">Cetak Stiker</flux:button>
+                </div>
+            </div>
+        @endif
+    </flux:modal>
+
+    {{-- Modal Detail Aset Inventaris --}}
+    <flux:modal wire:model="showDetailModal" class="md:w-[44rem]">
+        @if ($selectedAset)
+            <div class="space-y-4">
+                <div>
+                    <flux:heading size="lg">Detail Aset Inventaris: {{ $selectedAset->barang?->nama }}</flux:heading>
+                    <flux:subheading>Informasi lengkap unit fisik aset yang terdaftar.</flux:subheading>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-xs">
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Kode Register Aset</div>
+                        <div class="font-mono font-bold text-zinc-900 dark:text-zinc-100">{{ $selectedAset->kode_aset }}</div>
+                    </div>
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Nama Komoditas</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedAset->barang?->nama ?? '-' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Nomor Seri</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100 font-mono">{{ $selectedAset->nomor_seri ?? '-' }}</div>
+                    </div>
+
+                    <div class="col-span-2 sm:col-span-3">
+                        <div class="text-zinc-500 dark:text-zinc-400">Penempatan Lokasi</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100">
+                            @if ($selectedAset->unit_id)
+                                Ruangan: {{ $selectedAset->unit?->nama }}
+                            @elseif ($selectedAset->gudang_id)
+                                Gudang: {{ $selectedAset->gudang?->nama }}
+                                @if ($selectedAset->lokasiGudang)
+                                    &middot; Rak: {{ $selectedAset->lokasiGudang->nama }}
+                                @endif
+                            @else
+                                -
+                            @endif
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Kondisi Fisik</div>
+                        <div class="mt-0.5">
+                            @php
+                            $kondisiColor = match($selectedAset->kondisi) {
+                                'BAIK' => 'emerald',
+                                'RUSAK_RINGAN' => 'amber',
+                                'RUSAK_BERAT' => 'rose',
+                                default => 'zinc',
+                            };
+                            @endphp
+                            <flux:badge size="sm" :color="$kondisiColor">{{ str_replace('_', ' ', $selectedAset->kondisi) }}</flux:badge>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Status Operasional</div>
+                        <div class="mt-0.5">
+                            <x-status-badge :status="$selectedAset->status" />
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Histori Servis</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedAset->permintaan_maintenance_count }} kali</div>
+                    </div>
+
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Nilai Perolehan</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100">
+                            <x-rupiah :value="$selectedAset->nilai_perolehan" />
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Tanggal Perolehan</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedAset->tanggal_perolehan->format('d/m/Y') }}</div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end pt-2">
+                    <flux:button variant="ghost" wire:click="$set('showDetailModal', false)">Tutup</flux:button>
                 </div>
             </div>
         @endif

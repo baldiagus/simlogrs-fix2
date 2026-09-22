@@ -17,6 +17,8 @@ class LokasiGudangIndex extends Component
 
     public bool $showModal = false;
     public ?int $editingId = null;
+    public bool $showDetailModal = false;
+    public ?\App\Models\LokasiGudang $selectedItem = null;
     public ?int $filterGudangId = null;
 
     #[Validate('required|exists:gudang,id')]
@@ -39,6 +41,12 @@ class LokasiGudangIndex extends Component
 
     #[Validate('required|in:AKTIF,NONAKTIF')]
     public string $status = 'AKTIF';
+
+    public function showDetail(int $id): void
+    {
+        $this->selectedItem = LokasiGudang::with('gudang')->findOrFail($id);
+        $this->showDetailModal = true;
+    }
 
     public function create()
     {

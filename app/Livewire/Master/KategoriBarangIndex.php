@@ -16,6 +16,8 @@ class KategoriBarangIndex extends Component
 
     public bool $showModal = false;
     public ?int $editingId = null;
+    public bool $showDetailModal = false;
+    public ?KategoriBarang $selectedItem = null;
 
     #[Validate('required|string|max:50')]
     public string $kode = '';
@@ -104,6 +106,12 @@ class KategoriBarangIndex extends Component
         $kat->update(['status' => $newStatus]);
 
         $this->toast("Status kategori '{$kat->nama}' diubah menjadi {$newStatus}.", 'info');
+    }
+
+    public function showDetail(int $id): void
+    {
+        $this->selectedItem = KategoriBarang::withCount('barang')->findOrFail($id);
+        $this->showDetailModal = true;
     }
 
     public function render()

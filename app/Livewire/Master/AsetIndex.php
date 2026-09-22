@@ -23,6 +23,7 @@ class AsetIndex extends Component
 
     public bool $showModal = false;
     public bool $showQrModal = false;
+    public bool $showDetailModal = false;
     public ?int $editingId = null;
     public ?Aset $selectedAset = null;
     public ?string $qrCodeSvg = null;
@@ -227,6 +228,14 @@ class AsetIndex extends Component
             ->format('svg')
             ->generate($this->selectedAset->kode_aset);
         $this->showQrModal = true;
+    }
+
+    public function showDetail(int $id): void
+    {
+        $this->selectedAset = Aset::with(['barang', 'unit', 'gudang', 'lokasiGudang'])
+            ->withCount('permintaanMaintenance')
+            ->findOrFail($id);
+        $this->showDetailModal = true;
     }
 
     public function render()

@@ -16,6 +16,14 @@ class GudangIndex extends Component
 
     public bool $showModal = false;
     public ?int $editingId = null;
+    public bool $showDetailModal = false;
+    public ?\App\Models\Gudang $selectedItem = null;
+
+    public function showDetail(int $id): void
+    {
+        $this->selectedItem = Gudang::withCount(['lokasiGudang', 'stokBatch'])->findOrFail($id);
+        $this->showDetailModal = true;
+    }
 
     #[Validate('required|string|max:50')]
     public string $kode = '';

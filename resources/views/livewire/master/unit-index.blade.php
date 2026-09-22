@@ -53,6 +53,7 @@
                         </flux:table.cell>
                         <flux:table.cell class="text-right">
                             <div class="flex items-center justify-end gap-1.5">
+                                <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail" />
                                 @can('update_master::unit')
                                     <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
                                     <flux:button wire:click="confirmToggleStatus({{ $item->id }})" size="xs" variant="ghost" icon="arrow-path" title="Ubah Status" />
@@ -111,6 +112,49 @@
                 </flux:button>
             </div>
         </form>
+    </flux:modal>
+
+    {{-- Modal Detail Unit --}}
+    <flux:modal name="modal-unit-detail" wire:model="showDetailModal" class="md:w-[32rem]">
+        <div class="space-y-4">
+            <div>
+                <flux:heading size="lg">Detail Unit Kerja: {{ $selectedItem?->nama }}</flux:heading>
+                <flux:subheading>Informasi lengkap unit kerja rumah sakit.</flux:subheading>
+            </div>
+
+            @if ($selectedItem)
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-xs">
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Kode</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->kode }}</div>
+                    </div>
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Nama Ruangan</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->nama }}</div>
+                    </div>
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Jenis Pelayanan</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ str_replace('_', ' ', $selectedItem->jenis) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Penanggung Jawab</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->penanggung_jawab ?? '-' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Lokasi Gedung</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->lokasi_gedung ?? '-' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Status</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100"><x-status-badge :status="$selectedItem->status" /></div>
+                    </div>
+                    <div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Jumlah Aset di Unit</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->aset_count ?? 0 }}</div>
+                    </div>
+                </div>
+            @endif
+        </div>
     </flux:modal>
 
     <x-confirm-modal

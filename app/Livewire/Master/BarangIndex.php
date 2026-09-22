@@ -23,6 +23,8 @@ class BarangIndex extends Component
 
     public bool $showModal = false;
     public ?int $editingId = null;
+    public bool $showDetailModal = false;
+    public ?\App\Models\Barang $selectedBarang = null;
 
     #[Url(history: true)]
     public string $filterTipe = '';
@@ -85,6 +87,12 @@ class BarangIndex extends Component
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
+    }
+
+    public function showDetail(int $id): void
+    {
+        $this->selectedBarang = Barang::with(['kategori', 'satuan', 'merek', 'pemasokDefault'])->findOrFail($id);
+        $this->showDetailModal = true;
     }
 
     public function create()

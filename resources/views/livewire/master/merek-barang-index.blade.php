@@ -43,6 +43,7 @@
                         </flux:table.cell>
                         <flux:table.cell class="text-right">
                             <div class="flex items-center justify-end gap-1.5">
+                                <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail" />
                                 @can('update_master::merek::barang')
                                     <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
                                     <flux:button wire:click="confirmToggleStatus({{ $item->id }})" size="xs" variant="ghost" icon="arrow-path" title="Ubah Status" />
@@ -87,6 +88,41 @@
                 </flux:button>
             </div>
         </form>
+    </flux:modal>
+
+    {{-- Modal Detail Merek --}}
+    <flux:modal name="modal-merek-detail" wire:model="showDetailModal" class="md:w-[28rem]">
+        <div class="space-y-4">
+            <div>
+                <flux:heading size="lg">Detail Merek</flux:heading>
+                <flux:subheading>Informasi lengkap data merek barang.</flux:subheading>
+            </div>
+
+            @if ($selectedItem)
+                <div class="grid grid-cols-1 gap-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 p-4">
+                    <div>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Kode</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100 font-mono">{{ $selectedItem->kode }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Nama Merek / Produsen</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->nama }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Status</dt>
+                        <dd class="mt-1"><x-status-badge :status="$selectedItem->status" /></dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-zinc-500 dark:text-zinc-400">Jumlah Barang yang Memiliki Merek Ini</dt>
+                        <dd class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->barang_count }} item</dd>
+                    </div>
+                </div>
+            @endif
+
+            <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <flux:button variant="ghost" wire:click="$set('showDetailModal', false)">Tutup</flux:button>
+            </div>
+        </div>
     </flux:modal>
 
     <x-confirm-modal

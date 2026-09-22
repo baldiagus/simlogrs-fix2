@@ -12,4 +12,9 @@ class Unit extends BaseModel
     {
         return $this->hasMany(User::class, 'unit_id');
     }
+
+    public function aset(): HasMany
+    {
+        return $this->hasMany(Aset::class, 'unit_id');
+    }
 }

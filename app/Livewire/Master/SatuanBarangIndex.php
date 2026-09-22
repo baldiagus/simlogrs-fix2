@@ -16,6 +16,14 @@ class SatuanBarangIndex extends Component
 
     public bool $showModal = false;
     public ?int $editingId = null;
+    public bool $showDetailModal = false;
+    public ?SatuanBarang $selectedItem = null;
+
+    public function showDetail(int $id): void
+    {
+        $this->selectedItem = SatuanBarang::withCount('barang')->findOrFail($id);
+        $this->showDetailModal = true;
+    }
 
     #[Validate('required|string|max:30')]
     public string $kode = '';
