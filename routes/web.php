@@ -38,6 +38,7 @@ use App\Livewire\Ipsrs\LaporServisIndex;
 use App\Livewire\Ipsrs\DaftarSpkPerbaikanIndex;
 use App\Livewire\Ipsrs\LembarKerjaPengerjaanIndex;
 use App\Livewire\Ipsrs\RekamMedisAsetIndex;
+use App\Livewire\Ipsrs\PemeliharaanBerkalaIndex;
 use App\Http\Controllers\SpkPrintController;
 
 // Root Gateway & Login Form
@@ -118,5 +119,6 @@ foreach ($portals as $portalKey => $dashboardClass) {
             Route::get('/spk/{id}/cetak-pdf', [SpkPrintController::class, 'cetakPdf'])->name('spk.cetak-pdf');
             Route::get('/lembar-kerja', LembarKerjaPengerjaanIndex::class)->name('lembar-kerja');
             Route::get('/rekam-medis-aset', RekamMedisAsetIndex::class)->name('rekam-medis-aset');
+            Route::get('/jadwal-preventif', PemeliharaanBerkalaIndex::class)->name('jadwal-preventif');
         });
 }

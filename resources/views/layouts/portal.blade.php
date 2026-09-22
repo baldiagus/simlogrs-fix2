@@ -195,7 +195,7 @@
                 </flux:sidebar.group>
             @endif
 
-            @if ($user->can('view_any_layanan_unit::lapor::servis') || $user->can('view_any_pemeliharaan::spk::perbaikan') || $user->can('view_any_pemeliharaan::lembar::kerja') || $user->can('view_any_pemeliharaan::rekam::medis::aset'))
+            @if ($user->can('view_any_layanan_unit::lapor::servis') || $user->can('view_any_pemeliharaan::spk::perbaikan') || $user->can('view_any_pemeliharaan::lembar::kerja') || $user->can('view_any_pemeliharaan::rekam::medis::aset') || $user->can('view_any_pemeliharaan::pemeliharaan::berkala'))
                 <flux:sidebar.group expandable heading="Pemeliharaan & IPSRS" class="grid">
                     @can('view_any_layanan_unit::lapor::servis')
                         <flux:sidebar.item icon="wrench" href="/{{ $portalKey }}/lapor-servis" wire:navigate :current="request()->is('*/lapor-servis')">
@@ -215,6 +215,11 @@
                     @can('view_any_pemeliharaan::rekam::medis::aset')
                         <flux:sidebar.item icon="book-open" href="/{{ $portalKey }}/rekam-medis-aset" wire:navigate :current="request()->is('*/rekam-medis-aset')">
                             Rekam Medis Aset
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_pemeliharaan::pemeliharaan::berkala')
+                        <flux:sidebar.item icon="calendar-days" href="/{{ $portalKey }}/jadwal-preventif" wire:navigate :current="request()->is('*/jadwal-preventif')">
+                            Jadwal Preventif
                         </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>

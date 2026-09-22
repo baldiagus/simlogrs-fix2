@@ -102,6 +102,14 @@ class CodeGenerator
     }
 
     /**
+     * Khusus Jadwal Preventif IPSRS: PRV-YYYYMM-XXX
+     */
+    public static function generatePrv(string $modelClass = 'App\Models\JadwalMaintenance'): string
+    {
+        return static::generate('PRV', $modelClass, 'kode', 'Ym', 3);
+    }
+
+    /**
      * Khusus Temuan Audit SPI: AUD-YYYYMM-XXX
      */
     public static function generateAud(string $modelClass = 'App\Models\TemuanAudit'): string
