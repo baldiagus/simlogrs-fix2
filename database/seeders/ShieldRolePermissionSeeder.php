@@ -90,6 +90,10 @@ class ShieldRolePermissionSeeder extends Seeder
             'view_any_master::%',
             'view_master::%',
             '%_layanan_unit::approval::karu%',
+            '%_layanan_unit::approval::peminjaman%',
+            '%_layanan_unit::pengembalian::aset%',
+            'view_any_layanan_unit::peminjaman::aset%',
+            'view_layanan_unit::peminjaman::aset%',
             '%_pengadaan::permintaan::pengadaan%',
         ]);
 
@@ -123,8 +127,10 @@ class ShieldRolePermissionSeeder extends Seeder
         $givePermissions('kepala_unit', [
             'page_KepalaUnitDashboard',
             '%_layanan_unit::approval::karu%',
+            '%_layanan_unit::approval::peminjaman%',
             '%_layanan_unit::permintaan::barang%',
             '%_layanan_unit::peminjaman::aset%',
+            '%_layanan_unit::pengembalian::aset%',
             '%_layanan_unit::stok::ruangan%',
             '%_pengadaan::permintaan::pengadaan%',
             'view_any_master::barang%',
@@ -142,6 +148,9 @@ class ShieldRolePermissionSeeder extends Seeder
             'create_layanan_unit::peminjaman::aset',
             'view_any_layanan_unit::peminjaman::aset',
             'view_layanan_unit::peminjaman::aset',
+            'view_any_layanan_unit::pengembalian::aset',
+            'update_layanan_unit::pengembalian::aset',
+            'view_layanan_unit::pengembalian::aset',
             'create_layanan_unit::lapor::servis',
             'view_any_layanan_unit::lapor::servis',
             'view_layanan_unit::lapor::servis',

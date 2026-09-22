@@ -168,6 +168,26 @@
                         </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
+
+            @if ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_any_layanan_unit::approval::peminjaman') || $user->can('view_any_layanan_unit::pengembalian::aset'))
+                <flux:sidebar.group expandable heading="Sirkulasi Aset" class="grid">
+                    @can('view_any_layanan_unit::peminjaman::aset')
+                        <flux:sidebar.item icon="arrow-path" href="/{{ $portalKey }}/peminjaman-aset" :current="request()->is('*/peminjaman-aset')">
+                            Peminjaman Aset
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_layanan_unit::approval::peminjaman')
+                        <flux:sidebar.item icon="check-badge" href="/{{ $portalKey }}/approval-peminjaman" :current="request()->is('*/approval-peminjaman')">
+                            {{ $portalKey === 'kepala-gudang' ? 'Otorisasi Pinjam (Gudang)' : ($portalKey === 'kepala-unit' ? 'Otorisasi Pinjam (Karu)' : 'Otorisasi Pinjam') }}
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_layanan_unit::pengembalian::aset')
+                        <flux:sidebar.item icon="arrow-down-tray" href="/{{ $portalKey }}/pengembalian-aset" :current="request()->is('*/pengembalian-aset')">
+                            Pengembalian Aset
+                        </flux:sidebar.item>
+                    @endcan
+                </flux:sidebar.group>
+            @endif
             @endif
         </flux:sidebar.nav>
 

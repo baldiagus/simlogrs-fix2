@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ApprovalController;
 use App\Http\Controllers\Api\V1\GudangApiController;
+use App\Http\Controllers\Api\V1\AsetApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -33,5 +34,10 @@ Route::prefix('v1')->group(function () {
 
         // 5. Operasional Gudang & Scanner Barcode
         Route::post('/gudang/scan-batch', [GudangApiController::class, 'scanBatch']);
+
+        // 6. Sirkulasi Aset & Scanner QR
+        Route::post('/aset/scan-qr', [AsetApiController::class, 'scanQr']);
+        Route::post('/aset/serah-terima', [AsetApiController::class, 'serahTerima']);
+        Route::post('/aset/kembalikan', [AsetApiController::class, 'kembalikan']);
     });
 });

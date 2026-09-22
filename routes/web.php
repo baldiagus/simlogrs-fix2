@@ -31,6 +31,9 @@ use App\Livewire\Distribusi\ApprovalPermintaanIndex;
 use App\Livewire\Distribusi\DistribusiApprovalIndex;
 use App\Livewire\Distribusi\PickingDistribusiIndex;
 use App\Livewire\Distribusi\PenerimaanBarangIndex;
+use App\Livewire\Aset\PeminjamanAsetIndex;
+use App\Livewire\Aset\ApprovalPeminjamanIndex;
+use App\Livewire\Aset\PengembalianPeminjamanIndex;
 
 // Root Gateway & Login Form
 Route::get('/', function () {
@@ -98,5 +101,10 @@ foreach ($portals as $portalKey => $dashboardClass) {
             Route::get('/distribusi-approval', DistribusiApprovalIndex::class)->name('distribusi-approval');
             Route::get('/picking-distribusi', PickingDistribusiIndex::class)->name('picking-distribusi');
             Route::get('/penerimaan-barang', PenerimaanBarangIndex::class)->name('penerimaan-barang');
+
+            // Siklus Peminjaman & Sirkulasi Aset Non-Medis (Grup 6)
+            Route::get('/peminjaman-aset', PeminjamanAsetIndex::class)->name('peminjaman-aset');
+            Route::get('/approval-peminjaman', ApprovalPeminjamanIndex::class)->name('approval-peminjaman');
+            Route::get('/pengembalian-aset', PengembalianPeminjamanIndex::class)->name('pengembalian-aset');
         });
 }
