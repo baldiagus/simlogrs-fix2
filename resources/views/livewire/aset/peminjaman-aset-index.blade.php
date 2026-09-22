@@ -52,7 +52,7 @@
                     <div class="w-full sm:w-44">
                         <select
                             wire:model.live="filterStatus"
-                            class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100"
+                            class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100"
                         >
                             <option value="">Semua Status</option>
                             <option value="DIAJUKAN">DIAJUKAN</option>
@@ -180,7 +180,7 @@
                                         {{ $item->tanggal_kembali_rencana?->format('d/m/Y') ?? '-' }}
                                     </span>
                                     @if ($isOverdue)
-                                        <flux:badge size="xs" color="rose" class="font-bold animate-pulse">OVERDUE</flux:badge>
+                                        <flux:badge size="xs" color="rose" class="font-bold">OVERDUE</flux:badge>
                                     @endif
                                 </div>
                             </flux:table.cell>
@@ -191,7 +191,7 @@
                                     <div class="text-xs font-medium text-zinc-900 dark:text-zinc-100">
                                         {{ $detail->aset?->barang?->nama ?? 'Aset #' . $detail->aset_id }}
                                     </div>
-                                    <div class="font-mono text-[11px] text-zinc-400">
+                                    <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
                                         {{ $detail->aset?->kode_aset ?? '-' }}
                                     </div>
                                 @empty
@@ -293,8 +293,7 @@
                             <flux:table.cell>
                                 <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $aset->barang?->nama ?? '-' }}</div>
                                 @if ($aset->nomor_seri)
-                                    <div class="font-mono text-[11px] text-zinc-400">SN: {{ $aset->nomor_seri }}</div>
-                                @endif
+                                    <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">SN: {{ $aset->nomor_seri }}</div>
                             </flux:table.cell>
 
                             {{-- Lokasi Penyedia --}}
@@ -310,8 +309,7 @@
                                         <span class="text-xs font-medium text-zinc-800 dark:text-zinc-200">{{ $aset->gudang?->nama }}</span>
                                     </div>
                                     @if ($aset->lokasiGudang)
-                                        <div class="text-[10px] text-zinc-400 font-mono mt-0.5">Bin/Rak: {{ $aset->lokasiGudang->nama }}</div>
-                                    @endif
+                                        <div class="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono mt-0.5">Bin/Rak: {{ $aset->lokasiGudang->nama }}</div>
                                 @else
                                     <span class="text-zinc-400 text-xs">-</span>
                                 @endif
@@ -374,7 +372,7 @@
             <form wire:submit="savePinjam" class="space-y-5">
                 {{-- Tahap 1: Pilih Aset Inventaris --}}
                 <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-3">
-                    <div class="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                    <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                         Tahap 1: Pilih Aset Inventaris
                     </div>
 
@@ -407,7 +405,7 @@
                 {{-- Tahap 2: Pilih Unit atau Gudang Penyedia Aset --}}
                 @if ($selected_barang_id)
                     <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-3">
-                        <div class="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                        <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                             Tahap 2: Pilih Unit Ruangan atau Gudang Penyedia
                         </div>
 
@@ -444,10 +442,9 @@
                                                     Tersedia: <strong>{{ $p['jumlah'] }} unit</strong> (Kode: {{ $p['kode_asets'] }})
                                                 </div>
                                                 @if ($p['is_own'])
-                                                    <div class="text-[10px] text-amber-600 dark:text-amber-400 font-medium mt-0.5">
+                                                    <div class="text-xs text-amber-700 dark:text-amber-300 font-medium mt-0.5">
                                                         Ruangan Anda sendiri (tidak dapat meminjam ke ruangan sendiri)
                                                     </div>
-                                                @endif
                                             </div>
                                         </label>
                                     @endforeach
@@ -460,7 +457,7 @@
 
                 {{-- Tahap 3: Jadwal dan Keperluan --}}
                 <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-4">
-                    <div class="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                    <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                         Tahap 3: Jadwal dan Keperluan Peminjaman
                     </div>
 
@@ -570,7 +567,7 @@
                         {{ $selectedAsetQr->barang?->nama }}
                     </div>
                     @if ($selectedAsetQr->nomor_seri)
-                        <div class="font-mono text-[10px] text-zinc-400">SN: {{ $selectedAsetQr->nomor_seri }}</div>
+                        <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">SN: {{ $selectedAsetQr->nomor_seri }}</div>
                     @endif
                     <div class="text-[10px] uppercase font-bold text-zinc-500 mt-2 border-t border-zinc-200 dark:border-zinc-800 pt-1.5">
                         SIMLOG RS : SIRKULASI ASET
@@ -659,7 +656,7 @@
 
                 {{-- Tabel Rincian Aset --}}
                 <div>
-                    <div class="font-bold text-xs uppercase tracking-wider text-zinc-500 mb-2">Daftar Aset Inventaris yang Dipinjam</div>
+                    <div class="font-semibold text-xs text-zinc-700 dark:text-zinc-300 mb-2">Daftar Aset Inventaris yang Dipinjam</div>
                     <flux:table bleed>
                         <flux:table.columns>
                             <flux:table.column class="w-32">Kode Register</flux:table.column>
@@ -677,7 +674,7 @@
                                     <flux:table.cell>
                                         <div class="font-medium text-xs">{{ $detail->aset?->barang?->nama ?? '-' }}</div>
                                         @if ($detail->aset?->nomor_seri)
-                                            <div class="font-mono text-[10px] text-zinc-400">SN: {{ $detail->aset->nomor_seri }}</div>
+                                            <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">SN: {{ $detail->aset->nomor_seri }}</div>
                                         @endif
                                     </flux:table.cell>
                                     <flux:table.cell class="text-center">
@@ -695,7 +692,7 @@
                 {{-- Riwayat Pengembalian Fisik Jika Ada --}}
                 @if ($selectedPinjam->pengembalian->isNotEmpty())
                     <div>
-                        <div class="font-bold text-xs uppercase tracking-wider text-zinc-500 mb-2">Riwayat Pengembalian & Inspeksi Fisik</div>
+                        <div class="font-semibold text-xs text-zinc-700 dark:text-zinc-300 mb-2">Riwayat Pengembalian & Inspeksi Fisik</div>
                         @foreach ($selectedPinjam->pengembalian as $rtn)
                             <div class="p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/30 text-xs space-y-2 mb-2">
                                 <div class="flex items-center justify-between">

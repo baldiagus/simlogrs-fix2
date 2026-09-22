@@ -7,12 +7,6 @@
                 <flux:heading size="xl" level="1">{{ $pageTitle }}</flux:heading>
                 <flux:subheading>Inspeksi fisik dan serah terima pengembalian aset inventaris rumah sakit yang sedang dipinjam.</flux:subheading>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
-                    <span class="size-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span>Status Aktif: DIPINJAM</span>
-                </span>
-            </div>
         </div>
 
         {{-- Toolbar Filter & Pencarian --}}
@@ -56,7 +50,7 @@
                         {{-- Unit Peminjam --}}
                         <flux:table.cell>
                             <div class="font-medium text-zinc-900 dark:text-zinc-100 text-xs">{{ $pinjam->unitPeminjam?->nama ?? '-' }}</div>
-                            <div class="text-[11px] text-zinc-400">Pengaju: {{ $pinjam->pengaju?->nama ?? '-' }}</div>
+                            <div class="text-xs text-zinc-500 dark:text-zinc-400">Pengaju: {{ $pinjam->pengaju?->nama ?? '-' }}</div>
                         </flux:table.cell>
 
                         {{-- Unit / Gudang Penyedia --}}
@@ -82,7 +76,7 @@
                                     {{ $pinjam->tanggal_kembali_rencana?->format('d/m/Y') ?? '-' }}
                                 </div>
                                 @if ($isOverdue)
-                                    <flux:badge size="sm" color="red" inset="top bottom" class="animate-pulse">OVERDUE</flux:badge>
+                                    <flux:badge size="sm" color="red" inset="top bottom">OVERDUE</flux:badge>
                                 @endif
                             </div>
                         </flux:table.cell>
@@ -257,7 +251,7 @@
                 {{-- Form Tabel Inspeksi Fisik Aset --}}
                 <div>
                     <div class="flex items-center justify-between mb-2">
-                        <div class="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+                        <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                             Pemeriksaan Kondisi Aset Fisik
                         </div>
                         <span class="text-xs text-zinc-500 font-medium">Total: {{ count($inspeksiRows) }} unit aset</span>
@@ -279,7 +273,7 @@
                                         <td class="px-3.5 py-3 text-zinc-400 font-mono">{{ $loop->iteration }}</td>
                                         <td class="px-3.5 py-3">
                                             <div class="font-medium text-zinc-900 dark:text-zinc-100 text-sm">{{ $row['nama_aset'] }}</div>
-                                            <div class="font-mono text-[11px] text-zinc-400 mt-0.5">Kode: {{ $row['kode_aset'] }}</div>
+                                            <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Kode: {{ $row['kode_aset'] }}</div>
                                             <div class="text-[11px] text-zinc-500 mt-0.5">Kondisi Awal: <span class="font-medium text-zinc-700 dark:text-zinc-300">{{ $row['kondisi_saat_pinjam'] ?? 'BAIK' }}</span></div>
                                         </td>
                                         <td class="px-3.5 py-3">
@@ -398,7 +392,7 @@
 
                 {{-- Tabel Rincian Kondisi Aset --}}
                 <div>
-                    <div class="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-2">
+                    <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
                         Rincian Hasil Inspeksi Fisik
                     </div>
                     <div class="border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden">
@@ -418,7 +412,7 @@
                                         <td class="px-3.5 py-2.5 text-zinc-400 font-mono">{{ $loop->iteration }}</td>
                                         <td class="px-3.5 py-2.5">
                                             <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $detail->aset?->barang?->nama ?? '-' }}</div>
-                                            <div class="font-mono text-[11px] text-zinc-400">Kode: {{ $detail->aset?->kode_aset ?? '-' }}</div>
+                                            <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">Kode: {{ $detail->aset?->kode_aset ?? '-' }}</div>
                                         </td>
                                         <td class="px-3.5 py-2.5">
                                             @if ($detail->kondisi_saat_kembali === 'BAIK')

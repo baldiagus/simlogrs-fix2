@@ -25,7 +25,7 @@
                 >
                     Menunggu Otorisasi
                     @if ($countMenunggu > 0)
-                        <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white">
+                        <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700/60">
                             {{ $countMenunggu }}
                         </span>
                     @endif
@@ -37,7 +37,7 @@
                 >
                     Siap Serah Terima
                     @if ($countSiapSerahTerima > 0)
-                        <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white">
+                        <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-900 dark:bg-blue-900/60 dark:text-blue-200 border border-blue-300 dark:border-blue-700/60">
                             {{ $countSiapSerahTerima }}
                         </span>
                     @endif
@@ -49,7 +49,7 @@
                 >
                     Sedang Dipinjam
                     @if ($countDipinjam > 0)
-                        <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white">
+                        <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 dark:bg-emerald-900/60 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700/60">
                             {{ $countDipinjam }}
                         </span>
                     @endif
@@ -69,7 +69,7 @@
                 <div class="w-40 shrink-0">
                     <select
                         wire:model.live="filterStatus"
-                        class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-2 text-zinc-900 dark:text-zinc-100"
+                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100"
                     >
                         <option value="">Semua Status</option>
                         <option value="DIAJUKAN">DIAJUKAN</option>
@@ -121,14 +121,14 @@
                                 <div class="text-xs text-zinc-800 dark:text-zinc-200">
                                     {{ $det->aset?->barang?->nama ?? $det->aset?->kode_aset ?? '-' }}
                                 </div>
-                                <div class="text-[11px] font-mono text-zinc-500">
+                                <div class="text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
                                     {{ $det->aset?->kode_aset }}
                                 </div>
                             @empty
                                 <span class="text-xs text-zinc-400">-</span>
                             @endforelse
                             @if ($item->detail->count() > 2)
-                                <div class="text-[11px] text-zinc-400">
+                                <div class="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
                                     +{{ $item->detail->count() - 2 }} aset lainnya
                                 </div>
                             @endif
@@ -198,12 +198,7 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <flux:table.row>
-                        <flux:table.cell colspan="7" class="text-center py-8 text-zinc-400">
-                            Tidak ada permohonan peminjaman aset yang sesuai filter.
-                        </flux:table.cell>
-                    </flux:table.row>
-                @endforelse
+                    <x-empty-state message="Tidak ada permohonan peminjaman aset yang sesuai filter." cols="7" />
             </flux:table.rows>
         </flux:table>
 
@@ -290,7 +285,7 @@
 
                 {{-- Tabel daftar aset yang dipinjam --}}
                 <div class="space-y-2">
-                    <div class="text-xs font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                    <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                         Daftar Aset yang Diminta
                     </div>
                     <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
@@ -315,7 +310,7 @@
                                         <td class="px-3 py-2.5 text-zinc-800 dark:text-zinc-200 font-medium">
                                             {{ $detail->aset?->barang?->nama ?? '-' }}
                                         </td>
-                                        <td class="px-3 py-2.5 font-mono text-zinc-500">
+                                        <td class="px-3 py-2.5 font-mono text-zinc-500 dark:text-zinc-400">
                                             {{ $detail->aset?->nomor_seri ?? '-' }}
                                         </td>
                                         <td class="px-3 py-2.5">
