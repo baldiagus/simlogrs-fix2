@@ -95,7 +95,7 @@
                                             icon="plus"
                                             title="Terima Sisa Barang PO ini"
                                         >
-                                            + Sisa
+                                            Terima Sisa
                                         </flux:button>
                                     @endif
                                 @endcan
@@ -152,12 +152,12 @@
                     <flux:heading size="lg">Penerimaan Barang dari PO</flux:heading>
                     <flux:subheading>
                         @if ($po)
-                            PO: <span class="font-medium text-zinc-900 dark:text-zinc-100">{{ $po->kode }}</span> &mdash; {{ $po->pemasok?->nama ?? '-' }}
+                            PO: <span class="font-medium text-zinc-900 dark:text-zinc-100">{{ $po->kode }}</span> - {{ $po->pemasok?->nama ?? '-' }}
                         @endif
                     </flux:subheading>
                 </div>
                 <div class="text-left sm:text-right">
-                    <div class="text-[10px] font-medium uppercase tracking-wider text-zinc-500">No. Penerimaan</div>
+                    <div class="text-[10px] font-medium text-zinc-700 dark:text-zinc-300">No. Penerimaan</div>
                     <div class="font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded mt-0.5 border border-zinc-200 dark:border-zinc-700">
                         {{ $kode ?: 'OTOMATIS' }}
                     </div>
@@ -201,7 +201,7 @@
 
                 <div>
                     <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Catatan Penerimaan <span class="text-zinc-400 font-normal">(Opsional)</span>
+                        Catatan Penerimaan <span class="text-zinc-500 dark:text-zinc-400 font-normal">(Opsional)</span>
                     </label>
                     <textarea
                         wire:model="catatan"
@@ -216,10 +216,10 @@
             @if (count($itemRows) > 0)
                 <div class="space-y-2.5 pt-1">
                     <div class="flex items-center justify-between pb-1 border-b border-zinc-200 dark:border-zinc-800 text-xs">
-                        <div class="font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+                        <div class="font-semibold text-zinc-700 dark:text-zinc-300">
                             Daftar Komoditas Diterima ({{ count($itemRows) }} Item)
                         </div>
-                        <div class="text-zinc-400 text-[11px]">
+                        <div class="text-zinc-500 dark:text-zinc-400 text-[11px]">
                             Verifikasi data PO &bull; Catat fisik masuk & rak simpan
                         </div>
                     </div>
@@ -351,7 +351,7 @@
             <div class="space-y-4">
                 <div>
                     <flux:heading size="lg">Detail Penerimaan: {{ $selectedPenerimaan->kode }}</flux:heading>
-                    <flux:subheading>Ref PO: {{ $selectedPenerimaan->pesananPembelian?->kode ?? '-' }} &mdash; {{ $selectedPenerimaan->pesananPembelian?->pemasok?->nama ?? '-' }}</flux:subheading>
+                    <flux:subheading>Ref PO: {{ $selectedPenerimaan->pesananPembelian?->kode ?? '-' }} - {{ $selectedPenerimaan->pesananPembelian?->pemasok?->nama ?? '-' }}</flux:subheading>
                 </div>
 
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
