@@ -39,6 +39,10 @@ use App\Livewire\Ipsrs\DaftarSpkPerbaikanIndex;
 use App\Livewire\Ipsrs\LembarKerjaPengerjaanIndex;
 use App\Livewire\Ipsrs\RekamMedisAsetIndex;
 use App\Livewire\Ipsrs\PemeliharaanBerkalaIndex;
+use App\Livewire\Persediaan\MonitoringStokFefoIndex;
+use App\Livewire\Persediaan\BukuMutasiIndex;
+use App\Livewire\Persediaan\StockOpnameIndex;
+use App\Livewire\Persediaan\OtorisasiPenyesuaianIndex;
 use App\Http\Controllers\SpkPrintController;
 
 // Root Gateway & Login Form
@@ -120,5 +124,12 @@ foreach ($portals as $portalKey => $dashboardClass) {
             Route::get('/lembar-kerja', LembarKerjaPengerjaanIndex::class)->name('lembar-kerja');
             Route::get('/rekam-medis-aset', RekamMedisAsetIndex::class)->name('rekam-medis-aset');
             Route::get('/jadwal-preventif', PemeliharaanBerkalaIndex::class)->name('jadwal-preventif');
+
+            // Siklus Persediaan & Stok Opname (Grup 3)
+            Route::get('/monitoring-fefo', MonitoringStokFefoIndex::class)->name('monitoring-fefo');
+            Route::get('/buku-mutasi', BukuMutasiIndex::class)->name('buku-mutasi');
+            Route::get('/stok-opname', StockOpnameIndex::class)->name('stok-opname');
+            Route::get('/otorisasi-penyesuaian', OtorisasiPenyesuaianIndex::class)->name('otorisasi-penyesuaian');
+            Route::get('/selisih-opname', OtorisasiPenyesuaianIndex::class)->name('selisih-opname');
         });
 }

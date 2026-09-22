@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\ApiController;
 use App\Models\PermintaanDistribusi;
+use App\Models\StokBatch;
+use App\Models\StokOpname;
+use App\Models\StokOpnameDetail;
 use App\Services\Distribusi\DistribusiService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-
 class GudangApiController extends ApiController
 {
     /**
@@ -55,5 +57,73 @@ class GudangApiController extends ApiController
         } catch (Exception $e) {
             return $this->jsonError($e->getMessage(), 422);
         }
+    }
+
+    /**
+     * Input perhitungan fisik blind count per barcode/nomor batch di depan rak via mobile scanner.
+     * POST /v1/gudang/opname-count
+     */
+    public function opnameCount(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user->can('create_gudang_stok::stok::opname') && ! $user->can('update_gudang_stok::stok::opname') && ! $user->can('page_AdminLogistikDashboard')) {
+            return $this->jsonError('Anda tidak memiliki wewenang menginput hasil stock opname.', 403);
+        }
+
+        $validated = $request->validate([
+            'stok_opname_id' => 'required|exists:stok_opname,id',
+            'stok_batch_id'  => 'nullable|exists:stok_batch,id',
+            'nomor_batch'    => 'nullable|string',
+            'jumlah_fisik'   => 'required|integer|min:0',
+            'catatan'        => 'nullable|string|max:500',
+        ]);
+
+        $opname = StokOpname::find($validated['stok_opname_id']);
+        if ($opname->status !== 'BERJALAN') {
+            return $this->jsonError("Sesi stock opname {$opname->kode} tidak sedang dalam status BERJALAN (status: {$opname->status}).", 422);
+        }
+
+        // Resolusi baris detail
+        $detail = null;
+        if (! empty($validated['stok_batch_id'])) {
+            $detail = StokOpnameDetail::with(['barang', 'stokBatch'])
+                ->where('stok_opname_id', $opname->id)
+                ->where('stok_batch_id', $validated['stok_batch_id'])
+                ->first();
+        } elseif (! empty($validated['nomor_batch'])) {
+            $batch = StokBatch::where('gudang_id', $opname->gudang_id)
+                ->where('nomor_batch', trim($validated['nomor_batch']))
+                ->first();
+
+            if ($batch) {
+                $detail = StokOpnameDetail::with(['barang', 'stokBatch'])
+                    ->where('stok_opname_id', $opname->id)
+                    ->where('stok_batch_id', $batch->id)
+                    ->first();
+            }
+        }
+
+        if (! $detail) {
+            return $this->jsonError('Item batch tidak terdaftar pada sesi stock opname ini.', 404);
+        }
+
+        $fisik = (int) $validated['jumlah_fisik'];
+        $selisih = $fisik - $detail->jumlah_sistem;
+
+        $detail->update([
+            'jumlah_fisik' => $fisik,
+            'selisih'      => $selisih,
+            'catatan'      => $validated['catatan'] ?? $detail->catatan,
+        ]);
+
+        return $this->jsonSuccess([
+            'opname_kode'   => $opname->kode,
+            'detail_id'     => $detail->id,
+            'barang'        => $detail->barang?->nama,
+            'nomor_batch'   => $detail->stokBatch?->nomor_batch,
+            'jumlah_fisik'  => $detail->jumlah_fisik,
+            'catatan'       => $detail->catatan,
+        ], 'Hasil perhitungan fisik berhasil direkam.');
     }
 }

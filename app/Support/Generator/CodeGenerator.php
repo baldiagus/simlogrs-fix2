@@ -110,6 +110,21 @@ class CodeGenerator
     }
 
     /**
+     * Khusus Stock Opname Gudang: OPN-YYYYMM-XXX
+     */
+    public static function generateOpn(string $modelClass = 'App\Models\StokOpname'): string
+    {
+        return static::generate('OPN', $modelClass, 'kode', 'Ym', 3);
+    }
+
+    /**
+     * Khusus Penyesuaian Stok Gudang: ADJ-YYYYMM-XXX
+     */
+    public static function generateAdj(string $modelClass = 'App\Models\PenyesuaianStok'): string
+    {
+        return static::generate('ADJ', $modelClass, 'kode', 'Ym', 3);
+    }
+    /**
      * Khusus Temuan Audit SPI: AUD-YYYYMM-XXX
      */
     public static function generateAud(string $modelClass = 'App\Models\TemuanAudit'): string

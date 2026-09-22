@@ -35,6 +35,7 @@ Route::prefix('v1')->group(function () {
 
         // 5. Operasional Gudang & Scanner Barcode
         Route::post('/gudang/scan-batch', [GudangApiController::class, 'scanBatch']);
+        Route::post('/gudang/opname-count', [GudangApiController::class, 'opnameCount']);
 
         // 6. Sirkulasi Aset & Scanner QR
         Route::post('/aset/scan-qr', [AsetApiController::class, 'scanQr']);

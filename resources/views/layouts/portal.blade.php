@@ -224,6 +224,36 @@
                     @endcan
                 </flux:sidebar.group>
             @endif
+
+            @if ($user->can('view_any_gudang_stok::monitoring::fefo') || $user->can('view_any_gudang_stok::buku::mutasi') || $user->can('view_any_gudang_stok::stok::opname') || $user->can('view_any_gudang_stok::otorisasi::penyesuaian') || $user->can('view_any_audit_manajemen::selisih::opname'))
+                <flux:sidebar.group expandable heading="Persediaan & Opname" class="grid">
+                    @can('view_any_gudang_stok::monitoring::fefo')
+                        <flux:sidebar.item icon="clock" href="/{{ $portalKey }}/monitoring-fefo" wire:navigate :current="request()->is('*/monitoring-fefo')">
+                            Monitoring FEFO
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_gudang_stok::buku::mutasi')
+                        <flux:sidebar.item icon="document-magnifying-glass" href="/{{ $portalKey }}/buku-mutasi" wire:navigate :current="request()->is('*/buku-mutasi')">
+                            Kartu Mutasi Stok
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_gudang_stok::stok::opname')
+                        <flux:sidebar.item icon="clipboard-document-check" href="/{{ $portalKey }}/stok-opname" wire:navigate :current="request()->is('*/stok-opname')">
+                            Stock Opname
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_gudang_stok::otorisasi::penyesuaian')
+                        <flux:sidebar.item icon="check-badge" href="/{{ $portalKey }}/otorisasi-penyesuaian" wire:navigate :current="request()->is('*/otorisasi-penyesuaian')">
+                            Otorisasi Penyesuaian
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_audit_manajemen::selisih::opname')
+                        <flux:sidebar.item icon="scale" href="/{{ $portalKey }}/selisih-opname" wire:navigate :current="request()->is('*/selisih-opname')">
+                            Selisih Opname (Audit)
+                        </flux:sidebar.item>
+                    @endcan
+                </flux:sidebar.group>
+            @endif
         </flux:sidebar.nav>
 
         <flux:sidebar.spacer />
