@@ -77,7 +77,7 @@
                             </div>
                             <div class="flex gap-2">
                                 <flux:button size="xs" variant="ghost" wire:click="selectAllDomain('dashboard_portal')">Pilih Semua</flux:button>
-                                <flux:button size="xs" variant="ghost" wire:click="clearDomain('dashboard_portal')">Kosongkan</flux:button>
+                                <flux:button size="xs" variant="ghost" wire:click="confirmClearDomain('dashboard_portal')">Kosongkan</flux:button>
                             </div>
                         </div>
 
@@ -119,7 +119,7 @@
                                         <span class="text-zinc-300">|</span>
                                         <flux:button size="xs" variant="ghost" wire:click="selectViewOnlyDomain('{{ $domainKey }}')">Lihat Saja</flux:button>
                                         <span class="text-zinc-300">|</span>
-                                        <flux:button size="xs" variant="ghost" wire:click="clearDomain('{{ $domainKey }}')">Kosongkan</flux:button>
+                                        <flux:button size="xs" variant="ghost" wire:click="confirmClearDomain('{{ $domainKey }}')">Kosongkan</flux:button>
                                     </div>
                                 </div>
 
@@ -213,4 +213,11 @@
             @endif
         </div>
     </div>
+
+    <x-confirm-modal
+        :title="$confirmTitle"
+        :description="$confirmDescription"
+        :confirmText="$confirmButtonText"
+        :variant="$confirmButtonVariant"
+    />
 </div>

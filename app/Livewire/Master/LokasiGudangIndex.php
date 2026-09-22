@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Master;
 
+use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
@@ -12,7 +13,7 @@ use Livewire\Component;
 
 class LokasiGudangIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
 
     public bool $showModal = false;
     public ?int $editingId = null;
@@ -107,6 +108,21 @@ class LokasiGudangIndex extends Component
         }
 
         $this->showModal = false;
+    }
+    public function confirmToggleStatus(int $id): void
+    {
+        $lokasi = LokasiGudang::findOrFail($id);
+        $nextStatus = $lokasi->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
+        $variant = $nextStatus === 'NONAKTIF' ? 'danger' : 'primary';
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'toggleStatus',
+            title: 'Konfirmasi Ubah Status Rak / Bin',
+            description: "Ubah status rak '{$lokasi->nama}' ({$lokasi->kode}) menjadi {$nextStatus}?",
+            buttonText: "Ya, Ubah ke {$nextStatus}",
+            variant: $variant
+        );
     }
 
     public function toggleStatus(int $id)

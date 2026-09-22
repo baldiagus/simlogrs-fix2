@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Master;
 
+use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
@@ -17,7 +18,7 @@ use Livewire\Component;
 
 class BarangIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
 
     public bool $showModal = false;
     public ?int $editingId = null;
@@ -191,6 +192,21 @@ class BarangIndex extends Component
         }
 
         $this->showModal = false;
+    }
+    public function confirmToggleStatus(int $id): void
+    {
+        $barang = Barang::findOrFail($id);
+        $nextStatus = $barang->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
+        $variant = $nextStatus === 'NONAKTIF' ? 'danger' : 'primary';
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'toggleStatus',
+            title: 'Konfirmasi Ubah Status Barang',
+            description: "Ubah status komoditas '{$barang->nama}' ({$barang->kode}) menjadi {$nextStatus}?",
+            buttonText: "Ya, Ubah ke {$nextStatus}",
+            variant: $variant
+        );
     }
 
     public function toggleStatus(int $id)

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Master;
 
+use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
@@ -12,7 +13,7 @@ use Livewire\Component;
 
 class PemasokIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
 
     public bool $showModal = false;
     public ?int $editingId = null;
@@ -105,6 +106,21 @@ class PemasokIndex extends Component
             $this->toast("Pemasok '{$this->nama}' ({$data['kode']}) berhasil ditambahkan.", 'success');
         }
         $this->showModal = false;
+    }
+    public function confirmToggleStatus(int $id): void
+    {
+        $pemasok = Pemasok::findOrFail($id);
+        $nextStatus = $pemasok->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
+        $variant = $nextStatus === 'NONAKTIF' ? 'danger' : 'primary';
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'toggleStatus',
+            title: 'Konfirmasi Ubah Status Pemasok',
+            description: "Ubah status perusahaan pemasok '{$pemasok->nama}' ({$pemasok->kode}) menjadi {$nextStatus}?",
+            buttonText: "Ya, Ubah ke {$nextStatus}",
+            variant: $variant
+        );
     }
 
     public function toggleStatus(int $id)

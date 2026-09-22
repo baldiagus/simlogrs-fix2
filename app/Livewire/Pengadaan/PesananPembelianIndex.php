@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pengadaan;
 
+use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
@@ -16,7 +17,7 @@ use Livewire\Component;
 
 class PesananPembelianIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
 
     public bool $showModal = false;
     public bool $showDetailModal = false;
@@ -122,6 +123,19 @@ class PesananPembelianIndex extends Component
             ->findOrFail($id);
         $this->showDetailModal = true;
     }
+    public function confirmUpdateStatusKirim(int $id): void
+    {
+        $po = PesananPembelian::with('pemasok')->findOrFail($id);
+        $this->askConfirmation(
+            target: $id,
+            action: 'updateStatusKirim',
+            title: 'Konfirmasi Pengiriman Vendor',
+            description: "Ubah status pesanan {$po->kode} (Vendor: {$po->pemasok?->nama}) menjadi DIKIRIM_VENDOR? Menandakan barang dalam perjalanan.",
+            buttonText: 'Ya, Tandai Sedang Dikirim',
+            variant: 'primary'
+        );
+    }
+
 
     public function updateStatusKirim(int $id): void
     {

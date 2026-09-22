@@ -78,11 +78,11 @@
 
                                 @can('update_pengadaan::permintaan::pengadaan')
                                     @if ($item->status === 'DIAJUKAN')
-                                        <flux:button wire:click="approve({{ $item->id }})" size="xs" variant="ghost" icon="check-circle" title="Setujui" wire:loading.attr="disabled" />
-                                        <flux:button wire:click="reject({{ $item->id }})" size="xs" variant="ghost" icon="x-circle" title="Tolak" wire:loading.attr="disabled" />
+                                        <flux:button wire:click="confirmApprove({{ $item->id }})" size="xs" variant="ghost" icon="check-circle" title="Setujui" wire:loading.attr="disabled" />
+                                        <flux:button wire:click="confirmReject({{ $item->id }})" size="xs" variant="ghost" icon="x-circle" title="Tolak" wire:loading.attr="disabled" />
                                     @endif
                                     @if ($item->status === 'DISETUJUI')
-                                        <flux:button wire:click="teruskan({{ $item->id }})" size="xs" variant="ghost" icon="arrow-right-circle" title="Teruskan ke Pengadaan" wire:loading.attr="disabled" />
+                                        <flux:button wire:click="confirmTeruskan({{ $item->id }})" size="xs" variant="ghost" icon="arrow-right-circle" title="Teruskan ke Pengadaan" wire:loading.attr="disabled" />
                                     @endif
                                 @endcan
                             </div>
@@ -265,4 +265,11 @@
             </div>
         @endif
     </flux:modal>
+
+    <x-confirm-modal
+        :title="$confirmTitle"
+        :description="$confirmDescription"
+        :confirmText="$confirmButtonText"
+        :variant="$confirmButtonVariant"
+    />
 </div>

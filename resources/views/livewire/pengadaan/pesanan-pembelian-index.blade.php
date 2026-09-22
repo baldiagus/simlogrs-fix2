@@ -80,7 +80,7 @@
                                 @endcan
                                 @if ($item->status === 'DITERBITKAN')
                                     @can('update_pengadaan::pesanan::pembelian')
-                                        <flux:button wire:click="updateStatusKirim({{ $item->id }})" size="xs" variant="ghost" icon="truck" title="Update Kirim" wire:loading.attr="disabled" />
+                                        <flux:button wire:click="confirmUpdateStatusKirim({{ $item->id }})" size="xs" variant="ghost" icon="truck" title="Update Kirim" wire:loading.attr="disabled" />
                                     @endcan
                                 @endif
                             </div>
@@ -283,4 +283,11 @@
             </div>
         @endif
     </flux:modal>
+
+    <x-confirm-modal
+        :title="$confirmTitle"
+        :description="$confirmDescription"
+        :confirmText="$confirmButtonText"
+        :variant="$confirmButtonVariant"
+    />
 </div>

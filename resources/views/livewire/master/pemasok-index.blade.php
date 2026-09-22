@@ -59,7 +59,7 @@
                             <div class="flex items-center justify-end gap-1.5">
                                 @can('update_master::pemasok')
                                     <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
-                                    <flux:button wire:click="toggleStatus({{ $item->id }})" size="xs" variant="ghost" icon="arrow-path" title="Ubah Status" />
+                                    <flux:button wire:click="confirmToggleStatus({{ $item->id }})" size="xs" variant="ghost" icon="arrow-path" title="Ubah Status" />
                                 @endcan
                             </div>
                         </flux:table.cell>
@@ -118,4 +118,11 @@
             </div>
         </form>
     </flux:modal>
+
+    <x-confirm-modal
+        :title="$confirmTitle"
+        :description="$confirmDescription"
+        :confirmText="$confirmButtonText"
+        :variant="$confirmButtonVariant"
+    />
 </div>

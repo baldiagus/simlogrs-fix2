@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Master;
 
+use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
@@ -11,7 +12,7 @@ use Livewire\Component;
 
 class KategoriBarangIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
 
     public bool $showModal = false;
     public ?int $editingId = null;
@@ -77,6 +78,21 @@ class KategoriBarangIndex extends Component
         }
 
         $this->showModal = false;
+    }
+    public function confirmToggleStatus(int $id): void
+    {
+        $kat = KategoriBarang::findOrFail($id);
+        $nextStatus = $kat->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
+        $variant = $nextStatus === 'NONAKTIF' ? 'danger' : 'primary';
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'toggleStatus',
+            title: 'Konfirmasi Ubah Status Kategori',
+            description: "Ubah status kategori '{$kat->nama}' ({$kat->kode}) menjadi {$nextStatus}?",
+            buttonText: "Ya, Ubah ke {$nextStatus}",
+            variant: $variant
+        );
     }
 
     public function toggleStatus(int $id)

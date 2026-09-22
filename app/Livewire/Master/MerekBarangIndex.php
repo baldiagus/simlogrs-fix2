@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Master;
 
+use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
@@ -12,7 +13,7 @@ use Livewire\Component;
 
 class MerekBarangIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
 
     public bool $showModal = false;
     public ?int $editingId = null;
@@ -74,6 +75,21 @@ class MerekBarangIndex extends Component
             $this->toast("Merek '{$this->nama}' ({$kodeFinal}) berhasil ditambahkan.", 'success');
         }
         $this->showModal = false;
+    }
+    public function confirmToggleStatus(int $id): void
+    {
+        $merek = MerekBarang::findOrFail($id);
+        $nextStatus = $merek->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
+        $variant = $nextStatus === 'NONAKTIF' ? 'danger' : 'primary';
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'toggleStatus',
+            title: 'Konfirmasi Ubah Status Merek',
+            description: "Ubah status merek '{$merek->nama}' ({$merek->kode}) menjadi {$nextStatus}?",
+            buttonText: "Ya, Ubah ke {$nextStatus}",
+            variant: $variant
+        );
     }
 
     public function toggleStatus(int $id)

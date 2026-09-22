@@ -2,6 +2,7 @@
 
 namespace App\Livewire\User;
 
+use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasToast;
 use App\Support\Rbac\PagePermissionRegistry;
 use Livewire\Component;
@@ -10,7 +11,7 @@ use Spatie\Permission\Models\Permission;
 
 class RoleManager extends Component
 {
-    use HasToast;
+    use HasToast, HasConfirmationModal;
 
     public ?int $selectedRoleId = null;
     public array $state = [
@@ -134,6 +135,22 @@ class RoleManager extends Component
     /**
      * Quick Action per Domain: Kosongkan seluruh hak akses di domain ini.
      */
+    public function confirmClearDomain(string $domainKey): void
+    {
+        $domains = PagePermissionRegistry::getDomains();
+        $domainLabel = $domains[$domainKey]['label'] ?? $domainKey;
+        $role = Role::find($this->selectedRoleId);
+
+        $this->askConfirmation(
+            target: $domainKey,
+            action: 'clearDomain',
+            title: 'Konfirmasi Kosongkan Wewenang',
+            description: "Kosongkan seluruh checklist hak akses pada domain '{$domainLabel}' untuk peran '{$role?->name}'?",
+            buttonText: 'Ya, Kosongkan Domain',
+            variant: 'danger'
+        );
+    }
+
     public function clearDomain(string $domainKey)
     {
         $domains = PagePermissionRegistry::getDomains();

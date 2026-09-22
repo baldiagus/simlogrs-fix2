@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pengadaan;
 
+use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
@@ -15,7 +16,7 @@ use Livewire\Component;
 
 class PermintaanPengadaanIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
 
     public bool $showModal = false;
     public ?int $editingId = null;
@@ -109,6 +110,45 @@ class PermintaanPengadaanIndex extends Component
     {
         $this->selectedPr = PermintaanPengadaan::with(['unit', 'pengaju', 'penyetuju', 'detail.barang'])->findOrFail($id);
         $this->showDetailModal = true;
+    }
+
+    public function confirmApprove(int $id): void
+    {
+        $pr = PermintaanPengadaan::with('unit')->findOrFail($id);
+        $this->askConfirmation(
+            target: $id,
+            action: 'approve',
+            title: 'Konfirmasi Persetujuan PR',
+            description: "Setujui permohonan pengadaan {$pr->kode} dari {$pr->unit?->nama}?",
+            buttonText: 'Ya, Setujui',
+            variant: 'primary'
+        );
+    }
+
+    public function confirmReject(int $id): void
+    {
+        $pr = PermintaanPengadaan::findOrFail($id);
+        $this->askConfirmation(
+            target: $id,
+            action: 'reject',
+            title: 'Konfirmasi Penolakan PR',
+            description: "Tolak permohonan pengadaan {$pr->kode}? Permintaan yang ditolak tidak dapat diproses lebih lanjut.",
+            buttonText: 'Ya, Tolak Permintaan',
+            variant: 'danger'
+        );
+    }
+
+    public function confirmTeruskan(int $id): void
+    {
+        $pr = PermintaanPengadaan::findOrFail($id);
+        $this->askConfirmation(
+            target: $id,
+            action: 'teruskan',
+            title: 'Konfirmasi Teruskan ke Pengadaan',
+            description: "Teruskan permohonan {$pr->kode} ke Bagian Pengadaan untuk penerbitan PO?",
+            buttonText: 'Ya, Teruskan',
+            variant: 'primary'
+        );
     }
 
     public function approve(int $id)

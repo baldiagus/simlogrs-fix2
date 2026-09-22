@@ -21,7 +21,7 @@
             </flux:modal.trigger>
 
             @if ($contextManager->isEmulating())
-                <flux:button wire:click="resetKonteksGlobal" variant="danger" size="sm">
+                <flux:button wire:click="confirmResetKonteksGlobal" variant="danger" size="sm">
                     Reset Global
                 </flux:button>
             @endif
@@ -155,4 +155,11 @@
             </div>
         </div>
     </flux:modal>
+
+    <x-confirm-modal
+        :title="$confirmTitle"
+        :description="$confirmDescription"
+        :confirmText="$confirmButtonText"
+        :variant="$confirmButtonVariant"
+    />
 </div>
