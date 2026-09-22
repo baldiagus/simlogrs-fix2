@@ -214,8 +214,26 @@
                                         icon="eye"
                                         title="Lihat Detail"
                                     />
+                                    @php
+                                        $canSerahTerima = $isGlobalAdmin ||
+                                            ($item->tipe_penyedia === 'RUANGAN' && (int) $userUnitId === (int) $item->unit_penyedia_id) ||
+                                            ($item->tipe_penyedia === 'GUDANG' && (int) $userGudangId === (int) $item->gudang_penyedia_id);
+                                    @endphp
 
-                                    @if (in_array($item->status, ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM'], true))
+                                    @if ($item->status === 'DISETUJUI' && $canSerahTerima)
+                                        <flux:button
+                                            wire:click="confirmSerahTerima({{ $item->id }})"
+                                            size="xs"
+                                            variant="primary"
+                                            icon="arrow-right-start-on-rectangle"
+                                            title="Serah Terima Fisik Aset"
+                                            wire:loading.attr="disabled"
+                                        >
+                                            Serah Terima
+                                        </flux:button>
+                                    @endif
+
+                                    @if (in_array($item->status, ['DIPINJAM'], true))
                                         @can('update_layanan_unit::peminjaman::aset')
                                             <flux:button
                                                 wire:click="openPerpanjang({{ $item->id }})"
@@ -681,10 +699,27 @@
                     </div>
                 @endif
 
-                <div class="flex justify-end pt-3 border-t border-zinc-200 dark:border-zinc-700">
+                <div class="flex items-center justify-between pt-3 border-t border-zinc-200 dark:border-zinc-700">
                     <flux:button variant="ghost" wire:click="$set('showDetailModal', false)">
                         Tutup
                     </flux:button>
+
+                    @php
+                        $canSerahTerimaModal = $isGlobalAdmin ||
+                            ($selectedPinjam->tipe_penyedia === 'RUANGAN' && (int) $userUnitId === (int) $selectedPinjam->unit_penyedia_id) ||
+                            ($selectedPinjam->tipe_penyedia === 'GUDANG' && (int) $userGudangId === (int) $selectedPinjam->gudang_penyedia_id);
+                    @endphp
+
+                    @if ($selectedPinjam->status === 'DISETUJUI' && $canSerahTerimaModal)
+                        <flux:button
+                            wire:click="confirmSerahTerima({{ $selectedPinjam->id }})"
+                            variant="primary"
+                            icon="arrow-right-start-on-rectangle"
+                            wire:loading.attr="disabled"
+                        >
+                            Serah Terima Fisik
+                        </flux:button>
+                    @endif
                 </div>
             </div>
         @endif

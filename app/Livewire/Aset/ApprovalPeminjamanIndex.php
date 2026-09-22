@@ -16,7 +16,7 @@ class ApprovalPeminjamanIndex extends Component
     use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
 
     #[Url(history: true)]
-    public string $filterStatus = 'DIAJUKAN';
+    public string $filterStatus = '';
 
     public bool $showDetailModal = false;
     public ?PermintaanPeminjaman $selectedPinjam = null;
@@ -330,6 +330,12 @@ class ApprovalPeminjamanIndex extends Component
         $this->checkAccess();
 
         $isGlobalAdmin = $this->isGlobalAdmin();
+        $baseCountQuery = PermintaanPeminjaman::query();
+        $this->applyScope($baseCountQuery);
+
+        $countMenunggu = (clone $baseCountQuery)->where('status', 'DIAJUKAN')->count();
+        $countSiapSerahTerima = (clone $baseCountQuery)->where('status', 'DISETUJUI')->count();
+        $countDipinjam = (clone $baseCountQuery)->where('status', 'DIPINJAM')->count();
 
         $query = PermintaanPeminjaman::with([
             'unitPeminjam',
@@ -341,7 +347,6 @@ class ApprovalPeminjamanIndex extends Component
         ])->withCount('detail');
 
         $this->applyScope($query);
-
         $query->when($this->filterStatus !== '', fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->search, function ($q) {
                 $q->where(function ($sub) {
@@ -364,9 +369,13 @@ class ApprovalPeminjamanIndex extends Component
         $pageTitle = $this->getPageTitle();
 
         return view('livewire.aset.approval-peminjaman-index', [
-            'daftarPermintaan' => $daftarPermintaan,
-            'pageTitle'        => $pageTitle,
-            'isGlobalAdmin'    => $isGlobalAdmin,
+            'daftarPermintaan'     => $daftarPermintaan,
+            'pageTitle'            => $pageTitle,
+            'isGlobalAdmin'        => $isGlobalAdmin,
+            'countMenunggu'        => $countMenunggu,
+            'countSiapSerahTerima' => $countSiapSerahTerima,
+            'countDipinjam'        => $countDipinjam,
+            'filterStatus'         => $this->filterStatus,
         ])->layout('layouts.portal', [
             'portal' => $this->getPortalName(),
             'title'  => $pageTitle,

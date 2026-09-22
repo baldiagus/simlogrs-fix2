@@ -9,28 +9,76 @@
         </div>
 
         {{-- Toolbar filter dan pencarian --}}
-        <div class="flex flex-wrap items-center gap-3">
-            <div class="w-full sm:w-80">
-                <flux:input
-                    wire:model.live.debounce.300ms="search"
-                    placeholder="Cari kode PINJ, aset, unit peminjam..."
-                    icon="magnifying-glass"
-                    clearable
-                />
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-1">
+            <div class="flex flex-wrap items-center gap-1.5">
+                <flux:button
+                    wire:click="$set('filterStatus', '')"
+                    size="xs"
+                    :variant="$filterStatus === '' ? 'primary' : 'ghost'"
+                >
+                    Semua
+                </flux:button>
+                <flux:button
+                    wire:click="$set('filterStatus', 'DIAJUKAN')"
+                    size="xs"
+                    :variant="$filterStatus === 'DIAJUKAN' ? 'primary' : 'ghost'"
+                >
+                    Menunggu Otorisasi
+                    @if ($countMenunggu > 0)
+                        <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white">
+                            {{ $countMenunggu }}
+                        </span>
+                    @endif
+                </flux:button>
+                <flux:button
+                    wire:click="$set('filterStatus', 'DISETUJUI')"
+                    size="xs"
+                    :variant="$filterStatus === 'DISETUJUI' ? 'primary' : 'ghost'"
+                >
+                    Siap Serah Terima
+                    @if ($countSiapSerahTerima > 0)
+                        <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white">
+                            {{ $countSiapSerahTerima }}
+                        </span>
+                    @endif
+                </flux:button>
+                <flux:button
+                    wire:click="$set('filterStatus', 'DIPINJAM')"
+                    size="xs"
+                    :variant="$filterStatus === 'DIPINJAM' ? 'primary' : 'ghost'"
+                >
+                    Sedang Dipinjam
+                    @if ($countDipinjam > 0)
+                        <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white">
+                            {{ $countDipinjam }}
+                        </span>
+                    @endif
+                </flux:button>
             </div>
 
-            <div class="w-full sm:w-56">
-                <select
-                    wire:model.live="filterStatus"
-                    class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100"
-                >
-                    <option value="">Semua Status</option>
-                    <option value="DIAJUKAN">DIAJUKAN (Menunggu Otorisasi)</option>
-                    <option value="DISETUJUI">DISETUJUI (Siap Serah Terima)</option>
-                    <option value="DIPINJAM">DIPINJAM (Aktif Digunakan)</option>
-                    <option value="SELESAI">SELESAI (Dikembalikan)</option>
-                    <option value="DITOLAK">DITOLAK</option>
-                </select>
+            <div class="flex items-center gap-2.5 w-full md:w-auto">
+                <div class="w-full sm:w-72">
+                    <flux:input
+                        wire:model.live.debounce.300ms="search"
+                        placeholder="Cari kode PINJ, aset, peminjam..."
+                        icon="magnifying-glass"
+                        clearable
+                    />
+                </div>
+
+                <div class="w-40 shrink-0">
+                    <select
+                        wire:model.live="filterStatus"
+                        class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-2 text-zinc-900 dark:text-zinc-100"
+                    >
+                        <option value="">Semua Status</option>
+                        <option value="DIAJUKAN">DIAJUKAN</option>
+                        <option value="DISETUJUI">DISETUJUI</option>
+                        <option value="DIPINJAM">DIPINJAM</option>
+                        <option value="SELESAI">SELESAI</option>
+                        <option value="DITOLAK">DITOLAK</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -138,7 +186,7 @@
                                         wire:click="confirmSerahTerima({{ $item->id }})"
                                         size="xs"
                                         variant="primary"
-                                        icon="arrow-right-on-rectangle"
+                                        icon="arrow-right-start-on-rectangle"
                                         title="Serah Terima Fisik"
                                         class="bg-blue-600 hover:bg-blue-700 text-white"
                                         wire:loading.attr="disabled"
@@ -328,7 +376,7 @@
                                 <flux:button
                                     wire:click="confirmSerahTerima({{ $selectedPinjam->id }})"
                                     variant="primary"
-                                    icon="arrow-right-on-rectangle"
+                                    icon="arrow-right-start-on-rectangle"
                                     class="bg-blue-600 hover:bg-blue-700 text-white"
                                     wire:loading.attr="disabled"
                                 >

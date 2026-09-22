@@ -477,6 +477,62 @@ class PeminjamanAsetIndex extends Component
 
         $this->toast("Pengajuan peminjaman '{$pinjam->kode}' berhasil dibatalkan.", 'success');
     }
+    public function confirmSerahTerima(int $id): void
+    {
+        $pinjam = PermintaanPeminjaman::with(['unitPeminjam', 'detail.aset'])->findOrFail($id);
+        if ($pinjam->status !== 'DISETUJUI') {
+            $this->toast('Hanya peminjaman berstatus DISETUJUI yang dapat diserahterimakan.', 'danger');
+            return;
+        }
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'serahTerima',
+            title: 'Konfirmasi Serah Terima Fisik Aset',
+            description: "Lakukan serah terima fisik aset untuk {$pinjam->kode} ke unit {$pinjam->unitPeminjam?->nama}? Tanggung jawab aset akan beralih ke peminjam dan status menjadi DIPINJAM.",
+            buttonText: 'Ya, Serah Terima Fisik',
+            variant: 'primary'
+        );
+    }
+
+    public function serahTerima(int $id): void
+    {
+        $user = auth()->user();
+        $pinjam = PermintaanPeminjaman::with('detail.aset')->findOrFail($id);
+
+        $isGlobalAdmin = $user && (
+            $user->can('page_Dashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_SuperAdminDashboard') ||
+            $user->can('manage_all')
+        );
+
+        if (! $isGlobalAdmin) {
+            if ($pinjam->tipe_penyedia === 'RUANGAN') {
+                if (! $user?->unit_id || (int) $user->unit_id !== (int) $pinjam->unit_penyedia_id) {
+                    abort(403, 'Hanya ruangan penyedia aset yang berhak melakukan serah terima fisik.');
+                }
+            } elseif ($pinjam->tipe_penyedia === 'GUDANG') {
+                if (! $user?->gudang_id || (int) $user->gudang_id !== (int) $pinjam->gudang_penyedia_id) {
+                    abort(403, 'Hanya fasilitas gudang penyedia aset yang berhak melakukan serah terima fisik.');
+                }
+            }
+        }
+
+        if ($pinjam->status !== 'DISETUJUI') {
+            $this->toast('Hanya peminjaman berstatus DISETUJUI yang dapat diserahterimakan.', 'danger');
+            return;
+        }
+
+        try {
+            app(\App\Services\Aset\PeminjamanAsetService::class)->serahTerimaFisik($pinjam, $user);
+            $this->showDetailModal = false;
+            $this->toast("Serah terima fisik {$pinjam->kode} berhasil. Aset resmi berstatus DIPINJAM.", 'success');
+        } catch (\Throwable $e) {
+            $this->toast($e->getMessage(), 'danger');
+        }
+    }
+
 
     public function showQr(int $asetId): void
     {
