@@ -14,6 +14,7 @@ use App\Support\Generator\CodeGenerator;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Illuminate\Support\Facades\Cache;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AsetIndex extends Component
@@ -232,9 +233,9 @@ class AsetIndex extends Component
     {
         abort_unless(auth()->user()?->can('view_any_master::aset') || auth()->user()?->can('view_master::aset'), 403);
 
-        $daftarBarangAset = Barang::where('tipe', 'ASET')->where('status', 'AKTIF')->get();
-        $daftarUnit = Unit::where('status', 'AKTIF')->get();
-        $daftarGudang = Gudang::where('status', 'AKTIF')->get();
+        $daftarBarangAset = Cache::remember('dropdown_barang_aset_aktif', 60, fn () => Barang::where('tipe', 'ASET')->where('status', 'AKTIF')->get());
+        $daftarUnit = Cache::remember('dropdown_unit_aktif', 60, fn () => Unit::where('status', 'AKTIF')->get());
+        $daftarGudang = Cache::remember('dropdown_gudang_aktif', 60, fn () => Gudang::where('status', 'AKTIF')->get());
         $daftarRak = $this->gudang_id
             ? LokasiGudang::where('gudang_id', $this->gudang_id)->where('status', 'AKTIF')->get()
             : collect();

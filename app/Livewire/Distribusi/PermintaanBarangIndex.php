@@ -13,6 +13,7 @@ use App\Models\PermintaanDistribusiDetail;
 use App\Models\StokBatch;
 use App\Models\Unit;
 use App\Support\Generator\CodeGenerator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -262,9 +263,9 @@ class PermintaanBarangIndex extends Component
             ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
-        $daftarBarang = Barang::where('status', 'AKTIF')->with('satuan')->orderBy('nama')->get();
-        $daftarGudang = Gudang::where('status', 'AKTIF')->orderBy('nama')->get();
-        $daftarUnit   = Unit::where('status', 'AKTIF')->orderBy('nama')->get();
+        $daftarBarang = Cache::remember('dropdown_barang_aktif', 60, fn () => Barang::where('status', 'AKTIF')->with('satuan')->orderBy('nama')->get());
+        $daftarGudang = Cache::remember('dropdown_gudang_aktif', 60, fn () => Gudang::where('status', 'AKTIF')->orderBy('nama')->get());
+        $daftarUnit   = Cache::remember('dropdown_unit_aktif', 60, fn () => Unit::where('status', 'AKTIF')->orderBy('nama')->get());
         $stokGudangMap = [];
         if ($this->gudang_id) {
             $stokGudangMap = StokBatch::where('gudang_id', $this->gudang_id)

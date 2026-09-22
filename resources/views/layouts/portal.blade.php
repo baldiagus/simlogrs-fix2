@@ -5,10 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'SIMLOG RS Non-Medis v2' }}</title>
     
-    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <!-- Google Fonts: Inter & JetBrains Mono (Non-blocking) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    </noscript>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
@@ -45,6 +49,7 @@
         <flux:sidebar.header>
             <flux:sidebar.brand
                 href="/{{ $portalKey }}/dashboard"
+                wire:navigate
                 name="SIMLOG RS"
                 class="font-extrabold tracking-tight"
             >
@@ -59,58 +64,58 @@
         <flux:sidebar.search placeholder="Cari modul..." />
 
         <flux:sidebar.nav>
-            <flux:sidebar.item icon="home" href="/{{ $portalKey }}/dashboard" :current="request()->is('*/dashboard')">
+            <flux:sidebar.item icon="home" href="/{{ $portalKey }}/dashboard" wire:navigate :current="request()->is('*/dashboard')">
                 Dashboard
             </flux:sidebar.item>
 
             @can('view_any_user::role')
-                <flux:sidebar.item icon="shield-check" href="/super-admin/roles" :current="request()->is('*/roles')">
+                <flux:sidebar.item icon="shield-check" href="/super-admin/roles" wire:navigate :current="request()->is('*/roles')">
                     Peran & Hak Akses
                 </flux:sidebar.item>
             @endcan
 
             @can('view_any_master::barang')
                 <flux:sidebar.group expandable heading="Master & Logistik" class="grid">
-                    <flux:sidebar.item icon="cube" href="/{{ $portalKey }}/barang" :current="request()->is('*/barang')">
+                    <flux:sidebar.item icon="cube" href="/{{ $portalKey }}/barang" wire:navigate :current="request()->is('*/barang')">
                         Katalog Barang
                     </flux:sidebar.item>
                     @can('view_any_master::aset')
-                        <flux:sidebar.item icon="archive-box" href="/{{ $portalKey }}/aset" :current="request()->is('*/aset')">
+                        <flux:sidebar.item icon="archive-box" href="/{{ $portalKey }}/aset" wire:navigate :current="request()->is('*/aset')">
                             Register Aset
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_master::unit')
-                        <flux:sidebar.item icon="building-office" href="/{{ $portalKey }}/unit" :current="request()->is('*/unit')">
+                        <flux:sidebar.item icon="building-office" href="/{{ $portalKey }}/unit" wire:navigate :current="request()->is('*/unit')">
                             Unit & Ruangan
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_master::gudang')
-                        <flux:sidebar.item icon="building-storefront" href="/{{ $portalKey }}/gudang" :current="request()->is('*/gudang')">
+                        <flux:sidebar.item icon="building-storefront" href="/{{ $portalKey }}/gudang" wire:navigate :current="request()->is('*/gudang')">
                             Gudang Logistik
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_master::lokasi::gudang')
-                        <flux:sidebar.item icon="table-cells" href="/{{ $portalKey }}/lokasi-gudang" :current="request()->is('*/lokasi-gudang')">
+                        <flux:sidebar.item icon="table-cells" href="/{{ $portalKey }}/lokasi-gudang" wire:navigate :current="request()->is('*/lokasi-gudang')">
                             Lokasi Rak / Bin
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_master::kategori::barang')
-                        <flux:sidebar.item icon="tag" href="/{{ $portalKey }}/kategori" :current="request()->is('*/kategori')">
+                        <flux:sidebar.item icon="tag" href="/{{ $portalKey }}/kategori" wire:navigate :current="request()->is('*/kategori')">
                             Kategori Barang
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_master::satuan::barang')
-                        <flux:sidebar.item icon="scale" href="/{{ $portalKey }}/satuan" :current="request()->is('*/satuan')">
+                        <flux:sidebar.item icon="scale" href="/{{ $portalKey }}/satuan" wire:navigate :current="request()->is('*/satuan')">
                             Satuan Kemasan
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_master::merek::barang')
-                        <flux:sidebar.item icon="bookmark" href="/{{ $portalKey }}/merek" :current="request()->is('*/merek')">
+                        <flux:sidebar.item icon="bookmark" href="/{{ $portalKey }}/merek" wire:navigate :current="request()->is('*/merek')">
                             Merek Barang
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_master::pemasok')
-                        <flux:sidebar.item icon="truck" href="/{{ $portalKey }}/pemasok" :current="request()->is('*/pemasok')">
+                        <flux:sidebar.item icon="truck" href="/{{ $portalKey }}/pemasok" wire:navigate :current="request()->is('*/pemasok')">
                             Pemasok / Vendor
                         </flux:sidebar.item>
                     @endcan
@@ -119,21 +124,21 @@
 
             @can('view_any_pengadaan::permintaan::pengadaan')
                 <flux:sidebar.group expandable heading="Pengadaan" class="grid">
-                    <flux:sidebar.item icon="document-text" href="/{{ $portalKey }}/permintaan-pengadaan" :current="request()->is('*/permintaan-pengadaan')">
+                    <flux:sidebar.item icon="document-text" href="/{{ $portalKey }}/permintaan-pengadaan" wire:navigate :current="request()->is('*/permintaan-pengadaan')">
                         Permintaan (PR)
                     </flux:sidebar.item>
                     @can('view_any_pengadaan::pesanan::pembelian')
-                        <flux:sidebar.item icon="clipboard-document-list" href="/{{ $portalKey }}/pesanan-pembelian" :current="request()->is('*/pesanan-pembelian')">
+                        <flux:sidebar.item icon="clipboard-document-list" href="/{{ $portalKey }}/pesanan-pembelian" wire:navigate :current="request()->is('*/pesanan-pembelian')">
                             Pesanan (PO)
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_pengadaan::tracking::po')
-                        <flux:sidebar.item icon="truck" href="/{{ $portalKey }}/tracking-po" :current="request()->is('*/tracking-po')">
+                        <flux:sidebar.item icon="truck" href="/{{ $portalKey }}/tracking-po" wire:navigate :current="request()->is('*/tracking-po')">
                             Tracking Vendor
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_gudang_stok::penerimaan::po')
-                        <flux:sidebar.item icon="inbox-arrow-down" href="/{{ $portalKey }}/penerimaan-po" :current="request()->is('*/penerimaan-po')">
+                        <flux:sidebar.item icon="inbox-arrow-down" href="/{{ $portalKey }}/penerimaan-po" wire:navigate :current="request()->is('*/penerimaan-po')">
                             Penerimaan (Inbound)
                         </flux:sidebar.item>
                     @endcan
@@ -143,51 +148,51 @@
             @if ($user->can('view_any_layanan_unit::permintaan::barang') || $user->can('view_any_layanan_unit::approval::karu') || $user->can('view_any_layanan_unit::penerimaan::barang') || $user->can('view_any_gudang_stok::distribusi::approval') || $user->can('view_any_gudang_stok::picking::distribusi'))
                 <flux:sidebar.group expandable heading="Distribusi & Amprah" class="grid">
                     @can('view_any_layanan_unit::permintaan::barang')
-                        <flux:sidebar.item icon="arrow-up-tray" href="/{{ $portalKey }}/permintaan-barang" :current="request()->is('*/permintaan-barang')">
+                        <flux:sidebar.item icon="arrow-up-tray" href="/{{ $portalKey }}/permintaan-barang" wire:navigate :current="request()->is('*/permintaan-barang')">
                             Permintaan Amprah
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_layanan_unit::approval::karu')
-                        <flux:sidebar.item icon="check-badge" href="/{{ $portalKey }}/approval-permintaan" :current="request()->is('*/approval-permintaan')">
+                        <flux:sidebar.item icon="check-badge" href="/{{ $portalKey }}/approval-permintaan" wire:navigate :current="request()->is('*/approval-permintaan')">
                             {{ $portalKey === 'kepala-gudang' ? 'Otorisasi Gudang' : ($portalKey === 'kepala-unit' ? 'Otorisasi Karu' : 'Otorisasi Amprah') }}
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_gudang_stok::distribusi::approval')
-                        <flux:sidebar.item icon="clipboard-document-check" href="/{{ $portalKey }}/distribusi-approval" :current="request()->is('*/distribusi-approval')">
+                        <flux:sidebar.item icon="clipboard-document-check" href="/{{ $portalKey }}/distribusi-approval" wire:navigate :current="request()->is('*/distribusi-approval')">
                             Otorisasi Logistik
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_gudang_stok::picking::distribusi')
-                        <flux:sidebar.item icon="queue-list" href="/{{ $portalKey }}/picking-distribusi" :current="request()->is('*/picking-distribusi')">
+                        <flux:sidebar.item icon="queue-list" href="/{{ $portalKey }}/picking-distribusi" wire:navigate :current="request()->is('*/picking-distribusi')">
                             Picking FEFO (SPPB)
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_layanan_unit::penerimaan::barang')
-                        <flux:sidebar.item icon="inbox" href="/{{ $portalKey }}/penerimaan-barang" :current="request()->is('*/penerimaan-barang')">
+                        <flux:sidebar.item icon="inbox" href="/{{ $portalKey }}/penerimaan-barang" wire:navigate :current="request()->is('*/penerimaan-barang')">
                             Terima di Ruangan
                         </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
+            @endif
 
             @if ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_any_layanan_unit::approval::peminjaman') || $user->can('view_any_layanan_unit::pengembalian::aset'))
                 <flux:sidebar.group expandable heading="Sirkulasi Aset" class="grid">
                     @can('view_any_layanan_unit::peminjaman::aset')
-                        <flux:sidebar.item icon="arrow-path" href="/{{ $portalKey }}/peminjaman-aset" :current="request()->is('*/peminjaman-aset')">
+                        <flux:sidebar.item icon="arrow-path" href="/{{ $portalKey }}/peminjaman-aset" wire:navigate :current="request()->is('*/peminjaman-aset')">
                             Peminjaman Aset
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_layanan_unit::approval::peminjaman')
-                        <flux:sidebar.item icon="check-badge" href="/{{ $portalKey }}/approval-peminjaman" :current="request()->is('*/approval-peminjaman')">
+                        <flux:sidebar.item icon="check-badge" href="/{{ $portalKey }}/approval-peminjaman" wire:navigate :current="request()->is('*/approval-peminjaman')">
                             {{ $portalKey === 'kepala-gudang' ? 'Otorisasi Pinjam (Gudang)' : ($portalKey === 'kepala-unit' ? 'Otorisasi Pinjam (Karu)' : 'Otorisasi Pinjam') }}
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_layanan_unit::pengembalian::aset')
-                        <flux:sidebar.item icon="arrow-down-tray" href="/{{ $portalKey }}/pengembalian-aset" :current="request()->is('*/pengembalian-aset')">
+                        <flux:sidebar.item icon="arrow-down-tray" href="/{{ $portalKey }}/pengembalian-aset" wire:navigate :current="request()->is('*/pengembalian-aset')">
                             Pengembalian Aset
                         </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
-            @endif
             @endif
         </flux:sidebar.nav>
 
@@ -223,7 +228,7 @@
                     <flux:menu.submenu heading="Pilih Portal (10 Peran)">
                         <flux:menu.radio.group>
                             @foreach ($portalMeta as $pKey => $pData)
-                                <a href="/{{ $pKey }}/dashboard" class="block">
+                                <a href="/{{ $pKey }}/dashboard" wire:navigate class="block">
                                     <flux:menu.radio :checked="$portalKey === $pKey">
                                         {{ $pData['label'] }}
                                     </flux:menu.radio>
