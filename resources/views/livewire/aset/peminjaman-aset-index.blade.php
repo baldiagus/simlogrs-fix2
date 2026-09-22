@@ -3,8 +3,8 @@
         {{-- Header halaman --}}
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Peminjaman Aset Ruangan</flux:heading>
-                <flux:subheading>Pengelolaan sirkulasi peminjaman aset non-medis antar ruangan dan peminjaman inventaris dari gudang penyedia.</flux:subheading>
+                <flux:heading size="xl" level="1">{{ $pageTitle }}</flux:heading>
+                <flux:subheading>{{ $pageSubtitle }}</flux:subheading>
             </div>
 
             @can('create_layanan_unit::peminjaman::aset')
@@ -62,41 +62,61 @@
                             <option value="DITOLAK">DITOLAK</option>
                         </select>
                     </div>
-                @else
-                    <div class="w-full sm:w-44">
-                        <select
-                            wire:model.live="filterKatalogLokasi"
-                            class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100"
-                        >
-                            <option value="">Semua Lokasi</option>
-                            <option value="RUANGAN">Ruangan Unit</option>
-                            <option value="GUDANG">Gudang Logistik</option>
-                        </select>
-                    </div>
 
-                    @if ($filterKatalogLokasi === 'RUANGAN')
-                        <div class="w-full sm:w-48">
+                    @if ($userUnitId)
+                        <div class="w-full sm:w-60">
                             <select
-                                wire:model.live="filterKatalogUnitId"
+                                wire:model.live="filterPerspektif"
                                 class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100"
                             >
-                                <option value="">Semua Ruangan</option>
-                                @foreach ($daftarUnit as $unitOpt)
-                                    <option value="{{ $unitOpt->id }}">{{ $unitOpt->nama }}</option>
-                                @endforeach
+                                <option value="semua">Semua Terkait Ruangan</option>
+                                <option value="penyedia">Aset Ruangan Dipinjamkan Keluar</option>
+                                <option value="peminjam">Aset Luar yang Sedang Dipinjam</option>
                             </select>
                         </div>
-                    @elseif ($filterKatalogLokasi === 'GUDANG')
-                        <div class="w-full sm:w-48">
+                    @endif
+                @else
+                    @if ($isGlobalAdmin)
+                        <div class="w-full sm:w-44">
                             <select
-                                wire:model.live="filterKatalogGudangId"
+                                wire:model.live="filterKatalogLokasi"
                                 class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100"
                             >
-                                <option value="">Semua Gudang</option>
-                                @foreach ($daftarGudang as $gudangOpt)
-                                    <option value="{{ $gudangOpt->id }}">{{ $gudangOpt->nama }}</option>
-                                @endforeach
+                                <option value="">Semua Lokasi</option>
+                                <option value="RUANGAN">Ruangan Unit</option>
+                                <option value="GUDANG">Gudang Logistik</option>
                             </select>
+                        </div>
+
+                        @if ($filterKatalogLokasi === 'RUANGAN')
+                            <div class="w-full sm:w-48">
+                                <select
+                                    wire:model.live="filterKatalogUnitId"
+                                    class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100"
+                                >
+                                    <option value="">Semua Ruangan</option>
+                                    @foreach ($daftarUnit as $unitOpt)
+                                        <option value="{{ $unitOpt->id }}">{{ $unitOpt->nama }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @elseif ($filterKatalogLokasi === 'GUDANG')
+                            <div class="w-full sm:w-48">
+                                <select
+                                    wire:model.live="filterKatalogGudangId"
+                                    class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100"
+                                >
+                                    <option value="">Semua Gudang</option>
+                                    @foreach ($daftarGudang as $gdgOpt)
+                                        <option value="{{ $gdgOpt->id }}">{{ $gdgOpt->nama }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+                    @else
+                        <div class="px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5 font-medium">
+                            <flux:icon icon="map-pin" class="size-3.5 text-blue-600" />
+                            <span>Lokasi Terdaftar: {{ $userUnitId ? (auth()->user()->unit?->nama ?? 'Ruangan Anda') : (auth()->user()->gudang?->nama ?? 'Gudang Anda') }}</span>
                         </div>
                     @endif
                 @endif

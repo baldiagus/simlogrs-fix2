@@ -28,6 +28,8 @@ class PeminjamanAsetIndex extends Component
     #[Url(history: true)]
     public string $filterStatus = '';
 
+    #[Url(history: true)]
+    public string $filterPerspektif = 'semua';
     public string $filterKatalogLokasi = '';
     public ?int $filterKatalogUnitId = null;
     public ?int $filterKatalogGudangId = null;
@@ -74,6 +76,93 @@ class PeminjamanAsetIndex extends Component
     {
         $this->resetPage();
     }
+    public function updatedFilterPerspektif(): void
+    {
+        $this->resetPage();
+    }
+
+    public function getPageTitle(): string
+    {
+        $user = auth()->user();
+        $portal = $this->getPortalName();
+
+        if ($user?->unit_id && $user->unit) {
+            return "Peminjaman Aset Ruangan ({$user->unit->nama})";
+        }
+
+        if ($user?->gudang_id && $user->gudang) {
+            return "Peminjaman Aset Gudang ({$user->gudang->nama})";
+        }
+
+        if ($portal === 'kepala-gudang' || $portal === 'petugas-gudang') {
+            return 'Peminjaman Aset Gudang';
+        }
+
+        if ($portal === 'kepala-unit' || $portal === 'petugas-unit') {
+            return 'Peminjaman Aset Ruangan';
+        }
+
+        return 'Sirkulasi Aset Global (Logistik Rumah Sakit)';
+    }
+
+    public function getPageSubtitle(): string
+    {
+        $user = auth()->user();
+
+        if ($user?->unit_id) {
+            return 'Pengelolaan inventaris ruangan dan sirkulasi peminjaman aset antar-ruangan.';
+        }
+
+        if ($user?->gudang_id) {
+            return 'Pengelolaan sirkulasi peminjaman aset inventaris fasilitas gudang logistik.';
+        }
+
+        return 'Pengawasan perputaran seluruh inventaris dan deteksi keterlambatan se-rumah sakit.';
+    }
+
+    protected function applyPeminjamanScope($query, $user, bool $isGlobalAdmin): void
+    {
+        if ($isGlobalAdmin) {
+            return;
+        }
+
+        $query->where(function ($q) use ($user) {
+            if ($user?->unit_id) {
+                if ($this->filterPerspektif === 'penyedia') {
+                    $q->where('tipe_penyedia', 'RUANGAN')
+                      ->where('unit_penyedia_id', $user->unit_id);
+                } elseif ($this->filterPerspektif === 'peminjam') {
+                    $q->where('unit_id', $user->unit_id);
+                } else {
+                    $q->where(function ($sub) use ($user) {
+                        $sub->where(function ($prov) use ($user) {
+                            $prov->where('tipe_penyedia', 'RUANGAN')
+                                 ->where('unit_penyedia_id', $user->unit_id);
+                        })->orWhere('unit_id', $user->unit_id);
+                    });
+                }
+            } elseif ($user?->gudang_id) {
+                $q->where('tipe_penyedia', 'GUDANG')
+                  ->where('gudang_penyedia_id', $user->gudang_id);
+            } else {
+                $q->whereRaw('1 = 0');
+            }
+        });
+    }
+
+    protected function applyKatalogScope($query, $user, bool $isGlobalAdmin): void
+    {
+        if ($isGlobalAdmin) {
+            return;
+        }
+
+        if ($user?->unit_id) {
+            $query->where('unit_id', $user->unit_id);
+        } elseif ($user?->gudang_id) {
+            $query->where('gudang_id', $user->gudang_id);
+        }
+    }
+
 
     public function updatedFilterStatus(): void
     {
@@ -417,17 +506,13 @@ class PeminjamanAsetIndex extends Component
             $user->can('manage_all')
         );
 
-        $countAktif = PermintaanPeminjaman::whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM'])
-            ->when(! $isGlobalAdmin && $user?->unit_id, function ($q) use ($user) {
-                $q->where(function ($sub) use ($user) {
-                    $sub->where('unit_id', $user->unit_id)
-                        ->orWhere('unit_penyedia_id', $user->unit_id);
-                });
-            })
-            ->count();
+        $countAktifQuery = PermintaanPeminjaman::whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+        $this->applyPeminjamanScope($countAktifQuery, $user, $isGlobalAdmin);
+        $countAktif = $countAktifQuery->count();
 
-        $countKatalog = Aset::where('status', 'TERSEDIA')->where('kondisi', 'BAIK')->count();
-
+        $countKatalogQuery = Aset::where('status', 'TERSEDIA')->where('kondisi', 'BAIK');
+        $this->applyKatalogScope($countKatalogQuery, $user, $isGlobalAdmin);
+        $countKatalog = $countKatalogQuery->count();
         $daftarPeminjaman = collect();
         if ($this->activeTab === 'aktif') {
             $query = PermintaanPeminjaman::with([
@@ -436,25 +521,22 @@ class PeminjamanAsetIndex extends Component
                 'unitPeminjam',
                 'pengaju',
                 'detail.aset.barang',
-            ])
-            ->when(! $isGlobalAdmin && $user?->unit_id, function ($q) use ($user) {
-                $q->where(function ($sub) use ($user) {
-                    $sub->where('unit_id', $user->unit_id)
-                        ->orWhere('unit_penyedia_id', $user->unit_id);
+            ]);
+
+            $this->applyPeminjamanScope($query, $user, $isGlobalAdmin);
+
+            $query->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
+                ->when($this->search, function ($q) {
+                    $q->where(function ($sub) {
+                        $sub->where('kode', 'ilike', "%{$this->search}%")
+                            ->orWhere('keperluan', 'ilike', "%{$this->search}%")
+                            ->orWhereHas('unitPeminjam', fn ($u) => $u->where('nama', 'ilike', "%{$this->search}%"))
+                            ->orWhereHas('unitPenyedia', fn ($u) => $u->where('nama', 'ilike', "%{$this->search}%"))
+                            ->orWhereHas('gudangPenyedia', fn ($g) => $g->where('nama', 'ilike', "%{$this->search}%"))
+                            ->orWhereHas('detail.aset.barang', fn ($b) => $b->where('nama', 'ilike', "%{$this->search}%"))
+                            ->orWhereHas('detail.aset', fn ($a) => $a->where('kode_aset', 'ilike', "%{$this->search}%"));
+                    });
                 });
-            })
-            ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
-            ->when($this->search, function ($q) {
-                $q->where(function ($sub) {
-                    $sub->where('kode', 'ilike', "%{$this->search}%")
-                        ->orWhere('keperluan', 'ilike', "%{$this->search}%")
-                        ->orWhereHas('unitPeminjam', fn ($u) => $u->where('nama', 'ilike', "%{$this->search}%"))
-                        ->orWhereHas('unitPenyedia', fn ($u) => $u->where('nama', 'ilike', "%{$this->search}%"))
-                        ->orWhereHas('gudangPenyedia', fn ($g) => $g->where('nama', 'ilike', "%{$this->search}%"))
-                        ->orWhereHas('detail.aset.barang', fn ($b) => $b->where('nama', 'ilike', "%{$this->search}%"))
-                        ->orWhereHas('detail.aset', fn ($a) => $a->where('kode_aset', 'ilike', "%{$this->search}%"));
-                });
-            });
 
             $daftarPeminjaman = $query
                 ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
@@ -465,8 +547,11 @@ class PeminjamanAsetIndex extends Component
         if ($this->activeTab === 'katalog') {
             $queryKatalog = Aset::with(['barang.satuan', 'unit', 'gudang', 'lokasiGudang'])
                 ->where('status', 'TERSEDIA')
-                ->where('kondisi', 'BAIK')
-                ->when($this->filterKatalogLokasi === 'RUANGAN', fn ($q) => $q->whereNotNull('unit_id'))
+                ->where('kondisi', 'BAIK');
+
+            $this->applyKatalogScope($queryKatalog, $user, $isGlobalAdmin);
+
+            $queryKatalog->when($this->filterKatalogLokasi === 'RUANGAN', fn ($q) => $q->whereNotNull('unit_id'))
                 ->when($this->filterKatalogLokasi === 'GUDANG', fn ($q) => $q->whereNotNull('gudang_id'))
                 ->when($this->filterKatalogUnitId, fn ($q) => $q->where('unit_id', $this->filterKatalogUnitId))
                 ->when($this->filterKatalogGudangId, fn ($q) => $q->where('gudang_id', $this->filterKatalogGudangId))
@@ -525,9 +610,12 @@ class PeminjamanAsetIndex extends Component
             'countAktif'              => $countAktif,
             'countKatalog'            => $countKatalog,
             'userUnitId'              => $user?->unit_id,
+            'userGudangId'            => $user?->gudang_id,
+            'pageTitle'               => $this->getPageTitle(),
+            'pageSubtitle'            => $this->getPageSubtitle(),
         ])->layout('layouts.portal', [
             'portal' => $this->getPortalName(),
-            'title'  => 'Peminjaman Aset Ruangan',
+            'title'  => $this->getPageTitle(),
         ]);
     }
 }
