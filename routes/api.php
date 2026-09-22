@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ApprovalController;
 use App\Http\Controllers\Api\V1\GudangApiController;
 use App\Http\Controllers\Api\V1\AsetApiController;
+use App\Http\Controllers\Api\V1\MaintenanceApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -39,5 +40,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/aset/scan-qr', [AsetApiController::class, 'scanQr']);
         Route::post('/aset/serah-terima', [AsetApiController::class, 'serahTerima']);
         Route::post('/aset/kembalikan', [AsetApiController::class, 'kembalikan']);
+
+        // 7. Pemeliharaan Sarana & Mobile Teknisi IPSRS
+        Route::post('/maintenance/lapor-cepat', [MaintenanceApiController::class, 'laporCepat']);
+        Route::get('/maintenance/spk', [MaintenanceApiController::class, 'spkList']);
+        Route::get('/maintenance/spk/{id}', [MaintenanceApiController::class, 'spkDetail']);
+        Route::post('/maintenance/spk/{id}/log', [MaintenanceApiController::class, 'submitLog']);
     });
 });
