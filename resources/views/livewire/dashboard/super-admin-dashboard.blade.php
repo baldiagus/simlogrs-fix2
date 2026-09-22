@@ -32,41 +32,41 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs">
             <div class="flex items-center justify-between">
-                <flux:text size="xs" class="text-zinc-500 font-semibold uppercase tracking-wider">Status Sistem</flux:text>
+                <flux:text size="xs" class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Status Sistem</flux:text>
                 <flux:badge size="sm" color="emerald" inset="top bottom">Aktif</flux:badge>
             </div>
             <div class="text-xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <span class="size-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="size-2.5 rounded-full bg-emerald-500"></span>
                 <span>Normal & Siap</span>
             </div>
-            <flux:text size="xs" class="text-zinc-400">PostgreSQL 16 & Redis 7 Online</flux:text>
+            <flux:text size="xs" class="text-zinc-500 dark:text-zinc-400">PostgreSQL 16 & Redis 7 Online</flux:text>
         </flux:card>
 
         <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs">
             <div class="flex items-center justify-between">
-                <flux:text size="xs" class="text-zinc-500 font-semibold uppercase tracking-wider">Wewenang Terdaftar</flux:text>
+                <flux:text size="xs" class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Wewenang Terdaftar</flux:text>
                 <flux:badge size="sm" color="blue" inset="top bottom">RBAC</flux:badge>
             </div>
             <div class="text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono tabular-nums">275</div>
-            <flux:text size="xs" class="text-zinc-400">100% Zero-Hardcode Standard</flux:text>
+            <flux:text size="xs" class="text-zinc-500 dark:text-zinc-400">100% Zero-Hardcode Standard</flux:text>
         </flux:card>
 
         <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs">
             <div class="flex items-center justify-between">
-                <flux:text size="xs" class="text-zinc-500 font-semibold uppercase tracking-wider">Portal Kerja</flux:text>
+                <flux:text size="xs" class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Portal Kerja</flux:text>
                 <flux:badge size="sm" color="indigo" inset="top bottom">Multi-Portal</flux:badge>
             </div>
             <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono tabular-nums">10 Peran</div>
-            <flux:text size="xs" class="text-zinc-400">Isolasi Hak Akses via Middleware</flux:text>
+            <flux:text size="xs" class="text-zinc-500 dark:text-zinc-400">Isolasi Hak Akses via Middleware</flux:text>
         </flux:card>
 
         <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs">
             <div class="flex items-center justify-between">
-                <flux:text size="xs" class="text-zinc-500 font-semibold uppercase tracking-wider">Integritas Stok</flux:text>
+                <flux:text size="xs" class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Integritas Stok</flux:text>
                 <flux:badge size="sm" color="emerald" inset="top bottom">FEFO Lock</flux:badge>
             </div>
             <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400">Non-Negative</div>
-            <flux:text size="xs" class="text-zinc-400">Database Constraint Aktif</flux:text>
+            <flux:text size="xs" class="text-zinc-500 dark:text-zinc-400">Database Constraint Aktif</flux:text>
         </flux:card>
     </div>
 

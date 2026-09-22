@@ -18,12 +18,11 @@
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {{-- Panel Kiri: Pilihan Peran Sistem --}}
         <flux:card class="space-y-3 p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-            <flux:heading size="sm" class="uppercase text-zinc-400 tracking-wider">Pilih Peran Sistem</flux:heading>
+            <flux:heading size="sm" class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Pilih Peran Sistem</flux:heading>
             <flux:navlist>
                 @foreach ($roles as $role)
                     <flux:navlist.item
                         wire:click="selectRole({{ $role->id }})"
-                        href="#"
                         :current="$selectedRoleId === $role->id"
                     >
                         <span>{{ $role->name }}</span>
@@ -42,7 +41,7 @@
                     {{-- Header Peran Terpilih --}}
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-zinc-100 dark:border-zinc-800">
                         <div>
-                            <flux:text size="xs" class="text-zinc-400 uppercase font-semibold">Konfigurasi Hak Akses Peran:</flux:text>
+                            <flux:text size="xs" class="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Konfigurasi Hak Akses Peran:</flux:text>
                             <div class="flex items-center gap-3 mt-0.5">
                                 <flux:heading size="lg">{{ $selectedRole->name }}</flux:heading>
                                 <flux:badge size="sm" color="blue">
@@ -64,7 +63,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                         </svg>
                         <div>
-                            <strong>Otomatisasi Akses Halaman:</strong> Mencengang <strong>Lihat Data</strong> otomatis mengaktifkan <em>Akses Halaman</em> ke modul bersangkutan. Mematikan <em>Lihat Data</em> otomatis mencabut izin Tambah, Ubah, dan Hapus pada modul tersebut.
+                            <strong>Otomatisasi Akses Halaman:</strong> Mencentang <strong>Lihat Data</strong> otomatis mengaktifkan <em>Akses Halaman</em> ke modul bersangkutan. Mematikan <em>Lihat Data</em> otomatis mencabut izin Tambah, Ubah, dan Hapus pada modul tersebut.
                         </div>
                     </div>
 
@@ -116,18 +115,16 @@
                                     </div>
                                     <div class="flex items-center gap-1.5">
                                         <flux:button size="xs" variant="ghost" wire:click="selectAllDomain('{{ $domainKey }}')">Semua Akses</flux:button>
-                                        <span class="text-zinc-300">|</span>
                                         <flux:button size="xs" variant="ghost" wire:click="selectViewOnlyDomain('{{ $domainKey }}')">Lihat Saja</flux:button>
-                                        <span class="text-zinc-300">|</span>
                                         <flux:button size="xs" variant="ghost" wire:click="confirmClearDomain('{{ $domainKey }}')">Kosongkan</flux:button>
                                     </div>
                                 </div>
 
                                 {{-- Tabel 4 Kolom --}}
                                 <div class="overflow-x-auto">
-                                    <table class="w-full text-xs text-left">
+                                    <table class="w-full min-w-[38rem] text-xs text-left">
                                         <thead>
-                                            <tr class="border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 uppercase tracking-wider font-semibold text-[11px] bg-zinc-50/30 dark:bg-zinc-900">
+                                            <tr class="border-b border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold text-xs bg-zinc-50/50 dark:bg-zinc-900">
                                                 <th class="py-3 px-4">Modul Operasional</th>
                                                 <th class="py-3 px-4 text-center w-36">Lihat Data (Akses Halaman)*</th>
                                                 <th class="py-3 px-4 text-center w-28">Tambah Data</th>
@@ -146,7 +143,7 @@
                                                     {{-- Nama Modul --}}
                                                     <td class="py-3 px-4">
                                                         <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $mod['label'] }}</div>
-                                                        <div class="font-mono text-[11px] text-zinc-400">{{ $entityKey }}</div>
+                                                        <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{{ $entityKey }}</div>
                                                         @if ($isSuperAdminLocked)
                                                             <span class="inline-block text-[10px] text-amber-700 dark:text-amber-400 font-semibold mt-0.5">Terkunci (Anti Self-Lockout)</span>
                                                         @endif
