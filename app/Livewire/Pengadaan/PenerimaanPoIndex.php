@@ -65,7 +65,7 @@ class PenerimaanPoIndex extends Component
             'nama_barang'        => $d->barang->nama,
             'jumlah_dipesan'     => $d->jumlah_dipesan,
             'jumlah_sudah'       => $d->jumlah_diterima,
-            'sisa'               => $d->jumlah_dipesan - $d->jumlah_diterima,
+            'sisa'               => max(0, $d->jumlah_dipesan - $d->jumlah_diterima),
             'harga_satuan'       => (float) $d->harga_satuan,
             'jumlah_diterima'    => 0,
             'jumlah_rusak'       => 0,
@@ -82,38 +82,89 @@ class PenerimaanPoIndex extends Component
         abort_unless(auth()->user()?->can('create_gudang_stok::penerimaan::po'), 403);
 
         $this->validate([
-            'nomor_surat_jalan'              => 'required|string|max:100',
-            'gudang_id'                      => 'required|exists:gudang,id',
-            'catatan'                        => 'nullable|string|max:1000',
-            'itemRows'                       => 'required|array|min:1',
-            'itemRows.*.jumlah_diterima'     => 'required|integer|min:0',
-            'itemRows.*.jumlah_rusak'        => 'required|integer|min:0',
-            'itemRows.*.nomor_batch'         => 'required|string|max:100',
-            'itemRows.*.tanggal_kedaluwarsa' => 'nullable|date',
-            'itemRows.*.lokasi_gudang_id'    => 'required|exists:lokasi_gudang,id',
+            'nomor_surat_jalan' => 'required|string|max:100',
+            'gudang_id'         => 'required|exists:gudang,id',
+            'catatan'           => 'nullable|string|max:1000',
+            'itemRows'          => 'required|array|min:1',
         ]);
 
-        // At least one item must have jumlah_diterima > 0
-        $hasReceived = collect($this->itemRows)->contains(fn ($r) => $r['jumlah_diterima'] > 0);
+        $hasReceived = false;
+        $customErrors = [];
+
+        foreach ($this->itemRows as $idx => $row) {
+            $terima = (int) ($row['jumlah_diterima'] ?? 0);
+            $rusak  = (int) ($row['jumlah_rusak'] ?? 0);
+            $sisa   = (int) ($row['sisa'] ?? 0);
+
+            if ($terima > 0) {
+                $hasReceived = true;
+
+                if ($terima > $sisa) {
+                    $customErrors["itemRows.{$idx}.jumlah_diterima"] = "Jumlah diterima melebihi sisa pesanan (maks. {$sisa}).";
+                }
+                if ($rusak > $terima) {
+                    $customErrors["itemRows.{$idx}.jumlah_rusak"] = "Jumlah rusak tidak boleh melebihi jumlah diterima.";
+                }
+                if (empty(trim($row['nomor_batch'] ?? ''))) {
+                    $customErrors["itemRows.{$idx}.nomor_batch"] = "Nomor batch wajib diisi untuk barang yang diterima.";
+                }
+                if (empty($row['lokasi_gudang_id'])) {
+                    $customErrors["itemRows.{$idx}.lokasi_gudang_id"] = "Lokasi rak simpan wajib dipilih.";
+                }
+            }
+        }
+
         if (! $hasReceived) {
-            $this->toast('Minimal satu item harus memiliki jumlah diterima > 0.', 'danger');
+            $this->toast('Minimal satu komoditas harus memiliki jumlah diterima > 0.', 'danger');
+            return;
+        }
+
+        if (! empty($customErrors)) {
+            $this->setErrorBag($customErrors);
             return;
         }
 
         DB::transaction(function () {
+            $po = PesananPembelian::with('detail')->findOrFail($this->poId);
+
+            // 1. Update jumlah_diterima pada detail PO terlebih dahulu
+            foreach ($this->itemRows as $row) {
+                if ($row['jumlah_diterima'] <= 0) {
+                    continue;
+                }
+
+                $poDetail = $po->detail->firstWhere('id', $row['po_detail_id']);
+                if ($poDetail) {
+                    $poDetail->increment('jumlah_diterima', $row['jumlah_diterima']);
+                }
+
+                if ((float) $row['harga_satuan'] > 0) {
+                    Barang::where('id', $row['barang_id'])->update([
+                        'harga_beli_terakhir' => $row['harga_satuan'],
+                    ]);
+                }
+            }
+
+            // 2. Evaluasi status pemenuhan PO secara dinamis
+            $po->refresh();
+            $po->load('detail');
+            $allReceived = $po->detail->every(fn ($d) => (int) $d->jumlah_diterima >= (int) $d->jumlah_dipesan);
+            $statusRcv = $allReceived ? 'LENGKAP' : 'SEBAGIAN';
+            $statusPo  = $allReceived ? 'DITERIMA_LENGKAP' : 'DITERIMA_SEBAGIAN';
+
+            // 3. Buat dokumen penerimaan dengan status dinamis
             $penerimaan = PenerimaanBarang::create([
                 'kode'                  => $this->kode,
                 'pesanan_pembelian_id'  => $this->poId,
                 'gudang_id'             => $this->gudang_id,
                 'nomor_surat_jalan'     => $this->nomor_surat_jalan,
                 'tanggal_terima'        => now()->toDateString(),
-                'status'                => 'LENGKAP',
+                'status'                => $statusRcv,
                 'catatan'               => $this->catatan ?: null,
                 'diterima_oleh'         => auth()->id(),
             ]);
 
-            $po = PesananPembelian::with('detail')->findOrFail($this->poId);
-
+            // 4. Catat rincian penerimaan dan kartu stok batch
             foreach ($this->itemRows as $row) {
                 if ($row['jumlah_diterima'] <= 0) {
                     continue;
@@ -132,7 +183,6 @@ class PenerimaanPoIndex extends Component
                     'harga_satuan'         => $row['harga_satuan'],
                 ]);
 
-                // Create StokBatch for net good items
                 if ($netReceived > 0) {
                     $batch = StokBatch::create([
                         'barang_id'           => $row['barang_id'],
@@ -160,26 +210,10 @@ class PenerimaanPoIndex extends Component
                         'dibuat_oleh'      => auth()->id(),
                     ]);
                 }
-
-                // Update PO detail jumlah_diterima
-                $poDetail = $po->detail->firstWhere('id', $row['po_detail_id']);
-                if ($poDetail) {
-                    $poDetail->increment('jumlah_diterima', $row['jumlah_diterima']);
-                }
-
-                // Update harga beli terakhir di master barang
-                if ((float) $row['harga_satuan'] > 0) {
-                    Barang::where('id', $row['barang_id'])->update([
-                        'harga_beli_terakhir' => $row['harga_satuan'],
-                    ]);
-                }
             }
 
-            // Refresh and check if all PO items fully received
-            $po->refresh();
-            $po->load('detail');
-            $allReceived = $po->detail->every(fn ($d) => $d->jumlah_diterima >= $d->jumlah_dipesan);
-            $po->update(['status' => $allReceived ? 'DITERIMA_LENGKAP' : 'DITERIMA_SEBAGIAN']);
+            // 5. Update status PO resmi
+            $po->update(['status' => $statusPo]);
         });
 
         $this->showModal = false;
