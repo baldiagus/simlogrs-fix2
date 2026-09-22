@@ -19,21 +19,21 @@
             <button
                 wire:click="$set('filterLokasi', '')"
                 type="button"
-                class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterLokasi === '' ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                class="px-3.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 {{ $filterLokasi === '' ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
             >
                 Semua Penempatan
             </button>
             <button
                 wire:click="$set('filterLokasi', 'RUANGAN')"
                 type="button"
-                class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterLokasi === 'RUANGAN' ? 'bg-white dark:bg-zinc-900 text-cyan-600 dark:text-cyan-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                class="px-3.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 {{ $filterLokasi === 'RUANGAN' ? 'bg-white dark:bg-zinc-900 text-cyan-600 dark:text-cyan-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
             >
                 Di Ruangan / Unit
             </button>
             <button
                 wire:click="$set('filterLokasi', 'GUDANG')"
                 type="button"
-                class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterLokasi === 'GUDANG' ? 'bg-white dark:bg-zinc-900 text-amber-600 dark:text-amber-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                class="px-3.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 {{ $filterLokasi === 'GUDANG' ? 'bg-white dark:bg-zinc-900 text-amber-600 dark:text-amber-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
             >
                 Di Gudang Logistik
             </button>
@@ -51,7 +51,7 @@
             </div>
 
             <div class="w-full sm:w-44">
-                <select wire:model.live="filterStatus" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status Aset</option>
                     <option value="TERSEDIA">TERSEDIA</option>
                     <option value="DIGUNAKAN">DIGUNAKAN</option>
@@ -62,7 +62,7 @@
             </div>
 
             <div class="w-full sm:w-40">
-                <select wire:model.live="filterKondisi" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                <select wire:model.live="filterKondisi" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Kondisi Fisik</option>
                     <option value="BAIK">Kondisi BAIK</option>
                     <option value="RUSAK_RINGAN">RUSAK RINGAN</option>
@@ -95,7 +95,7 @@
                         <flux:table.cell>
                             <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->barang?->nama ?? '-' }}</div>
                             @if ($item->nomor_seri)
-                                <div class="font-mono text-[11px] text-zinc-400">SN: {{ $item->nomor_seri }}</div>
+                                <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">SN: {{ $item->nomor_seri }}</div>
                             @endif
                         </flux:table.cell>
 
@@ -113,7 +113,7 @@
                                         <span class="text-xs font-medium text-amber-800 dark:text-amber-300">Gudang: {{ $item->gudang?->nama }}</span>
                                     </div>
                                     @if ($item->lokasiGudang)
-                                        <div class="text-[11px] font-mono text-zinc-400 pl-3">Rak: {{ $item->lokasiGudang->nama }} ({{ $item->lokasiGudang->kode }})</div>
+                                        <div class="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 pl-3">Rak: {{ $item->lokasiGudang->nama }} ({{ $item->lokasiGudang->kode }})</div>
                                     @endif
                                 </div>
                             @else
@@ -139,7 +139,7 @@
                         {{-- Nilai Perolehan --}}
                         <flux:table.cell class="text-right font-mono text-xs tabular-nums">
                             <x-rupiah :value="$item->nilai_perolehan" class="font-semibold text-zinc-900 dark:text-zinc-100" />
-                            <div class="text-[10px] text-zinc-400">{{ $item->tanggal_perolehan->format('d/m/Y') }}</div>
+                            <div class="text-[10px] text-zinc-500 dark:text-zinc-400">{{ $item->tanggal_perolehan->format('d/m/Y') }}</div>
                         </flux:table.cell>
 
                         {{-- Status Aset --}}
@@ -188,7 +188,7 @@
             </div>
 
             <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 space-y-3">
-                <div class="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">Penempatan Lokasi Fisik (Ruangan ATAU Gudang)</div>
+                <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Penempatan Lokasi Fisik (Ruangan ATAU Gudang)</div>
 
                 <div class="flex items-center gap-4">
                     <label class="flex items-center gap-2 cursor-pointer">
@@ -300,7 +300,7 @@
                         {{ $selectedAset->barang?->nama }}
                     </div>
                     @if ($selectedAset->nomor_seri)
-                        <div class="font-mono text-[10px] text-zinc-400">SN: {{ $selectedAset->nomor_seri }}</div>
+                        <div class="font-mono text-[10px] text-zinc-500 dark:text-zinc-400">SN: {{ $selectedAset->nomor_seri }}</div>
                     @endif
                     <div class="text-[10px] uppercase font-bold text-zinc-500 mt-2 border-t border-zinc-200 dark:border-zinc-800 pt-1.5">
                         SIMLOG RS • INVENTARIS

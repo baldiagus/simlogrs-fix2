@@ -43,13 +43,13 @@
                         <flux:table.cell>
                             <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->nama }}</div>
                             @if ($item->npwp)
-                                <div class="font-mono text-[11px] text-zinc-400">NPWP: {{ $item->npwp }}</div>
+                                <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">NPWP: {{ $item->npwp }}</div>
                             @endif
                         </flux:table.cell>
                         <flux:table.cell class="text-zinc-700 dark:text-zinc-300">{{ $item->nama_kontak ?? '-' }}</flux:table.cell>
                         <flux:table.cell>
                             <div class="font-mono text-xs">{{ $item->no_telepon ?? '-' }}</div>
-                            <div class="text-[11px] text-zinc-400">{{ $item->email ?? '-' }}</div>
+                            <div class="text-[11px] text-zinc-500 dark:text-zinc-400">{{ $item->email ?? '-' }}</div>
                         </flux:table.cell>
                         <flux:table.cell class="text-zinc-500">{{ $item->kota ?? '-' }}</flux:table.cell>
                         <flux:table.cell class="text-center">

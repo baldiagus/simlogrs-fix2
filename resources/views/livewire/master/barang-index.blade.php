@@ -19,28 +19,28 @@
             <button
                 wire:click="$set('filterTipe', '')"
                 type="button"
-                class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterTipe === '' ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                class="px-3.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 {{ $filterTipe === '' ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
             >
                 Semua Komoditas
             </button>
             <button
                 wire:click="$set('filterTipe', 'HABIS_PAKAI')"
                 type="button"
-                class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterTipe === 'HABIS_PAKAI' ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                class="px-3.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 {{ $filterTipe === 'HABIS_PAKAI' ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
             >
                 Habis Pakai (ATK/ART)
             </button>
             <button
                 wire:click="$set('filterTipe', 'ASET')"
                 type="button"
-                class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterTipe === 'ASET' ? 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                class="px-3.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 {{ $filterTipe === 'ASET' ? 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
             >
                 Aktiva / Aset
             </button>
             <button
                 wire:click="$set('filterTipe', 'SPAREPART')"
                 type="button"
-                class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterTipe === 'SPAREPART' ? 'bg-white dark:bg-zinc-900 text-violet-600 dark:text-violet-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                class="px-3.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 {{ $filterTipe === 'SPAREPART' ? 'bg-white dark:bg-zinc-900 text-violet-600 dark:text-violet-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
             >
                 Suku Cadang IPSRS
             </button>
@@ -58,7 +58,7 @@
             </div>
 
             <div class="w-full sm:w-56">
-                <select wire:model.live="filterKategoriId" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                <select wire:model.live="filterKategoriId" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Kategori</option>
                     @foreach ($daftarKategori as $kat)
                         <option value="{{ $kat->id }}">{{ $kat->nama }}</option>
@@ -67,7 +67,7 @@
             </div>
 
             <div class="w-full sm:w-36">
-                <select wire:model.live="filterStatus" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status</option>
                     <option value="AKTIF">AKTIF</option>
                     <option value="NONAKTIF">NONAKTIF</option>
@@ -95,7 +95,7 @@
                         <flux:table.cell>
                             <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->nama }}</div>
                             @if ($item->merek)
-                                <div class="text-[11px] text-zinc-400">Merek: {{ $item->merek->nama }}</div>
+                                <div class="text-[11px] text-zinc-500 dark:text-zinc-400">Merek: {{ $item->merek->nama }}</div>
                             @endif
                         </flux:table.cell>
                         <flux:table.cell>
@@ -113,23 +113,23 @@
                         </flux:table.cell>
                         <flux:table.cell>
                             <div class="text-xs font-medium text-zinc-800 dark:text-zinc-200">{{ $item->kategori?->nama ?? '-' }}</div>
-                            <div class="font-mono text-[11px] text-zinc-400">Satuan: {{ $item->satuan?->nama ?? '-' }} ({{ $item->satuan?->simbol ?? $item->satuan?->kode ?? '-' }})</div>
+                            <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">Satuan: {{ $item->satuan?->nama ?? '-' }} ({{ $item->satuan?->simbol ?? $item->satuan?->kode ?? '-' }})</div>
                         </flux:table.cell>
                         <flux:table.cell class="text-right font-mono text-xs tabular-nums">
                             @if($item->titik_pesan > 0)
                                 <span class="font-semibold text-amber-600 dark:text-amber-400">{{ number_format($item->titik_pesan, 0, ',', '.') }}</span>
                             @else
-                                <span class="text-zinc-300 dark:text-zinc-600 italic font-sans">—</span>
+                                <span class="text-zinc-400 dark:text-zinc-500 italic font-sans">-</span>
                             @endif
-                            <div class="text-[10px] text-zinc-400">
-                                Min: {{ $item->stok_minimum > 0 ? number_format($item->stok_minimum, 0, ',', '.') : '—' }}
-                                | Max: {{ $item->stok_maksimum > 0 ? number_format($item->stok_maksimum, 0, ',', '.') : '—' }}
+                            <div class="text-[10px] text-zinc-500 dark:text-zinc-400">
+                                Min: {{ $item->stok_minimum > 0 ? number_format($item->stok_minimum, 0, ',', '.') : '-' }}
+                                | Max: {{ $item->stok_maksimum > 0 ? number_format($item->stok_maksimum, 0, ',', '.') : '-' }}
                             </div>
                         </flux:table.cell>
                         <flux:table.cell class="text-right font-mono text-xs tabular-nums">
                             <x-rupiah :value="$item->harga_beli_terakhir" class="font-semibold text-zinc-900 dark:text-zinc-100" />
                             @if ($item->harga_estimasi > 0 && $item->harga_estimasi != $item->harga_beli_terakhir)
-                                <div class="text-[10px] text-zinc-400">Est: Rp {{ number_format($item->harga_estimasi, 0, ',', '.') }}</div>
+                                <div class="text-[10px] text-zinc-500 dark:text-zinc-400">Est: Rp {{ number_format($item->harga_estimasi, 0, ',', '.') }}</div>
                             @endif
                         </flux:table.cell>
                         <flux:table.cell class="text-center">
@@ -230,7 +230,7 @@
             </div>
 
             <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 space-y-3">
-                <div class="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">Parameter Pengendalian Stok (Buffer & ROP)</div>
+                <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Parameter Pengendalian Stok (Buffer & ROP)</div>
                 <div class="grid grid-cols-3 gap-3">
                     <x-number-input model="stok_minimum" label="Stok Minimum" placeholder="Tanpa Batas" />
                     <x-number-input model="titik_pesan" label="Titik Pesan (ROP)" placeholder="Tanpa Batas" />
