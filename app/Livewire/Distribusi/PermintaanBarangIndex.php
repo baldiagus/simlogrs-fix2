@@ -288,6 +288,7 @@ class PermintaanBarangIndex extends Component
             'stokGudangMap'    => $stokGudangMap,
             'isGlobalAdmin'    => $isGlobalAdmin,
             'userUnitId'       => $user?->unit_id,
+            'items'            => $this->items,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Permintaan Barang Ruangan (Amprah)']);
     }
 }

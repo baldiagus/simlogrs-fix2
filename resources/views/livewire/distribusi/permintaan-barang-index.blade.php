@@ -119,7 +119,7 @@
     </flux:card>
 
     {{-- Modal Form Tambah Amprah --}}
-    <flux:modal name="modal-permintaan-form" wire:model="showModal" class="w-full max-w-4xl">
+    <flux:modal name="modal-permintaan-form" wire:model="showModal" class="md:w-[56rem] max-w-[95vw]">
         <form wire:submit="save" class="space-y-4">
             <div>
                 <flux:heading size="lg">Pengajuan Amprah Ruangan</flux:heading>
@@ -181,8 +181,8 @@
                 </div>
             </div>
 
-            {{-- Baris 2: Tanggal, Urgensi, & Catatan --}}
-            <div class="grid grid-cols-12 gap-4 mb-5">
+            {{-- Schedule and notes --}}
+            <div class="grid grid-cols-12 gap-4 mb-4">
                 <div class="col-span-3">
                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                         Tanggal Permintaan <span class="text-red-500">*</span>
@@ -192,6 +192,7 @@
                 </div>
 
                 <div class="col-span-3">
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                         Urgensi <span class="text-red-500">*</span>
                     </label>
                     <select wire:model="urgensi" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
@@ -202,6 +203,7 @@
                 </div>
 
                 <div class="col-span-6">
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                         Catatan / Justifikasi <span class="text-zinc-400 font-normal">(Opsional)</span>
                     </label>
                     <input
@@ -213,7 +215,7 @@
                 </div>
             </div>
 
-            {{-- Baris 3: Daftar Item Barang (Matriks 1x3) --}}
+            {{-- Requested commodities (1x3 matrix) --}}
             <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/50 space-y-3">
                 <div class="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-800">
                     <div class="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider flex items-center gap-2">
@@ -244,7 +246,7 @@
                                         @foreach ($daftarBarang as $brg)
                                             @php $stok = (int) ($stokGudangMap[$brg->id] ?? 0); @endphp
                                             <option value="{{ $brg->id }}">
-                                                {{ $brg->kode }} &mdash; {{ $brg->nama }} (Stok: {{ number_format($stok, 0, ',', '.') }} {{ $brg->satuan?->simbol ?? 'Unit' }})
+                                                {{ $brg->kode }} - {{ $brg->nama }} (Stok: {{ number_format($stok, 0, ',', '.') }} {{ $brg->satuan?->simbol ?? 'Unit' }})
                                             </option>
                                         @endforeach
                                     </select>
