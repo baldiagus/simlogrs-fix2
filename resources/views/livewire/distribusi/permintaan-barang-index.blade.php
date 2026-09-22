@@ -9,7 +9,7 @@
 
             @can('create_layanan_unit::permintaan::barang')
                 <flux:button wire:click="create" variant="primary" icon="plus" wire:loading.attr="disabled">
-                    + Ajukan Amprah
+                    Ajukan Amprah
                 </flux:button>
             @endcan
         </div>
@@ -26,7 +26,7 @@
             </div>
 
             <div class="w-full sm:w-56">
-                <select wire:model.live="filterStatus" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status</option>
                     <option value="DIAJUKAN">DIAJUKAN</option>
                     <option value="DISETUJUI_KARU">DISETUJUI KARU</option>
@@ -38,7 +38,7 @@
             </div>
 
             <div class="w-full sm:w-44">
-                <select wire:model.live="filterUrgensi" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                <select wire:model.live="filterUrgensi" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Urgensi</option>
                     <option value="REGULER">REGULER</option>
                     <option value="CITO">CITO (Darurat)</option>
@@ -130,7 +130,7 @@
             <div class="grid grid-cols-3 gap-4 mb-4">
                 <div>
                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        No. Amprah <span class="text-[10px] text-zinc-400 font-mono font-normal">(Otomatis)</span>
+                        No. Amprah <span class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono font-normal">(Otomatis)</span>
                     </label>
                     <input
                         type="text"
@@ -204,7 +204,7 @@
 
                 <div class="col-span-6">
                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Catatan / Justifikasi <span class="text-zinc-400 font-normal">(Opsional)</span>
+                        Catatan / Justifikasi <span class="text-zinc-500 dark:text-zinc-400 font-normal">(Opsional)</span>
                     </label>
                     <input
                         type="text"
@@ -218,7 +218,7 @@
             {{-- Requested commodities (1x3 matrix) --}}
             <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/50 space-y-3">
                 <div class="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-800">
-                    <div class="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+                    <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
                         <span>Daftar Komoditas Diminta</span>
                         <span class="text-red-500">*</span>
                     </div>
@@ -294,7 +294,7 @@
                                 {{-- Kolom 3 (1x3): Catatan Item & Tombol Hapus (col-span-4) --}}
                                 <div class="col-span-4">
                                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                                        Catatan Item <span class="text-zinc-400 font-normal">(Opsional)</span>
+                                        Catatan Item <span class="text-zinc-500 dark:text-zinc-400 font-normal">(Opsional)</span>
                                     </label>
                                     <div class="flex items-center gap-2">
                                         <input
@@ -397,7 +397,7 @@
                                         <td class="px-3 py-2 text-zinc-500 text-xs">{{ $loop->iteration }}</td>
                                         <td class="px-3 py-2">
                                             <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $detail->barang?->nama ?? '-' }}</div>
-                                            <div class="text-[11px] text-zinc-400 font-mono">{{ $detail->barang?->kode ?? '' }}</div>
+                                            <div class="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">{{ $detail->barang?->kode ?? '' }}</div>
                                         </td>
                                         <td class="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">
                                             {{ $detail->barang?->satuan?->simbol ?? $detail->barang?->satuan?->nama ?? '-' }}
@@ -414,13 +414,13 @@
                                                     {{ number_format($detail->jumlah_disetujui, 0, ',', '.') }}
                                                 </span>
                                             @else
-                                                <span class="text-zinc-400 italic text-xs font-sans">Belum diproses</span>
+                                                <span class="text-zinc-500 dark:text-zinc-400 italic text-xs font-sans">Belum diproses</span>
                                             @endif
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="px-3 py-4 text-center text-zinc-400 text-xs italic">
+                                        <td colspan="6" class="px-3 py-4 text-center text-zinc-500 dark:text-zinc-400 text-xs italic">
                                             Tidak ada item barang dalam permintaan ini.
                                         </td>
                                     </tr>

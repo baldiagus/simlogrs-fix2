@@ -20,7 +20,7 @@
             </div>
 
             <div class="w-full sm:w-56">
-                <select wire:model.live="filterStatus" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status</option>
                     <option value="DIKIRIM">DIKIRIM (Menunggu Penerimaan)</option>
                     <option value="DITERIMA">DITERIMA (Sudah Masuk Stok)</option>
@@ -59,7 +59,7 @@
                                     <x-urgency-badge :urgency="$item->permintaanDistribusi->urgensi" />
                                 </div>
                             @else
-                                <span class="text-zinc-400 text-xs">-</span>
+                                <span class="text-zinc-500 dark:text-zinc-400 text-xs">-</span>
                             @endif
                         </flux:table.cell>
 
@@ -68,7 +68,7 @@
                             <div class="font-medium text-zinc-900 dark:text-zinc-100 text-xs">
                                 {{ $item->gudang?->nama ?? '-' }}
                             </div>
-                            <div class="text-[11px] text-zinc-400">
+                            <div class="text-[11px] text-zinc-500 dark:text-zinc-400">
                                 Oleh: {{ $item->pengirim?->nama ?? 'Petugas Gudang' }}
                             </div>
                         </flux:table.cell>
@@ -81,7 +81,7 @@
                         {{-- Jml Item --}}
                         <flux:table.cell class="text-center text-xs">
                             <span class="font-mono font-semibold">{{ $item->detail_count ?? $item->detail->count() }}</span>
-                            <span class="text-zinc-400 text-[11px]">item</span>
+                            <span class="text-zinc-500 dark:text-zinc-400 text-[11px]">item</span>
                         </flux:table.cell>
 
                         {{-- Status --}}
@@ -220,7 +220,7 @@
                                         <td class="p-2.5 text-center text-zinc-500">{{ $idx + 1 }}</td>
                                         <td class="p-2.5 font-sans font-medium text-zinc-900 dark:text-zinc-100">
                                             <div>{{ $detail->barang?->nama ?? '-' }}</div>
-                                            <div class="font-mono text-[10px] text-zinc-400">{{ $detail->barang?->kode }}</div>
+                                            <div class="font-mono text-[10px] text-zinc-500 dark:text-zinc-400">{{ $detail->barang?->kode }}</div>
                                         </td>
                                         <td class="p-2.5 font-sans text-zinc-600 dark:text-zinc-400">
                                             {{ $detail->barang?->satuan?->nama ?? '-' }}
@@ -240,7 +240,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="p-4 text-center text-zinc-400 font-sans">
+                                        <td colspan="7" class="p-4 text-center text-zinc-500 dark:text-zinc-400 font-sans">
                                             Tidak ada rincian item pengiriman.
                                         </td>
                                     </tr>

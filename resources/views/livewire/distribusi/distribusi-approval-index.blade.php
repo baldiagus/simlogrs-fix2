@@ -20,7 +20,7 @@
             </div>
 
             <div class="w-full sm:w-56">
-                <select wire:model.live="filterStatus" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 font-medium">
+                <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 font-medium">
                     <option value="">Semua Status Terkait</option>
                     <option value="DISETUJUI_KARU">DISETUJUI KARU (Perlu Review)</option>
                     <option value="DISETUJUI_GUDANG">DISETUJUI GUDANG</option>
@@ -31,7 +31,7 @@
             </div>
 
             <div class="w-full sm:w-44">
-                <select wire:model.live="filterUrgensi" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 font-medium">
+                <select wire:model.live="filterUrgensi" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 font-medium">
                     <option value="">Semua Urgensi</option>
                     <option value="REGULER">REGULER</option>
                     <option value="CITO">CITO</option>
@@ -316,7 +316,7 @@
                                         @if ($detail->jumlah_disetujui !== null)
                                             <span class="text-blue-600 dark:text-blue-400">{{ number_format($detail->jumlah_disetujui, 0, ',', '.') }}</span>
                                         @else
-                                            <span class="text-zinc-400 italic">-</span>
+                                            <span class="text-zinc-500 dark:text-zinc-400 italic">-</span>
                                         @endif
                                     </td>
                                     <td class="py-2.5 px-3 text-zinc-600 dark:text-zinc-400">

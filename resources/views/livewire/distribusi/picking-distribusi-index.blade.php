@@ -18,7 +18,7 @@
                 >
                     <span>Siap Picking</span>
                     @if ($siapPickingCount > 0)
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white animate-pulse">
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700/60">
                             {{ $siapPickingCount }}
                         </span>
                     @else
@@ -49,7 +49,7 @@
 
                 @if ($activeTab === 'siap-picking')
                     <div class="w-full sm:w-44">
-                        <select wire:model.live="filterUrgensi" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                        <select wire:model.live="filterUrgensi" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                             <option value="">Semua Urgensi</option>
                             <option value="REGULER">REGULER</option>
                             <option value="CITO">CITO (Darurat)</option>
@@ -80,7 +80,7 @@
 
                             <flux:table.cell>
                                 <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->unit?->nama ?? '-' }}</div>
-                                <div class="text-[11px] text-zinc-400">Gudang: {{ $item->gudang?->nama ?? '-' }}</div>
+                                <div class="text-[11px] text-zinc-500 dark:text-zinc-400">Gudang: {{ $item->gudang?->nama ?? '-' }}</div>
                             </flux:table.cell>
 
                             <flux:table.cell class="text-xs tabular-nums">
@@ -94,7 +94,7 @@
                             <flux:table.cell>
                                 <div class="text-xs">
                                     <span class="font-semibold text-zinc-800 dark:text-zinc-200">{{ $item->detail_count ?? $item->detail->count() }} item</span>
-                                    <div class="text-[11px] text-zinc-400 truncate max-w-xs">
+                                    <div class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate max-w-xs">
                                         {{ $item->detail->map(fn ($d) => ($d->barang?->nama ?? 'Barang') . ' (' . ($d->jumlah_disetujui ?: $d->jumlah) . ' ' . ($d->barang?->satuan?->simbol ?? $d->barang?->satuan?->nama ?? 'unit') . ')')->implode(', ') }}
                                     </div>
                                 </div>
@@ -144,7 +144,7 @@
 
                             <flux:table.cell>
                                 <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->unit?->nama ?? '-' }}</div>
-                                <div class="text-[11px] text-zinc-400">Gudang: {{ $item->gudang?->nama ?? '-' }}</div>
+                                <div class="text-[11px] text-zinc-500 dark:text-zinc-400">Gudang: {{ $item->gudang?->nama ?? '-' }}</div>
                             </flux:table.cell>
 
                             <flux:table.cell class="text-xs tabular-nums">
@@ -234,10 +234,10 @@
                         <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
                             @forelse ($selectedSppb->detail as $idx => $det)
                                 <tr class="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50">
-                                    <td class="py-2 px-3 text-center text-zinc-400">{{ $idx + 1 }}</td>
+                                    <td class="py-2 px-3 text-center text-zinc-500 dark:text-zinc-400">{{ $idx + 1 }}</td>
                                     <td class="py-2 px-3 font-medium text-zinc-900 dark:text-zinc-100">
                                         {{ $det->barang?->nama ?? '-' }}
-                                        <div class="text-[10px] text-zinc-400 font-mono">{{ $det->barang?->kode ?? '' }}</div>
+                                        <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">{{ $det->barang?->kode ?? '' }}</div>
                                     </td>
                                     <td class="py-2 px-3 font-mono font-semibold text-zinc-800 dark:text-zinc-200">
                                         {{ $det->stokBatch?->nomor_batch ?? '-' }}
@@ -248,17 +248,17 @@
                                                 {{ $det->stokBatch->tanggal_kedaluwarsa->format('d/m/Y') }}
                                             </span>
                                         @else
-                                            <span class="text-zinc-400 italic">Non-Expired</span>
+                                            <span class="text-zinc-500 dark:text-zinc-400 italic">Non-Expired</span>
                                         @endif
                                     </td>
                                     <td class="py-2 px-3">
                                         @if ($det->stokBatch?->lokasiGudang)
                                             <span class="inline-flex items-center gap-1 font-mono text-xs">
                                                 <span class="font-medium text-zinc-800 dark:text-zinc-200">{{ $det->stokBatch->lokasiGudang->nama }}</span>
-                                                <span class="text-zinc-400">({{ $det->stokBatch->lokasiGudang->kode }})</span>
+                                                <span class="text-zinc-500 dark:text-zinc-400">({{ $det->stokBatch->lokasiGudang->kode }})</span>
                                             </span>
                                         @else
-                                            <span class="text-zinc-400">-</span>
+                                            <span class="text-zinc-500 dark:text-zinc-400">-</span>
                                         @endif
                                     </td>
                                     <td class="py-2 px-3 text-right font-mono font-bold text-zinc-900 dark:text-zinc-100">
@@ -268,7 +268,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="py-6 text-center text-zinc-400">Tidak ada detail alokasi batch.</td>
+                                    <td colspan="6" class="py-6 text-center text-zinc-500 dark:text-zinc-400">Tidak ada detail alokasi batch.</td>
                                 </tr>
                             @endforelse
                         </tbody>

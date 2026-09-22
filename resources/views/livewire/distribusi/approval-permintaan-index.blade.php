@@ -20,7 +20,7 @@
             </div>
 
             <div class="w-full sm:w-56">
-                <select wire:model.live="filterStatus" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status</option>
                     <option value="DIAJUKAN">DIAJUKAN (Menunggu Karu)</option>
                     <option value="DISETUJUI_KARU">DISETUJUI KARU</option>
@@ -32,7 +32,7 @@
             </div>
 
             <div class="w-full sm:w-44">
-                <select wire:model.live="filterUrgensi" class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                <select wire:model.live="filterUrgensi" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Urgensi</option>
                     <option value="REGULER">REGULER</option>
                     <option value="CITO">CITO (Darurat)</option>
@@ -61,7 +61,7 @@
 
                         <flux:table.cell>
                             <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->unit?->nama ?? '-' }}</div>
-                            <div class="text-[11px] text-zinc-400">Gudang: {{ $item->gudang?->nama ?? '-' }}</div>
+                            <div class="text-[11px] text-zinc-500 dark:text-zinc-400">Gudang: {{ $item->gudang?->nama ?? '-' }}</div>
                         </flux:table.cell>
 
                         <flux:table.cell class="text-xs tabular-nums">
@@ -197,7 +197,7 @@
                                         <td class="px-3 py-2 text-zinc-500 text-xs">{{ $loop->iteration }}</td>
                                         <td class="px-3 py-2">
                                             <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $detail->barang?->nama ?? '-' }}</div>
-                                            <div class="text-[11px] text-zinc-400 font-mono">{{ $detail->barang?->kode ?? '' }}</div>
+                                            <div class="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">{{ $detail->barang?->kode ?? '' }}</div>
                                         </td>
                                         <td class="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">
                                             {{ $detail->barang?->satuan?->nama ?? $detail->barang?->satuan?->simbol ?? '-' }}
@@ -209,7 +209,7 @@
                                             @if ($detail->jumlah_disetujui !== null)
                                                 <span class="text-emerald-600 font-semibold">{{ number_format($detail->jumlah_disetujui, 0, ',', '.') }}</span>
                                             @else
-                                                <span class="text-zinc-300 dark:text-zinc-600 italic font-sans">—</span>
+                                                <span class="text-zinc-500 dark:text-zinc-400 italic text-xs font-sans">Belum diproses</span>
                                             @endif
                                         </td>
                                         <td class="px-3 py-2 text-xs text-zinc-500">
@@ -218,7 +218,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="px-3 py-4 text-center text-xs text-zinc-400">
+                                        <td colspan="6" class="px-3 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
                                             Tidak ada item barang dalam permintaan ini.
                                         </td>
                                     </tr>
