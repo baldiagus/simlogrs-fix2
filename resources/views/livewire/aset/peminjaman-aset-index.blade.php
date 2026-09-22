@@ -294,6 +294,7 @@
                                 <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $aset->barang?->nama ?? '-' }}</div>
                                 @if ($aset->nomor_seri)
                                     <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">SN: {{ $aset->nomor_seri }}</div>
+                                @endif
                             </flux:table.cell>
 
                             {{-- Lokasi Penyedia --}}
@@ -310,6 +311,7 @@
                                     </div>
                                     @if ($aset->lokasiGudang)
                                         <div class="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono mt-0.5">Bin/Rak: {{ $aset->lokasiGudang->nama }}</div>
+                                    @endif
                                 @else
                                     <span class="text-zinc-400 text-xs">-</span>
                                 @endif
@@ -445,6 +447,7 @@
                                                     <div class="text-xs text-amber-700 dark:text-amber-300 font-medium mt-0.5">
                                                         Ruangan Anda sendiri (tidak dapat meminjam ke ruangan sendiri)
                                                     </div>
+                                                @endif
                                             </div>
                                         </label>
                                     @endforeach

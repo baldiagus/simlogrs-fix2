@@ -199,6 +199,7 @@
                     </flux:table.row>
                 @empty
                     <x-empty-state message="Tidak ada permohonan peminjaman aset yang sesuai filter." cols="7" />
+                @endforelse
             </flux:table.rows>
         </flux:table>
 
