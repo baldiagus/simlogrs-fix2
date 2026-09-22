@@ -76,13 +76,42 @@
                             <div class="flex items-center justify-end gap-1.5">
                                 <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail" />
 
+                                @php
+                                    $canApproveThis = $isGlobalApprover || ($userUnitId && (int) $userUnitId === (int) $item->unit_id);
+                                @endphp
+
+                                {{-- MEJA 1: Otorisasi Kepala Ruangan / Unit / Gudang (Khusus status DIAJUKAN & DISETUJUI) --}}
                                 @can('update_pengadaan::permintaan::pengadaan')
-                                    @if ($item->status === 'DIAJUKAN')
-                                        <flux:button wire:click="confirmApprove({{ $item->id }})" size="xs" variant="ghost" icon="check-circle" title="Setujui" wire:loading.attr="disabled" />
-                                        <flux:button wire:click="confirmReject({{ $item->id }})" size="xs" variant="ghost" icon="x-circle" title="Tolak" wire:loading.attr="disabled" />
+                                    @if ($item->status === 'DIAJUKAN' && $canApproveThis)
+                                        <flux:button wire:click="confirmApprove({{ $item->id }})" size="xs" variant="ghost" icon="check-circle" title="Setujui (Karu)" class="text-emerald-600 hover:text-emerald-700" wire:loading.attr="disabled" />
+                                        <flux:button wire:click="confirmReject({{ $item->id }})" size="xs" variant="ghost" icon="x-circle" title="Tolak (Karu)" class="text-rose-600 hover:text-rose-700" wire:loading.attr="disabled" />
                                     @endif
-                                    @if ($item->status === 'DISETUJUI')
-                                        <flux:button wire:click="confirmTeruskan({{ $item->id }})" size="xs" variant="ghost" icon="arrow-right-circle" title="Teruskan ke Pengadaan" wire:loading.attr="disabled" />
+                                    @if ($item->status === 'DISETUJUI' && $canApproveThis)
+                                        <flux:button wire:click="confirmTeruskan({{ $item->id }})" size="xs" variant="ghost" icon="arrow-right-circle" title="Teruskan ke Bagian Pengadaan" class="text-blue-600 hover:text-blue-700" wire:loading.attr="disabled" />
+                                    @endif
+                                @endcan
+
+                                {{-- MEJA 2: Meja Bagian Pengadaan (Khusus status DITERUSKAN_KE_PENGADAAN) --}}
+                                @can('create_pengadaan::pesanan::pembelian')
+                                    @if ($item->status === 'DITERUSKAN_KE_PENGADAAN')
+                                        <flux:button
+                                            as="a"
+                                            href="/{{ request()->segment(1) ?? 'pengadaan' }}/pesanan-pembelian?konversi_pr={{ $item->id }}"
+                                            size="xs"
+                                            variant="primary"
+                                            icon="shopping-cart"
+                                            title="Setujui & Terbitkan PO"
+                                        >
+                                            + PO
+                                        </flux:button>
+                                        <flux:button
+                                            wire:click="openRejectPengadaan({{ $item->id }})"
+                                            size="xs"
+                                            variant="danger"
+                                            icon="x-circle"
+                                            title="Tolak di Meja Pengadaan"
+                                            wire:loading.attr="disabled"
+                                        />
                                     @endif
                                 @endcan
                             </div>
@@ -266,6 +295,37 @@
         @endif
     </flux:modal>
 
+    {{-- Modal Tolak Pengadaan dengan Alasan Wajib --}}
+    <flux:modal name="modal-reject-pengadaan" wire:model="showRejectPengadaanModal" class="md:w-[28rem]">
+        <form wire:submit="submitRejectPengadaan" class="space-y-4">
+            <div>
+                <flux:heading size="lg">Tolak di Meja Pengadaan</flux:heading>
+                <flux:subheading class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    Berikan alasan resmi mengapa permohonan ini tidak dapat diterbitkan menjadi PO (misal: pagu anggaran habis atau barang tidak tersedia).
+                </flux:subheading>
+            </div>
+
+            <div>
+                <flux:textarea
+                    wire:model="alasanPenolakanPengadaan"
+                    label="Alasan Penolakan (Wajib)"
+                    placeholder="Tuliskan alasan penolakan secara jelas..."
+                    rows="3"
+                    required
+                />
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                <flux:button type="button" variant="ghost" wire:click="$set('showRejectPengadaanModal', false)">
+                    Batal
+                </flux:button>
+                <flux:button type="submit" variant="danger" wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="submitRejectPengadaan">Tolak Permintaan</span>
+                    <span wire:loading wire:target="submitRejectPengadaan">Memproses...</span>
+                </flux:button>
+            </div>
+        </form>
+    </flux:modal>
     <x-confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"

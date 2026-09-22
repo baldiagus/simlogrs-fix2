@@ -5,6 +5,7 @@ namespace App\Livewire\Pengadaan;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
+use App\Models\Barang;
 use App\Models\Gudang;
 use App\Models\LokasiGudang;
 use App\Models\PenerimaanBarang;
@@ -164,6 +165,13 @@ class PenerimaanPoIndex extends Component
                 $poDetail = $po->detail->firstWhere('id', $row['po_detail_id']);
                 if ($poDetail) {
                     $poDetail->increment('jumlah_diterima', $row['jumlah_diterima']);
+                }
+
+                // Update harga beli terakhir di master barang
+                if ((float) $row['harga_satuan'] > 0) {
+                    Barang::where('id', $row['barang_id'])->update([
+                        'harga_beli_terakhir' => $row['harga_satuan'],
+                    ]);
                 }
             }
 

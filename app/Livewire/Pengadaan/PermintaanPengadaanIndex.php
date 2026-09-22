@@ -22,6 +22,9 @@ class PermintaanPengadaanIndex extends Component
     public ?int $editingId = null;
     public bool $showDetailModal = false;
     public ?PermintaanPengadaan $selectedPr = null;
+    public bool $showRejectPengadaanModal = false;
+    public ?int $rejectPrId = null;
+    public string $alasanPenolakanPengadaan = '';
 
     #[Url(history: true)]
     public string $filterStatus = '';
@@ -112,6 +115,26 @@ class PermintaanPengadaanIndex extends Component
         $this->showDetailModal = true;
     }
 
+    public function canUserApprovePr(PermintaanPengadaan $item): bool
+    {
+        $user = auth()->user();
+        if (! $user || ! $user->can('update_pengadaan::permintaan::pengadaan')) {
+            return false;
+        }
+
+        // Pengguna dengan akses admin global dapat mengotorisasi seluruh PR
+        if ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard')) {
+            return true;
+        }
+
+        // Kepala Ruangan / Unit hanya boleh otorisasi unit miliknya
+        if ($user->unit_id && $item->unit_id && (int) $user->unit_id !== (int) $item->unit_id) {
+            return false;
+        }
+
+        return true;
+    }
+
     public function confirmApprove(int $id): void
     {
         $pr = PermintaanPengadaan::with('unit')->findOrFail($id);
@@ -157,11 +180,14 @@ class PermintaanPengadaanIndex extends Component
 
         $pr = PermintaanPengadaan::findOrFail($id);
 
+        if (! $this->canUserApprovePr($pr)) {
+            abort(403, 'Anda tidak memiliki wewenang mengesahkan permohonan dari unit ini.');
+        }
+
         if ($pr->status !== 'DIAJUKAN') {
             $this->toast('Hanya PR berstatus DIAJUKAN yang dapat disetujui.', 'danger');
             return;
         }
-
         $pr->update([
             'status'         => 'DISETUJUI',
             'disetujui_oleh' => auth()->id(),
@@ -179,11 +205,14 @@ class PermintaanPengadaanIndex extends Component
 
         $pr = PermintaanPengadaan::findOrFail($id);
 
+        if (! $this->canUserApprovePr($pr)) {
+            abort(403, 'Anda tidak memiliki wewenang menolak permohonan dari unit ini.');
+        }
+
         if ($pr->status !== 'DIAJUKAN') {
             $this->toast('Hanya PR berstatus DIAJUKAN yang dapat ditolak.', 'danger');
             return;
         }
-
         $pr->update([
             'status'         => 'DITOLAK',
             'disetujui_oleh' => auth()->id(),
@@ -198,15 +227,56 @@ class PermintaanPengadaanIndex extends Component
 
         $pr = PermintaanPengadaan::findOrFail($id);
 
+        if (! $this->canUserApprovePr($pr)) {
+            abort(403, 'Anda tidak memiliki wewenang meneruskan permohonan dari unit ini.');
+        }
+
         if ($pr->status !== 'DISETUJUI') {
             $this->toast('Hanya PR berstatus DISETUJUI yang dapat diteruskan.', 'danger');
             return;
         }
-
         $pr->update(['status' => 'DITERUSKAN_KE_PENGADAAN']);
 
         $this->toast("PR '{$pr->kode}' diteruskan ke bagian pengadaan.", 'success');
     }
+    public function openRejectPengadaan(int $id): void
+    {
+        abort_unless(auth()->user()?->can('create_pengadaan::pesanan::pembelian'), 403);
+        $pr = PermintaanPengadaan::findOrFail($id);
+
+        if ($pr->status !== 'DITERUSKAN_KE_PENGADAAN') {
+            $this->toast('Hanya PR berstatus DITERUSKAN KE PENGADAAN yang dapat ditolak oleh bagian pengadaan.', 'danger');
+            return;
+        }
+
+        $this->rejectPrId = $id;
+        $this->alasanPenolakanPengadaan = '';
+        $this->showRejectPengadaanModal = true;
+    }
+
+    public function submitRejectPengadaan(): void
+    {
+        abort_unless(auth()->user()?->can('create_pengadaan::pesanan::pembelian'), 403);
+
+        $this->validate([
+            'alasanPenolakanPengadaan' => 'required|string|min:5|max:500',
+        ], [
+            'alasanPenolakanPengadaan.required' => 'Alasan penolakan dari bagian pengadaan wajib diisi.',
+            'alasanPenolakanPengadaan.min' => 'Alasan penolakan minimal 5 karakter.',
+        ]);
+
+        $pr = PermintaanPengadaan::findOrFail($this->rejectPrId);
+        $catatanAwal = $pr->catatan ? $pr->catatan . "\n" : '';
+        $pr->update([
+            'status' => 'DITOLAK',
+            'catatan' => $catatanAwal . '[Ditolak Pengadaan]: ' . trim($this->alasanPenolakanPengadaan),
+            'disetujui_oleh' => auth()->id(),
+        ]);
+
+        $this->showRejectPengadaanModal = false;
+        $this->toast("PR '{$pr->kode}' berhasil ditolak di meja pengadaan.", 'info');
+    }
+
 
     public function render()
     {
@@ -236,9 +306,11 @@ class PermintaanPengadaanIndex extends Component
             ->paginate($this->perPage);
 
         return view('livewire.pengadaan.permintaan-pengadaan-index', [
-            'daftarPr'     => $daftarPr,
-            'daftarBarang' => $daftarBarang,
-            'daftarUnit'   => $daftarUnit,
+            'daftarPr'         => $daftarPr,
+            'daftarBarang'     => $daftarBarang,
+            'daftarUnit'       => $daftarUnit,
+            'isGlobalApprover' => $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard')),
+            'userUnitId'       => $user?->unit_id,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Permintaan Pengadaan (PR)']);
     }
 }

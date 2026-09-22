@@ -40,6 +40,16 @@ class PesananPembelianIndex extends Component
         $this->resetPage();
     }
 
+    public function mount(): void
+    {
+        if (request()->has('konversi_pr')) {
+            $prId = (int) request('konversi_pr');
+            if ($prId > 0) {
+                $this->konversiPo($prId);
+            }
+        }
+    }
+
     public function konversiPo(int $prId): void
     {
         abort_unless(auth()->user()?->can('create_pengadaan::pesanan::pembelian'), 403);
@@ -51,13 +61,20 @@ class PesananPembelianIndex extends Component
         $this->syarat_pembayaran = 'TEMPO_30_HARI';
         $this->kode = CodeGenerator::generatePo();
 
-        $this->itemRows = $pr->detail->map(fn ($d) => [
-            'barang_id'    => $d->barang_id,
-            'nama_barang'  => $d->barang->nama ?? '-',
-            'jumlah'       => $d->jumlah_disetujui ?: $d->jumlah,
-            'harga_satuan' => 0,
-            'subtotal'     => 0,
-        ])->toArray();
+        $this->itemRows = $pr->detail->map(function ($d) {
+            $jumlah = (int) ($d->jumlah_disetujui ?: $d->jumlah);
+            $harga = (float) ($d->barang && $d->barang->harga_beli_terakhir > 0
+                ? $d->barang->harga_beli_terakhir
+                : ($d->barang->harga_estimasi ?? 0));
+
+            return [
+                'barang_id'    => $d->barang_id,
+                'nama_barang'  => $d->barang->nama ?? '-',
+                'jumlah'       => $jumlah,
+                'harga_satuan' => $harga,
+                'subtotal'     => $jumlah * $harga,
+            ];
+        })->toArray();
 
         $this->showModal = true;
     }

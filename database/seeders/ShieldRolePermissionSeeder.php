@@ -71,7 +71,7 @@ class ShieldRolePermissionSeeder extends Seeder
             }
 
             $all = array_unique(array_merge(['panel_user'], $matched, $pagePerms));
-            $role->givePermissionTo($all);
+            $role->syncPermissions($all);
         };
 
         // 5. Role: admin_logistik
@@ -108,7 +108,12 @@ class ShieldRolePermissionSeeder extends Seeder
         // 8. Role: pengadaan
         $givePermissions('pengadaan', [
             'page_PengadaanDashboard',
-            '%_pengadaan::%',
+            'view_any_pengadaan::permintaan::pengadaan',
+            'view_pengadaan::permintaan::pengadaan',
+            '%_pengadaan::pesanan::pembelian%',
+            '%_pengadaan::tracking::po%',
+            '%_pengadaan::master::rekanan%',
+            '%_pengadaan::realisasi::anggaran%',
             '%_master::pemasok%',
             'view_any_master::barang%',
             'view_master::barang%',
