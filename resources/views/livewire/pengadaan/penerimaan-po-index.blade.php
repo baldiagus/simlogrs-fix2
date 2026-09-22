@@ -142,15 +142,46 @@
                 </flux:subheading>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <flux:input wire:model="kode" label="Kode Penerimaan (Otomatis)" disabled readonly class="font-mono bg-zinc-100 dark:bg-zinc-800/80 cursor-not-allowed font-semibold" />
-
-                <flux:input wire:model="nomor_surat_jalan" label="Nomor Surat Jalan" placeholder="No. surat jalan vendor" required />
+            {{-- Dokumen Header Input (Aligned baselines) --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5 flex items-center justify-between">
+                        <span>No. Penerimaan</span>
+                        <span class="text-[10px] text-zinc-400 font-mono font-normal">Otomatis</span>
+                    </label>
+                    <input
+                        type="text"
+                        wire:model="kode"
+                        disabled
+                        readonly
+                        class="w-full text-sm font-mono font-semibold rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 text-zinc-600 dark:text-zinc-300 cursor-not-allowed"
+                    />
+                </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Gudang Tujuan</label>
-                    <select wire:model.live="gudang_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                        <option value="">Pilih Gudang...</option>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Nomor Surat Jalan <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        wire:model="nomor_surat_jalan"
+                        placeholder="No. surat jalan vendor..."
+                        required
+                        class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                    @error('nomor_surat_jalan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Gudang Simpan <span class="text-red-500">*</span>
+                    </label>
+                    <select
+                        wire:model.live="gudang_id"
+                        required
+                        class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                        <option value="">Pilih Fasilitas Gudang...</option>
                         @foreach ($daftarGudang as $g)
                             <option value="{{ $g->id }}">{{ $g->nama }}</option>
                         @endforeach
@@ -159,59 +190,65 @@
                 </div>
             </div>
 
-            <flux:textarea wire:model="catatan" label="Catatan (Opsional)" rows="2" placeholder="Catatan penerimaan..." />
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                    Catatan Penerimaan <span class="text-zinc-400 font-normal">(Opsional)</span>
+                </label>
+                <input
+                    type="text"
+                    wire:model="catatan"
+                    placeholder="misal: Kemasan kardus utuh, nomor segel sesuai..."
+                    class="w-full text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+            </div>
 
-            {{-- Items Table --}}
+            {{-- Items Card List --}}
             @if (count($itemRows) > 0)
-                <div class="space-y-3.5">
-                    <div class="flex items-center justify-between pb-1 border-b border-zinc-200 dark:border-zinc-800">
-                        <div class="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">Detail Item Penerimaan ({{ count($itemRows) }} Komoditas)</div>
-                        <div class="text-[11px] text-zinc-400">Section 1: Data PO &bull; Section 2: Input Fisik Masuk</div>
+                <div class="space-y-2.5 pt-1">
+                    <div class="flex items-center justify-between pb-1 border-b border-zinc-200 dark:border-zinc-800 text-xs">
+                        <div class="font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+                            Daftar Komoditas Diterima ({{ count($itemRows) }} Item)
+                        </div>
+                        <div class="text-zinc-400 text-[11px]">
+                            Verifikasi data PO &bull; Catat fisik masuk & rak simpan
+                        </div>
                     </div>
 
-                    <div class="space-y-3 max-h-[58vh] overflow-y-auto pr-1">
+                    <div class="space-y-2.5 max-h-[55vh] overflow-y-auto pr-1">
                         @foreach ($itemRows as $idx => $row)
                             <div wire:key="inbound-item-card-{{ $idx }}" class="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-xs">
-                                {{-- SECTION 1: Nama Barang & Kuota PO (Dipesan, Sudah Terima, Sisa) --}}
-                                <div class="px-4 py-2.5 bg-zinc-50/90 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="size-5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold shrink-0">
+                                {{-- Baris 1: Ringkasan Pesanan (PO) --}}
+                                <div class="px-4 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200/80 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="size-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
                                             {{ $idx + 1 }}
                                         </span>
-                                        <div>
-                                            <span class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">{{ $row['nama_barang'] }}</span>
-                                            <span class="text-[10px] text-zinc-400 font-sans ml-1.5 uppercase font-medium">(Section 1 &mdash; Data PO)</span>
-                                        </div>
+                                        <span class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">{{ $row['nama_barang'] }}</span>
                                     </div>
 
-                                    <div class="flex items-center gap-3 text-xs font-mono tabular-nums">
-                                        <div class="flex items-center gap-1">
-                                            <span class="text-zinc-400 font-sans text-[11px]">Dipesan:</span>
-                                            <span class="font-bold text-zinc-700 dark:text-zinc-300">{{ number_format($row['jumlah_dipesan'], 0, ',', '.') }}</span>
+                                    <div class="flex items-center gap-3 font-mono tabular-nums text-xs">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-zinc-500 font-sans text-[11px]">Dipesan:</span>
+                                            <span class="font-bold text-zinc-800 dark:text-zinc-200">{{ number_format($row['jumlah_dipesan'], 0, ',', '.') }}</span>
                                         </div>
                                         <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
-                                        <div class="flex items-center gap-1">
-                                            <span class="text-zinc-400 font-sans text-[11px]">Sudah Terima:</span>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-zinc-500 font-sans text-[11px]">Sudah Terima:</span>
                                             <span class="font-bold text-zinc-600 dark:text-zinc-400">{{ number_format($row['jumlah_sudah'], 0, ',', '.') }}</span>
                                         </div>
                                         <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
-                                        <div class="flex items-center gap-1">
-                                            <span class="text-zinc-400 font-sans text-[11px]">Sisa:</span>
-                                            <span class="font-bold px-2 py-0.5 rounded-md inline-block {{ $row['sisa'] > 0 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' }}">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-zinc-500 font-sans text-[11px]">Sisa:</span>
+                                            <span class="font-bold px-2.5 py-0.5 rounded-full inline-block {{ $row['sisa'] > 0 ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-200' : 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-200' }}">
                                                 {{ number_format($row['sisa'], 0, ',', '.') }}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
 
-                                {{-- SECTION 2: Input Fisik Penerimaan (Jml Terima, Jml Rusak, No. Batch, Kedaluwarsa, Rak/Lokasi) --}}
-                                <div class="p-3.5 bg-white dark:bg-zinc-900 space-y-2">
-                                    <div class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                                        <flux:icon icon="inbox-arrow-down" class="size-3 text-emerald-600 dark:text-emerald-400" />
-                                        <span>Section 2 &mdash; Input Fisik Masuk</span>
-                                    </div>
-
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                                {{-- Baris 2: Input Fisik Penerimaan (5 Kolom Sejajar) --}}
+                                <div class="p-3 bg-white dark:bg-zinc-900">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
                                         <div>
                                             <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
                                                 Jml Terima <span class="text-red-500">*</span>
@@ -222,7 +259,7 @@
                                                 min="0"
                                                 max="{{ $row['sisa'] }}"
                                                 placeholder="Maks: {{ $row['sisa'] }}"
-                                                class="w-full text-right font-mono tabular-nums text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-blue-500"
+                                                class="w-full text-right font-mono tabular-nums text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                             />
                                             @error("itemRows.{$idx}.jumlah_diterima") <p class="text-red-500 text-[10px] mt-0.5">{{ $message }}</p> @enderror
                                         </div>
@@ -236,7 +273,7 @@
                                                 wire:model="itemRows.{{ $idx }}.jumlah_rusak"
                                                 min="0"
                                                 placeholder="0"
-                                                class="w-full text-right font-mono tabular-nums text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-blue-500"
+                                                class="w-full text-right font-mono tabular-nums text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                             />
                                             @error("itemRows.{$idx}.jumlah_rusak") <p class="text-red-500 text-[10px] mt-0.5">{{ $message }}</p> @enderror
                                         </div>
@@ -248,8 +285,8 @@
                                             <input
                                                 type="text"
                                                 wire:model="itemRows.{{ $idx }}.nomor_batch"
-                                                placeholder="No. Batch Pabrik"
-                                                class="w-full font-mono uppercase text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-blue-500"
+                                                placeholder="Batch pabrik..."
+                                                class="w-full font-mono uppercase text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                             />
                                             @error("itemRows.{$idx}.nomor_batch") <p class="text-red-500 text-[10px] mt-0.5">{{ $message }}</p> @enderror
                                         </div>
@@ -261,17 +298,17 @@
                                             <input
                                                 type="date"
                                                 wire:model="itemRows.{{ $idx }}.tanggal_kedaluwarsa"
-                                                class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-blue-500"
+                                                class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                             />
                                         </div>
 
                                         <div>
                                             <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-                                                Rak / Lokasi <span class="text-red-500">*</span>
+                                                Rak Simpan <span class="text-red-500">*</span>
                                             </label>
                                             <select
                                                 wire:model="itemRows.{{ $idx }}.lokasi_gudang_id"
-                                                class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-blue-500"
+                                                class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                             >
                                                 <option value="">Pilih Rak...</option>
                                                 @foreach ($daftarLokasiGudang as $lok)
