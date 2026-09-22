@@ -127,11 +127,10 @@
             </div>
 
             {{-- Baris 1: Informasi Dokumen & Unit --}}
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-4">
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5 flex items-center justify-between">
-                        <span>No. Amprah</span>
-                        <span class="text-[10px] text-zinc-400 font-mono font-normal">Otomatis</span>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        No. Amprah <span class="text-[10px] text-zinc-400 font-mono font-normal">(Otomatis)</span>
                     </label>
                     <input
                         type="text"
@@ -172,7 +171,7 @@
                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                         Gudang Tujuan <span class="text-red-500">*</span>
                     </label>
-                    <select wire:model="gudang_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <select wire:model.live="gudang_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
                         <option value="">Pilih Gudang...</option>
                         @foreach ($daftarGudang as $gdg)
                             <option value="{{ $gdg->id }}">{{ $gdg->nama }}</option>
@@ -183,7 +182,7 @@
             </div>
 
             {{-- Baris 2: Tanggal, Urgensi, & Catatan --}}
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
                 <div>
                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                         Tanggal Permintaan <span class="text-red-500">*</span>
@@ -216,56 +215,100 @@
                 </div>
             </div>
 
-            {{-- Baris 3: Daftar Item Barang (12-Kolom Grid) --}}
-            <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 space-y-2.5">
-                <div class="flex items-center justify-between pb-1 border-b border-zinc-200 dark:border-zinc-800">
-                    <div class="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-                        Daftar Komoditas Diminta <span class="text-red-500">*</span>
+            {{-- Baris 3: Daftar Item Barang (Matriks 1x3) --}}
+            <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/50 space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-800">
+                    <div class="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+                        <span>Daftar Komoditas Diminta</span>
+                        <span class="text-red-500">*</span>
                     </div>
                     <flux:button type="button" wire:click="addItem" size="xs" variant="ghost" icon="plus">
                         Tambah Baris
                     </flux:button>
                 </div>
 
-                {{-- Header Kolom Statis (Desktop) --}}
-                <div class="hidden sm:grid grid-cols-12 gap-2.5 px-2 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
-                    <div class="col-span-6">Komoditas Barang <span class="text-red-500">*</span></div>
-                    <div class="col-span-2 text-right">Jumlah <span class="text-red-500">*</span></div>
-                    <div class="col-span-3">Catatan Item</div>
-                    <div class="col-span-1 text-center"></div>
-                </div>
-
-                {{-- Daftar Baris Barang --}}
-                <div class="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
+                {{-- Daftar Baris Barang (Matriks 1x3 per baris) --}}
+                <div class="space-y-3 max-h-[48vh] overflow-y-auto pr-1">
                     @foreach ($items as $index => $row)
-                        <div wire:key="amprah-item-{{ $index }}" class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center p-2.5 sm:p-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-                            <div class="sm:col-span-6">
-                                <label class="block sm:hidden text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">Barang <span class="text-red-500">*</span></label>
-                                <select wire:model="items.{{ $index }}.barang_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                                    <option value="">Pilih Komoditas Barang...</option>
-                                    @foreach ($daftarBarang as $brg)
-                                        <option value="{{ $brg->id }}">{{ $brg->kode }} &mdash; {{ $brg->nama }} ({{ $brg->satuan?->simbol ?? $brg->satuan?->nama ?? 'Unit' }})</option>
-                                    @endforeach
-                                </select>
-                                @error("items.{$index}.barang_id") <p class="text-xs text-red-500 mt-0.5">{{ $message }}</p> @enderror
-                            </div>
+                        <div wire:key="amprah-item-{{ $index }}" class="p-3.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+                            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-start">
+                                {{-- Kolom 1 (1x3): Barang & Informasi Stok Gudang (col-span-6) --}}
+                                <div class="sm:col-span-6">
+                                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                                        Komoditas Barang <span class="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        wire:model.live="items.{{ $index }}.barang_id"
+                                        required
+                                        class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    >
+                                        <option value="">Pilih Komoditas Barang...</option>
+                                        @foreach ($daftarBarang as $brg)
+                                            @php $stok = (int) ($stokGudangMap[$brg->id] ?? 0); @endphp
+                                            <option value="{{ $brg->id }}">
+                                                {{ $brg->kode }} &mdash; {{ $brg->nama }} (Stok: {{ number_format($stok, 0, ',', '.') }} {{ $brg->satuan?->simbol ?? 'Unit' }})
+                                            </option>
+                                        @endforeach
+                                    </select>
 
-                            <div class="sm:col-span-2">
-                                <label class="block sm:hidden text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">Jumlah <span class="text-red-500">*</span></label>
-                                <input type="number" wire:model="items.{{ $index }}.jumlah" min="1" required placeholder="1" class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 text-right font-mono tabular-nums focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                                @error("items.{$index}.jumlah") <p class="text-xs text-red-500 mt-0.5">{{ $message }}</p> @enderror
-                            </div>
+                                    {{-- Informasi Stok Gudang Real-Time --}}
+                                    @if (!empty($items[$index]['barang_id']))
+                                        @php
+                                            $bId = (int) $items[$index]['barang_id'];
+                                            $selectedB = $daftarBarang->firstWhere('id', $bId);
+                                            $stokAda = (int) ($stokGudangMap[$bId] ?? 0);
+                                        @endphp
+                                        <div class="mt-1.5 flex items-center gap-1.5">
+                                            @if ($stokAda > 0)
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                                                    <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                                                    Stok Gudang: <strong>{{ number_format($stokAda, 0, ',', '.') }} {{ $selectedB?->satuan?->simbol ?? 'Unit' }}</strong>
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60">
+                                                    <span class="size-1.5 rounded-full bg-rose-500"></span>
+                                                    Stok Gudang Kosong (0 {{ $selectedB?->satuan?->simbol ?? 'Unit' }})
+                                                </span>
+                                            @endif
+                                        </div>
+                                    @endif
+                                    @error("items.{$index}.barang_id") <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                                </div>
 
-                            <div class="sm:col-span-3">
-                                <label class="block sm:hidden text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-1">Catatan Item</label>
-                                <input type="text" wire:model="items.{{ $index }}.catatan" placeholder="Keterangan..." class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                                @error("items.{$index}.catatan") <p class="text-xs text-red-500 mt-0.5">{{ $message }}</p> @enderror
-                            </div>
+                                {{-- Kolom 2 (1x3): Jumlah Diminta (col-span-2) --}}
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                                        Jumlah <span class="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        wire:model="items.{{ $index }}.jumlah"
+                                        min="1"
+                                        required
+                                        placeholder="1"
+                                        class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 text-right font-mono tabular-nums focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    />
+                                    @error("items.{$index}.jumlah") <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                                </div>
 
-                            <div class="sm:col-span-1 flex justify-center">
-                                @if (count($items) > 1)
-                                    <flux:button type="button" wire:click="removeItem({{ $index }})" size="xs" variant="ghost" icon="trash" title="Hapus Baris" class="text-red-500 hover:text-red-700" />
-                                @endif
+                                {{-- Kolom 3 (1x3): Catatan Item & Tombol Hapus (col-span-4) --}}
+                                <div class="sm:col-span-4">
+                                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                                        Catatan Item <span class="text-zinc-400 font-normal">(Opsional)</span>
+                                    </label>
+                                    <div class="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            wire:model="items.{{ $index }}.catatan"
+                                            placeholder="Keterangan peruntukan..."
+                                            class="flex-1 text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        />
+                                        @if (count($items) > 1)
+                                            <flux:button type="button" wire:click="removeItem({{ $index }})" size="sm" variant="ghost" icon="trash" title="Hapus Baris" class="text-red-500 hover:text-red-700 shrink-0" />
+                                        @endif
+                                    </div>
+                                    @error("items.{$index}.catatan") <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                                </div>
                             </div>
                         </div>
                     @endforeach

@@ -10,6 +10,7 @@ use App\Models\Barang;
 use App\Models\Gudang;
 use App\Models\PermintaanDistribusi;
 use App\Models\PermintaanDistribusiDetail;
+use App\Models\StokBatch;
 use App\Models\Unit;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\DB;
@@ -256,12 +257,27 @@ class PermintaanBarangIndex extends Component
         $daftarBarang = Barang::where('status', 'AKTIF')->with('satuan')->orderBy('nama')->get();
         $daftarGudang = Gudang::where('status', 'AKTIF')->orderBy('nama')->get();
         $daftarUnit   = Unit::where('status', 'AKTIF')->orderBy('nama')->get();
+        $stokGudangMap = [];
+        if ($this->gudang_id) {
+            $stokGudangMap = StokBatch::where('gudang_id', $this->gudang_id)
+                ->where('status', 'AKTIF')
+                ->where('jumlah', '>', 0)
+                ->where(function ($q) {
+                    $q->whereNull('tanggal_kedaluwarsa')
+                        ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
+                })
+                ->groupBy('barang_id')
+                ->selectRaw('barang_id, sum(jumlah) as total_stok')
+                ->pluck('total_stok', 'barang_id')
+                ->toArray();
+        }
 
         return view('livewire.distribusi.permintaan-barang-index', [
             'daftarPermintaan' => $daftarPermintaan,
             'daftarBarang'     => $daftarBarang,
             'daftarGudang'     => $daftarGudang,
             'daftarUnit'       => $daftarUnit,
+            'stokGudangMap'    => $stokGudangMap,
             'isGlobalAdmin'    => $isGlobalAdmin,
             'userUnitId'       => $user?->unit_id,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Permintaan Barang Ruangan (Amprah)']);
