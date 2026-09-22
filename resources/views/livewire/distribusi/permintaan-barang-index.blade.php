@@ -127,7 +127,7 @@
             </div>
 
             {{-- Baris 1: Informasi Dokumen & Unit --}}
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-4">
+            <div class="grid grid-cols-3 gap-4 mb-4">
                 <div>
                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                         No. Amprah <span class="text-[10px] text-zinc-400 font-mono font-normal">(Otomatis)</span>
@@ -182,8 +182,8 @@
             </div>
 
             {{-- Baris 2: Tanggal, Urgensi, & Catatan --}}
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
-                <div>
+            <div class="grid grid-cols-12 gap-4 mb-5">
+                <div class="col-span-3">
                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                         Tanggal Permintaan <span class="text-red-500">*</span>
                     </label>
@@ -191,8 +191,7 @@
                     @error('tanggal_permintaan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                <div class="col-span-3">
                         Urgensi <span class="text-red-500">*</span>
                     </label>
                     <select wire:model="urgensi" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
@@ -202,8 +201,7 @@
                     @error('urgensi') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
 
-                <div class="sm:col-span-2">
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                <div class="col-span-6">
                         Catatan / Justifikasi <span class="text-zinc-400 font-normal">(Opsional)</span>
                     </label>
                     <input
@@ -231,9 +229,9 @@
                 <div class="space-y-3 max-h-[48vh] overflow-y-auto pr-1">
                     @foreach ($items as $index => $row)
                         <div wire:key="amprah-item-{{ $index }}" class="p-3.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-                            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-start">
+                            <div class="grid grid-cols-12 gap-3.5 items-start">
                                 {{-- Kolom 1 (1x3): Barang & Informasi Stok Gudang (col-span-6) --}}
-                                <div class="sm:col-span-6">
+                                <div class="col-span-6">
                                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                                         Komoditas Barang <span class="text-red-500">*</span>
                                     </label>
@@ -276,7 +274,7 @@
                                 </div>
 
                                 {{-- Kolom 2 (1x3): Jumlah Diminta (col-span-2) --}}
-                                <div class="sm:col-span-2">
+                                <div class="col-span-2">
                                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                                         Jumlah <span class="text-red-500">*</span>
                                     </label>
@@ -292,7 +290,7 @@
                                 </div>
 
                                 {{-- Kolom 3 (1x3): Catatan Item & Tombol Hapus (col-span-4) --}}
-                                <div class="sm:col-span-4">
+                                <div class="col-span-4">
                                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                                         Catatan Item <span class="text-zinc-400 font-normal">(Opsional)</span>
                                     </label>
