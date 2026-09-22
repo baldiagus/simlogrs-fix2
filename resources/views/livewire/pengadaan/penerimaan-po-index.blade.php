@@ -131,7 +131,7 @@
     </flux:modal>
 
     {{-- Modal Form Penerimaan --}}
-    <flux:modal wire:model="showModal" class="w-full max-w-[95vw] lg:max-w-7xl xl:max-w-[88rem]">
+    <flux:modal wire:model="showModal" class="w-full max-w-5xl">
         <form wire:submit="savePenerimaan" class="space-y-4">
             <div>
                 <flux:heading size="lg">Penerimaan Barang dari PO</flux:heading>
@@ -163,60 +163,127 @@
 
             {{-- Items Table --}}
             @if (count($itemRows) > 0)
-                <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 space-y-3">
-                    <div class="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">Detail Item Penerimaan</div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-xs">
-                            <thead>
-                                <tr class="border-b border-zinc-200 dark:border-zinc-700 text-left text-zinc-500">
-                                    <th class="pb-2.5 font-semibold min-w-[180px]">Nama Barang</th>
-                                    <th class="pb-2.5 font-semibold text-center w-20">Dipesan</th>
-                                    <th class="pb-2.5 font-semibold text-center w-24">Sudah Terima</th>
-                                    <th class="pb-2.5 font-semibold text-center w-20">Sisa</th>
-                                    <th class="pb-2.5 font-semibold w-24">Jml Terima</th>
-                                    <th class="pb-2.5 font-semibold w-24">Jml Rusak</th>
-                                    <th class="pb-2.5 font-semibold w-32">No. Batch</th>
-                                    <th class="pb-2.5 font-semibold w-36">Kedaluwarsa</th>
-                                    <th class="pb-2.5 font-semibold w-40">Rak / Lokasi</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
-                                @foreach ($itemRows as $idx => $row)
-                                    <tr wire:key="inbound-item-{{ $idx }}">
-                                        <td class="py-2.5 pr-2">
-                                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $row['nama_barang'] }}</div>
-                                        </td>
-                                        <td class="py-2.5 text-center font-mono tabular-nums text-zinc-600 dark:text-zinc-400">{{ number_format($row['jumlah_dipesan'], 0, ',', '.') }}</td>
-                                        <td class="py-2.5 text-center font-mono tabular-nums text-zinc-600 dark:text-zinc-400">{{ number_format($row['jumlah_sudah'], 0, ',', '.') }}</td>
-                                        <td class="py-2.5 text-center font-mono tabular-nums font-semibold {{ $row['sisa'] > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400' }}">{{ number_format($row['sisa'], 0, ',', '.') }}</td>
-                                        <td class="py-2.5 px-1">
-                                            <input type="number" wire:model="itemRows.{{ $idx }}.jumlah_diterima" min="0" max="{{ $row['sisa'] }}" class="w-full text-right font-mono tabular-nums text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100" />
+                <div class="space-y-3.5">
+                    <div class="flex items-center justify-between pb-1 border-b border-zinc-200 dark:border-zinc-800">
+                        <div class="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">Detail Item Penerimaan ({{ count($itemRows) }} Komoditas)</div>
+                        <div class="text-[11px] text-zinc-400">Section 1: Data PO &bull; Section 2: Input Fisik Masuk</div>
+                    </div>
+
+                    <div class="space-y-3 max-h-[58vh] overflow-y-auto pr-1">
+                        @foreach ($itemRows as $idx => $row)
+                            <div wire:key="inbound-item-card-{{ $idx }}" class="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-xs">
+                                {{-- SECTION 1: Nama Barang & Kuota PO (Dipesan, Sudah Terima, Sisa) --}}
+                                <div class="px-4 py-2.5 bg-zinc-50/90 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="size-5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold shrink-0">
+                                            {{ $idx + 1 }}
+                                        </span>
+                                        <div>
+                                            <span class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">{{ $row['nama_barang'] }}</span>
+                                            <span class="text-[10px] text-zinc-400 font-sans ml-1.5 uppercase font-medium">(Section 1 &mdash; Data PO)</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-3 text-xs font-mono tabular-nums">
+                                        <div class="flex items-center gap-1">
+                                            <span class="text-zinc-400 font-sans text-[11px]">Dipesan:</span>
+                                            <span class="font-bold text-zinc-700 dark:text-zinc-300">{{ number_format($row['jumlah_dipesan'], 0, ',', '.') }}</span>
+                                        </div>
+                                        <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
+                                        <div class="flex items-center gap-1">
+                                            <span class="text-zinc-400 font-sans text-[11px]">Sudah Terima:</span>
+                                            <span class="font-bold text-zinc-600 dark:text-zinc-400">{{ number_format($row['jumlah_sudah'], 0, ',', '.') }}</span>
+                                        </div>
+                                        <span class="text-zinc-300 dark:text-zinc-700">&bull;</span>
+                                        <div class="flex items-center gap-1">
+                                            <span class="text-zinc-400 font-sans text-[11px]">Sisa:</span>
+                                            <span class="font-bold px-2 py-0.5 rounded-md inline-block {{ $row['sisa'] > 0 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' }}">
+                                                {{ number_format($row['sisa'], 0, ',', '.') }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- SECTION 2: Input Fisik Penerimaan (Jml Terima, Jml Rusak, No. Batch, Kedaluwarsa, Rak/Lokasi) --}}
+                                <div class="p-3.5 bg-white dark:bg-zinc-900 space-y-2">
+                                    <div class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                                        <flux:icon icon="inbox-arrow-down" class="size-3 text-emerald-600 dark:text-emerald-400" />
+                                        <span>Section 2 &mdash; Input Fisik Masuk</span>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                                                Jml Terima <span class="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                wire:model="itemRows.{{ $idx }}.jumlah_diterima"
+                                                min="0"
+                                                max="{{ $row['sisa'] }}"
+                                                placeholder="Maks: {{ $row['sisa'] }}"
+                                                class="w-full text-right font-mono tabular-nums text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-blue-500"
+                                            />
                                             @error("itemRows.{$idx}.jumlah_diterima") <p class="text-red-500 text-[10px] mt-0.5">{{ $message }}</p> @enderror
-                                        </td>
-                                        <td class="py-2.5 px-1">
-                                            <input type="number" wire:model="itemRows.{{ $idx }}.jumlah_rusak" min="0" class="w-full text-right font-mono tabular-nums text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100" />
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                                                Jml Rusak
+                                            </label>
+                                            <input
+                                                type="number"
+                                                wire:model="itemRows.{{ $idx }}.jumlah_rusak"
+                                                min="0"
+                                                placeholder="0"
+                                                class="w-full text-right font-mono tabular-nums text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-blue-500"
+                                            />
                                             @error("itemRows.{$idx}.jumlah_rusak") <p class="text-red-500 text-[10px] mt-0.5">{{ $message }}</p> @enderror
-                                        </td>
-                                        <td class="py-2.5 px-1">
-                                            <input type="text" wire:model="itemRows.{{ $idx }}.nomor_batch" placeholder="No. Batch" class="w-full font-mono uppercase text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100" />
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                                                No. Batch <span class="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                wire:model="itemRows.{{ $idx }}.nomor_batch"
+                                                placeholder="No. Batch Pabrik"
+                                                class="w-full font-mono uppercase text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-blue-500"
+                                            />
                                             @error("itemRows.{$idx}.nomor_batch") <p class="text-red-500 text-[10px] mt-0.5">{{ $message }}</p> @enderror
-                                        </td>
-                                        <td class="py-2.5 px-1">
-                                            <input type="date" wire:model="itemRows.{{ $idx }}.tanggal_kedaluwarsa" class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100" />
-                                        </td>
-                                        <td class="py-2.5 px-1">
-                                            <select wire:model="itemRows.{{ $idx }}.lokasi_gudang_id" class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100">
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                                                Kedaluwarsa (ED)
+                                            </label>
+                                            <input
+                                                type="date"
+                                                wire:model="itemRows.{{ $idx }}.tanggal_kedaluwarsa"
+                                                class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-blue-500"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                                                Rak / Lokasi <span class="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                wire:model="itemRows.{{ $idx }}.lokasi_gudang_id"
+                                                class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-blue-500"
+                                            >
                                                 <option value="">Pilih Rak...</option>
                                                 @foreach ($daftarLokasiGudang as $lok)
                                                     <option value="{{ $lok->id }}">{{ $lok->nama ?? $lok->kode }}</option>
                                                 @endforeach
                                             </select>
                                             @error("itemRows.{$idx}.lokasi_gudang_id") <p class="text-red-500 text-[10px] mt-0.5">{{ $message }}</p> @enderror
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
                 </div>
             @endif
