@@ -146,7 +146,7 @@ class PemeliharaanBerkalaIndex extends Component
             action: 'toggleStatus',
             title: 'Ubah Status Jadwal Servis',
             description: "Apakah Anda yakin ingin mengubah status jadwal {$jadwal->kode} menjadi {$nextStatus}?",
-            confirmButtonText: 'Ya, Ubah Status',
+            buttonText: 'Ya, Ubah Status',
             variant: 'primary'
         );
     }
@@ -173,7 +173,7 @@ class PemeliharaanBerkalaIndex extends Component
             action: 'eksekusiServis',
             title: 'Terbitkan SPK Servis Rutin',
             description: "Terbitkan Surat Perintah Kerja (SPK) servis berkala untuk aset {$jadwal->aset?->barang?->nama} ({$jadwal->aset?->kode_aset}) dan tugaskan ke teknisi {$jadwal->teknisi?->nama}?",
-            confirmButtonText: 'Terbitkan SPK Sekarang',
+            buttonText: 'Terbitkan SPK Sekarang',
             variant: 'primary'
         );
     }

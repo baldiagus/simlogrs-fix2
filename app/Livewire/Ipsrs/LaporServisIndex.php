@@ -108,7 +108,7 @@ class LaporServisIndex extends Component
             action: 'batal',
             title: 'Batalkan Laporan Kerusakan',
             description: "Apakah Anda yakin ingin membatalkan laporan tiket {$tiket->kode}?",
-            confirmButtonText: 'Ya, Batalkan Laporan',
+            buttonText: 'Ya, Batalkan Laporan',
             variant: 'danger'
         );
     }
