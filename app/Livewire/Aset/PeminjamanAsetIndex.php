@@ -7,6 +7,7 @@ use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\Aset;
+use App\Models\Barang;
 use App\Models\Gudang;
 use App\Models\PermintaanPeminjaman;
 use App\Models\PermintaanPeminjamanDetail;
@@ -37,7 +38,8 @@ class PeminjamanAsetIndex extends Component
     public bool $showPinjamModal = false;
     public bool $showDetailModal = false;
     public ?PermintaanPeminjaman $selectedPinjam = null;
-
+    public ?int $selected_barang_id = null;
+    public ?string $selected_penyedia_key = null;
     public string $tipe_penyedia = 'RUANGAN';
     public ?int $unit_penyedia_id = null;
     public ?int $gudang_penyedia_id = null;
@@ -186,53 +188,135 @@ class PeminjamanAsetIndex extends Component
         $this->resetPage();
     }
 
-    public function updatedTipePenyedia(string $value): void
+    public function updatedSelectedBarangId(): void
     {
+        $this->selected_penyedia_key = null;
         $this->selected_aset_id = null;
-        if ($value === 'RUANGAN') {
-            $this->gudang_penyedia_id = null;
-            $this->unit_penyedia_id = Unit::where('status', 'AKTIF')->orderBy('nama')->value('id');
-        } else {
-            $this->unit_penyedia_id = null;
-            $this->gudang_penyedia_id = Gudang::where('status', 'AKTIF')->orderBy('nama')->value('id');
+        $this->unit_penyedia_id = null;
+        $this->gudang_penyedia_id = null;
+
+        $providers = $this->getPenyediaAsetList();
+        $validProviders = array_values(array_filter($providers, fn ($p) => ! $p['is_own']));
+        if (count($validProviders) === 1) {
+            $this->selectPenyediaKey($validProviders[0]['key']);
         }
     }
 
-    public function updatedUnitPenyediaId(): void
+    public function updatedSelectedPenyediaKey($value): void
     {
-        $this->selected_aset_id = null;
+        $this->selectPenyediaKey($value);
     }
 
-    public function updatedGudangPenyediaId(): void
+    public function selectPenyediaKey(?string $key): void
     {
+        $this->selected_penyedia_key = $key;
         $this->selected_aset_id = null;
-    }
 
-    public function getAvailableAsetList()
-    {
-        if ($this->tipe_penyedia === 'RUANGAN') {
-            if (! $this->unit_penyedia_id) {
-                return collect();
-            }
+        if (! $key || ! str_contains($key, '_')) {
+            $this->unit_penyedia_id = null;
+            $this->gudang_penyedia_id = null;
+            return;
+        }
 
-            return Aset::where('unit_id', $this->unit_penyedia_id)
+        [$tipe, $id] = explode('_', $key, 2);
+        $id = (int) $id;
+
+        if ($tipe === 'RUANGAN') {
+            $this->tipe_penyedia = 'RUANGAN';
+            $this->unit_penyedia_id = $id;
+            $this->gudang_penyedia_id = null;
+
+            $aset = Aset::where('barang_id', $this->selected_barang_id)
+                ->where('unit_id', $id)
                 ->where('status', 'TERSEDIA')
                 ->where('kondisi', 'BAIK')
-                ->with(['barang.satuan', 'unit'])
-                ->orderBy('kode_aset')
-                ->get();
+                ->first();
+            $this->selected_aset_id = $aset?->id;
+        } else {
+            $this->tipe_penyedia = 'GUDANG';
+            $this->gudang_penyedia_id = $id;
+            $this->unit_penyedia_id = null;
+
+            $aset = Aset::where('barang_id', $this->selected_barang_id)
+                ->where('gudang_id', $id)
+                ->where('status', 'TERSEDIA')
+                ->where('kondisi', 'BAIK')
+                ->first();
+            $this->selected_aset_id = $aset?->id;
+        }
+    }
+
+    public function getDaftarBarangAsetTersedia()
+    {
+        return Barang::whereHas('aset', function ($q) {
+            $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK');
+        })
+        ->withCount(['aset' => function ($q) {
+            $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK');
+        }])
+        ->with('satuan')
+        ->orderBy('nama')
+        ->get();
+    }
+
+    public function getPenyediaAsetList(): array
+    {
+        if (! $this->selected_barang_id) {
+            return [];
         }
 
-        if (! $this->gudang_penyedia_id) {
-            return collect();
-        }
+        $user = auth()->user();
+        $userUnitId = $user?->unit_id;
 
-        return Aset::where('gudang_id', $this->gudang_penyedia_id)
+        $assets = Aset::where('barang_id', $this->selected_barang_id)
             ->where('status', 'TERSEDIA')
             ->where('kondisi', 'BAIK')
-            ->with(['barang.satuan', 'gudang'])
-            ->orderBy('kode_aset')
+            ->with(['unit', 'gudang'])
             ->get();
+
+        $providers = [];
+
+        // Kelompokkan penyedia ruangan unit
+        $units = $assets->whereNotNull('unit_id')->groupBy('unit_id');
+        foreach ($units as $unitId => $group) {
+            $unit = $group->first()->unit;
+            if (! $unit) continue;
+
+            $isOwnUnit = $userUnitId && (int) $userUnitId === (int) $unitId;
+
+            $providers[] = [
+                'key'        => "RUANGAN_{$unitId}",
+                'tipe'       => 'RUANGAN',
+                'id'         => $unitId,
+                'nama'       => $unit->nama,
+                'kode'       => $unit->kode,
+                'jumlah'     => $group->count(),
+                'is_own'     => $isOwnUnit,
+                'aset_ids'   => $group->pluck('id')->toArray(),
+                'kode_asets' => $group->pluck('kode_aset')->implode(', '),
+            ];
+        }
+
+        // Kelompokkan penyedia fasilitas gudang
+        $gudangs = $assets->whereNotNull('gudang_id')->groupBy('gudang_id');
+        foreach ($gudangs as $gudangId => $group) {
+            $gudang = $group->first()->gudang;
+            if (! $gudang) continue;
+
+            $providers[] = [
+                'key'        => "GUDANG_{$gudangId}",
+                'tipe'       => 'GUDANG',
+                'id'         => $gudangId,
+                'nama'       => $gudang->nama,
+                'kode'       => $gudang->kode,
+                'jumlah'     => $group->count(),
+                'is_own'     => false,
+                'aset_ids'   => $group->pluck('id')->toArray(),
+                'kode_asets' => $group->pluck('kode_aset')->implode(', '),
+            ];
+        }
+
+        return $providers;
     }
 
     public function createPinjam(): void
@@ -240,10 +324,6 @@ class PeminjamanAsetIndex extends Component
         abort_unless(auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
 
         $this->resetPinjamForm();
-        $this->tipe_penyedia = 'RUANGAN';
-        $this->unit_penyedia_id = Unit::where('status', 'AKTIF')->orderBy('nama')->value('id');
-        $this->gudang_penyedia_id = null;
-        $this->selected_aset_id = null;
         $this->tanggal_pinjam = date('Y-m-d');
         $this->tanggal_kembali_rencana = date('Y-m-d', strtotime('+7 days'));
         $this->showPinjamModal = true;
@@ -253,20 +333,14 @@ class PeminjamanAsetIndex extends Component
     {
         abort_unless(auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
 
-        $aset = Aset::findOrFail($asetId);
+        $aset = Aset::with('barang')->findOrFail($asetId);
         $this->resetPinjamForm();
 
-        if ($aset->unit_id) {
-            $this->tipe_penyedia = 'RUANGAN';
-            $this->unit_penyedia_id = $aset->unit_id;
-            $this->gudang_penyedia_id = null;
-        } elseif ($aset->gudang_id) {
-            $this->tipe_penyedia = 'GUDANG';
-            $this->gudang_penyedia_id = $aset->gudang_id;
-            $this->unit_penyedia_id = null;
-        }
-
+        $this->selected_barang_id = $aset->barang_id;
+        $key = $aset->unit_id ? "RUANGAN_{$aset->unit_id}" : "GUDANG_{$aset->gudang_id}";
+        $this->selectPenyediaKey($key);
         $this->selected_aset_id = $aset->id;
+
         $this->tanggal_pinjam = date('Y-m-d');
         $this->tanggal_kembali_rencana = date('Y-m-d', strtotime('+7 days'));
         $this->showPinjamModal = true;
@@ -276,10 +350,15 @@ class PeminjamanAsetIndex extends Component
     {
         $this->resetValidation();
         $this->reset([
+            'selected_barang_id',
+            'selected_penyedia_key',
             'selected_aset_id',
+            'unit_penyedia_id',
+            'gudang_penyedia_id',
             'keperluan',
             'catatan',
         ]);
+        $this->tipe_penyedia = 'RUANGAN';
     }
 
     public function savePinjam(): void
@@ -290,12 +369,13 @@ class PeminjamanAsetIndex extends Component
         $unitPeminjamId = $user->unit_id ?? Unit::where('status', 'AKTIF')->value('id');
 
         if (! $unitPeminjamId) {
-            $this->toast('Unit peminjam belum terkonfigurasi pada akun Anda.', 'error');
+            $this->toast('Unit peminjam belum terkonfigurasi pada akun Anda.', 'danger');
             return;
         }
 
         $rules = [
-            'tipe_penyedia'           => 'required|in:RUANGAN,GUDANG',
+            'selected_barang_id'      => 'required|exists:barang,id',
+            'selected_penyedia_key'   => 'required|string',
             'selected_aset_id'        => 'required|exists:aset,id',
             'tanggal_pinjam'          => 'required|date',
             'tanggal_kembali_rencana' => 'required|date|after_or_equal:tanggal_pinjam',
@@ -303,17 +383,10 @@ class PeminjamanAsetIndex extends Component
             'catatan'                 => 'nullable|string|max:1000',
         ];
 
-        if ($this->tipe_penyedia === 'RUANGAN') {
-            $rules['unit_penyedia_id'] = 'required|exists:unit,id';
-        } else {
-            $rules['gudang_penyedia_id'] = 'required|exists:gudang,id';
-        }
-
         $messages = [
-            'tipe_penyedia.required'                 => 'Tipe penyedia wajib dipilih.',
-            'unit_penyedia_id.required'              => 'Unit penyedia aset wajib dipilih.',
-            'gudang_penyedia_id.required'            => 'Gudang penyedia aset wajib dipilih.',
-            'selected_aset_id.required'              => 'Aset inventaris wajib dipilih.',
+            'selected_barang_id.required'            => 'Aset inventaris wajib dipilih.',
+            'selected_penyedia_key.required'         => 'Lokasi unit atau gudang penyedia wajib dipilih.',
+            'selected_aset_id.required'              => 'Fisik aset tidak ditemukan pada lokasi penyedia.',
             'tanggal_pinjam.required'                => 'Tanggal pinjam wajib diisi.',
             'tanggal_kembali_rencana.required'       => 'Tanggal rencana pengembalian wajib diisi.',
             'tanggal_kembali_rencana.after_or_equal' => 'Tanggal rencana kembali tidak boleh sebelum tanggal pinjam.',
@@ -339,7 +412,7 @@ class PeminjamanAsetIndex extends Component
         }
 
         if ($this->tipe_penyedia === 'RUANGAN' && $this->unit_penyedia_id === $unitPeminjamId) {
-            $this->addError('unit_penyedia_id', 'Unit penyedia tidak boleh sama dengan unit peminjam.');
+            $this->addError('selected_penyedia_key', 'Unit penyedia tidak boleh sama dengan unit peminjam.');
             return;
         }
 
@@ -626,7 +699,8 @@ class PeminjamanAsetIndex extends Component
 
         $daftarUnit = Unit::where('status', 'AKTIF')->orderBy('nama')->get();
         $daftarGudang = Gudang::where('status', 'AKTIF')->orderBy('nama')->get();
-        $availableAsetList = $this->getAvailableAsetList();
+        $daftarBarangAsetTersedia = $this->getDaftarBarangAsetTersedia();
+        $daftarPenyediaAset = $this->getPenyediaAsetList();
 
         return view('livewire.aset.peminjaman-aset-index', [
             'activeTab'               => $this->activeTab,
@@ -661,7 +735,10 @@ class PeminjamanAsetIndex extends Component
             'daftarKatalogAset'       => $daftarKatalogAset,
             'daftarUnit'              => $daftarUnit,
             'daftarGudang'            => $daftarGudang,
-            'availableAsetList'       => $availableAsetList,
+            'daftarBarangAsetTersedia' => $daftarBarangAsetTersedia,
+            'daftarPenyediaAset'       => $daftarPenyediaAset,
+            'selected_barang_id'       => $this->selected_barang_id,
+            'selected_penyedia_key'    => $this->selected_penyedia_key,
             'isGlobalAdmin'           => $isGlobalAdmin,
             'countAktif'              => $countAktif,
             'countKatalog'            => $countKatalog,
