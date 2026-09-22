@@ -149,7 +149,7 @@
                     @endcan
                     @can('view_any_layanan_unit::approval::karu')
                         <flux:sidebar.item icon="check-badge" href="/{{ $portalKey }}/approval-permintaan" :current="request()->is('*/approval-permintaan')">
-                            Otorisasi Karu
+                            {{ $portalKey === 'kepala-gudang' ? 'Otorisasi Gudang' : ($portalKey === 'kepala-unit' ? 'Otorisasi Karu' : 'Otorisasi Amprah') }}
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_gudang_stok::distribusi::approval')

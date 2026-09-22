@@ -3,7 +3,7 @@
         {{-- Header Halaman --}}
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Otorisasi Amprah Ruangan (Kepala Unit)</flux:heading>
+                <flux:heading size="xl" level="1">{{ $pageTitle }}</flux:heading>
                 <flux:subheading>Verifikasi dan otorisasi permintaan distribusi barang dari ruangan sebelum diproses gudang logistik.</flux:subheading>
             </div>
         </div>

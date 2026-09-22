@@ -127,10 +127,14 @@ class ApprovalPermintaanIndex extends Component
         $user = auth()->user();
         $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
 
-        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $permintaan->unit_id) {
-            abort(403, 'Anda tidak memiliki wewenang untuk melihat permohonan dari unit ini.');
+        if (! $isGlobalAdmin) {
+            if ($user?->unit_id && (int) $user->unit_id !== (int) $permintaan->unit_id) {
+                abort(403, 'Anda tidak memiliki wewenang untuk melihat permohonan dari unit ini.');
+            }
+            if ($user?->gudang_id && (int) $user->gudang_id !== (int) $permintaan->gudang_id) {
+                abort(403, 'Anda tidak memiliki wewenang untuk melihat permohonan ke gudang ini.');
+            }
         }
-
         $this->selectedPermintaan = $permintaan;
         $this->showDetailModal = true;
     }
@@ -151,8 +155,13 @@ class ApprovalPermintaanIndex extends Component
         );
 
         $isGlobalAdmin = $user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard');
-        if (! $isGlobalAdmin && (int) $user->unit_id !== (int) $permintaan->unit_id) {
-            abort(403, 'Anda tidak memiliki wewenang untuk memproses permohonan dari unit ini.');
+        if (! $isGlobalAdmin) {
+            if ($user?->unit_id && (int) $user->unit_id !== (int) $permintaan->unit_id) {
+                abort(403, 'Anda tidak memiliki wewenang untuk memproses permohonan dari unit ini.');
+            }
+            if ($user?->gudang_id && (int) $user->gudang_id !== (int) $permintaan->gudang_id) {
+                abort(403, 'Anda tidak memiliki wewenang untuk memproses permohonan ke gudang ini.');
+            }
         }
     }
 
@@ -173,7 +182,13 @@ class ApprovalPermintaanIndex extends Component
 
         $query = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang.satuan'])
             ->withCount('detail')
-            ->when(! $isGlobalAdmin, fn ($q) => $q->where('unit_id', $user?->unit_id))
+            ->when(! $isGlobalAdmin, function ($q) use ($user) {
+                if ($user?->unit_id) {
+                    $q->where('unit_id', $user->unit_id);
+                } elseif ($user?->gudang_id) {
+                    $q->where('gudang_id', $user->gudang_id);
+                }
+            })
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterUrgensi, fn ($q) => $q->where('urgensi', $this->filterUrgensi))
             ->when($this->search, function ($q) {
@@ -188,10 +203,37 @@ class ApprovalPermintaanIndex extends Component
             ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
+        $pageTitle = $this->getPageTitle();
+
         return view('livewire.distribusi.approval-permintaan-index', [
             'daftarPermintaan' => $daftarPermintaan,
             'isGlobalAdmin'    => $isGlobalAdmin,
             'userUnitId'       => $user?->unit_id,
-        ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Otorisasi Amprah Ruangan (Kepala Unit)']);
+            'pageTitle'        => $pageTitle,
+        ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => $pageTitle]);
+    }
+
+    public function getPageTitle(): string
+    {
+        $portal = $this->getPortalName();
+
+        $portalTitles = [
+            'kepala-gudang'  => 'Otorisasi Amprah (Kepala Gudang)',
+            'kepala-unit'    => 'Otorisasi Amprah Ruangan (Kepala Unit)',
+            'admin-logistik' => 'Otorisasi Amprah (Admin Logistik)',
+            'super-admin'    => 'Otorisasi Amprah (Super Administrator)',
+            'petugas-gudang' => 'Otorisasi Amprah (Petugas Gudang)',
+            'petugas-unit'   => 'Otorisasi Amprah (Petugas Unit)',
+            'manajemen'      => 'Otorisasi Amprah (Manajemen)',
+            'auditor'        => 'Otorisasi Amprah (Auditor Internal)',
+        ];
+
+        if (isset($portalTitles[$portal])) {
+            return $portalTitles[$portal];
+        }
+
+        $role = auth()->user()?->roles?->first();
+        $label = $role?->nama ?? $role?->name ?? 'Pimpinan';
+        return "Otorisasi Amprah ({$label})";
     }
 }
