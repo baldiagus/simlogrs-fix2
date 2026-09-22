@@ -94,6 +94,14 @@ class CodeGenerator
     }
 
     /**
+     * Khusus SPK Maintenance IPSRS: SPK-YYYYMM-XXX
+     */
+    public static function generateSpk(string $modelClass = 'App\Models\PenugasanMaintenance'): string
+    {
+        return static::generate('SPK', $modelClass, 'kode', 'Ym', 3);
+    }
+
+    /**
      * Khusus Temuan Audit SPI: AUD-YYYYMM-XXX
      */
     public static function generateAud(string $modelClass = 'App\Models\TemuanAudit'): string

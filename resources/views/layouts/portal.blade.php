@@ -194,6 +194,31 @@
                     @endcan
                 </flux:sidebar.group>
             @endif
+
+            @if ($user->can('view_any_layanan_unit::lapor::servis') || $user->can('view_any_pemeliharaan::spk::perbaikan') || $user->can('view_any_pemeliharaan::lembar::kerja') || $user->can('view_any_pemeliharaan::rekam::medis::aset'))
+                <flux:sidebar.group expandable heading="Pemeliharaan & IPSRS" class="grid">
+                    @can('view_any_layanan_unit::lapor::servis')
+                        <flux:sidebar.item icon="wrench" href="/{{ $portalKey }}/lapor-servis" wire:navigate :current="request()->is('*/lapor-servis')">
+                            Lapor Kerusakan
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_pemeliharaan::spk::perbaikan')
+                        <flux:sidebar.item icon="clipboard-document-check" href="/{{ $portalKey }}/spk" wire:navigate :current="request()->is('*/spk')">
+                            Perintah Kerja (SPK)
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_pemeliharaan::lembar::kerja')
+                        <flux:sidebar.item icon="wrench-screwdriver" href="/{{ $portalKey }}/lembar-kerja" wire:navigate :current="request()->is('*/lembar-kerja')">
+                            Lembar Kerja Servis
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_pemeliharaan::rekam::medis::aset')
+                        <flux:sidebar.item icon="book-open" href="/{{ $portalKey }}/rekam-medis-aset" wire:navigate :current="request()->is('*/rekam-medis-aset')">
+                            Rekam Medis Aset
+                        </flux:sidebar.item>
+                    @endcan
+                </flux:sidebar.group>
+            @endif
         </flux:sidebar.nav>
 
         <flux:sidebar.spacer />

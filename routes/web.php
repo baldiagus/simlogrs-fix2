@@ -34,6 +34,11 @@ use App\Livewire\Distribusi\PenerimaanBarangIndex;
 use App\Livewire\Aset\PeminjamanAsetIndex;
 use App\Livewire\Aset\ApprovalPeminjamanIndex;
 use App\Livewire\Aset\PengembalianPeminjamanIndex;
+use App\Livewire\Ipsrs\LaporServisIndex;
+use App\Livewire\Ipsrs\DaftarSpkPerbaikanIndex;
+use App\Livewire\Ipsrs\LembarKerjaPengerjaanIndex;
+use App\Livewire\Ipsrs\RekamMedisAsetIndex;
+use App\Http\Controllers\SpkPrintController;
 
 // Root Gateway & Login Form
 Route::get('/', function () {
@@ -106,5 +111,12 @@ foreach ($portals as $portalKey => $dashboardClass) {
             Route::get('/peminjaman-aset', PeminjamanAsetIndex::class)->name('peminjaman-aset');
             Route::get('/approval-peminjaman', ApprovalPeminjamanIndex::class)->name('approval-peminjaman');
             Route::get('/pengembalian-aset', PengembalianPeminjamanIndex::class)->name('pengembalian-aset');
+
+            // Siklus Pemeliharaan Sarana & IPSRS (Grup 7)
+            Route::get('/lapor-servis', LaporServisIndex::class)->name('lapor-servis');
+            Route::get('/spk', DaftarSpkPerbaikanIndex::class)->name('spk');
+            Route::get('/spk/{id}/cetak-pdf', [SpkPrintController::class, 'cetakPdf'])->name('spk.cetak-pdf');
+            Route::get('/lembar-kerja', LembarKerjaPengerjaanIndex::class)->name('lembar-kerja');
+            Route::get('/rekam-medis-aset', RekamMedisAsetIndex::class)->name('rekam-medis-aset');
         });
 }

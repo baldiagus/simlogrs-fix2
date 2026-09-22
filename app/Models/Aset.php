@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\HasAuditLog;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Aset extends BaseModel
 {
@@ -39,5 +40,10 @@ class Aset extends BaseModel
     public function lokasiGudang(): BelongsTo
     {
         return $this->belongsTo(LokasiGudang::class, 'lokasi_gudang_id');
+    }
+
+    public function permintaanMaintenance(): HasMany
+    {
+        return $this->hasMany(PermintaanMaintenance::class, 'aset_id');
     }
 }
