@@ -139,6 +139,36 @@
                     @endcan
                 </flux:sidebar.group>
             @endcan
+
+            @if ($user->can('view_any_layanan_unit::permintaan::barang') || $user->can('view_any_layanan_unit::approval::karu') || $user->can('view_any_layanan_unit::penerimaan::barang') || $user->can('view_any_gudang_stok::distribusi::approval') || $user->can('view_any_gudang_stok::picking::distribusi'))
+                <flux:sidebar.group expandable heading="Distribusi & Amprah" class="grid">
+                    @can('view_any_layanan_unit::permintaan::barang')
+                        <flux:sidebar.item icon="arrow-up-tray" href="/{{ $portalKey }}/permintaan-barang" :current="request()->is('*/permintaan-barang')">
+                            Permintaan Amprah
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_layanan_unit::approval::karu')
+                        <flux:sidebar.item icon="check-badge" href="/{{ $portalKey }}/approval-permintaan" :current="request()->is('*/approval-permintaan')">
+                            Otorisasi Karu
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_gudang_stok::distribusi::approval')
+                        <flux:sidebar.item icon="clipboard-document-check" href="/{{ $portalKey }}/distribusi-approval" :current="request()->is('*/distribusi-approval')">
+                            Otorisasi Logistik
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_gudang_stok::picking::distribusi')
+                        <flux:sidebar.item icon="queue-list" href="/{{ $portalKey }}/picking-distribusi" :current="request()->is('*/picking-distribusi')">
+                            Picking FEFO (SPPB)
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_layanan_unit::penerimaan::barang')
+                        <flux:sidebar.item icon="inbox" href="/{{ $portalKey }}/penerimaan-barang" :current="request()->is('*/penerimaan-barang')">
+                            Terima di Ruangan
+                        </flux:sidebar.item>
+                    @endcan
+                </flux:sidebar.group>
+            @endif
         </flux:sidebar.nav>
 
         <flux:sidebar.spacer />

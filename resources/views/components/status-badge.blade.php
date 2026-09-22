@@ -2,10 +2,10 @@
 
 @php
 $color = match (strtoupper($status ?? '')) {
-    'AKTIF', 'DISETUJUI', 'TERSEDIA', 'SELESAI', 'NORMAL', 'LENGKAP', 'CLOSED' => 'emerald',
+    'AKTIF', 'DISETUJUI', 'DISETUJUI_KARU', 'DISETUJUI_GUDANG', 'TERSEDIA', 'SELESAI', 'DITERIMA', 'NORMAL', 'LENGKAP', 'CLOSED' => 'emerald',
     'DIAJUKAN', 'MENUNGGU_APPROVAL', 'HAMPIR_KEDALUWARSA', 'DIPINJAM', 'IN PROGRESS' => 'amber',
-    'KEDALUWARSA', 'DITOLAK', 'RUSAK_BERAT', 'OVERDUE', 'GAGAL' => 'rose',
-    'DRAFT', 'DALAM_PENGIRIMAN', 'UJI_FUNGSI', 'SEDANG_DIKERJAKAN', 'IN REVIEW' => 'sky',
+    'KEDALUWARSA', 'DITOLAK', 'RUSAK_BERAT', 'OVERDUE', 'GAGAL', 'BATAL' => 'rose',
+    'DRAFT', 'DALAM_PENGIRIMAN', 'SEDANG_DIKIRIM', 'DIKIRIM', 'UJI_FUNGSI', 'SEDANG_DIKERJAKAN', 'IN REVIEW' => 'sky',
     default => 'zinc',
 };
 @endphp

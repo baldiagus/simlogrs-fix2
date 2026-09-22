@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ApprovalController;
+use App\Http\Controllers\Api\V1\GudangApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -28,5 +29,9 @@ Route::prefix('v1')->group(function () {
         // 4. Persetujuan Cepat Pejabat / Karu
         Route::get('/approval/pending', [ApprovalController::class, 'pending']);
         Route::post('/approval/pr/{id}', [ApprovalController::class, 'approvePr']);
+        Route::post('/approval/amprah/{id}', [ApprovalController::class, 'approveAmprah']);
+
+        // 5. Operasional Gudang & Scanner Barcode
+        Route::post('/gudang/scan-batch', [GudangApiController::class, 'scanBatch']);
     });
 });

@@ -26,6 +26,11 @@ use App\Livewire\Pengadaan\PermintaanPengadaanIndex;
 use App\Livewire\Pengadaan\PesananPembelianIndex;
 use App\Livewire\Pengadaan\TrackingPoIndex;
 use App\Livewire\Pengadaan\PenerimaanPoIndex;
+use App\Livewire\Distribusi\PermintaanBarangIndex;
+use App\Livewire\Distribusi\ApprovalPermintaanIndex;
+use App\Livewire\Distribusi\DistribusiApprovalIndex;
+use App\Livewire\Distribusi\PickingDistribusiIndex;
+use App\Livewire\Distribusi\PenerimaanBarangIndex;
 
 // Root Gateway & Login Form
 Route::get('/', function () {
@@ -86,5 +91,12 @@ foreach ($portals as $portalKey => $dashboardClass) {
             Route::get('/pesanan-pembelian', PesananPembelianIndex::class)->name('pesanan-pembelian');
             Route::get('/tracking-po', TrackingPoIndex::class)->name('tracking-po');
             Route::get('/penerimaan-po', PenerimaanPoIndex::class)->name('penerimaan-po');
+
+            // Siklus Distribusi Ruangan & Picking FEFO (Grup 5)
+            Route::get('/permintaan-barang', PermintaanBarangIndex::class)->name('permintaan-barang');
+            Route::get('/approval-permintaan', ApprovalPermintaanIndex::class)->name('approval-permintaan');
+            Route::get('/distribusi-approval', DistribusiApprovalIndex::class)->name('distribusi-approval');
+            Route::get('/picking-distribusi', PickingDistribusiIndex::class)->name('picking-distribusi');
+            Route::get('/penerimaan-barang', PenerimaanBarangIndex::class)->name('penerimaan-barang');
         });
 }

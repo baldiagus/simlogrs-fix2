@@ -69,6 +69,7 @@ class PagePermissionRegistry
                     'gudang_stok::stok::opname' => ['label' => 'Stock Opname Fisik Lapangan', 'entity' => 'gudang_stok::stok::opname', 'page' => 'page_StockOpnameIndex'],
                     'gudang_stok::otorisasi::penyesuaian' => ['label' => 'Otorisasi Penyesuaian Opname', 'entity' => 'gudang_stok::otorisasi::penyesuaian', 'page' => 'page_OtorisasiPenyesuaianIndex'],
                     'gudang_stok::tata::letak::rak' => ['label' => 'Visualisasi Denah & Rak Gudang', 'entity' => 'gudang_stok::tata::letak::rak', 'page' => 'page_TataLetakRakIndex'],
+                    'gudang_stok::distribusi::approval' => ['label' => 'Otorisasi Distribusi (Admin Logistik)', 'entity' => 'gudang_stok::distribusi::approval', 'page' => 'page_DistribusiApprovalIndex'],
                     'gudang_stok::picking::distribusi' => ['label' => 'Picking FEFO & SPPB', 'entity' => 'gudang_stok::picking::distribusi', 'page' => 'page_PickingDistribusiIndex'],
                     'gudang_stok::penerimaan::po' => ['label' => 'Penerimaan Inbound Vendor (PO)', 'entity' => 'gudang_stok::penerimaan::po', 'page' => 'page_PenerimaanPoIndex'],
                 ],
