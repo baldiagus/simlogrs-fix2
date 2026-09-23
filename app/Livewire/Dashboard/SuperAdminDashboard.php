@@ -52,7 +52,7 @@ class SuperAdminDashboard extends Component
 
     public function render()
     {
-        abort_unless(auth()->user()?->can('page_Dashboard'), 403);
+        abort_unless(auth()->user()?->can('page_Dashboard') || auth()->user()?->can('page_' . class_basename(static::class)), 403);
 
         $daftarGudang = Gudang::where('status', 'AKTIF')->get();
         $daftarUnit = Unit::where('status', 'AKTIF')->get();

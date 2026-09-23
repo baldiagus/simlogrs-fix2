@@ -73,7 +73,7 @@ Seluruh perintah CLI (artisan, composer, migrasi, seeder, test) \*\*wajib diekse
 
 #### B. Lapisan Arsitektur Aplikasi (Layered Architecture)
 1. **Presentation Layer (Livewire 3 & Flux UI Free)**: 10 layout portal, 58 komponen Livewire reaktif, komponen visual reusable (`<x-status-badge>`, `<x-rupiah>`, `<x-urgency-badge>`, dll.).
-2. **Routing & Access Control Layer**: 10 Route Groups terisolasi dilindungi `PortalAccessMiddleware`, 410 permissions Spatie di database, `PagePermissionRegistry`.
+2. **Routing & Access Control Layer**: 10 Route Groups terisolasi dilindungi `PortalAccessMiddleware`, 293 permissions Spatie di database, `PagePermissionRegistry`.
 3. **Domain Service Layer**: `DistribusiService` (FEFO Picking + Pessimistic Locking), `PeminjamanAsetService` (mutasi lokasi & auto-trigger tiket IPSRS), `CodeGenerator` (penomoran resmi), `NotifikasiService`.
 4. **Data & Persistence Layer**: 44 Model Eloquent, PostgreSQL check constraints (`chk_stok_batch_non_negative`, `chk_aset_lokasi_xor`), composite index FEFO, GIN Trigram index `pg_trgm`, `HasAuditLog` observer (JSONB diffs).
 5. **Background Jobs & Infrastructure**: 3 cron scheduler harian, Redis session & queue, Dompdf PDF generator, SimpleQRCode, FastExcel streaming.
@@ -1385,5 +1385,5 @@ Ketika membuat database baru di folder project baru:
      - \`teknisi@simlogrs.local\` (\`teknisi\` -&gt; \`IPSRS\` / \`GUD\_IPSRS\`)
      - \`manajemen@simlogrs.local\` (\`manajemen\`)
      - \`auditor@simlogrs.local\` (\`auditor\`)
-   - \`MigrateSpatieRBACSeeder\` &amp; \`ShieldRolePermissionSeeder\` (410 permissions dan pengaitan wewenang default).
+   - `ShieldRolePermissionSeeder` (293 permissions resmi dan pengaitan wewenang default).
 3. Tabel \`barang\`, \`aset\`, dan seluruh transaksi (\`permintaan\_distribusi\`, \`pesanan\_pembelian\`, dll.) \*\*wajib kosong (0 records)\*\* agar siap untuk pengujian operasional manual dari awal.

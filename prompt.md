@@ -308,7 +308,7 @@ Buatkan pipeline seeder resmi menggunakan kredensial autentikasi EMAIL tanpa dat
    - Auditor Internal (SPI):
      - Email: `auditor@simlogrs.local` (Username: `auditor`)
      - Role: `auditor` | Unit: Null | Gudang: Null
-4. `ShieldRolePermissionSeeder`: Generate 410 permissions dan kaitkan wewenang default ke masing-masing role, serta pastikan permission `panel_user` diberikan ke semua role agar tidak terkena 403 Forbidden saat login.
+4. `ShieldRolePermissionSeeder`: Generate 293 permissions dan kaitkan wewenang default ke masing-masing role, serta pastikan permission `panel_user` diberikan ke semua role agar tidak terkena 403 Forbidden saat login.
 5. Pastikan form login Livewire (`LoginGateway`) menerima input `email` dan `password` via komponen `<flux:input>` untuk autentikasi kredensial pengguna.
 6. Jalankan seeder di dalam container: `docker compose exec app php artisan migrate:fresh --seed` dan verifikasi bahwa 10 akun dan permissions berhasil tertanam, serta tabel transaksi dan barang dalam kondisi kosong (0 records).
 ```
@@ -678,7 +678,7 @@ Bangun modul pengawasan independen Satuan Pemeriksaan Internal (SPI):
   3. Pengujian menyeluruh pada 10 portal peran dan verifikasi final checklist.
 - **Kondisi & State Machine**:
   - Batch Kedaluwarsa: Kunci status `KEDALUWARSA` dan dilarang dialokasikan pada picking FEFO.
-  - Final QA Invariant: Wajib 0 match `hasRoleCode`, 410 permissions terpasang, 0 transaksi dan 0 barang di database seeder.
+  - Final QA Invariant: Wajib 0 match `hasRoleCode`, 293 permissions terpasang, 0 transaksi dan 0 barang di database seeder.
 
 ### Prompt 9.1: Console Scheduler Cron Jobs
 ```text
@@ -713,4 +713,4 @@ Sebelum project diserahterimakan, jalankan checklist kualitas berikut di dalam c
 - [ ] `docker compose exec app grep -rn "hasRoleCode" app/`: Wajib 0 match (tidak ada sama sekali) di seluruh Policy, Resource, Page, Action, dan Dashboard. Otorisasi 100% mutlak digerakkan oleh `$user->can(...)`.
 - [ ] Database indexing & search: Verifikasi composite index `stok_batch`, GIN Trigram index `idx_barang_nama_trgm` pada `barang`, dan `lockForUpdate()` terpasang pada `DistribusiService`.
 - [ ] Transaction safety: Verifikasi seluruh tombol transaksi memiliki `wire:loading.attr="disabled"`, banner `wire:offline` aktif di layout, dan penomoran kode menggunakan `CodeGenerator`.
-- [ ] Database fresh check: `docker compose exec app php artisan migrate:fresh --seed` menghasilkan 10 user, 12 role, 410 permissions, 0 barang, dan 0 transaksi.
+- [ ] Database fresh check: `docker compose exec app php artisan migrate:fresh --seed` menghasilkan 10 user, 12 role, 293 permissions, 0 barang, dan 0 transaksi.

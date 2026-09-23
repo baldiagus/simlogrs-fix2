@@ -46,6 +46,7 @@ use App\Livewire\Persediaan\OtorisasiPenyesuaianIndex;
 use App\Livewire\Audit\AuditTrailIndex;
 use App\Livewire\Audit\AuditKepatuhanPengadaanIndex;
 use App\Livewire\Audit\RegisterTemuanCapaIndex;
+use App\Livewire\System\SchedulerNotifikasiIndex;
 use App\Http\Controllers\SpkPrintController;
 
 // Root Gateway & Login Form
@@ -89,6 +90,7 @@ foreach ($portals as $portalKey => $dashboardClass) {
             // Manajemen RBAC Khusus Super Admin
             if ($portalKey === 'super-admin') {
                 Route::get('/roles', RoleManager::class)->name('roles');
+                Route::get('/scheduler', SchedulerNotifikasiIndex::class)->name('scheduler');
             }
 
             // Master Data & Katalog Logistik (Grup 2)
