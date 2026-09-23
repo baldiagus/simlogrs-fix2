@@ -193,13 +193,13 @@ class PenggunaIndex extends Component
     public function confirmResetPassword(int $id): void
     {
         $user = User::findOrFail($id);
-        $this->showConfirmation(
+        $this->askConfirmation(
+            target: $user->id,
+            action: 'executeResetPassword',
             title: 'Reset Kata Sandi Pegawai',
             description: "Reset kata sandi akun {$user->nama} ({$user->username}) ke default kedinasan 'password'?",
             buttonText: 'Ya, Reset Sandi',
-            variant: 'primary',
-            actionMethod: 'executeResetPassword',
-            actionParams: ['id' => $user->id]
+            variant: 'primary'
         );
     }
 
@@ -224,13 +224,13 @@ class PenggunaIndex extends Component
         $targetStatus = $user->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
         $labelAksi = $targetStatus === 'AKTIF' ? 'Mengaktifkan kembali' : 'Menonaktifkan (Blokir)';
 
-        $this->showConfirmation(
+        $this->askConfirmation(
+            target: $user->id,
+            action: 'executeToggleStatus',
             title: "Ubah Status Akun Pegawai",
             description: "{$labelAksi} akun {$user->nama} ({$user->username})? Pegawai berstatus nonaktif tidak dapat masuk ke sistem.",
             buttonText: $targetStatus === 'AKTIF' ? 'Aktifkan Akun' : 'Nonaktifkan Akun',
-            variant: $targetStatus === 'AKTIF' ? 'primary' : 'danger',
-            actionMethod: 'executeToggleStatus',
-            actionParams: ['id' => $user->id]
+            variant: $targetStatus === 'AKTIF' ? 'primary' : 'danger'
         );
     }
 
