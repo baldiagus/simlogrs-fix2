@@ -117,14 +117,20 @@ class MaintenanceApiController extends ApiController
     public function spkList(Request $request): JsonResponse
     {
         $user = $request->user();
+        if (! $user) {
+            return $this->jsonError('Unauthenticated.', 401);
+        }
 
-        if (! $user || (! $user->can('view_any_pemeliharaan::spk::perbaikan') && ! $user->can('view_pemeliharaan::spk::perbaikan'))) {
+        $isGlobalAdmin = $user->can('page_Dashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->hasRole('super_admin') ||
+            $user->hasRole('admin_logistik');
+
+        if (! $isGlobalAdmin && ! $user->can('view_any_pemeliharaan::spk::perbaikan') && ! $user->can('view_pemeliharaan::spk::perbaikan') && ! $user->hasRole('teknisi')) {
             return $this->jsonError('Anda tidak memiliki wewenang melihat daftar SPK teknisi.', 403);
         }
 
         $filterStatus = $request->query('status'); // DITUGASKAN, DITERIMA, SELESAI
-        $isGlobalAdmin = $user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard');
-
         $spks = PenugasanMaintenance::with([
             'permintaanMaintenance.aset.barang',
             'permintaanMaintenance.unit',
