@@ -1,18 +1,19 @@
 <div class="space-y-6">
-    {{-- Header & Filter Tahun --}}
+    {{-- Header & Selector Tahun Anggaran --}}
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <flux:heading size="xl" class="font-bold tracking-tight">Screening Pengeluaran Logistik Ruangan & Suku Cadang IPSRS</flux:heading>
-            <flux:subheading class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                Monitoring pengeluaran fisik real-time: distribusi amprah per unit dan konsumsi suku cadang pemeliharaan aset.
+            <flux:subheading class="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                Monitoring pengeluaran fisik riil: distribusi amprah per unit dan konsumsi suku cadang pemeliharaan aset.
             </flux:subheading>
         </div>
 
         <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Tahun Anggaran:</span>
+            <label for="filter-tahun" class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Tahun Anggaran:</label>
             <select
+                id="filter-tahun"
                 wire:model.live="filterTahun"
-                class="h-9 text-xs font-semibold rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                class="h-9 text-xs font-semibold rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
                 <option value="2026">TA 2026 (Tahun Berjalan)</option>
                 <option value="2025">TA 2025 (Arsip)</option>
@@ -20,30 +21,34 @@
         </div>
     </div>
 
-    {{-- 2 Kartu Screening Pengeluaran Riil (Pengeluaran Amprah & Konsumsi Sparepart) --}}
+    {{-- 2 Kartu Screening Pengeluaran Riil (Tanpa Stripe Dekoratif - Anti Slop R-01 & R-31) --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {{-- Pengeluaran Amprah Unit --}}
-        <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs border-l-4 border-l-emerald-600">
-            <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
+        <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs">
+            <div class="flex items-center justify-between text-zinc-600 dark:text-zinc-400">
                 <span class="text-xs font-semibold uppercase tracking-wider">Total Pengeluaran Amprah Unit</span>
-                <flux:icon name="truck" class="size-5 text-emerald-600" />
+                <flux:icon name="truck" class="size-5 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div class="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+            <div class="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 tabular-nums">
                 Rp {{ number_format($ringkasan['total_realisasi_distribusi'], 0, ',', '.') }}
             </div>
-            <div class="text-[11px] text-zinc-500">Akumulasi nilai komoditas logistik yang telah keluar dari gudang ke ruangan</div>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                Akumulasi nilai komoditas logistik yang telah didistribusikan dari gudang ke unit ruangan pada TA {{ $filterTahun }}.
+            </p>
         </flux:card>
 
         {{-- Konsumsi Sparepart IPSRS --}}
-        <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs border-l-4 border-l-indigo-600">
-            <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
+        <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs">
+            <div class="flex items-center justify-between text-zinc-600 dark:text-zinc-400">
                 <span class="text-xs font-semibold uppercase tracking-wider">Total Konsumsi Sparepart IPSRS</span>
-                <flux:icon name="wrench" class="size-5 text-indigo-600" />
+                <flux:icon name="wrench" class="size-5 text-indigo-600 dark:text-indigo-400" />
             </div>
-            <div class="text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400">
+            <div class="text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400 tabular-nums">
                 Rp {{ number_format($ringkasan['total_realisasi_sparepart'], 0, ',', '.') }}
             </div>
-            <div class="text-[11px] text-zinc-500">Akumulasi nilai suku cadang terpasang pada servis perbaikan aset rumah sakit</div>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                Akumulasi nilai suku cadang terpasang pada servis perbaikan sarana rumah sakit pada TA {{ $filterTahun }}.
+            </p>
         </flux:card>
     </div>
 
@@ -52,7 +57,7 @@
         <button
             type="button"
             wire:click="$set('activeTab', 'unit')"
-            class="pb-3 text-xs font-semibold transition-colors border-b-2 flex items-center gap-2 {{ $activeTab === 'unit' ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400' : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300' }}"
+            class="pb-3 text-xs font-semibold transition-colors border-b-2 flex items-center gap-2 {{ $activeTab === 'unit' ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400' : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200' }}"
         >
             <flux:icon name="building-office-2" class="size-4" />
             <span>Screening Pengeluaran Tiap Unit Ruangan</span>
@@ -61,7 +66,7 @@
         <button
             type="button"
             wire:click="$set('activeTab', 'sparepart')"
-            class="pb-3 text-xs font-semibold transition-colors border-b-2 flex items-center gap-2 {{ $activeTab === 'sparepart' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300' }}"
+            class="pb-3 text-xs font-semibold transition-colors border-b-2 flex items-center gap-2 {{ $activeTab === 'sparepart' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200' }}"
         >
             <flux:icon name="wrench-screwdriver" class="size-4" />
             <span>Konsumsi Suku Cadang & Pemeliharaan IPSRS</span>
@@ -70,11 +75,11 @@
 
     {{-- TAB 1: Screening Pengeluaran Tiap Unit Ruangan --}}
     @if ($activeTab === 'unit')
-        <flux:card class="space-y-4 shadow-sm">
+        <flux:card class="space-y-4 shadow-sm border border-zinc-200 dark:border-zinc-800">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                     <flux:heading size="lg">Screening Pengeluaran Tiap Unit Ruangan</flux:heading>
-                    <flux:subheading class="text-xs text-zinc-500 dark:text-zinc-400">
+                    <flux:subheading class="text-xs text-zinc-600 dark:text-zinc-400">
                         Screening nilai barang logistik yang diterima unit (amprah) dan suku cadang servis sarana di unit tersebut.
                     </flux:subheading>
                 </div>
@@ -83,14 +88,14 @@
                         type="text"
                         wire:model.live.debounce.300ms="search"
                         placeholder="Cari unit ruangan..."
-                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-xs text-left">
-                    <thead class="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-700">
+                    <thead class="bg-zinc-50 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-700">
                         <tr>
                             <th class="py-2.5 px-3 font-semibold">Kode</th>
                             <th class="py-2.5 px-3 font-semibold">Unit Kerja / Ruangan</th>
@@ -107,7 +112,7 @@
                                 $sparepart = (float) $anggaran->beban_sparepart;
                                 $totalBeban = (float) $anggaran->realisasi;
                             @endphp
-                            <tr class="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30" wire:key="unit-pagu-{{ $anggaran->id }}">
+                            <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40" wire:key="unit-pagu-{{ $anggaran->id }}">
                                 <td class="py-2.5 px-3 font-mono font-semibold text-zinc-800 dark:text-zinc-200 whitespace-nowrap">
                                     {{ $anggaran->unit?->kode ?? $anggaran->kode }}
                                 </td>
@@ -115,7 +120,7 @@
                                     <div class="font-semibold text-zinc-900 dark:text-zinc-100">
                                         {{ $anggaran->unit?->nama ?? $anggaran->pos_anggaran }}
                                     </div>
-                                    <div class="text-[10px] text-zinc-400 font-mono">Pos Ref: {{ $anggaran->kode }}</div>
+                                    <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">Pos Ref: {{ $anggaran->kode }}</div>
                                 </td>
                                 <td class="py-2.5 px-3 font-mono text-right text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">
                                     Rp {{ number_format($distribusi, 0, ',', '.') }}
@@ -132,14 +137,14 @@
                                         size="xs"
                                         variant="ghost"
                                         icon="eye"
-                                        title="Buka Drilldown Bukti Pengeluaran"
+                                        title="Buka Rincian Bukti Fisik"
                                     />
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="py-8 text-center text-zinc-500 text-xs">
-                                    Belum ada data pengeluaran ruangan yang terdaftar untuk TA {{ $filterTahun }}.
+                                <td colspan="6" class="py-8 text-center text-zinc-500 dark:text-zinc-400 text-xs">
+                                    Tidak ada data unit kerja yang sesuai dengan kata kunci pencarian pada TA {{ $filterTahun }}.
                                 </td>
                             </tr>
                         @endforelse
@@ -157,11 +162,11 @@
                 @php
                     $realisasiSp = (float) $sparepartAnggaran->realisasi;
                 @endphp
-                <flux:card class="p-5 border-l-4 border-l-indigo-600 bg-indigo-50/30 dark:bg-indigo-950/20 shadow-xs">
+                <flux:card class="p-5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 shadow-xs">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
                             <div class="text-[11px] font-mono font-bold text-indigo-600 dark:text-indigo-400 uppercase">
-                                Screening Pemeliharaan Sarana &bull; TA {{ $filterTahun }}
+                                Screening Pemeliharaan Sarana, TA {{ $filterTahun }}
                             </div>
                             <flux:heading size="lg" class="mt-0.5">Total Pengeluaran Suku Cadang IPSRS</flux:heading>
                             <p class="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
@@ -169,11 +174,11 @@
                             </p>
                         </div>
                         <div class="text-right sm:border-l sm:border-zinc-200 dark:sm:border-zinc-700 sm:pl-6">
-                            <span class="text-xs text-zinc-500">Total Biaya Suku Cadang Terpakai</span>
-                            <div class="text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400">
+                            <span class="text-xs text-zinc-600 dark:text-zinc-400">Total Biaya Suku Cadang Terpakai</span>
+                            <div class="text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400 tabular-nums">
                                 Rp {{ number_format($realisasiSp, 0, ',', '.') }}
                             </div>
-                            <span class="text-[10px] text-zinc-400 font-mono">Status: Akumulasi Real-Time</span>
+                            <span class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">Status: Akumulasi Real-Time</span>
                         </div>
                     </div>
                 </flux:card>
@@ -182,17 +187,17 @@
             {{-- 2 Grid: Top Aset Penyerap Biaya & Riwayat Log Sparepart --}}
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {{-- Panel Kiri: Top 5 Aset Penyerap Biaya Pemeliharaan --}}
-                <flux:card class="space-y-3 shadow-sm border-t-2 border-t-indigo-500">
+                <flux:card class="space-y-3 shadow-sm border border-zinc-200 dark:border-zinc-800">
                     <div>
                         <flux:heading size="base" class="font-bold">Top Aset Penyerap Biaya Pemeliharaan</flux:heading>
-                        <flux:subheading class="text-xs text-zinc-500">
+                        <flux:subheading class="text-xs text-zinc-600 dark:text-zinc-400">
                             Aset sarana rumah sakit dengan konsumsi suku cadang dan biaya servis tertinggi.
                         </flux:subheading>
                     </div>
 
                     <div class="overflow-x-auto">
                         <table class="w-full text-xs text-left">
-                            <thead class="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 border-b border-zinc-200 dark:border-zinc-700">
+                            <thead class="bg-zinc-50 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-700">
                                 <tr>
                                     <th class="py-2 px-3 font-semibold">Nama Sarana Aset</th>
                                     <th class="py-2 px-3 font-semibold">Lokasi Ruangan</th>
@@ -205,10 +210,10 @@
                                     <tr>
                                         <td class="py-2.5 px-3">
                                             <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $aset->nama }}</div>
-                                            <div class="text-[10px] text-zinc-400 font-mono">{{ $aset->kode }}</div>
+                                            <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">{{ $aset->kode_aset ?? $aset->kode }}</div>
                                         </td>
                                         <td class="py-2.5 px-3 text-zinc-600 dark:text-zinc-400">
-                                            {{ $aset->unit?->nama ?? '-' }}
+                                            {{ $aset->unit?->nama ?? 'Sentral' }}
                                         </td>
                                         <td class="py-2.5 px-3 text-center font-mono font-medium">
                                             {{ $aset->frekuensi_servis }}x
@@ -219,7 +224,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="py-6 text-center text-zinc-500 text-xs">
+                                        <td colspan="4" class="py-6 text-center text-zinc-500 dark:text-zinc-400 text-xs">
                                             Belum ada data pemakaian suku cadang pada aset untuk TA {{ $filterTahun }}.
                                         </td>
                                     </tr>
@@ -230,17 +235,17 @@
                 </flux:card>
 
                 {{-- Panel Kanan: Riwayat 10 Log Pemakaian Suku Cadang Terakhir --}}
-                <flux:card class="space-y-3 shadow-sm border-t-2 border-t-emerald-500">
+                <flux:card class="space-y-3 shadow-sm border border-zinc-200 dark:border-zinc-800">
                     <div>
                         <flux:heading size="base" class="font-bold">Log Konsumsi Suku Cadang Terakhir</flux:heading>
-                        <flux:subheading class="text-xs text-zinc-500">
+                        <flux:subheading class="text-xs text-zinc-600 dark:text-zinc-400">
                             Catatan suku cadang yang dipasang teknisi pada tiket servis SPK.
                         </flux:subheading>
                     </div>
 
                     <div class="overflow-x-auto max-h-80">
                         <table class="w-full text-xs text-left">
-                            <thead class="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 border-b border-zinc-200 dark:border-zinc-700 sticky top-0">
+                            <thead class="bg-zinc-50 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-700 sticky top-0">
                                 <tr>
                                     <th class="py-2 px-3 font-semibold">Tiket SPK</th>
                                     <th class="py-2 px-3 font-semibold">Nama Sparepart</th>
@@ -255,7 +260,7 @@
                                             <div class="font-mono font-semibold text-zinc-900 dark:text-zinc-100">
                                                 {{ $spLog->permintaanMaintenance?->kode ?? '-' }}
                                             </div>
-                                            <div class="text-[10px] text-zinc-400">
+                                            <div class="text-[10px] text-zinc-500 dark:text-zinc-400">
                                                 {{ $spLog->permintaanMaintenance?->aset?->nama ?? '-' }}
                                             </div>
                                         </td>
@@ -263,7 +268,7 @@
                                             <div class="font-medium text-zinc-900 dark:text-zinc-100">
                                                 {{ $spLog->barang?->nama ?? '-' }}
                                             </div>
-                                            <div class="text-[10px] text-zinc-400 font-mono">
+                                            <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
                                                 Batch: {{ $spLog->stokBatch?->nomor_batch ?? '-' }}
                                             </div>
                                         </td>
@@ -276,8 +281,8 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="py-6 text-center text-zinc-500 text-xs">
-                                            Belum ada log pergantian suku cadang yang tercatat.
+                                        <td colspan="4" class="py-6 text-center text-zinc-500 dark:text-zinc-400 text-xs">
+                                            Belum ada log pergantian suku cadang yang tercatat untuk TA {{ $filterTahun }}.
                                         </td>
                                     </tr>
                                 @endforelse
@@ -299,7 +304,7 @@
                 <div class="flex items-start justify-between gap-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
                     <div>
                         <div class="text-[11px] font-mono text-blue-600 dark:text-blue-400 font-bold uppercase">
-                            Screening Pengeluaran &bull; TA {{ $selectedAnggaran->tahun }}
+                            Screening Pengeluaran, TA {{ $selectedAnggaran->tahun }}
                         </div>
                         <flux:heading size="lg" class="mt-0.5">
                             {{ $selectedAnggaran->unit?->nama ?? $selectedAnggaran->pos_anggaran }}
@@ -311,22 +316,22 @@
                 </div>
 
                 {{-- Ringkasan 3 Stat Box Modal --}}
-                <div class="grid grid-cols-3 gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/60 text-xs">
+                <div class="grid grid-cols-3 gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-xs">
                     <div>
-                        <span class="text-zinc-500 dark:text-zinc-400 text-[11px]">Pengeluaran Amprah:</span>
-                        <div class="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5">
+                        <span class="text-zinc-600 dark:text-zinc-400 text-[11px]">Pengeluaran Amprah:</span>
+                        <div class="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5 tabular-nums">
                             Rp {{ number_format($selectedBebanDistribusi, 0, ',', '.') }}
                         </div>
                     </div>
                     <div>
-                        <span class="text-zinc-500 dark:text-zinc-400 text-[11px]">Konsumsi Sparepart:</span>
-                        <div class="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-sm mt-0.5">
+                        <span class="text-zinc-600 dark:text-zinc-400 text-[11px]">Konsumsi Sparepart:</span>
+                        <div class="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-sm mt-0.5 tabular-nums">
                             Rp {{ number_format($selectedBebanSparepart, 0, ',', '.') }}
                         </div>
                     </div>
                     <div>
-                        <span class="text-zinc-500 dark:text-zinc-400 text-[11px]">Total Pengeluaran Unit:</span>
-                        <div class="font-mono font-bold text-zinc-900 dark:text-zinc-100 text-sm mt-0.5">
+                        <span class="text-zinc-600 dark:text-zinc-400 text-[11px]">Total Pengeluaran Unit:</span>
+                        <div class="font-mono font-bold text-zinc-900 dark:text-zinc-100 text-sm mt-0.5 tabular-nums">
                             Rp {{ number_format($totMod, 0, ',', '.') }}
                         </div>
                     </div>
@@ -341,7 +346,7 @@
 
                     <div class="overflow-x-auto max-h-48 rounded-lg border border-zinc-200 dark:border-zinc-700">
                         <table class="w-full text-xs text-left">
-                            <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-b border-zinc-200 dark:border-zinc-700">
+                            <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-700">
                                 <tr>
                                     <th class="py-2 px-3">Nomor SPPB</th>
                                     <th class="py-2 px-3">Tanggal Kirim</th>
@@ -366,13 +371,13 @@
                                                 <div class="truncate max-w-xs">&bull; {{ $itemDetail->barang?->nama }} ({{ $itemDetail->jumlah_dikirim }})</div>
                                             @endforeach
                                         </td>
-                                        <td class="py-2 px-3 font-mono text-right text-emerald-600 font-semibold tabular-nums">
+                                        <td class="py-2 px-3 font-mono text-right text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">
                                             Rp {{ number_format($nilaiSppb, 0, ',', '.') }}
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="py-4 text-center text-zinc-500 text-xs">
+                                        <td colspan="5" class="py-4 text-center text-zinc-500 dark:text-zinc-400 text-xs">
                                             Belum ada pengiriman distribusi barang yang dibebankan ke unit ini.
                                         </td>
                                     </tr>
@@ -391,7 +396,7 @@
 
                     <div class="overflow-x-auto max-h-48 rounded-lg border border-zinc-200 dark:border-zinc-700">
                         <table class="w-full text-xs text-left">
-                            <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-b border-zinc-200 dark:border-zinc-700">
+                            <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-700">
                                 <tr>
                                     <th class="py-2 px-3">Tiket Servis</th>
                                     <th class="py-2 px-3">Sarana / Aset</th>
@@ -407,13 +412,13 @@
                                         <td class="py-2 px-3 text-zinc-800 dark:text-zinc-200">{{ $servis->permintaanMaintenance?->aset?->nama ?? '-' }}</td>
                                         <td class="py-2 px-3 text-zinc-700 dark:text-zinc-300">{{ $servis->barang?->nama ?? '-' }}</td>
                                         <td class="py-2 px-3 text-center font-mono">{{ $servis->jumlah_digunakan }}</td>
-                                        <td class="py-2 px-3 font-mono text-right text-indigo-600 font-semibold tabular-nums">
+                                        <td class="py-2 px-3 font-mono text-right text-indigo-600 dark:text-indigo-400 font-semibold tabular-nums">
                                             Rp {{ number_format($servis->subtotal ?? 0, 0, ',', '.') }}
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="py-4 text-center text-zinc-500 text-xs">
+                                        <td colspan="5" class="py-4 text-center text-zinc-500 dark:text-zinc-400 text-xs">
                                             Belum ada suku cadang pemeliharaan yang dibebankan pada aset ruangan ini.
                                         </td>
                                     </tr>
