@@ -231,9 +231,9 @@
                 <div class="space-y-3 max-h-[48vh] overflow-y-auto pr-1">
                     @foreach ($items as $index => $row)
                         <div wire:key="amprah-item-{{ $index }}" class="p-3.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-                            <div class="grid grid-cols-12 gap-3.5 items-start">
+                            <div class="w-full grid grid-cols-12 gap-4 items-start">
                                 {{-- Kolom 1 (1x3): Barang & Informasi Stok Gudang (col-span-5) --}}
-                                <div class="col-span-5">
+                                <div class="col-span-5 w-full min-w-0">
                                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                                         Komoditas Barang <span class="text-red-500">*</span>
                                     </label>
@@ -276,7 +276,7 @@
                                 </div>
 
                                 {{-- Kolom 2 (1x3): Jumlah Diminta (col-span-2) --}}
-                                <div class="col-span-2">
+                                <div class="col-span-2 w-full min-w-0">
                                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                                         Jumlah <span class="text-red-500">*</span>
                                     </label>
@@ -301,7 +301,7 @@
                                 </div>
 
                                 {{-- Kolom 3 (1x3): Catatan Item & Tombol Hapus (col-span-5) --}}
-                                <div class="col-span-5">
+                                <div class="col-span-5 w-full min-w-0">
                                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                                         Catatan Item <span class="text-zinc-500 dark:text-zinc-400 font-normal">(Opsional)</span>
                                     </label>
