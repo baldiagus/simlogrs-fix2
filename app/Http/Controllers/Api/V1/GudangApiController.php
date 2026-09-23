@@ -25,11 +25,57 @@ class GudangApiController extends ApiController
         }
 
         $request->validate([
-            'permintaan_id' => 'required|exists:permintaan_distribusi,id',
+            'permintaan_id' => 'nullable|integer',
+            'nomor_batch'   => 'nullable|string',
             'gudang_id'     => 'nullable|exists:gudang,id',
         ]);
 
-        $permintaan = PermintaanDistribusi::with(['detail.barang', 'unit'])->find($request->input('permintaan_id'));
+        $permintaanId = $request->input('permintaan_id');
+        $permintaan = null;
+        if ($permintaanId) {
+            $permintaan = PermintaanDistribusi::with(['detail.barang', 'unit'])->find($permintaanId);
+        }
+
+        if (! $permintaan) {
+            $permintaan = PermintaanDistribusi::with(['detail.barang', 'unit'])
+                ->whereIn('status', ['DISETUJUI_GUDANG', 'DISETUJUI_KARU'])
+                ->latest('id')
+                ->first();
+        }
+
+        if (! $permintaan) {
+            $nomorBatch = trim($request->input('nomor_batch', ''));
+            if ($nomorBatch !== '') {
+                $batch = StokBatch::with(['barang', 'lokasiGudang'])->where('nomor_batch', $nomorBatch)->first();
+                if ($batch) {
+                    $earliest = StokBatch::where('barang_id', $batch->barang_id)
+                        ->where('status', 'AKTIF')
+                        ->where('jumlah', '>', 0)
+                        ->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
+                        ->first();
+
+                    $isValid = ($earliest && $earliest->id === $batch->id);
+
+                    return $this->jsonSuccess([
+                        'sppb_kode'      => 'VERIFIKASI-FEFO',
+                        'permintaan_id'  => 0,
+                        'unit_tujuan'    => 'Pemeriksaan Rak Gudang',
+                        'tanggal_kirim'  => now()->toDateString(),
+                        'status'         => $isValid ? 'VALID' : 'NON_FEFO',
+                        'alokasi_batch'  => [
+                            [
+                                'barang'      => $batch->barang?->nama,
+                                'nomor_batch' => $batch->nomor_batch,
+                                'expired'     => $batch->tanggal_kedaluwarsa?->format('Y-m-d'),
+                                'qty_dikirim' => $batch->jumlah,
+                            ],
+                        ],
+                    ], $isValid ? "Batch '{$batch->nomor_batch}' valid sesuai urutan FEFO." : 'Peringatan: Bukan batch terdekat.');
+                }
+            }
+
+            return $this->jsonError('Belum ada dokumen permohonan distribusi yang siap dipicking.', 422);
+        }
 
         if (! in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DISETUJUI_KARU'])) {
             return $this->jsonError("Permintaan {$permintaan->kode} belum dalam status siap picking (status: {$permintaan->status}).", 422);
