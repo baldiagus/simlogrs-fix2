@@ -91,9 +91,13 @@ class RealisasiAnggaranIndex extends Component
         // 3. Drilldown Data untuk Unit yang Dipilih di Modal
         $riwayatSppbUnit = collect();
         $riwayatServisUnit = collect();
+        $selectedBebanDistribusi = 0;
+        $selectedBebanSparepart = 0;
 
         if ($this->selectedAnggaran && $this->selectedAnggaran->unit_id) {
             $uId = $this->selectedAnggaran->unit_id;
+            $selectedBebanDistribusi = $service->hitungBebanDistribusiUnit($uId, $this->filterTahun);
+            $selectedBebanSparepart = $service->hitungBebanSparepartUnit($uId, $this->filterTahun);
 
             $riwayatSppbUnit = PengirimanBarang::with(['gudang', 'detail.barang', 'detail.stokBatch'])
                 ->where('unit_id', $uId)
@@ -120,8 +124,10 @@ class RealisasiAnggaranIndex extends Component
             'riwayatSppbUnit'         => $riwayatSppbUnit,
             'riwayatServisUnit'       => $riwayatServisUnit,
             'selectedAnggaran'        => $this->selectedAnggaran,
+            'selectedBebanDistribusi' => $selectedBebanDistribusi,
+            'selectedBebanSparepart'  => $selectedBebanSparepart,
         ])->layout('layouts.portal', [
-            'title' => 'Pagu & Realisasi Anggaran Pengeluaran Logistik & IPSRS',
+            'title' => 'Screening Pengeluaran Logistik Ruangan & IPSRS',
             'portal' => $this->getPortalName(),
         ]);
     }
