@@ -29,9 +29,10 @@ class GudangApiController extends ApiController
             'nomor_batch'   => 'nullable|string',
             'gudang_id'     => 'nullable|exists:gudang,id',
         ]);
-
+        $barcode = trim($request->input('nomor_batch', $request->input('barcode', '')));
         $permintaanId = $request->input('permintaan_id');
         $permintaan = null;
+
         if ($permintaanId) {
             $permintaan = PermintaanDistribusi::with(['detail.barang', 'unit'])->find($permintaanId);
         }
@@ -43,66 +44,69 @@ class GudangApiController extends ApiController
                 ->first();
         }
 
-        if (! $permintaan) {
-            $nomorBatch = trim($request->input('nomor_batch', ''));
-            if ($nomorBatch !== '') {
-                $batch = StokBatch::with(['barang', 'lokasiGudang'])->where('nomor_batch', $nomorBatch)->first();
-                if ($batch) {
-                    $earliest = StokBatch::where('barang_id', $batch->barang_id)
-                        ->where('status', 'AKTIF')
-                        ->where('jumlah', '>', 0)
-                        ->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
-                        ->first();
+        // Jika ada permohonan distribusi yang siap dipicking, jalankan picking FEFO
+        if ($permintaan && in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DISETUJUI_KARU'], true)) {
+            try {
+                $gudangId = $request->input('gudang_id') ?: $permintaan->gudang_id;
+                $sppb = $service->eksekusiPickingFefo($permintaan, $user, $gudangId);
 
-                    $isValid = ($earliest && $earliest->id === $batch->id);
+                $sppb->load(['detail.barang', 'detail.stokBatch', 'unit']);
 
-                    return $this->jsonSuccess([
-                        'sppb_kode'      => 'VERIFIKASI-FEFO',
-                        'permintaan_id'  => 0,
-                        'unit_tujuan'    => 'Pemeriksaan Rak Gudang',
-                        'tanggal_kirim'  => now()->toDateString(),
-                        'status'         => $isValid ? 'VALID' : 'NON_FEFO',
-                        'alokasi_batch'  => [
-                            [
-                                'barang'      => $batch->barang?->nama,
-                                'nomor_batch' => $batch->nomor_batch,
-                                'expired'     => $batch->tanggal_kedaluwarsa?->format('Y-m-d'),
-                                'qty_dikirim' => $batch->jumlah,
-                            ],
+                return $this->jsonSuccess([
+                    'sppb_kode'      => $sppb->kode,
+                    'permintaan_id'  => $permintaan->id,
+                    'unit_tujuan'    => $sppb->unit?->nama,
+                    'tanggal_kirim'  => $sppb->tanggal_kirim?->format('Y-m-d'),
+                    'status'         => $sppb->status,
+                    'alokasi_batch'  => $sppb->detail->map(fn ($d) => [
+                        'barang'      => $d->barang?->nama,
+                        'nomor_batch' => $d->stokBatch?->nomor_batch,
+                        'expired'     => $d->stokBatch?->tanggal_kedaluwarsa?->format('Y-m-d'),
+                        'qty_dikirim' => $d->jumlah_dikirim,
+                    ]),
+                ], "Picking FEFO berhasil. SPPB {$sppb->kode} telah diterbitkan.");
+            } catch (Exception $e) {
+                return $this->jsonError($e->getMessage(), 422);
+            }
+        }
+
+        // Jika tidak ada antrean dokumen distribusi, jalankan verifikasi batch langsung di rak
+        if ($barcode !== '') {
+            $batch = StokBatch::with(['barang', 'lokasiGudang'])
+                ->whereRaw('LOWER(nomor_batch) = ?', [strtolower($barcode)])
+                ->orWhereHas('barang', fn ($q) => $q->whereRaw('LOWER(kode) = ?', [strtolower($barcode)]))
+                ->first();
+
+            if ($batch) {
+                $earliest = StokBatch::where('barang_id', $batch->barang_id)
+                    ->where('status', 'AKTIF')
+                    ->where('jumlah', '>', 0)
+                    ->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
+                    ->first();
+
+                $isValid = ($earliest && $earliest->id === $batch->id);
+
+                return $this->jsonSuccess([
+                    'sppb_kode'      => 'VERIFIKASI-FEFO',
+                    'permintaan_id'  => 0,
+                    'unit_tujuan'    => 'Pemeriksaan Rak Gudang',
+                    'tanggal_kirim'  => now()->toDateString(),
+                    'status'         => $isValid ? 'VALID' : 'NON_FEFO',
+                    'alokasi_batch'  => [
+                        [
+                            'barang'      => $batch->barang?->nama,
+                            'nomor_batch' => $batch->nomor_batch,
+                            'expired'     => $batch->tanggal_kedaluwarsa?->format('Y-m-d'),
+                            'qty_dikirim' => $batch->jumlah,
                         ],
-                    ], $isValid ? "Batch '{$batch->nomor_batch}' valid sesuai urutan FEFO." : 'Peringatan: Bukan batch terdekat.');
-                }
+                    ],
+                ], $isValid ? "Batch '{$batch->nomor_batch}' valid sesuai urutan FEFO." : 'Peringatan: Bukan batch terdekat.');
             }
 
-            return $this->jsonError('Belum ada dokumen permohonan distribusi yang siap dipicking.', 422);
+            return $this->jsonError("Nomor batch atau barcode '{$barcode}' tidak ditemukan di gudang.", 422);
         }
 
-        if (! in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DISETUJUI_KARU'])) {
-            return $this->jsonError("Permintaan {$permintaan->kode} belum dalam status siap picking (status: {$permintaan->status}).", 422);
-        }
-
-        try {
-            $gudangId = $request->input('gudang_id') ?: $permintaan->gudang_id;
-            $sppb = $service->eksekusiPickingFefo($permintaan, $user, $gudangId);
-
-            $sppb->load(['detail.barang', 'detail.stokBatch', 'unit']);
-
-            return $this->jsonSuccess([
-                'sppb_kode'      => $sppb->kode,
-                'permintaan_id'  => $permintaan->id,
-                'unit_tujuan'    => $sppb->unit?->nama,
-                'tanggal_kirim'  => $sppb->tanggal_kirim?->format('Y-m-d'),
-                'status'         => $sppb->status,
-                'alokasi_batch'  => $sppb->detail->map(fn ($d) => [
-                    'barang'      => $d->barang?->nama,
-                    'nomor_batch' => $d->stokBatch?->nomor_batch,
-                    'expired'     => $d->stokBatch?->tanggal_kedaluwarsa?->format('Y-m-d'),
-                    'qty_dikirim' => $d->jumlah_dikirim,
-                ]),
-            ], "Picking FEFO berhasil. SPPB {$sppb->kode} telah diterbitkan.");
-        } catch (Exception $e) {
-            return $this->jsonError($e->getMessage(), 422);
-        }
+        return $this->jsonError('Belum ada dokumen permohonan distribusi yang siap dipicking.', 422);
     }
 
     /**
