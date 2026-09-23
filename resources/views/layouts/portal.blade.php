@@ -88,13 +88,13 @@
             '*/monitoring-fefo*',
             '*/buku-mutasi*',
             '*/stok-opname*',
-            '*/otorisasi-penyesuaian*',
-            '*/selisih-opname*'
+            '*/otorisasi-penyesuaian*'
         );
 
         $isAuditActive = request()->is(
             '*/audit-trail*',
             '*/kepatuhan-pengadaan*',
+            '*/selisih-opname*',
             '*/temuan-capa*'
         );
     @endphp
@@ -280,7 +280,7 @@
                 </flux:sidebar.group>
             @endif
 
-            @if ($user->can('view_any_gudang_stok::monitoring::fefo') || $user->can('view_any_gudang_stok::buku::mutasi') || $user->can('view_any_gudang_stok::stok::opname') || $user->can('view_any_gudang_stok::otorisasi::penyesuaian') || $user->can('view_any_audit_manajemen::selisih::opname'))
+            @if ($user->can('view_any_gudang_stok::monitoring::fefo') || $user->can('view_any_gudang_stok::buku::mutasi') || $user->can('view_any_gudang_stok::stok::opname') || $user->can('view_any_gudang_stok::otorisasi::penyesuaian'))
                 <flux:sidebar.group expandable :expanded="$isPersediaanActive" heading="Persediaan & Opname" class="grid">
                     @can('view_any_gudang_stok::monitoring::fefo')
                         <flux:sidebar.item icon="clock" href="/{{ $portalKey }}/monitoring-fefo" wire:navigate :current="request()->is('*/monitoring-fefo')">
@@ -302,15 +302,10 @@
                             Otorisasi Penyesuaian
                         </flux:sidebar.item>
                     @endcan
-                    @can('view_any_audit_manajemen::selisih::opname')
-                        <flux:sidebar.item icon="scale" href="/{{ $portalKey }}/selisih-opname" wire:navigate :current="request()->is('*/selisih-opname')">
-                            Selisih Opname (Audit)
-                        </flux:sidebar.item>
-                    @endcan
                 </flux:sidebar.group>
             @endif
 
-            @if ($user->can('view_any_audit_manajemen::audit::trail') || $user->can('view_any_audit_manajemen::kepatuhan::pengadaan') || $user->can('view_any_audit_manajemen::temuan::capa'))
+            @if ($user->can('view_any_audit_manajemen::audit::trail') || $user->can('view_any_audit_manajemen::kepatuhan::pengadaan') || $user->can('view_any_audit_manajemen::selisih::opname') || $user->can('view_any_audit_manajemen::temuan::capa'))
                 <flux:sidebar.group expandable :expanded="$isAuditActive" heading="Audit Internal (SPI)" class="grid">
                     @can('view_any_audit_manajemen::audit::trail')
                         <flux:sidebar.item icon="document-magnifying-glass" href="/{{ $portalKey }}/audit-trail" wire:navigate :current="request()->is('*/audit-trail*')">
@@ -320,6 +315,11 @@
                     @can('view_any_audit_manajemen::kepatuhan::pengadaan')
                         <flux:sidebar.item icon="shield-exclamation" href="/{{ $portalKey }}/kepatuhan-pengadaan" wire:navigate :current="request()->is('*/kepatuhan-pengadaan*')">
                             Kepatuhan Pengadaan
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_audit_manajemen::selisih::opname')
+                        <flux:sidebar.item icon="scale" href="/{{ $portalKey }}/selisih-opname" wire:navigate :current="request()->is('*/selisih-opname*')">
+                            Selisih Opname (Audit)
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_audit_manajemen::temuan::capa')
