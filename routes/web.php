@@ -26,6 +26,8 @@ use App\Livewire\Pengadaan\PermintaanPengadaanIndex;
 use App\Livewire\Pengadaan\PesananPembelianIndex;
 use App\Livewire\Pengadaan\TrackingPoIndex;
 use App\Livewire\Pengadaan\PenerimaanPoIndex;
+use App\Livewire\Pengadaan\RealisasiAnggaranIndex;
+use App\Livewire\Pengadaan\MasterRekananIndex;
 use App\Livewire\Distribusi\PermintaanBarangIndex;
 use App\Livewire\Distribusi\ApprovalPermintaanIndex;
 use App\Livewire\Distribusi\DistribusiApprovalIndex;
@@ -109,6 +111,8 @@ foreach ($portals as $portalKey => $dashboardClass) {
             Route::get('/pesanan-pembelian', PesananPembelianIndex::class)->name('pesanan-pembelian');
             Route::get('/tracking-po', TrackingPoIndex::class)->name('tracking-po');
             Route::get('/penerimaan-po', PenerimaanPoIndex::class)->name('penerimaan-po');
+            Route::get('/realisasi-anggaran', RealisasiAnggaranIndex::class)->name('realisasi-anggaran');
+            Route::get('/master-rekanan', MasterRekananIndex::class)->name('master-rekanan');
 
             // Siklus Distribusi Ruangan & Picking FEFO (Grup 5)
             Route::get('/permintaan-barang', PermintaanBarangIndex::class)->name('permintaan-barang');

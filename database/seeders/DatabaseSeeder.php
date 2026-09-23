@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             PeranSeeder::class,
             ShieldRolePermissionSeeder::class,
             PenggunaSeeder::class,
+            AnggaranPengadaanSeeder::class,
         ]);
     }
 }

@@ -59,7 +59,9 @@
             '*/permintaan-pengadaan*',
             '*/pesanan-pembelian*',
             '*/tracking-po*',
-            '*/penerimaan-po*'
+            '*/penerimaan-po*',
+            '*/realisasi-anggaran*',
+            '*/master-rekanan*'
         );
 
         $isDistribusiActive = request()->is(
@@ -201,6 +203,16 @@
                     @can('view_any_gudang_stok::penerimaan::po')
                         <flux:sidebar.item icon="inbox-arrow-down" href="/{{ $portalKey }}/penerimaan-po" wire:navigate :current="request()->is('*/penerimaan-po')">
                             Penerimaan (Inbound)
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_pengadaan::realisasi::anggaran')
+                        <flux:sidebar.item icon="banknotes" href="/{{ $portalKey }}/realisasi-anggaran" wire:navigate :current="request()->is('*/realisasi-anggaran')">
+                            Pagu & Realisasi
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_pengadaan::master::rekanan')
+                        <flux:sidebar.item icon="building-storefront" href="/{{ $portalKey }}/master-rekanan" wire:navigate :current="request()->is('*/master-rekanan')">
+                            Evaluasi Rekanan
                         </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
