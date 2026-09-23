@@ -118,6 +118,26 @@ class PermintaanBarangIndex extends Component
             $this->addError('items', 'Terdapat barang yang sama lebih dari satu baris. Mohon gabungkan jumlahnya.');
             return;
         }
+
+        // Cek ketersediaan stok fisik gudang non-negatif
+        foreach ($this->items as $index => $item) {
+            $barangId = (int) ($item['barang_id'] ?? 0);
+            $jumlahDiminta = (int) ($item['jumlah'] ?? 0);
+            $stokTersedia = $this->getStokTersedia($barangId, (int) $this->gudang_id);
+            $barang = Barang::with('satuan')->find($barangId);
+            $namaBarang = $barang?->nama ?? "Barang #{$barangId}";
+            $satuan = $barang?->satuan?->simbol ?? 'unit';
+
+            if ($stokTersedia <= 0) {
+                $this->addError("items.{$index}.barang_id", "Komoditas '{$namaBarang}' di gudang tujuan saat ini kosong (0 {$satuan}). Tidak dapat diajukan amprah.");
+                return;
+            }
+
+            if ($jumlahDiminta > $stokTersedia) {
+                $this->addError("items.{$index}.jumlah", "Jumlah diminta ({$jumlahDiminta} {$satuan}) melebihi stok gudang yang tersedia ({$stokTersedia} {$satuan}).");
+                return;
+            }
+        }
         $isKaruApprover = $user->can('update_layanan_unit::approval::karu') || $user->can('page_AdminLogistikDashboard') || $user->can('page_Dashboard');
         $initialStatus  = $isKaruApprover ? 'DISETUJUI_KARU' : 'DIAJUKAN';
         $disetujuiOleh  = $isKaruApprover ? $user->id : null;
@@ -204,6 +224,27 @@ class PermintaanBarangIndex extends Component
             buttonText: 'Ya, Batalkan',
             variant: 'danger'
         );
+    }
+
+    /**
+     * Menghitung saldo stok fisik aktif dan belum kedaluwarsa di gudang terkait.
+     */
+    public function getStokTersedia(int $barangId, ?int $gudangId = null): int
+    {
+        $gid = $gudangId ?: (int) $this->gudang_id;
+        if (! $gid || ! $barangId) {
+            return 0;
+        }
+
+        return (int) StokBatch::where('gudang_id', $gid)
+            ->where('barang_id', $barangId)
+            ->where('status', 'AKTIF')
+            ->where('jumlah', '>', 0)
+            ->where(function ($q) {
+                $q->whereNull('tanggal_kedaluwarsa')
+                    ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
+            })
+            ->sum('jumlah');
     }
 
     public function batal(int $id): void

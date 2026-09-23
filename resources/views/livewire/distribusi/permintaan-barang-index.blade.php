@@ -245,8 +245,8 @@
                                         <option value="">Pilih Komoditas Barang...</option>
                                         @foreach ($daftarBarang as $brg)
                                             @php $stok = (int) ($stokGudangMap[$brg->id] ?? 0); @endphp
-                                            <option value="{{ $brg->id }}">
-                                                {{ $brg->kode }} - {{ $brg->nama }} (Stok: {{ number_format($stok, 0, ',', '.') }} {{ $brg->satuan?->simbol ?? 'Unit' }})
+                                            <option value="{{ $brg->id }}" {{ $stok <= 0 ? 'class=text-zinc-400' : '' }}>
+                                                {{ $brg->kode }} - {{ $brg->nama }} (Stok: {{ number_format($stok, 0, ',', '.') }} {{ $brg->satuan?->simbol ?? 'Unit' }}){{ $stok <= 0 ? ' [STOK KOSONG]' : '' }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -280,16 +280,24 @@
                                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                                         Jumlah <span class="text-red-500">*</span>
                                     </label>
+                                    @php
+                                        $bIdCurrent = (int) ($items[$index]['barang_id'] ?? 0);
+                                        $stokMax = $bIdCurrent ? (int) ($stokGudangMap[$bIdCurrent] ?? 0) : 0;
+                                    @endphp
                                     <input
                                         type="number"
                                         wire:model="items.{{ $index }}.jumlah"
                                         min="1"
+                                        @if ($stokMax > 0) max="{{ $stokMax }}" @endif
+                                        @if (!empty($items[$index]['barang_id']) && $stokMax <= 0) disabled @endif
                                         required
-                                        placeholder="1"
-                                        class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 text-right font-mono tabular-nums focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        placeholder="{{ $stokMax <= 0 ? '0' : '1' }}"
+                                        class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 text-right font-mono tabular-nums focus:outline-none focus:ring-1 focus:ring-blue-500 {{ !empty($items[$index]['barang_id']) && $stokMax <= 0 ? 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-400 cursor-not-allowed' : '' }}"
                                     />
                                     @error("items.{$index}.jumlah") <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                                </div>
+                                    @if (!empty($items[$index]['barang_id']) && $stokMax <= 0)
+                                        <p class="text-[10px] text-rose-600 dark:text-rose-400 font-medium mt-1">Stok 0 unit, tidak dapat diisi.</p>
+                                    @endif
 
                                 {{-- Kolom 3 (1x3): Catatan Item & Tombol Hapus (col-span-4) --}}
                                 <div class="col-span-4">
@@ -317,9 +325,28 @@
                 @error('items') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
             </div>
 
+            @php
+                $hasZeroStock = false;
+                foreach ($items as $itm) {
+                    if (!empty($itm['barang_id'])) {
+                        $stk = (int) ($stokGudangMap[$itm['barang_id']] ?? 0);
+                        if ($stk <= 0 || (int) ($itm['jumlah'] ?? 0) > $stk) {
+                            $hasZeroStock = true;
+                            break;
+                        }
+                    }
+                }
+            @endphp
+            @if ($hasZeroStock)
+                <div class="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                    <flux:icon name="exclamation-circle" class="size-4 shrink-0 text-rose-600" />
+                    <span>Terdapat komoditas dengan stok gudang kosong (0 unit) atau jumlah diminta melebihi stok yang tersedia. Mohon sesuaikan pilihan sebelum mengirim.</span>
+                </div>
+            @endif
+
             <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">Batal</flux:button>
-                <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                <flux:button type="submit" variant="primary" :disabled="$hasZeroStock" wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="save">Kirim Permintaan</span>
                     <span wire:loading wire:target="save">Mengirim...</span>
                 </flux:button>
