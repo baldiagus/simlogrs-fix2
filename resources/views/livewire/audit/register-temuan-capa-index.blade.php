@@ -147,10 +147,10 @@
                             <div class="text-xs text-zinc-700 dark:text-zinc-300 max-w-xs line-clamp-2" title="{{ $item->ringkasan }}">
                                 {{ $item->ringkasan }}
                             </div>
-                            @if ($item->bukti_perbaikan)
+                            @if (!empty($item->bukti_perbaikan) && is_array($item->bukti_perbaikan) && count($item->bukti_perbaikan) > 0)
                                 <div class="text-[10px] text-blue-600 dark:text-blue-400 font-medium mt-0.5 flex items-center gap-1">
                                     <flux:icon name="paper-clip" class="size-3" />
-                                    <span>Bukti perbaikan terunggah</span>
+                                    <span>{{ count($item->bukti_perbaikan) }} berkas bukti terunggah</span>
                                 </div>
                             @endif
                         </flux:table.cell>
@@ -380,17 +380,45 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-                        Unggah Bukti Fisik / Dokumen Pendukung Perbaikan (PDF / Foto)
+                        Unggah Bukti Fisik / Dokumen Pendukung Perbaikan (Bisa Pilih Banyak Berkas)
                     </label>
                     <input
                         type="file"
-                        wire:model="fileBukti"
-                        accept=".pdf,.jpg,.jpeg,.png,.xlsx,.docx"
+                        wire:model="fileBuktiList"
+                        multiple
+                        accept=".pdf,.jpg,.jpeg,.png,.webp,.xlsx,.docx"
                         class="w-full text-xs text-zinc-600 dark:text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
-                    @if ($selectedTemuan->bukti_perbaikan)
-                        <div class="mt-1 text-[11px] text-zinc-500">
-                            Berkas tersimpan saat ini: <a href="{{ Storage::disk('public')->url($selectedTemuan->bukti_perbaikan) }}" target="_blank" class="text-blue-600 underline font-mono">Buka Bukti Tersimpan</a>
+
+                    {{-- Berkas Sementara yang Baru Dipilih --}}
+                    @if (!empty($fileBuktiList) && is_array($fileBuktiList))
+                        <div class="mt-2 space-y-1.5 bg-blue-50/50 dark:bg-blue-950/20 p-2.5 rounded-lg border border-blue-200/80 dark:border-blue-900/40">
+                            <div class="text-[11px] font-semibold text-blue-900 dark:text-blue-300">Berkas Siap Diunggah:</div>
+                            @foreach ($fileBuktiList as $idx => $tempF)
+                                <div class="flex items-center justify-between text-xs text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 p-1.5 rounded border border-zinc-200/80 dark:border-zinc-700/80" wire:key="temp-f-{{ $idx }}">
+                                    <span class="truncate max-w-xs font-medium">{{ $tempF->getClientOriginalName() }} ({{ number_format($tempF->getSize() / 1024, 1) }} KB)</span>
+                                    <button type="button" wire:click="removeTempFile({{ $idx }})" class="text-rose-600 hover:text-rose-700 text-xs font-semibold">Batal</button>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    {{-- Daftar Berkas Tersimpan Sebelumnya --}}
+                    @if (!empty($selectedTemuan->bukti_perbaikan) && is_array($selectedTemuan->bukti_perbaikan) && count($selectedTemuan->bukti_perbaikan) > 0)
+                        <div class="mt-2 space-y-1.5 bg-zinc-50 dark:bg-zinc-800/40 p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                            <div class="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">Berkas Tersimpan Sebelumnya:</div>
+                            @foreach ($selectedTemuan->bukti_perbaikan as $idx => $bf)
+                                <div class="flex items-center justify-between text-xs p-1.5 bg-white dark:bg-zinc-900 rounded border border-zinc-200/80 dark:border-zinc-700/80" wire:key="stored-f-{{ $idx }}">
+                                    <a href="{{ Storage::disk('public')->url($bf['path'] ?? '') }}" target="_blank" class="text-blue-600 hover:underline font-mono truncate max-w-xs flex items-center gap-1.5">
+                                        <flux:icon name="paper-clip" class="size-3.5 shrink-0" />
+                                        <span>{{ $bf['nama'] ?? 'Dokumen Bukti' }}</span>
+                                        @if (!empty($bf['ukuran']))
+                                            <span class="text-[10px] text-zinc-400">({{ number_format($bf['ukuran'] / 1024, 1) }} KB)</span>
+                                        @endif
+                                    </a>
+                                    <button type="button" wire:click="deleteExistingBukti({{ $idx }})" class="text-rose-600 hover:text-rose-700 text-xs font-semibold">Hapus</button>
+                                </div>
+                            @endforeach
                         </div>
                     @endif
                 </div>
@@ -442,13 +470,26 @@
                         <span class="font-semibold text-zinc-700 dark:text-zinc-300">Tindakan Perbaikan Dilakukan:</span>
                         <p class="text-zinc-600 dark:text-zinc-400 mt-0.5">{{ $selectedTemuan->tindakan_perbaikan ?: 'Belum diisi' }}</p>
                     </div>
-                    @if ($selectedTemuan->bukti_perbaikan)
-                        <div class="pt-1.5 border-t border-zinc-200/60 dark:border-zinc-700/60 flex items-center gap-2">
-                            <span class="font-semibold text-zinc-700 dark:text-zinc-300">Bukti Fisik:</span>
-                            <a href="{{ Storage::disk('public')->url($selectedTemuan->bukti_perbaikan) }}" target="_blank" class="text-blue-600 hover:underline font-mono inline-flex items-center gap-1 font-semibold">
-                                <flux:icon name="arrow-top-right-on-square" class="size-3.5" />
-                                <span>Buka Dokumen Bukti Perbaikan</span>
-                            </a>
+                    @if (!empty($selectedTemuan->bukti_perbaikan) && is_array($selectedTemuan->bukti_perbaikan) && count($selectedTemuan->bukti_perbaikan) > 0)
+                        <div class="pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 space-y-1.5">
+                            <span class="font-semibold text-zinc-700 dark:text-zinc-300 block">Daftar Dokumen / Bukti Fisik Terunggah ({{ count($selectedTemuan->bukti_perbaikan) }} berkas):</span>
+                            <div class="space-y-1.5">
+                                @foreach ($selectedTemuan->bukti_perbaikan as $bItem)
+                                    <div class="flex items-center justify-between p-2 rounded bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700">
+                                        <div class="flex items-center gap-2">
+                                            <flux:icon name="{{ in_array($bItem['tipe'] ?? '', ['jpg','jpeg','png','webp']) ? 'photo' : 'document-text' }}" class="size-4 text-blue-600" />
+                                            <span class="font-medium text-zinc-900 dark:text-zinc-100">{{ $bItem['nama'] ?? 'Dokumen Bukti' }}</span>
+                                            @if (!empty($bItem['ukuran']))
+                                                <span class="text-[10px] text-zinc-400 font-mono">({{ number_format($bItem['ukuran'] / 1024, 1) }} KB)</span>
+                                            @endif
+                                        </div>
+                                        <a href="{{ Storage::disk('public')->url($bItem['path'] ?? '') }}" target="_blank" class="text-xs text-blue-600 hover:underline inline-flex items-center gap-1 font-semibold">
+                                            <span>Buka Berkas</span>
+                                            <flux:icon name="arrow-top-right-on-square" class="size-3" />
+                                        </a>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
                     @endif
                 </div>

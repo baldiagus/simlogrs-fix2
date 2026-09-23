@@ -9,6 +9,7 @@ use App\Livewire\Concerns\HasToast;
 use App\Models\Gudang;
 use App\Models\TemuanAudit;
 use App\Models\Unit;
+use App\Support\File\FileOptimizer;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -58,7 +59,7 @@ class RegisterTemuanCapaIndex extends Component
     #[Validate('required|string|min:10')]
     public string $tindakan_perbaikan = '';
 
-    public $fileBukti = null;
+    public $fileBuktiList = [];
 
     // Modal Evaluasi Closing (Auditor)
     public bool $showEvaluasiModal = false;
@@ -139,7 +140,7 @@ class RegisterTemuanCapaIndex extends Component
         $temuan = TemuanAudit::findOrFail($id);
         $this->analisis_penyebab = $temuan->analisis_penyebab ?? '';
         $this->tindakan_perbaikan = $temuan->tindakan_perbaikan ?? '';
-        $this->reset('fileBukti');
+        $this->fileBuktiList = [];
         $this->showTindakLanjutModal = true;
     }
 
@@ -152,25 +153,56 @@ class RegisterTemuanCapaIndex extends Component
         $this->validate([
             'analisis_penyebab'  => 'required|string|min:10',
             'tindakan_perbaikan' => 'required|string|min:10',
-            'fileBukti'          => 'nullable|file|mimes:jpg,jpeg,png,pdf,xlsx,docx|max:10240',
+            'fileBuktiList.*'    => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf,xlsx,docx|max:10240',
         ]);
 
         $temuan = TemuanAudit::findOrFail($this->selectedTemuanId);
+        $existingBukti = is_array($temuan->bukti_perbaikan) ? $temuan->bukti_perbaikan : [];
 
-        $buktiPath = $temuan->bukti_perbaikan;
-        if ($this->fileBukti) {
-            $buktiPath = $this->fileBukti->store('audit/capa', 'public');
+        if (! empty($this->fileBuktiList)) {
+            $files = is_array($this->fileBuktiList) ? $this->fileBuktiList : [$this->fileBuktiList];
+            foreach ($files as $file) {
+                if ($file) {
+                    $existingBukti[] = FileOptimizer::optimizeAndStore($file, 'audit/capa');
+                }
+            }
         }
 
         $temuan->update([
             'analisis_penyebab'  => $this->analisis_penyebab,
             'tindakan_perbaikan' => $this->tindakan_perbaikan,
-            'bukti_perbaikan'    => $buktiPath,
+            'bukti_perbaikan'    => $existingBukti,
             'status_capa'        => 'In Review',
         ]);
 
+        $this->fileBuktiList = [];
         $this->showTindakLanjutModal = false;
         $this->toast("Tindak lanjut perbaikan untuk {$temuan->kode} berhasil dikirim (Status: In Review).", 'success');
+    }
+
+    public function removeTempFile(int $index): void
+    {
+        unset($this->fileBuktiList[$index]);
+        $this->fileBuktiList = array_values($this->fileBuktiList);
+    }
+
+    public function deleteExistingBukti(int $index): void
+    {
+        if (! $this->selectedTemuanId) {
+            return;
+        }
+
+        $temuan = TemuanAudit::findOrFail($this->selectedTemuanId);
+        $bukti = is_array($temuan->bukti_perbaikan) ? $temuan->bukti_perbaikan : [];
+        if (isset($bukti[$index])) {
+            $path = $bukti[$index]['path'] ?? null;
+            if ($path) {
+                Storage::disk('public')->delete($path);
+            }
+            unset($bukti[$index]);
+            $temuan->update(['bukti_perbaikan' => array_values($bukti)]);
+            $this->toast("Lampiran berkas bukti berhasil dihapus.", 'info');
+        }
     }
 
     public function openEvaluasiClosing(int $id): void

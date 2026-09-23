@@ -13,7 +13,10 @@ RUN apk add --no-cache \
     libpng-dev \
     libjpeg-turbo-dev \
     freetype-dev \
-    bash
+    tzdata \
+    bash \
+    && cp /usr/share/zoneinfo/Asia/Jakarta /etc/localtime \
+    && echo "Asia/Jakarta" > /etc/timezone
 
 # Pasang ekstensi PHP via mlocati/docker-php-extension-installer
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
@@ -45,7 +48,8 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/docker-php-ext-opcache.
     && echo "realpath_cache_ttl=600" >> /usr/local/etc/php/conf.d/custom.ini \
     && echo "memory_limit=512M" >> /usr/local/etc/php/conf.d/custom.ini \
     && echo "upload_max_filesize=50M" >> /usr/local/etc/php/conf.d/custom.ini \
-    && echo "post_max_size=50M" >> /usr/local/etc/php/conf.d/custom.ini
+    && echo "post_max_size=50M" >> /usr/local/etc/php/conf.d/custom.ini \
+    && echo "date.timezone=Asia/Jakarta" >> /usr/local/etc/php/conf.d/custom.ini
 
 WORKDIR /var/www/html
 

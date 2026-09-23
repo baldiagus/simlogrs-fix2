@@ -16,6 +16,7 @@ class TemuanAudit extends BaseModel
         return [
             'tanggal_audit'   => 'date',
             'due_date_capa'   => 'date',
+            'bukti_perbaikan' => 'array',
             'dibuat_pada'     => 'datetime',
             'diperbarui_pada' => 'datetime',
         ];

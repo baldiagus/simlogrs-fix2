@@ -11,6 +11,7 @@ use App\Models\PergerakanStok;
 use App\Models\PermintaanMaintenance;
 use App\Models\StokBatch;
 use App\Models\SukuCadangMaintenance;
+use App\Support\File\FileOptimizer;
 use App\Support\Generator\CodeGenerator;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -65,9 +66,9 @@ class MaintenanceApiController extends ApiController
         $fotoPath = null;
         $fotoUrl = null;
         if ($request->hasFile('foto')) {
-            $file = $request->file('foto');
-            $fotoPath = $file->store('maintenance/kerusakan', 'public');
-            $fotoUrl = Storage::disk('public')->url($fotoPath);
+            $opt = FileOptimizer::optimizeAndStore($request->file('foto'), 'maintenance/kerusakan');
+            $fotoPath = $opt['path'];
+            $fotoUrl = $opt['url'];
         }
 
         $kodeTiket = CodeGenerator::generateMnt();
@@ -295,9 +296,9 @@ class MaintenanceApiController extends ApiController
         $fotoLogPath = null;
         $fotoLogUrl = null;
         if ($request->hasFile('foto')) {
-            $file = $request->file('foto');
-            $fotoLogPath = $file->store('maintenance/pengerjaan', 'public');
-            $fotoLogUrl = Storage::disk('public')->url($fotoLogPath);
+            $opt = FileOptimizer::optimizeAndStore($request->file('foto'), 'maintenance/pengerjaan');
+            $fotoLogPath = $opt['path'];
+            $fotoLogUrl = $opt['url'];
         }
 
         $tglPengerjaan = $validated['tanggal_pengerjaan'] ?? now();
