@@ -40,8 +40,57 @@
             'manajemen'      => ['label' => 'Manajemen Direksi', 'badge' => 'slate'],
             'auditor'        => ['label' => 'Auditor Internal', 'badge' => 'rose'],
         ];
-
         $currentPortal = $portalMeta[$portalKey] ?? $portalMeta['super-admin'];
+
+        // Evaluasi grup sidebar aktif (tertutup default, terbuka otomatis di rute aktif)
+        $isMasterActive = request()->is(
+            '*/barang', '*/barang/*',
+            '*/aset', '*/aset/*',
+            '*/unit', '*/unit/*',
+            '*/gudang', '*/gudang/*',
+            '*/lokasi-gudang', '*/lokasi-gudang/*',
+            '*/kategori', '*/kategori/*',
+            '*/satuan', '*/satuan/*',
+            '*/merek', '*/merek/*',
+            '*/pemasok', '*/pemasok/*'
+        );
+
+        $isPengadaanActive = request()->is(
+            '*/permintaan-pengadaan*',
+            '*/pesanan-pembelian*',
+            '*/tracking-po*',
+            '*/penerimaan-po*'
+        );
+
+        $isDistribusiActive = request()->is(
+            '*/permintaan-barang*',
+            '*/approval-permintaan*',
+            '*/distribusi-approval*',
+            '*/picking-distribusi*',
+            '*/penerimaan-barang*'
+        );
+
+        $isSirkulasiActive = request()->is(
+            '*/peminjaman-aset*',
+            '*/approval-peminjaman*',
+            '*/pengembalian-aset*'
+        );
+
+        $isIpsrsActive = request()->is(
+            '*/lapor-servis*',
+            '*/spk*',
+            '*/lembar-kerja*',
+            '*/rekam-medis-aset*',
+            '*/jadwal-preventif*'
+        );
+
+        $isPersediaanActive = request()->is(
+            '*/monitoring-fefo*',
+            '*/buku-mutasi*',
+            '*/stok-opname*',
+            '*/otorisasi-penyesuaian*',
+            '*/selisih-opname*'
+        );
     @endphp
 
     {{-- Official Flux Sidebar (Full Height di Kolom Kiri) --}}
@@ -75,7 +124,7 @@
             @endcan
 
             @can('view_any_master::barang')
-                <flux:sidebar.group expandable heading="Master & Logistik" class="grid">
+                <flux:sidebar.group expandable :expanded="$isMasterActive" heading="Master & Logistik" class="grid">
                     <flux:sidebar.item icon="cube" href="/{{ $portalKey }}/barang" wire:navigate :current="request()->is('*/barang')">
                         Katalog Barang
                     </flux:sidebar.item>
@@ -123,7 +172,7 @@
             @endcan
 
             @can('view_any_pengadaan::permintaan::pengadaan')
-                <flux:sidebar.group expandable heading="Pengadaan" class="grid">
+                <flux:sidebar.group expandable :expanded="$isPengadaanActive" heading="Pengadaan" class="grid">
                     <flux:sidebar.item icon="document-text" href="/{{ $portalKey }}/permintaan-pengadaan" wire:navigate :current="request()->is('*/permintaan-pengadaan')">
                         Permintaan (PR)
                     </flux:sidebar.item>
@@ -146,7 +195,7 @@
             @endcan
 
             @if ($user->can('view_any_layanan_unit::permintaan::barang') || $user->can('view_any_layanan_unit::approval::karu') || $user->can('view_any_layanan_unit::penerimaan::barang') || $user->can('view_any_gudang_stok::distribusi::approval') || $user->can('view_any_gudang_stok::picking::distribusi'))
-                <flux:sidebar.group expandable heading="Distribusi & Amprah" class="grid">
+                <flux:sidebar.group expandable :expanded="$isDistribusiActive" heading="Distribusi & Amprah" class="grid">
                     @can('view_any_layanan_unit::permintaan::barang')
                         <flux:sidebar.item icon="arrow-up-tray" href="/{{ $portalKey }}/permintaan-barang" wire:navigate :current="request()->is('*/permintaan-barang')">
                             Permintaan Amprah
@@ -176,7 +225,7 @@
             @endif
 
             @if ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_any_layanan_unit::approval::peminjaman') || $user->can('view_any_layanan_unit::pengembalian::aset'))
-                <flux:sidebar.group expandable heading="Sirkulasi Aset" class="grid">
+                <flux:sidebar.group expandable :expanded="$isSirkulasiActive" heading="Sirkulasi Aset" class="grid">
                     @can('view_any_layanan_unit::peminjaman::aset')
                         <flux:sidebar.item icon="arrow-path" href="/{{ $portalKey }}/peminjaman-aset" wire:navigate :current="request()->is('*/peminjaman-aset')">
                             Peminjaman Aset
@@ -196,7 +245,7 @@
             @endif
 
             @if ($user->can('view_any_layanan_unit::lapor::servis') || $user->can('view_any_pemeliharaan::spk::perbaikan') || $user->can('view_any_pemeliharaan::lembar::kerja') || $user->can('view_any_pemeliharaan::rekam::medis::aset') || $user->can('view_any_pemeliharaan::pemeliharaan::berkala'))
-                <flux:sidebar.group expandable heading="Pemeliharaan & IPSRS" class="grid">
+                <flux:sidebar.group expandable :expanded="$isIpsrsActive" heading="Pemeliharaan & IPSRS" class="grid">
                     @can('view_any_layanan_unit::lapor::servis')
                         <flux:sidebar.item icon="wrench" href="/{{ $portalKey }}/lapor-servis" wire:navigate :current="request()->is('*/lapor-servis')">
                             Lapor Kerusakan
@@ -226,7 +275,7 @@
             @endif
 
             @if ($user->can('view_any_gudang_stok::monitoring::fefo') || $user->can('view_any_gudang_stok::buku::mutasi') || $user->can('view_any_gudang_stok::stok::opname') || $user->can('view_any_gudang_stok::otorisasi::penyesuaian') || $user->can('view_any_audit_manajemen::selisih::opname'))
-                <flux:sidebar.group expandable heading="Persediaan & Opname" class="grid">
+                <flux:sidebar.group expandable :expanded="$isPersediaanActive" heading="Persediaan & Opname" class="grid">
                     @can('view_any_gudang_stok::monitoring::fefo')
                         <flux:sidebar.item icon="clock" href="/{{ $portalKey }}/monitoring-fefo" wire:navigate :current="request()->is('*/monitoring-fefo')">
                             Monitoring FEFO
