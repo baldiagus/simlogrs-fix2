@@ -261,11 +261,11 @@
         :variant="$confirmButtonVariant"
     />
 
-    <flux:modal wire:model="showDetailModal" class="md:w-[42rem]">
+    <flux:modal wire:model="showDetailModal" class="md:w-[48rem]">
         @if ($selectedBarang)
             <div>
                 <flux:heading size="lg">Detail Komoditas: {{ $selectedBarang->nama }}</flux:heading>
-                <flux:subheading>Informasi lengkap data komoditas logistik.</flux:subheading>
+                <flux:subheading>Informasi lengkap data komoditas logistik dan status ketersediaan fisik saat ini.</flux:subheading>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-xs">
@@ -332,6 +332,206 @@
                     <div class="mt-0.5"><x-status-badge :status="$selectedBarang->status" /></div>
                 </div>
             </div>
+            @php
+                $stokGudang = $selectedBarang->stokBatch->where('status', '!=', 'HABIS')->sum('jumlah');
+                $valuasiGudang = $selectedBarang->stokBatch->where('status', '!=', 'HABIS')->sum(function ($b) {
+                    return $b->jumlah * ($b->harga_satuan ?? 0);
+                });
+                $stokRuangan = $selectedBarang->stokRuangan->sum('jumlah');
+                $totalStokFisik = $stokGudang + $stokRuangan;
+
+                $stokMin = (int) $selectedBarang->stok_minimum;
+                $titikPesan = (int) $selectedBarang->titik_pesan;
+
+                if ($totalStokFisik == 0) {
+                    $ketersediaanBadge = ['label' => 'Habis (0)', 'color' => 'rose'];
+                } elseif ($titikPesan > 0 && $totalStokFisik <= $titikPesan) {
+                    $ketersediaanBadge = ['label' => 'Perlu Pesan (ROP)', 'color' => 'amber'];
+                } elseif ($stokMin > 0 && $totalStokFisik < $stokMin) {
+                    $ketersediaanBadge = ['label' => 'Di Bawah Minimum', 'color' => 'amber'];
+                } else {
+                    $ketersediaanBadge = ['label' => 'Aman / Optimal', 'color' => 'emerald'];
+                }
+            @endphp
+
+            {{-- 3 Kartu Ringkasan Stok Cepat --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
+                {{-- Saldo di Gudang --}}
+                <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/80 shadow-xs space-y-1">
+                    <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 text-xs">
+                        <span class="font-semibold">Stok Fisik di Gudang</span>
+                        <flux:icon name="building-storefront" class="size-4 text-blue-600" />
+                    </div>
+                    <div class="text-xl font-bold font-mono text-zinc-900 dark:text-zinc-100">
+                        {{ number_format($stokGudang, 0, ',', '.') }} <span class="text-xs font-sans text-zinc-500 font-normal">{{ $selectedBarang->satuan?->simbol ?? $selectedBarang->satuan?->kode ?? 'Unit' }}</span>
+                    </div>
+                    <div class="text-[11px] text-zinc-400">Tersedia di rak penyimpanan</div>
+                </div>
+
+                {{-- Saldo di Ruangan --}}
+                <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/80 shadow-xs space-y-1">
+                    <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 text-xs">
+                        <span class="font-semibold">Stok di Ruangan</span>
+                        <flux:icon name="building-office-2" class="size-4 text-emerald-600" />
+                    </div>
+                    <div class="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                        {{ number_format($stokRuangan, 0, ',', '.') }} <span class="text-xs font-sans text-zinc-500 font-normal">{{ $selectedBarang->satuan?->simbol ?? $selectedBarang->satuan?->kode ?? 'Unit' }}</span>
+                    </div>
+                    <div class="text-[11px] text-zinc-400">Standby di unit pelayanan</div>
+                </div>
+
+                {{-- Valuasi & Status Ketersediaan --}}
+                <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/80 shadow-xs space-y-1">
+                    <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 text-xs">
+                        <span class="font-semibold">Status Ketersediaan</span>
+                        <flux:badge size="sm" :color="$ketersediaanBadge['color']">{{ $ketersediaanBadge['label'] }}</flux:badge>
+                    </div>
+                    <div class="text-base font-bold font-mono text-zinc-900 dark:text-zinc-100">
+                        <x-rupiah :value="$valuasiGudang" />
+                    </div>
+                    <div class="text-[11px] text-zinc-400">Total valuasi saldo di gudang</div>
+                </div>
+            </div>
+
+            {{-- Jika Tipe Barang adalah ASET --}}
+            @if ($selectedBarang->tipe === 'ASET')
+                <div class="space-y-3 pt-3 border-t border-zinc-200 dark:border-zinc-700">
+                    <div class="flex items-center justify-between">
+                        <flux:heading size="sm">Daftar Unit Fisik Sarana / Aset ({{ $selectedBarang->aset->count() }} Unit)</flux:heading>
+                        <div class="flex items-center gap-2 text-xs font-mono">
+                            <span class="text-emerald-600 font-semibold">{{ $selectedBarang->aset->where('kondisi', 'BAIK')->count() }} Baik</span> &bull;
+                            <span class="text-amber-600 font-semibold">{{ $selectedBarang->aset->where('kondisi', 'RUSAK_RINGAN')->count() }} Rusak Ringan</span> &bull;
+                            <span class="text-rose-600 font-semibold">{{ $selectedBarang->aset->where('kondisi', 'RUSAK_BERAT')->count() }} Rusak Berat</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto max-h-48 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-b border-zinc-200 dark:border-zinc-700 sticky top-0">
+                                <tr>
+                                    <th class="py-2 px-3">Kode Aset</th>
+                                    <th class="py-2 px-3">Lokasi Unit / Ruangan</th>
+                                    <th class="py-2 px-3 text-center">Kondisi</th>
+                                    <th class="py-2 px-3 text-center">Status</th>
+                                    <th class="py-2 px-3 text-center">Tgl Perolehan</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                                @forelse ($selectedBarang->aset as $ast)
+                                    <tr>
+                                        <td class="py-2 px-3 font-mono font-semibold">{{ $ast->kode_aset ?? '-' }}</td>
+                                        <td class="py-2 px-3 text-zinc-800 dark:text-zinc-200">{{ $ast->unit?->nama ?? $ast->gudang?->nama ?? 'Sentral' }}</td>
+                                        <td class="py-2 px-3 text-center">
+                                            <flux:badge size="xs" :color="$ast->kondisi === 'BAIK' ? 'emerald' : ($ast->kondisi === 'RUSAK_RINGAN' ? 'amber' : 'rose')">
+                                                {{ $ast->kondisi }}
+                                            </flux:badge>
+                                        </td>
+                                        <td class="py-2 px-3 text-center">
+                                            <flux:badge size="xs" :color="$ast->status === 'TERSEDIA' ? 'blue' : ($ast->status === 'DIGUNAKAN' ? 'emerald' : 'amber')">
+                                                {{ $ast->status }}
+                                            </flux:badge>
+                                        </td>
+                                        <td class="py-2 px-3 font-mono text-center text-zinc-500">
+                                            {{ $ast->tanggal_perolehan ? $ast->tanggal_perolehan->format('d/m/Y') : '-' }}
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="py-4 text-center text-zinc-500 text-xs">
+                                            Belum ada unit aset terdaftar untuk komoditas ini.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @else
+                {{-- Jika Tipe Barang Habis Pakai / Sparepart --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-zinc-200 dark:border-zinc-700">
+                    {{-- Kolom Kiri: Rincian Batch Gudang --}}
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <flux:heading size="sm">Rincian Batch di Gudang (FEFO)</flux:heading>
+                            <flux:badge size="xs" color="blue">{{ $selectedBarang->stokBatch->where('status', '!=', 'HABIS')->count() }} Batch</flux:badge>
+                        </div>
+
+                        <div class="overflow-x-auto max-h-48 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-b border-zinc-200 dark:border-zinc-700 sticky top-0">
+                                    <tr>
+                                        <th class="py-2 px-2.5">Batch / Rak</th>
+                                        <th class="py-2 px-2.5 text-center">Kedaluwarsa</th>
+                                        <th class="py-2 px-2.5 text-right">Saldo</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                                    @forelse ($selectedBarang->stokBatch->where('status', '!=', 'HABIS') as $batch)
+                                        <tr>
+                                            <td class="py-2 px-2.5">
+                                                <div class="font-mono font-semibold text-zinc-900 dark:text-zinc-100">{{ $batch->nomor_batch }}</div>
+                                                <div class="text-[10px] text-zinc-400 font-mono">
+                                                    {{ $batch->gudang?->nama ?? 'Gudang' }} &bull; {{ $batch->lokasiGudang?->nama_lokasi ?? 'Rak -' }}
+                                                </div>
+                                            </td>
+                                            <td class="py-2 px-2.5 text-center font-mono {{ $batch->tanggal_kedaluwarsa && $batch->tanggal_kedaluwarsa->isPast() ? 'text-rose-600 font-bold' : ($batch->tanggal_kedaluwarsa && $batch->tanggal_kedaluwarsa->diffInDays(now()) <= 90 ? 'text-amber-600 font-semibold' : 'text-zinc-600 dark:text-zinc-400') }}">
+                                                {{ $batch->tanggal_kedaluwarsa ? $batch->tanggal_kedaluwarsa->format('d/m/Y') : '-' }}
+                                            </td>
+                                            <td class="py-2 px-2.5 text-right font-mono font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
+                                                {{ number_format($batch->jumlah, 0, ',', '.') }}
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="py-4 text-center text-zinc-500 text-xs">
+                                                Tidak ada batch aktif di gudang.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {{-- Kolom Kanan: Rincian Sebaran di Ruangan --}}
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <flux:heading size="sm">Sebaran Persediaan di Ruangan</flux:heading>
+                            <flux:badge size="xs" color="emerald">{{ $selectedBarang->stokRuangan->count() }} Unit</flux:badge>
+                        </div>
+
+                        <div class="overflow-x-auto max-h-48 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-b border-zinc-200 dark:border-zinc-700 sticky top-0">
+                                    <tr>
+                                        <th class="py-2 px-2.5">Unit Ruangan</th>
+                                        <th class="py-2 px-2.5 text-right">Saldo Standby</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                                    @forelse ($selectedBarang->stokRuangan as $stkR)
+                                        <tr>
+                                            <td class="py-2 px-2.5">
+                                                <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $stkR->unit?->nama ?? '-' }}</div>
+                                                <div class="text-[10px] text-zinc-400 font-mono">Kode: {{ $stkR->unit?->kode ?? '-' }}</div>
+                                            </td>
+                                            <td class="py-2 px-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                                {{ number_format($stkR->jumlah, 0, ',', '.') }}
+                                            </td>
+                                        </tr>
+                                    @empty
+                                         <tr>
+                                            <td colspan="2" class="py-4 text-center text-zinc-500 text-xs">
+                                                Belum ada barang di ruangan.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">Tutup</flux:button>

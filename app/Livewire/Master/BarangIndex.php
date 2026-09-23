@@ -91,7 +91,17 @@ class BarangIndex extends Component
 
     public function showDetail(int $id): void
     {
-        $this->selectedBarang = Barang::with(['kategori', 'satuan', 'merek', 'pemasokDefault'])->findOrFail($id);
+        $this->selectedBarang = Barang::with([
+            'kategori',
+            'satuan',
+            'merek',
+            'pemasokDefault',
+            'stokBatch.gudang',
+            'stokBatch.lokasiGudang',
+            'stokRuangan.unit',
+            'aset.unit',
+            'aset.gudang',
+        ])->findOrFail($id);
         $this->showDetailModal = true;
     }
 
