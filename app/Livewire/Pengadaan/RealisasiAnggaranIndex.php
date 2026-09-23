@@ -6,7 +6,9 @@ use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\AnggaranPengadaan;
-use App\Models\PesananPembelian;
+use App\Models\PengirimanBarang;
+use App\Models\SukuCadangMaintenance;
+use App\Services\Anggaran\AnggaranRealtimeService;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -16,6 +18,9 @@ class RealisasiAnggaranIndex extends Component
 
     #[Url(history: true)]
     public string $filterTahun = '2026';
+
+    #[Url(history: true)]
+    public string $activeTab = 'unit'; // 'unit' | 'sparepart'
 
     public ?int $selectedAnggaranId = null;
     public bool $showDetailModal = false;
@@ -40,44 +45,83 @@ class RealisasiAnggaranIndex extends Component
     public function getSelectedAnggaranProperty(): ?AnggaranPengadaan
     {
         return $this->selectedAnggaranId
-            ? AnggaranPengadaan::find($this->selectedAnggaranId)
+            ? AnggaranPengadaan::with('unit')->find($this->selectedAnggaranId)
             : null;
     }
 
     public function render()
     {
-        $query = AnggaranPengadaan::where('tahun', $this->filterTahun);
+        $service = app(AnggaranRealtimeService::class);
+        $service->syncRealisasiAnggaran($this->filterTahun);
+        $ringkasan = $service->getRingkasanEksekutif($this->filterTahun);
+
+        // 1. Data Tab Unit Ruangan
+        $unitQuery = AnggaranPengadaan::with('unit')
+            ->where('tahun', $this->filterTahun)
+            ->where('tipe', 'UNIT');
 
         if (! empty($this->search)) {
-            $query->where(function ($q) {
+            $unitQuery->where(function ($q) {
                 $q->where('pos_anggaran', 'ilike', "%{$this->search}%")
-                  ->orWhere('kode', 'ilike', "%{$this->search}%");
+                  ->orWhere('kode', 'ilike', "%{$this->search}%")
+                  ->orWhereHas('unit', fn ($u) => $u->where('nama', 'ilike', "%{$this->search}%"));
             });
         }
 
-        $items = $query->orderBy('kode')->get();
+        $unitAnggarans = $unitQuery->orderBy('kode')->get()->map(function ($anggaran) use ($service) {
+            $anggaran->beban_distribusi = $anggaran->unit_id ? $service->hitungBebanDistribusiUnit($anggaran->unit_id, $this->filterTahun) : 0;
+            $anggaran->beban_sparepart = $anggaran->unit_id ? $service->hitungBebanSparepartUnit($anggaran->unit_id, $this->filterTahun) : 0;
+            return $anggaran;
+        });
 
-        $totalPagu = (float) AnggaranPengadaan::where('tahun', $this->filterTahun)->sum('pagu');
-        $totalRealisasi = (float) AnggaranPengadaan::where('tahun', $this->filterTahun)->sum('realisasi');
-        $totalSisa = max(0, $totalPagu - $totalRealisasi);
-        $serapanPersen = $totalPagu > 0 ? round(($totalRealisasi / $totalPagu) * 100, 1) : 0;
+        // 2. Data Tab Pos Sparepart IPSRS
+        $sparepartAnggaran = AnggaranPengadaan::with('unit')
+            ->where('tahun', $this->filterTahun)
+            ->where('tipe', 'SPAREPART_IPSRS')
+            ->first();
 
-        // Daftar PO yang sudah disetujui untuk konteks penelusuran
-        $poList = PesananPembelian::with(['pemasok', 'pembuat'])
-            ->whereIn('status', ['DISETUJUI', 'SELESAI', 'DITERIMA'])
+        $topAset = $service->getTopAsetBiayaPemeliharaan($this->filterTahun, 5);
+
+        $riwayatSparepartTerbaru = SukuCadangMaintenance::with(['barang', 'stokBatch', 'permintaanMaintenance.aset', 'permintaanMaintenance.unit'])
+            ->whereYear('dibuat_pada', $this->filterTahun)
             ->latest('id')
             ->take(10)
             ->get();
+
+        // 3. Drilldown Data untuk Unit yang Dipilih di Modal
+        $riwayatSppbUnit = collect();
+        $riwayatServisUnit = collect();
+
+        if ($this->selectedAnggaran && $this->selectedAnggaran->unit_id) {
+            $uId = $this->selectedAnggaran->unit_id;
+
+            $riwayatSppbUnit = PengirimanBarang::with(['gudang', 'detail.barang', 'detail.stokBatch'])
+                ->where('unit_id', $uId)
+                ->whereIn('status', ['DIKIRIM', 'DITERIMA'])
+                ->whereYear('tanggal_kirim', $this->filterTahun)
+                ->latest('tanggal_kirim')
+                ->take(10)
+                ->get();
+
+            $riwayatServisUnit = SukuCadangMaintenance::with(['barang', 'permintaanMaintenance.aset'])
+                ->whereHas('permintaanMaintenance', fn ($q) => $q->where('unit_id', $uId))
+                ->whereYear('dibuat_pada', $this->filterTahun)
+                ->latest('id')
+                ->take(10)
+                ->get();
+        }
+
         return view('livewire.pengadaan.realisasi-anggaran-index', [
-            'items' => $items,
-            'totalPagu' => $totalPagu,
-            'totalRealisasi' => $totalRealisasi,
-            'totalSisa' => $totalSisa,
-            'serapanPersen' => $serapanPersen,
-            'poList' => $poList,
-            'selectedAnggaran' => $this->selectedAnggaran,
+            'ringkasan'               => $ringkasan,
+            'unitAnggarans'           => $unitAnggarans,
+            'sparepartAnggaran'       => $sparepartAnggaran,
+            'topAset'                 => $topAset,
+            'riwayatSparepartTerbaru' => $riwayatSparepartTerbaru,
+            'riwayatSppbUnit'         => $riwayatSppbUnit,
+            'riwayatServisUnit'       => $riwayatServisUnit,
+            'selectedAnggaran'        => $this->selectedAnggaran,
         ])->layout('layouts.portal', [
-            'title' => 'Pagu & Realisasi Anggaran Belanja Logistik',
+            'title' => 'Pagu & Realisasi Anggaran Pengeluaran Logistik & IPSRS',
             'portal' => $this->getPortalName(),
         ]);
     }

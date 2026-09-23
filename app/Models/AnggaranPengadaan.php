@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasAuditLog;
-
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AnggaranPengadaan extends BaseModel
 {
     use HasAuditLog;
@@ -21,5 +21,10 @@ class AnggaranPengadaan extends BaseModel
             'dibuat_pada' => 'datetime',
             'diperbarui_pada' => 'datetime',
         ];
+    }
+
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class, 'unit_id');
     }
 }

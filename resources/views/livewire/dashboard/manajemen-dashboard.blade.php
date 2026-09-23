@@ -44,9 +44,13 @@
             <div class="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
                 <div class="h-2 rounded-full {{ $serapanPersen > 75 ? 'bg-amber-500' : 'bg-emerald-600' }}" style="width: {{ min(100, $serapanPersen) }}%"></div>
             </div>
-            <div class="text-[11px] text-zinc-500 flex justify-between">
-                <span>Realisasi: Rp {{ number_format($totalRealisasi, 0, ',', '.') }}</span>
+            <div class="text-[11px] text-zinc-500 flex justify-between font-mono">
+                <span>Beban: Rp {{ number_format($totalRealisasi, 0, ',', '.') }}</span>
                 <span>Pagu: Rp {{ number_format($totalPagu, 0, ',', '.') }}</span>
+            </div>
+            <div class="text-[10px] text-zinc-400 flex justify-between pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                <span>Amprah: Rp {{ number_format($totalDistribusi ?? 0, 0, ',', '.') }}</span>
+                <span>Sparepart: Rp {{ number_format($totalSparepart ?? 0, 0, ',', '.') }}</span>
             </div>
         </flux:card>
 
