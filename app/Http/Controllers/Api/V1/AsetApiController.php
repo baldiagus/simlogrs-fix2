@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Aset;
+use App\Models\StokBatch;
 use App\Models\PermintaanPeminjaman;
 use App\Services\Aset\PeminjamanAsetService;
 use Exception;
@@ -21,13 +22,19 @@ class AsetApiController extends ApiController
             'kode_aset' => 'required|string|max:100',
         ]);
 
-        $kodeAset = trim($request->input('kode_aset'));
+        $query = trim($request->input('kode_aset'));
         $aset = Aset::with(['barang.kategori', 'barang.satuan', 'unit', 'gudang', 'lokasiGudang'])
-            ->where('kode_aset', $kodeAset)
+            ->whereRaw('LOWER(kode_aset) = ?', [strtolower($query)])
+            ->orWhereRaw('LOWER(nomor_seri) = ?', [strtolower($query)])
+            ->orWhereHas('barang', fn ($q) => $q->whereRaw('LOWER(nama) LIKE ?', ['%' . strtolower($query) . '%']))
             ->first();
 
         if (! $aset) {
-            return $this->jsonError("Aset dengan kode '{$kodeAset}' tidak ditemukan di sistem.", 404);
+            $batch = StokBatch::whereRaw('LOWER(nomor_batch) = ?', [strtolower($query)])->first();
+            if ($batch) {
+                return $this->jsonError("Kode '{$query}' adalah nomor batch logistik gudang. Silakan periksa di menu Pemindai Barcode Gudang.", 404);
+            }
+            return $this->jsonError("Aset dengan kode atau kata kunci '{$query}' tidak ditemukan di sistem.", 404);
         }
 
         // Lokasi aktif saat ini
