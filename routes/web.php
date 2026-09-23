@@ -43,6 +43,9 @@ use App\Livewire\Persediaan\MonitoringStokFefoIndex;
 use App\Livewire\Persediaan\BukuMutasiIndex;
 use App\Livewire\Persediaan\StockOpnameIndex;
 use App\Livewire\Persediaan\OtorisasiPenyesuaianIndex;
+use App\Livewire\Audit\AuditTrailIndex;
+use App\Livewire\Audit\AuditKepatuhanPengadaanIndex;
+use App\Livewire\Audit\RegisterTemuanCapaIndex;
 use App\Http\Controllers\SpkPrintController;
 
 // Root Gateway & Login Form
@@ -131,5 +134,10 @@ foreach ($portals as $portalKey => $dashboardClass) {
             Route::get('/stok-opname', StockOpnameIndex::class)->name('stok-opname');
             Route::get('/otorisasi-penyesuaian', OtorisasiPenyesuaianIndex::class)->name('otorisasi-penyesuaian');
             Route::get('/selisih-opname', OtorisasiPenyesuaianIndex::class)->name('selisih-opname');
+
+            // Tata Kelola Audit Internal, SPI & CAPA (Grup 8)
+            Route::get('/audit-trail', AuditTrailIndex::class)->name('audit-trail');
+            Route::get('/kepatuhan-pengadaan', AuditKepatuhanPengadaanIndex::class)->name('kepatuhan-pengadaan');
+            Route::get('/temuan-capa', RegisterTemuanCapaIndex::class)->name('temuan-capa');
         });
 }

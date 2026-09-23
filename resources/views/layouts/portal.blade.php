@@ -91,6 +91,12 @@
             '*/otorisasi-penyesuaian*',
             '*/selisih-opname*'
         );
+
+        $isAuditActive = request()->is(
+            '*/audit-trail*',
+            '*/kepatuhan-pengadaan*',
+            '*/temuan-capa*'
+        );
     @endphp
 
     {{-- Official Flux Sidebar (Full Height di Kolom Kiri) --}}
@@ -299,6 +305,26 @@
                     @can('view_any_audit_manajemen::selisih::opname')
                         <flux:sidebar.item icon="scale" href="/{{ $portalKey }}/selisih-opname" wire:navigate :current="request()->is('*/selisih-opname')">
                             Selisih Opname (Audit)
+                        </flux:sidebar.item>
+                    @endcan
+                </flux:sidebar.group>
+            @endif
+
+            @if ($user->can('view_any_audit_manajemen::audit::trail') || $user->can('view_any_audit_manajemen::kepatuhan::pengadaan') || $user->can('view_any_audit_manajemen::temuan::capa'))
+                <flux:sidebar.group expandable :expanded="$isAuditActive" heading="Audit Internal (SPI)" class="grid">
+                    @can('view_any_audit_manajemen::audit::trail')
+                        <flux:sidebar.item icon="document-magnifying-glass" href="/{{ $portalKey }}/audit-trail" wire:navigate :current="request()->is('*/audit-trail*')">
+                            Audit Trail (Forensik)
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_audit_manajemen::kepatuhan::pengadaan')
+                        <flux:sidebar.item icon="shield-exclamation" href="/{{ $portalKey }}/kepatuhan-pengadaan" wire:navigate :current="request()->is('*/kepatuhan-pengadaan*')">
+                            Kepatuhan Pengadaan
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_audit_manajemen::temuan::capa')
+                        <flux:sidebar.item icon="clipboard-document-list" href="/{{ $portalKey }}/temuan-capa" wire:navigate :current="request()->is('*/temuan-capa*')">
+                            Temuan Audit & CAPA
                         </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
