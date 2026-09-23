@@ -12,6 +12,7 @@ use App\Livewire\Dashboard\UnitDashboard;
 use App\Livewire\Dashboard\TeknisiDashboard;
 use App\Livewire\Dashboard\ManajemenDashboard;
 use App\Livewire\Dashboard\AuditorDashboard;
+use App\Livewire\User\PenggunaIndex;
 use App\Livewire\User\RoleManager;
 use App\Livewire\Master\UnitIndex;
 use App\Livewire\Master\GudangIndex;
@@ -91,6 +92,7 @@ foreach ($portals as $portalKey => $dashboardClass) {
 
             // Manajemen RBAC Khusus Super Admin
             if ($portalKey === 'super-admin') {
+                Route::get('/pengguna', PenggunaIndex::class)->name('pengguna');
                 Route::get('/roles', RoleManager::class)->name('roles');
                 Route::get('/scheduler', SchedulerNotifikasiIndex::class)->name('scheduler');
             }
