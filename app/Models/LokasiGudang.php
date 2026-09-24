@@ -18,4 +18,9 @@ class LokasiGudang extends BaseModel
     {
         return $this->hasMany(Aset::class, 'lokasi_gudang_id');
     }
+
+    public function stokBatch(): HasMany
+    {
+        return $this->hasMany(StokBatch::class, 'lokasi_gudang_id');
+    }
 }

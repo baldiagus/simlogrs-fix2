@@ -135,10 +135,23 @@
                     </flux:subheading>
                 </div>
 
-                {{-- Deskripsi Keluhan Awal --}}
-                <div class="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/60 text-xs">
-                    <span class="font-semibold text-zinc-700 dark:text-zinc-300">Keluhan Pelapor:</span>
-                    <span class="text-zinc-600 dark:text-zinc-400 ml-1">{{ $formSpk->permintaanMaintenance?->deskripsi_masalah }}</span>
+                {{-- Deskripsi Keluhan Awal & Foto Kerusakan --}}
+                <div class="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/60 text-xs space-y-2">
+                    <div>
+                        <span class="font-semibold text-zinc-700 dark:text-zinc-300">Keluhan Pelapor:</span>
+                        <span class="text-zinc-600 dark:text-zinc-400 ml-1">{{ $formSpk->permintaanMaintenance?->deskripsi_masalah }}</span>
+                    </div>
+                    @if ($formSpk->permintaanMaintenance?->foto_kerusakan)
+                        <div class="flex items-center gap-3 pt-1 border-t border-zinc-200/60 dark:border-zinc-700/60">
+                            <a href="{{ asset('storage/' . $formSpk->permintaanMaintenance->foto_kerusakan) }}" target="_blank" class="block rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden hover:opacity-90">
+                                <img src="{{ asset('storage/' . $formSpk->permintaanMaintenance->foto_kerusakan) }}" alt="Foto Kerusakan" class="h-14 w-auto object-cover" />
+                            </a>
+                            <a href="{{ asset('storage/' . $formSpk->permintaanMaintenance->foto_kerusakan) }}" target="_blank" class="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-medium">
+                                <flux:icon name="magnifying-glass-plus" class="size-3.5" />
+                                 Lihat Foto Bukti Kerusakan Awal
+                            </a>
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Baris 1: Waktu Pengerjaan --}}
@@ -338,6 +351,52 @@
                     </div>
                     <x-status-badge :status="$selectedSpk->status" />
                 </div>
+                {{-- Keluhan & Foto Bukti Fisik Kerusakan dari Ruangan --}}
+                <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 text-xs space-y-2">
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center justify-between">
+                        <span>Laporan Keluhan Kerusakan:</span>
+                        @if ($selectedSpk->permintaanMaintenance?->prioritas)
+                            <flux:badge size="sm" :color="match($selectedSpk->permintaanMaintenance->prioritas) {
+                                'CITO' => 'rose',
+                                'TINGGI' => 'amber',
+                                'SEDANG' => 'blue',
+                                default => 'zinc',
+                            }">
+                                {{ $selectedSpk->permintaanMaintenance->prioritas }}
+                            </flux:badge>
+                        @endif
+                    </div>
+                    <div class="text-zinc-700 dark:text-zinc-300 whitespace-pre-line">
+                        {{ $selectedSpk->permintaanMaintenance?->deskripsi_masalah ?? '-' }}
+                    </div>
+
+                    @if ($selectedSpk->permintaanMaintenance?->foto_kerusakan)
+                        <div class="pt-2 border-t border-zinc-200/60 dark:border-zinc-700">
+                            <div class="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mb-1.5">Foto Bukti Kerusakan Fisik dari Pelapor:</div>
+                            <div class="flex flex-col sm:flex-row items-start gap-3">
+                                <a href="{{ asset('storage/' . $selectedSpk->permintaanMaintenance->foto_kerusakan) }}" target="_blank" class="group relative block rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 max-w-xs shadow-sm hover:shadow transition">
+                                    <img
+                                        src="{{ asset('storage/' . $selectedSpk->permintaanMaintenance->foto_kerusakan) }}"
+                                        alt="Foto Kerusakan {{ $selectedSpk->permintaanMaintenance->kode }}"
+                                        class="max-h-40 w-auto object-cover rounded group-hover:scale-105 transition duration-300"
+                                    />
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white font-medium text-[11px] gap-1 transition">
+                                        <flux:icon name="arrow-top-right-on-square" class="size-3.5" />
+                                        <span>Buka Foto</span>
+                                    </div>
+                                </a>
+                                <div class="text-[11px] text-zinc-500 dark:text-zinc-400 space-y-1">
+                                    <div>Foto kondisi fisik saat dilaporkan oleh unit.</div>
+                                    <a href="{{ asset('storage/' . $selectedSpk->permintaanMaintenance->foto_kerusakan) }}" target="_blank" class="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+                                        <flux:icon name="magnifying-glass-plus" class="size-3" />
+                                        Lihat resolusi penuh
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
 
                 {{-- Riwayat Lembar Kerja Pengerjaan --}}
                 <div class="space-y-3">

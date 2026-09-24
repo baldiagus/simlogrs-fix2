@@ -95,6 +95,14 @@
                             <div class="text-[11px] text-zinc-600 dark:text-zinc-300 mt-1 line-clamp-1">
                                 {{ $item->deskripsi_masalah }}
                             </div>
+                            @if ($item->foto_kerusakan)
+                                <div class="mt-1.5 flex items-center gap-1.5">
+                                    <a href="{{ asset('storage/' . $item->foto_kerusakan) }}" target="_blank" class="block rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden hover:opacity-80">
+                                        <img src="{{ asset('storage/' . $item->foto_kerusakan) }}" alt="Foto" class="h-7 w-7 object-cover" />
+                                    </a>
+                                    <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">Ada Foto Bukti</span>
+                                </div>
+                            @endif
                         </flux:table.cell>
 
                         {{-- Unit Pelapor --}}
@@ -224,6 +232,51 @@
                 @error('deskripsi_masalah') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
             </div>
 
+            {{-- Foto Bukti Kerusakan --}}
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Foto Bukti Kerusakan (Opsional)
+                </label>
+
+                @if ($foto)
+                    <div class="relative inline-block border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden p-1.5 bg-zinc-50 dark:bg-zinc-800">
+                        <img src="{{ $foto->temporaryUrl() }}" alt="Pratinjau Foto Kerusakan" class="h-36 w-auto max-w-full rounded-lg object-contain">
+                        <button
+                            type="button"
+                            wire:click="hapusFotoPratinjau"
+                            class="absolute top-3 right-3 p-1 rounded-full bg-red-600/90 hover:bg-red-700 text-white shadow-md transition"
+                            title="Hapus foto"
+                        >
+                            <flux:icon name="x-mark" class="size-4" />
+                        </button>
+                        <div class="text-[10px] text-zinc-500 dark:text-zinc-400 text-center mt-1">
+                            Foto siap diunggah & dikompresi otomatis
+                        </div>
+                    </div>
+                @else
+                    <div class="flex items-center justify-center w-full">
+                        <label class="flex flex-col items-center justify-center w-full h-28 border-2 border-zinc-300 dark:border-zinc-700 border-dashed rounded-xl cursor-pointer bg-zinc-50/50 dark:bg-zinc-800/40 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition">
+                            <div class="flex flex-col items-center justify-center pt-3 pb-3">
+                                <flux:icon name="camera" class="size-6 text-zinc-400 mb-1" />
+                                <p class="text-xs text-zinc-600 dark:text-zinc-400">
+                                    <span class="font-semibold text-indigo-600 dark:text-indigo-400">Pilih foto</span> atau ambil dari kamera
+                                </p>
+                                <p class="text-[10px] text-zinc-400">Format JPG, PNG, WEBP (Maksimal 10MB)</p>
+                            </div>
+                            <input type="file" wire:model="foto" accept="image/jpeg,image/png,image/webp" class="hidden" />
+                        </label>
+                    </div>
+                @endif
+
+                <div wire:loading wire:target="foto" class="text-xs text-indigo-600 dark:text-indigo-400 mt-1 flex items-center gap-1.5">
+                    <svg class="animate-spin size-3.5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <span>Mengunggah dan memproses pratinjau foto...</span>
+                </div>
+                @error('foto') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+            </div>
             <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">
                     Batal
@@ -288,6 +341,35 @@
                     <div class="font-semibold text-zinc-700 dark:text-zinc-300">Deskripsi Keluhan / Gejala Kerusakan:</div>
                     <div class="text-zinc-800 dark:text-zinc-200 whitespace-pre-line">{{ $selectedTiket->deskripsi_masalah }}</div>
                 </div>
+                {{-- Foto Bukti Kerusakan --}}
+                <div class="p-3.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 text-xs space-y-2">
+                    <div class="font-semibold text-zinc-700 dark:text-zinc-300">Foto Bukti Kerusakan Fisik:</div>
+                    @if ($selectedTiket->foto_kerusakan)
+                        <div class="flex flex-col sm:flex-row items-start gap-3">
+                            <a href="{{ asset('storage/' . $selectedTiket->foto_kerusakan) }}" target="_blank" class="group relative block rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 max-w-xs shadow-sm hover:shadow transition">
+                                <img
+                                    src="{{ asset('storage/' . $selectedTiket->foto_kerusakan) }}"
+                                    alt="Foto Bukti Kerusakan {{ $selectedTiket->kode }}"
+                                    class="max-h-48 w-auto object-cover rounded-lg group-hover:scale-105 transition duration-300"
+                                />
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white font-medium text-xs gap-1.5 transition">
+                                    <flux:icon name="arrow-top-right-on-square" class="size-4" />
+                                    <span>Buka Ukuran Penuh</span>
+                                </div>
+                            </a>
+                            <div class="text-[11px] text-zinc-500 dark:text-zinc-400 space-y-1">
+                                <div>Foto kerusakan telah dikompresi untuk efisiensi penyimpanan.</div>
+                                <a href="{{ asset('storage/' . $selectedTiket->foto_kerusakan) }}" target="_blank" class="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+                                    <flux:icon name="magnifying-glass-plus" class="size-3.5" />
+                                    Lihat resolusi penuh
+                                </a>
+                            </div>
+                        </div>
+                    @else
+                        <div class="text-zinc-400 italic">Tidak ada foto bukti kerusakan yang dilampirkan oleh pelapor.</div>
+                    @endif
+                </div>
+
 
                 {{-- Riwayat Disposisi SPK --}}
                 @if ($selectedTiket->penugasan->isNotEmpty())

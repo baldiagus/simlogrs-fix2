@@ -8,14 +8,16 @@ use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\Aset;
 use App\Models\PermintaanMaintenance;
+use App\Support\File\FileOptimizer;
 use App\Support\Generator\CodeGenerator;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class LaporServisIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, WithFileUploads;
 
     public bool $showModal = false;
     public bool $showDetailModal = false;
@@ -30,6 +32,13 @@ class LaporServisIndex extends Component
     #[Validate('required|string|min:5')]
     public string $deskripsi_masalah = '';
 
+    #[Validate('nullable|image|mimes:jpg,jpeg,png,webp|max:10240', message: [
+        'image' => 'Berkas harus berupa gambar.',
+        'mimes' => 'Format gambar yang didukung: JPG, PNG, WEBP.',
+        'max'   => 'Ukuran foto maksimal adalah 10 MB.',
+    ])]
+    public $foto = null;
+
     #[Url(history: true)]
     public string $filterStatus = '';
 
@@ -40,7 +49,7 @@ class LaporServisIndex extends Component
     {
         abort_unless(auth()->user()?->can('create_layanan_unit::lapor::servis'), 403);
 
-        $this->reset(['aset_id', 'prioritas', 'deskripsi_masalah']);
+        $this->reset(['aset_id', 'prioritas', 'deskripsi_masalah', 'foto']);
         $this->prioritas = 'SEDANG';
         $this->showModal = true;
     }
@@ -55,12 +64,19 @@ class LaporServisIndex extends Component
 
         $kode = CodeGenerator::generateMnt();
 
+        $fotoPath = null;
+        if ($this->foto) {
+            $opt = FileOptimizer::optimizeAndStore($this->foto, 'maintenance/kerusakan');
+            $fotoPath = $opt['path'];
+        }
+
         $tiket = PermintaanMaintenance::create([
             'kode'              => $kode,
             'aset_id'           => $aset->id,
             'unit_id'           => $aset->unit_id ?: $user->unit_id,
             'dilaporkan_oleh'   => $user->id,
             'deskripsi_masalah' => $this->deskripsi_masalah,
+            'foto_kerusakan'    => $fotoPath,
             'prioritas'         => $this->prioritas,
             'status'            => 'DILAPORKAN',
         ]);
@@ -74,9 +90,14 @@ class LaporServisIndex extends Component
         }
 
         $this->showModal = false;
-        $this->reset(['aset_id', 'prioritas', 'deskripsi_masalah']);
+        $this->reset(['aset_id', 'prioritas', 'deskripsi_masalah', 'foto']);
         $this->toast("Laporan kerusakan '{$kode}' berhasil dikirim ke IPSRS.", 'success');
     }
+    public function hapusFotoPratinjau(): void
+    {
+        $this->foto = null;
+    }
+
 
     public function showDetail(int $id): void
     {

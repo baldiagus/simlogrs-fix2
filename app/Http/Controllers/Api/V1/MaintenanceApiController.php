@@ -30,7 +30,15 @@ class MaintenanceApiController extends ApiController
     {
         $user = $request->user();
 
-        if (! $user || ! $user->can('create_layanan_unit::lapor::servis')) {
+        $canLapor = $user->can('create_layanan_unit::lapor::servis') ||
+            $user->can('page_KepalaUnitDashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->hasRole('kepala_unit') ||
+            $user->hasRole('petugas_unit') ||
+            $user->hasRole('admin_logistik') ||
+            $user->hasRole('super_admin');
+
+        if (! $user || ! $canLapor) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk melaporkan kerusakan sarana.', 403);
         }
 
@@ -111,6 +119,215 @@ class MaintenanceApiController extends ApiController
     }
 
     /**
+     * Daftar seluruh tiket kerusakan sarana milik unit pemohon.
+     * GET /v1/maintenance/tiket
+     */
+    public function daftarTiketUnit(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return $this->jsonError('Unauthenticated.', 401);
+        }
+
+        $canView = $user->can('view_any_layanan_unit::lapor::servis') ||
+            $user->can('view_layanan_unit::lapor::servis') ||
+            $user->hasRole('petugas_unit') ||
+            $user->hasRole('kepala_unit') ||
+            $user->hasRole('teknisi') ||
+            $user->hasRole('super_admin') ||
+            $user->hasRole('admin_logistik');
+
+        if (! $canView) {
+            return $this->jsonError('Anda tidak memiliki wewenang melihat daftar tiket kerusakan.', 403);
+        }
+
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('teknisi');
+        $userUnitId = $user->unit_id;
+
+        $filterStatus = $request->query('status');
+        $filterPrioritas = $request->query('prioritas');
+        $cari = $request->query('cari');
+
+        $query = PermintaanMaintenance::with([
+            'aset.barang',
+            'unit',
+            'pelapor',
+            'penugasanAktif.teknisi',
+        ])
+        ->when($userUnitId && ! $isGlobalAdmin, fn ($q) => $q->where('unit_id', $userUnitId))
+        ->when($filterStatus, fn ($q) => $q->where('status', $filterStatus))
+        ->when($filterPrioritas, fn ($q) => $q->where('prioritas', $filterPrioritas))
+        ->when($cari, function ($q) use ($cari) {
+            $q->where(function ($sub) use ($cari) {
+                $sub->where('kode', 'like', "%{$cari}%")
+                    ->orWhere('deskripsi_masalah', 'like', "%{$cari}%")
+                    ->orWhereHas('aset', function ($a) use ($cari) {
+                        $a->where('kode_aset', 'like', "%{$cari}%")
+                          ->orWhere('nomor_seri', 'like', "%{$cari}%")
+                          ->orWhereHas('barang', fn ($b) => $b->where('nama', 'like', "%{$cari}%"));
+                    });
+            });
+        });
+
+        $tikets = $query->latest('id')->limit(100)->get()->map(function ($item) use ($user, $isGlobalAdmin) {
+            $canCancel = $item->status === 'DILAPORKAN' && (
+                $item->dilaporkan_oleh === $user->id ||
+                $user->hasRole('kepala_unit') ||
+                $isGlobalAdmin
+            );
+
+            return [
+                'id'                => $item->id,
+                'kode'              => $item->kode,
+                'status'            => $item->status,
+                'prioritas'         => $item->prioritas,
+                'deskripsi_masalah' => $item->deskripsi_masalah,
+                'foto_url'          => $item->foto_kerusakan ? Storage::disk('public')->url($item->foto_kerusakan) : null,
+                'dibuat_pada'       => $item->dibuat_pada?->format('d/m/Y H:i'),
+                'unit'              => $item->unit?->nama ?? '-',
+                'pelapor'           => $item->pelapor?->nama ?? '-',
+                'can_cancel'        => $canCancel,
+                'aset'              => [
+                    'id'         => $item->aset?->id,
+                    'kode_aset'  => $item->aset?->kode_aset ?? '-',
+                    'nama'       => $item->aset?->barang?->nama ?? '-',
+                    'nomor_seri' => $item->aset?->nomor_seri ?? '-',
+                ],
+                'penugasan_aktif'   => $item->penugasanAktif ? [
+                    'kode_spk'     => $item->penugasanAktif->kode,
+                    'nama_teknisi' => $item->penugasanAktif->teknisi?->nama ?? '-',
+                    'status_spk'   => $item->penugasanAktif->status,
+                ] : null,
+            ];
+        });
+
+        return $this->jsonSuccess($tikets, 'Daftar tiket kerusakan unit berhasil dimuat.');
+    }
+
+    /**
+     * Daftar inventaris aset yang siap dilaporkan rusak dari unit pemohon.
+     * GET /v1/maintenance/aset-unit
+     */
+    public function asetUnitTersedia(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $userUnitId = $user->unit_id;
+
+        $asets = Aset::with(['barang.kategori', 'barang.merek'])
+            ->when($userUnitId, fn ($q) => $q->where('unit_id', $userUnitId))
+            ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN', 'DIPINJAM'])
+            ->orderBy('kode_aset')
+            ->get()
+            ->map(fn ($a) => [
+                'id'         => $a->id,
+                'kode_aset'  => $a->kode_aset,
+                'nama'       => $a->barang?->nama ?? 'Aset Fisik',
+                'nomor_seri' => $a->nomor_seri ?? '-',
+                'kategori'   => $a->barang?->kategori?->nama ?? 'Umum',
+                'kondisi'    => $a->kondisi,
+                'status'     => $a->status,
+            ]);
+
+        return $this->jsonSuccess($asets, 'Daftar inventaris sarana unit berhasil dimuat.');
+    }
+
+    /**
+     * Detail lengkap dan progres penanganan tiket kerusakan.
+     * GET /v1/maintenance/tiket/{id}
+     */
+    public function detailTiketUnit(Request $request, int $id): JsonResponse
+    {
+        $tiket = PermintaanMaintenance::with([
+            'aset.barang.kategori',
+            'unit',
+            'pelapor',
+            'penugasan.teknisi',
+            'logMaintenance.teknisi',
+            'sukuCadang.barang',
+        ])->find($id);
+
+        if (! $tiket) {
+            return $this->jsonError('Tiket kerusakan tidak ditemukan.', 404);
+        }
+
+        $user = $request->user();
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('teknisi');
+        $canCancel = $tiket->status === 'DILAPORKAN' && (
+            $tiket->dilaporkan_oleh === $user->id ||
+            $user->hasRole('kepala_unit') ||
+            $isGlobalAdmin
+        );
+
+        return $this->jsonSuccess([
+            'id'                => $tiket->id,
+            'kode'              => $tiket->kode,
+            'status'            => $tiket->status,
+            'prioritas'         => $tiket->prioritas,
+            'deskripsi_masalah' => $tiket->deskripsi_masalah,
+            'foto_url'          => $tiket->foto_kerusakan ? Storage::disk('public')->url($tiket->foto_kerusakan) : null,
+            'dibuat_pada'       => $tiket->dibuat_pada?->format('d/m/Y H:i'),
+            'unit'              => $tiket->unit?->nama ?? '-',
+            'pelapor'           => $tiket->pelapor?->nama ?? '-',
+            'can_cancel'        => $canCancel,
+            'aset'              => [
+                'id'         => $tiket->aset?->id,
+                'kode_aset'  => $tiket->aset?->kode_aset ?? '-',
+                'nama'       => $tiket->aset?->barang?->nama ?? '-',
+                'nomor_seri' => $tiket->aset?->nomor_seri ?? '-',
+                'kategori'   => $tiket->aset?->barang?->kategori?->nama ?? '-',
+            ],
+            'penugasan'         => $tiket->penugasan->map(fn ($spk) => [
+                'id'       => $spk->id,
+                'kode_spk' => $spk->kode,
+                'status'   => $spk->status,
+                'teknisi'  => $spk->teknisi?->nama ?? '-',
+                'target'   => $spk->target_selesai?->format('Y-m-d'),
+            ]),
+            'riwayat_log'       => $tiket->logMaintenance->map(fn ($log) => [
+                'id'       => $log->id,
+                'tanggal'  => $log->tanggal_pengerjaan?->format('d/m/Y H:i'),
+                'teknisi'  => $log->teknisi?->nama ?? '-',
+                'diagnosa' => $log->diagnosa,
+                'tindakan' => $log->tindakan,
+                'hasil'    => $log->hasil,
+                'catatan'  => $log->catatan,
+            ]),
+        ], 'Detail tiket kerusakan berhasil dimuat.');
+    }
+
+    /**
+     * Batalkan tiket kerusakan yang masih berstatus DILAPORKAN.
+     * POST /v1/maintenance/tiket/{id}/batal
+     */
+    public function batalTiketUnit(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $tiket = PermintaanMaintenance::find($id);
+
+        if (! $tiket) {
+            return $this->jsonError('Tiket kerusakan tidak ditemukan.', 404);
+        }
+
+        if ($tiket->status !== 'DILAPORKAN') {
+            return $this->jsonError("Hanya tiket berstatus DILAPORKAN yang dapat dibatalkan (saat ini: {$tiket->status}).", 422);
+        }
+
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
+        $canCancel = $tiket->dilaporkan_oleh === $user->id ||
+            $user->hasRole('kepala_unit') ||
+            $isGlobalAdmin;
+
+        if (! $canCancel) {
+            return $this->jsonError('Anda tidak memiliki wewenang untuk membatalkan tiket ini.', 403);
+        }
+
+        $tiket->update(['status' => 'DIBATALKAN']);
+
+        return $this->jsonSuccess(null, "Laporan kerusakan {$tiket->kode} berhasil dibatalkan.");
+    }
+
+    /**
      * Daftar Surat Perintah Kerja (SPK) untuk mobile teknisi.
      * GET /v1/maintenance/spk
      */
@@ -186,7 +403,12 @@ class MaintenanceApiController extends ApiController
     {
         $user = $request->user();
 
-        if (! $user || (! $user->can('view_any_pemeliharaan::spk::perbaikan') && ! $user->can('view_pemeliharaan::spk::perbaikan'))) {
+        $isGlobalAdmin = $user?->can('page_Dashboard') ||
+            $user?->can('page_AdminLogistikDashboard') ||
+            $user?->hasRole('super_admin') ||
+            $user?->hasRole('admin_logistik');
+
+        if (! $user || (! $isGlobalAdmin && ! $user->can('view_any_pemeliharaan::spk::perbaikan') && ! $user->can('view_pemeliharaan::spk::perbaikan') && ! $user->hasRole('teknisi'))) {
             return $this->jsonError('Anda tidak memiliki wewenang melihat detail SPK.', 403);
         }
 

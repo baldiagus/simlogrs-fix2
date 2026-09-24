@@ -116,8 +116,15 @@
                                 <div class="text-xs text-zinc-700 dark:text-zinc-300 line-clamp-2 max-w-xs">
                                     {{ $tiket->deskripsi_masalah }}
                                 </div>
+                                @if ($tiket->foto_kerusakan)
+                                    <div class="mt-1 flex items-center gap-1.5">
+                                        <a href="{{ asset('storage/' . $tiket->foto_kerusakan) }}" target="_blank" class="block rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden hover:opacity-80">
+                                            <img src="{{ asset('storage/' . $tiket->foto_kerusakan) }}" alt="Foto" class="h-6 w-6 object-cover" />
+                                        </a>
+                                        <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">Ada Foto Bukti</span>
+                                    </div>
+                                @endif
                             </flux:table.cell>
-
                             {{-- Aksi: Terbitkan SPK --}}
                             <flux:table.cell class="text-right">
                                 @can('create_pemeliharaan::spk::perbaikan')
@@ -169,6 +176,14 @@
                                 <div class="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 mt-0.5">
                                     Ref: {{ $spk->permintaanMaintenance?->kode ?? '-' }} &bull; {{ $spk->permintaanMaintenance?->unit?->nama ?? '-' }}
                                 </div>
+                                @if ($spk->permintaanMaintenance?->foto_kerusakan)
+                                    <div class="mt-1 flex items-center gap-1.5">
+                                        <a href="{{ asset('storage/' . $spk->permintaanMaintenance->foto_kerusakan) }}" target="_blank" class="block rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden hover:opacity-80">
+                                            <img src="{{ asset('storage/' . $spk->permintaanMaintenance->foto_kerusakan) }}" alt="Foto" class="h-6 w-6 object-cover" />
+                                        </a>
+                                        <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">Ada Foto Bukti</span>
+                                    </div>
+                                @endif
                             </flux:table.cell>
 
                             {{-- Teknisi Pelaksana --}}
@@ -257,6 +272,25 @@
                         <div class="font-bold text-rose-600 dark:text-rose-400 mt-0.5">{{ $selectedTiketForSpk->prioritas }}</div>
                     </div>
                 </div>
+                @if ($selectedTiketForSpk->foto_kerusakan || $selectedTiketForSpk->deskripsi_masalah)
+                    <div class="p-3 rounded-lg bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-700 text-xs space-y-2">
+                        <div>
+                            <span class="font-semibold text-zinc-700 dark:text-zinc-300">Deskripsi Keluhan:</span>
+                            <span class="text-zinc-800 dark:text-zinc-200 ml-1">{{ $selectedTiketForSpk->deskripsi_masalah }}</span>
+                        </div>
+                        @if ($selectedTiketForSpk->foto_kerusakan)
+                            <div class="flex items-center gap-3 pt-1 border-t border-zinc-200/60 dark:border-zinc-700/60">
+                                <a href="{{ asset('storage/' . $selectedTiketForSpk->foto_kerusakan) }}" target="_blank" class="block rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden hover:opacity-90">
+                                    <img src="{{ asset('storage/' . $selectedTiketForSpk->foto_kerusakan) }}" alt="Bukti Kerusakan" class="h-16 w-auto object-cover" />
+                                </a>
+                                <a href="{{ asset('storage/' . $selectedTiketForSpk->foto_kerusakan) }}" target="_blank" class="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-medium">
+                                    <flux:icon name="magnifying-glass-plus" class="size-3.5" />
+                                    Lihat Foto Kerusakan Awal
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+                @endif
 
                 <div>
                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
@@ -350,6 +384,52 @@
                         <div class="font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5">{{ $selectedSpk->permintaanMaintenance?->unit?->nama ?? '-' }}</div>
                     </div>
                 </div>
+                {{-- Keluhan & Foto Bukti Fisik Kerusakan dari Ruangan --}}
+                <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 text-xs space-y-2">
+                    <div class="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center justify-between">
+                        <span>Laporan Keluhan Kerusakan:</span>
+                        @if ($selectedSpk->permintaanMaintenance?->prioritas)
+                            <flux:badge size="sm" :color="match($selectedSpk->permintaanMaintenance->prioritas) {
+                                'CITO' => 'rose',
+                                'TINGGI' => 'amber',
+                                'SEDANG' => 'blue',
+                                default => 'zinc',
+                            }">
+                                {{ $selectedSpk->permintaanMaintenance->prioritas }}
+                            </flux:badge>
+                        @endif
+                    </div>
+                    <div class="text-zinc-700 dark:text-zinc-300 whitespace-pre-line">
+                        {{ $selectedSpk->permintaanMaintenance?->deskripsi_masalah ?? '-' }}
+                    </div>
+
+                    @if ($selectedSpk->permintaanMaintenance?->foto_kerusakan)
+                        <div class="pt-2 border-t border-zinc-200/60 dark:border-zinc-700">
+                            <div class="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mb-1.5">Foto Bukti Kerusakan Fisik dari Pelapor:</div>
+                            <div class="flex flex-col sm:flex-row items-start gap-3">
+                                <a href="{{ asset('storage/' . $selectedSpk->permintaanMaintenance->foto_kerusakan) }}" target="_blank" class="group relative block rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 max-w-xs shadow-sm hover:shadow transition">
+                                    <img
+                                        src="{{ asset('storage/' . $selectedSpk->permintaanMaintenance->foto_kerusakan) }}"
+                                        alt="Foto Kerusakan {{ $selectedSpk->permintaanMaintenance->kode }}"
+                                        class="max-h-40 w-auto object-cover rounded group-hover:scale-105 transition duration-300"
+                                    />
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white font-medium text-[11px] gap-1 transition">
+                                        <flux:icon name="arrow-top-right-on-square" class="size-3.5" />
+                                        <span>Buka Foto</span>
+                                    </div>
+                                </a>
+                                <div class="text-[11px] text-zinc-500 dark:text-zinc-400 space-y-1">
+                                    <div>Foto kondisi fisik saat dilaporkan oleh unit.</div>
+                                    <a href="{{ asset('storage/' . $selectedSpk->permintaanMaintenance->foto_kerusakan) }}" target="_blank" class="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
+                                        <flux:icon name="magnifying-glass-plus" class="size-3" />
+                                        Lihat resolusi penuh
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
 
                 @if ($selectedSpk->instruksi_khusus)
                     <div class="p-3 rounded-lg bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 text-xs space-y-1">

@@ -17,8 +17,8 @@ class ApprovalController extends ApiController
     {
         $user = $request->user();
 
-        $pr = PermintaanPengadaan::where('status', 'DIAJUKAN')
-            ->when($user->unit_id, fn ($q) => $q->where('unit_id', $user->unit_id))
+        $pr = PermintaanPengadaan::whereIn('status', ['DIAJUKAN', 'DISETUJUI'])
+            ->when($user->unit_id && ! $user->can('page_AdminLogistikDashboard'), fn ($q) => $q->where('unit_id', $user->unit_id))
             ->with(['unit:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama'])
             ->latest('dibuat_pada')
             ->get()
@@ -30,6 +30,7 @@ class ApprovalController extends ApiController
                 'pengaju' => $item->pengaju?->nama,
                 'tanggal' => $item->tanggal_permintaan->format('Y-m-d'),
                 'urgensi' => $item->urgensi,
+                'status' => $item->status,
                 'jumlah_item' => $item->detail->count(),
                 'items' => $item->detail->map(fn ($d) => [
                     'barang' => $d->barang?->nama,
@@ -87,18 +88,34 @@ class ApprovalController extends ApiController
             return $this->jsonError('Permintaan pengadaan tidak ditemukan.', 404);
         }
 
-        if ($pr->status !== 'DIAJUKAN') {
-            return $this->jsonError("PR {$pr->kode} tidak dalam status DIAJUKAN (saat ini: {$pr->status}).", 422);
-        }
-
         $request->validate([
-            'aksi' => 'required|in:setujui,tolak',
+            'aksi' => 'required|in:setujui,tolak,serahkan,teruskan',
             'catatan' => 'nullable|string|max:500',
         ]);
 
         $aksi = $request->input('aksi');
 
+        if ($aksi === 'serahkan' || $aksi === 'teruskan') {
+            if ($pr->status !== 'DISETUJUI') {
+                return $this->jsonError("Hanya PR berstatus DISETUJUI yang dapat diserahkan ke bagian pengadaan (saat ini: {$pr->status}).", 422);
+            }
+
+            $pr->update([
+                'status' => 'DITERUSKAN_KE_PENGADAAN',
+                'catatan' => $request->input('catatan') ?? $pr->catatan,
+            ]);
+
+            return $this->jsonSuccess([
+                'kode' => $pr->kode,
+                'status' => 'DITERUSKAN_KE_PENGADAAN',
+            ], "PR {$pr->kode} berhasil diserahkan ke bagian pengadaan.");
+        }
+
         if ($aksi === 'setujui') {
+            if ($pr->status !== 'DIAJUKAN') {
+                return $this->jsonError("PR {$pr->kode} tidak dalam status DIAJUKAN (saat ini: {$pr->status}).", 422);
+            }
+
             $pr->update([
                 'status' => 'DISETUJUI',
                 'disetujui_oleh' => $user->id,
