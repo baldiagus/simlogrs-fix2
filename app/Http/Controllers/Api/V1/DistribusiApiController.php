@@ -239,6 +239,33 @@ class DistribusiApiController extends ApiController
         }
 
         $gudangId = $request->input('gudang_id') ?: (Gudang::where('status', 'AKTIF')->value('id') ?? 1);
+        // Validasi ketersediaan stok fisik di gudang tujuan
+        foreach ($request->input('items') as $row) {
+            $barangId = (int) $row['barang_id'];
+            $jumlahDiminta = (int) $row['jumlah'];
+
+            $stokTersedia = (int) StokBatch::where('barang_id', $barangId)
+                ->where('status', 'AKTIF')
+                ->where('jumlah', '>', 0)
+                ->when($gudangId, fn ($q) => $q->where('gudang_id', $gudangId))
+                ->where(function ($q) {
+                    $q->whereNull('tanggal_kedaluwarsa')
+                      ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
+                })
+                ->sum('jumlah');
+
+            $barang = Barang::with('satuan')->find($barangId);
+            $namaBarang = $barang?->nama ?? "Barang #{$barangId}";
+            $satuan = $barang?->satuan?->nama ?? 'Pcs';
+
+            if ($stokTersedia <= 0) {
+                return $this->jsonError("Komoditas '{$namaBarang}' di gudang tujuan saat ini kosong (0 {$satuan}). Tidak dapat diajukan amprah.", 422);
+            }
+
+            if ($jumlahDiminta > $stokTersedia) {
+                return $this->jsonError("Jumlah diminta untuk '{$namaBarang}' ({$jumlahDiminta} {$satuan}) melebihi stok gudang yang tersedia ({$stokTersedia} {$satuan}).", 422);
+            }
+        }
 
         try {
             $amprah = DB::transaction(function () use ($request, $user, $unitId, $gudangId) {
