@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\GudangApiController;
 use App\Http\Controllers\Api\V1\AsetApiController;
 use App\Http\Controllers\Api\V1\MaintenanceApiController;
 use App\Http\Controllers\Api\V1\PengadaanApiController;
+use App\Http\Controllers\Api\V1\DistribusiApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -67,5 +68,16 @@ Route::prefix('v1')->group(function () {
         Route::get('/master/barang', [PengadaanApiController::class, 'katalogBarang']);
         Route::get('/pengadaan/pr', [PengadaanApiController::class, 'daftarPr']);
         Route::post('/pengadaan/pr', [PengadaanApiController::class, 'simpanPr']);
+
+        // 9. Modul Distribusi & Amprah Ruangan
+        Route::get('/distribusi/katalog-barang', [DistribusiApiController::class, 'katalogBarang']);
+        Route::get('/distribusi/amprah', [DistribusiApiController::class, 'daftarAmprah']);
+        Route::get('/distribusi/amprah/{id}', [DistribusiApiController::class, 'detailAmprah']);
+        Route::post('/distribusi/amprah', [DistribusiApiController::class, 'simpanAmprah']);
+        Route::post('/distribusi/amprah/{id}/batal', [DistribusiApiController::class, 'batalAmprah']);
+        Route::get('/distribusi/antrean-picking', [DistribusiApiController::class, 'antreanPicking']);
+        Route::post('/distribusi/picking', [DistribusiApiController::class, 'eksekusiPicking']);
+        Route::get('/distribusi/sppb-inbound', [DistribusiApiController::class, 'sppbInbound']);
+        Route::post('/distribusi/sppb/{id}/terima', [DistribusiApiController::class, 'konfirmasiTerimaSppb']);
     });
 });
