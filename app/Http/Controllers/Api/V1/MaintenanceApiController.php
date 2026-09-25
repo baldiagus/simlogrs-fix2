@@ -76,7 +76,7 @@ class MaintenanceApiController extends ApiController
         if ($request->hasFile('foto')) {
             $opt = FileOptimizer::optimizeAndStore($request->file('foto'), 'maintenance/kerusakan');
             $fotoPath = $opt['path'];
-            $fotoUrl = $opt['url'];
+            $fotoUrl = asset('storage/' . ltrim($fotoPath, '/'));
         }
 
         $kodeTiket = CodeGenerator::generateMnt();
@@ -183,7 +183,7 @@ class MaintenanceApiController extends ApiController
                 'status'            => $item->status,
                 'prioritas'         => $item->prioritas,
                 'deskripsi_masalah' => $item->deskripsi_masalah,
-                'foto_url'          => $item->foto_kerusakan ? Storage::disk('public')->url($item->foto_kerusakan) : null,
+                'foto_url'          => $item->foto_kerusakan ? asset('storage/' . ltrim($item->foto_kerusakan, '/')) : null,
                 'dibuat_pada'       => $item->dibuat_pada?->format('d/m/Y H:i'),
                 'unit'              => $item->unit?->nama ?? '-',
                 'pelapor'           => $item->pelapor?->nama ?? '-',
@@ -265,7 +265,7 @@ class MaintenanceApiController extends ApiController
             'status'            => $tiket->status,
             'prioritas'         => $tiket->prioritas,
             'deskripsi_masalah' => $tiket->deskripsi_masalah,
-            'foto_url'          => $tiket->foto_kerusakan ? Storage::disk('public')->url($tiket->foto_kerusakan) : null,
+            'foto_url'          => $tiket->foto_kerusakan ? asset('storage/' . ltrim($tiket->foto_kerusakan, '/')) : null,
             'dibuat_pada'       => $tiket->dibuat_pada?->format('d/m/Y H:i'),
             'unit'              => $tiket->unit?->nama ?? '-',
             'pelapor'           => $tiket->pelapor?->nama ?? '-',
@@ -373,7 +373,7 @@ class MaintenanceApiController extends ApiController
                 'prioritas'         => $spk->permintaanMaintenance?->prioritas,
                 'deskripsi_masalah' => $spk->permintaanMaintenance?->deskripsi_masalah,
                 'foto_url'          => $spk->permintaanMaintenance?->foto_kerusakan
-                    ? Storage::disk('public')->url($spk->permintaanMaintenance->foto_kerusakan)
+                    ? asset('storage/' . ltrim($spk->permintaanMaintenance->foto_kerusakan, '/'))
                     : null,
             ],
             'aset'              => [
@@ -444,7 +444,7 @@ class MaintenanceApiController extends ApiController
                 'status'            => $spk->permintaanMaintenance?->status,
                 'deskripsi_masalah' => $spk->permintaanMaintenance?->deskripsi_masalah,
                 'foto_url'          => $spk->permintaanMaintenance?->foto_kerusakan
-                    ? Storage::disk('public')->url($spk->permintaanMaintenance->foto_kerusakan)
+                    ? asset('storage/' . ltrim($spk->permintaanMaintenance->foto_kerusakan, '/'))
                     : null,
                 'pelapor'           => $spk->permintaanMaintenance?->pelapor?->nama,
             ],

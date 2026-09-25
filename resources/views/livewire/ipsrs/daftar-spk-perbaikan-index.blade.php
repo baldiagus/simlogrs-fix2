@@ -279,14 +279,24 @@
                             <span class="text-zinc-800 dark:text-zinc-200 ml-1">{{ $selectedTiketForSpk->deskripsi_masalah }}</span>
                         </div>
                         @if ($selectedTiketForSpk->foto_kerusakan)
-                            <div class="flex items-center gap-3 pt-1 border-t border-zinc-200/60 dark:border-zinc-700/60">
-                                <a href="{{ asset('storage/' . $selectedTiketForSpk->foto_kerusakan) }}" target="_blank" class="block rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden hover:opacity-90">
-                                    <img src="{{ asset('storage/' . $selectedTiketForSpk->foto_kerusakan) }}" alt="Bukti Kerusakan" class="h-16 w-auto object-cover" />
+                            <div class="flex items-center gap-3 pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60">
+                                <a href="{{ asset('storage/' . ltrim($selectedTiketForSpk->foto_kerusakan, '/')) }}" target="_blank" class="block rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden hover:opacity-90 shadow-xs">
+                                    <img src="{{ asset('storage/' . ltrim($selectedTiketForSpk->foto_kerusakan, '/')) }}"
+                                         onerror="this.onerror=null; this.src='/storage/{{ ltrim($selectedTiketForSpk->foto_kerusakan, '/') }}';"
+                                         alt="Bukti Kerusakan" class="h-20 w-auto max-w-xs object-cover rounded" />
                                 </a>
-                                <a href="{{ asset('storage/' . $selectedTiketForSpk->foto_kerusakan) }}" target="_blank" class="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-medium">
-                                    <flux:icon name="magnifying-glass-plus" class="size-3.5" />
-                                    Lihat Foto Kerusakan Awal
-                                </a>
+                                <div class="space-y-1">
+                                    <div class="text-[11px] text-zinc-500 dark:text-zinc-400">Bukti visual kondisi fisik dari pelapor.</div>
+                                    <a href="{{ asset('storage/' . ltrim($selectedTiketForSpk->foto_kerusakan, '/')) }}" target="_blank" class="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1 font-semibold">
+                                        <flux:icon name="magnifying-glass-plus" class="size-3.5" />
+                                        Lihat Foto Resolusi Penuh
+                                    </a>
+                                </div>
+                            </div>
+                        @else
+                            <div class="flex items-center gap-2 pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 text-zinc-400 text-xs italic">
+                                <flux:icon name="photo" class="size-4 text-zinc-400" />
+                                <span>Tidak ada foto bukti kerusakan fisik yang dilampirkan oleh pelapor.</span>
                             </div>
                         @endif
                     </div>
@@ -407,9 +417,10 @@
                         <div class="pt-2 border-t border-zinc-200/60 dark:border-zinc-700">
                             <div class="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mb-1.5">Foto Bukti Kerusakan Fisik dari Pelapor:</div>
                             <div class="flex flex-col sm:flex-row items-start gap-3">
-                                <a href="{{ asset('storage/' . $selectedSpk->permintaanMaintenance->foto_kerusakan) }}" target="_blank" class="group relative block rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 max-w-xs shadow-sm hover:shadow transition">
+                                <a href="{{ asset('storage/' . ltrim($selectedSpk->permintaanMaintenance->foto_kerusakan, '/')) }}" target="_blank" class="group relative block rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 max-w-xs shadow-sm hover:shadow transition">
                                     <img
-                                        src="{{ asset('storage/' . $selectedSpk->permintaanMaintenance->foto_kerusakan) }}"
+                                        src="{{ asset('storage/' . ltrim($selectedSpk->permintaanMaintenance->foto_kerusakan, '/')) }}"
+                                        onerror="this.onerror=null; this.src='/storage/{{ ltrim($selectedSpk->permintaanMaintenance->foto_kerusakan, '/') }}';"
                                         alt="Foto Kerusakan {{ $selectedSpk->permintaanMaintenance->kode }}"
                                         class="max-h-40 w-auto object-cover rounded group-hover:scale-105 transition duration-300"
                                     />

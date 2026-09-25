@@ -348,10 +348,10 @@
                         <div class="flex flex-col sm:flex-row items-start gap-3">
                             <a href="{{ asset('storage/' . $selectedTiket->foto_kerusakan) }}" target="_blank" class="group relative block rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 max-w-xs shadow-sm hover:shadow transition">
                                 <img
-                                    src="{{ asset('storage/' . $selectedTiket->foto_kerusakan) }}"
+                                    src="{{ asset('storage/' . ltrim($selectedTiket->foto_kerusakan, '/')) }}"
+                                    onerror="this.onerror=null; this.src='/storage/{{ ltrim($selectedTiket->foto_kerusakan, '/') }}';"
                                     alt="Foto Bukti Kerusakan {{ $selectedTiket->kode }}"
                                     class="max-h-48 w-auto object-cover rounded-lg group-hover:scale-105 transition duration-300"
-                                />
                                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white font-medium text-xs gap-1.5 transition">
                                     <flux:icon name="arrow-top-right-on-square" class="size-4" />
                                     <span>Buka Ukuran Penuh</span>
