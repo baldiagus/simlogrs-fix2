@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\AsetApiController;
 use App\Http\Controllers\Api\V1\MaintenanceApiController;
 use App\Http\Controllers\Api\V1\PengadaanApiController;
 use App\Http\Controllers\Api\V1\DistribusiApiController;
+use App\Http\Controllers\Api\V1\DashboardApiController;
 use App\Http\Controllers\Api\V1\MasterApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,7 +31,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
-
+        Route::get('/dashboard/summary', [DashboardApiController::class, 'summary']);
         // 4. Persetujuan Cepat Pejabat / Karu
         Route::get('/approval/pending', [ApprovalController::class, 'pending']);
         Route::post('/approval/pr/{id}', [ApprovalController::class, 'approvePr']);
