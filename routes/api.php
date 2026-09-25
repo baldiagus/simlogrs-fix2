@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\V1\PengadaanApiController;
 use App\Http\Controllers\Api\V1\DistribusiApiController;
 use App\Http\Controllers\Api\V1\DashboardApiController;
 use App\Http\Controllers\Api\V1\MasterApiController;
+use App\Http\Controllers\Api\V1\PersediaanApiController;
+use App\Http\Controllers\Api\V1\IpsrsApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -88,5 +90,21 @@ Route::prefix('v1')->group(function () {
         Route::get('/master/barang/{id}', [MasterApiController::class, 'detailBarang']);
         Route::get('/master/aset-lengkap', [MasterApiController::class, 'asetLengkap']);
         Route::get('/master/kategori', [MasterApiController::class, 'daftarKategori']);
+
+        // 11. Modul Persediaan & Opname Kepala Gudang
+        Route::get('/gudang/fefo/monitoring', [PersediaanApiController::class, 'monitoringFefo']);
+        Route::get('/gudang/mutasi/buku', [PersediaanApiController::class, 'bukuMutasi']);
+        Route::get('/gudang/opname/sesi', [PersediaanApiController::class, 'daftarOpname']);
+        Route::post('/gudang/opname/inisiasi', [PersediaanApiController::class, 'inisiasiOpname']);
+        Route::post('/gudang/opname/{id}/count', [PersediaanApiController::class, 'simpanHitungFisik']);
+        Route::get('/gudang/penyesuaian', [PersediaanApiController::class, 'daftarPenyesuaian']);
+        Route::post('/gudang/penyesuaian/{id}/approve', [PersediaanApiController::class, 'approvePenyesuaian']);
+        Route::post('/gudang/penyesuaian/{id}/reject', [PersediaanApiController::class, 'rejectPenyesuaian']);
+
+        // 12. Modul Teknisi IPSRS: Jadwal Preventif & Rekam Medis Aset
+        Route::get('/maintenance/preventif/jadwal', [IpsrsApiController::class, 'jadwalPreventif']);
+        Route::post('/maintenance/preventif/{id}/eksekusi', [IpsrsApiController::class, 'eksekusiPreventif']);
+        Route::get('/maintenance/rekam-medis/katalog', [IpsrsApiController::class, 'katalogRekamMedis']);
+        Route::get('/maintenance/rekam-medis/{aset_id}', [IpsrsApiController::class, 'rekamMedisAset']);
     });
 });
