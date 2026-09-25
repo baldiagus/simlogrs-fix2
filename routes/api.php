@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\AsetApiController;
 use App\Http\Controllers\Api\V1\MaintenanceApiController;
 use App\Http\Controllers\Api\V1\PengadaanApiController;
 use App\Http\Controllers\Api\V1\DistribusiApiController;
+use App\Http\Controllers\Api\V1\MasterApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -45,6 +46,7 @@ Route::prefix('v1')->group(function () {
 
         // 6. Sirkulasi Aset & Scanner QR
         Route::post('/aset/scan-qr', [AsetApiController::class, 'scanQr']);
+        Route::get('/aset/detail/{id}', [AsetApiController::class, 'detailAset']);
         Route::get('/aset/katalog-tersedia', [AsetApiController::class, 'katalogTersedia']);
         Route::get('/aset/peminjaman', [AsetApiController::class, 'daftarPeminjaman']);
         Route::post('/aset/peminjaman', [AsetApiController::class, 'simpanPeminjaman']);
@@ -79,5 +81,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/distribusi/picking', [DistribusiApiController::class, 'eksekusiPicking']);
         Route::get('/distribusi/sppb-inbound', [DistribusiApiController::class, 'sppbInbound']);
         Route::post('/distribusi/sppb/{id}/terima', [DistribusiApiController::class, 'konfirmasiTerimaSppb']);
+
+        // 10. Master Data Komoditas & Register Aset Lengkap (Semua Role)
+        Route::get('/master/barang-lengkap', [MasterApiController::class, 'barangLengkap']);
+        Route::get('/master/barang/{id}', [MasterApiController::class, 'detailBarang']);
+        Route::get('/master/aset-lengkap', [MasterApiController::class, 'asetLengkap']);
+        Route::get('/master/kategori', [MasterApiController::class, 'daftarKategori']);
     });
 });

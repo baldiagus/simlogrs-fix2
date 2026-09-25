@@ -76,6 +76,49 @@ class AsetApiController extends ApiController
     }
 
     /**
+     * Ambil profil fisik dan status terkini aset berdasarkan ID.
+     * GET /v1/aset/detail/{id}
+     */
+    public function detailAset(int $id): JsonResponse
+    {
+        $aset = Aset::with(['barang.kategori', 'barang.satuan', 'unit', 'gudang', 'lokasiGudang'])->find($id);
+        if (! $aset) {
+            return $this->jsonError('Data aset tidak ditemukan.', 404);
+        }
+
+        $lokasiSaatIni = $aset->unit ? $aset->unit->nama : ($aset->gudang ? $aset->gudang->nama . ($aset->lokasiGudang ? " (Rak: {$aset->lokasiGudang->nama})" : '') : '-');
+
+        $peminjamanAktif = null;
+        if ($aset->status === 'DIPINJAM') {
+            $peminjamanAktif = PermintaanPeminjaman::whereHas('detail', fn ($q) => $q->where('aset_id', $aset->id))
+                ->where('status', 'DIPINJAM')
+                ->with(['unitPeminjam', 'pengaju'])
+                ->latest('id')
+                ->first();
+        }
+
+        return $this->jsonSuccess([
+            'id'                => $aset->id,
+            'kode_aset'         => $aset->kode_aset,
+            'nomor_seri'        => $aset->nomor_seri ?? '-',
+            'nama_komoditas'    => $aset->barang?->nama ?? '-',
+            'kategori'          => $aset->barang?->kategori?->nama ?? '-',
+            'status'            => $aset->status,
+            'kondisi'           => $aset->kondisi,
+            'lokasi_tercatat'   => $lokasiSaatIni,
+            'penanggung_jawab'  => $peminjamanAktif ? $peminjamanAktif->unitPeminjam?->nama : $lokasiSaatIni,
+            'peminjaman_aktif'  => $peminjamanAktif ? [
+                'peminjaman_id'           => $peminjamanAktif->id,
+                'kode_pinjam'             => $peminjamanAktif->kode,
+                'unit_peminjam'           => $peminjamanAktif->unitPeminjam?->nama,
+                'tanggal_pinjam'          => $peminjamanAktif->tanggal_pinjam?->format('Y-m-d'),
+                'tanggal_kembali_rencana' => $peminjamanAktif->tanggal_kembali_rencana?->format('Y-m-d'),
+                'is_overdue'              => now()->startOfDay()->gt($peminjamanAktif->tanggal_kembali_rencana),
+            ] : null,
+        ], 'Data aset berhasil ditemukan.');
+    }
+
+    /**
      * Katalog aset yang siap dipinjam (Status TERSEDIA & Kondisi BAIK).
      * GET /v1/aset/katalog-tersedia
      */
