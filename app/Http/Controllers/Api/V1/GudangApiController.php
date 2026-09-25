@@ -422,8 +422,8 @@ class GudangApiController extends ApiController
             return $this->jsonError('Data PO tidak ditemukan.', 404);
         }
 
-        if (! in_array($po->status, ['DIKIRIM_VENDOR', 'DITERBITKAN', 'DITERIMA_SEBAGIAN'])) {
-            return $this->jsonError("PO {$po->kode} tidak dalam status dapat diterima (saat ini: {$po->status}).", 422);
+        if (! in_array($po->status, ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])) {
+            return $this->jsonError("PO {$po->kode} belum dikirim oleh vendor atau tidak dalam status dapat diterima (saat ini: {$po->status}).", 422);
         }
 
         $gudangId = $user->gudang_id ?? 1;
