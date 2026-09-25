@@ -32,6 +32,11 @@ class PenugasanMaintenance extends BaseModel
         return $this->belongsTo(User::class, 'teknisi_id');
     }
 
+    public function penugas(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'ditugaskan_oleh');
+    }
+
     public function penugast(): BelongsTo
     {
         return $this->belongsTo(User::class, 'ditugaskan_oleh');
