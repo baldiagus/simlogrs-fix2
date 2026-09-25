@@ -67,7 +67,7 @@ class DashboardApiController extends ApiController
             $spkList = PenugasanMaintenance::where('teknisi_id', $user->id)
                 ->with(['permintaanMaintenance.aset.barang', 'permintaanMaintenance.unit'])
                 ->latest('id')
-                ->take(5)
+                ->take(15)
                 ->get()
                 ->map(fn ($s) => [
                     'id'         => $s->id,
@@ -83,7 +83,7 @@ class DashboardApiController extends ApiController
             $tiketList = PermintaanMaintenance::where('status', 'DILAPORKAN')
                 ->with(['aset.barang', 'unit'])
                 ->latest('id')
-                ->take(5)
+                ->take(15)
                 ->get()
                 ->map(fn ($t) => [
                     'id'         => $t->id,
@@ -96,7 +96,7 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $t->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $activities = $spkList->concat($tiketList)->sortByDesc('timestamp')->values()->take(10)->toArray();
+            $activities = $spkList->concat($tiketList)->sortByDesc('timestamp')->values()->take(30)->toArray();
         }
 
         // -------------------------------------------------------------
@@ -128,7 +128,7 @@ class DashboardApiController extends ApiController
                 ->when($user->gudang_id, fn ($q) => $q->where('gudang_id', $user->gudang_id))
                 ->with(['unit:id,kode,nama', 'detail'])
                 ->latest('id')
-                ->take(5)
+                ->take(15)
                 ->get()
                 ->map(fn ($a) => [
                     'id'         => $a->id,
@@ -144,7 +144,7 @@ class DashboardApiController extends ApiController
             $poList = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERBITKAN', 'DITERIMA_SEBAGIAN'])
                 ->with(['pemasok:id,nama', 'detail'])
                 ->latest('id')
-                ->take(5)
+                ->take(15)
                 ->get()
                 ->map(fn ($p) => [
                     'id'         => $p->id,
@@ -157,7 +157,7 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $activities = $amprahList->concat($poList)->sortByDesc('timestamp')->values()->take(10)->toArray();
+            $activities = $amprahList->concat($poList)->sortByDesc('timestamp')->values()->take(30)->toArray();
         }
 
         // -------------------------------------------------------------
@@ -186,7 +186,7 @@ class DashboardApiController extends ApiController
             $amprahList = PermintaanDistribusi::whereIn('status', ['DISETUJUI_KARU', 'DISETUJUI_GUDANG'])
                 ->with(['unit:id,kode,nama', 'detail'])
                 ->latest('id')
-                ->take(5)
+                ->take(15)
                 ->get()
                 ->map(fn ($a) => [
                     'id'         => $a->id,
@@ -202,7 +202,7 @@ class DashboardApiController extends ApiController
             $poList = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERBITKAN'])
                 ->with(['pemasok:id,nama', 'detail'])
                 ->latest('id')
-                ->take(5)
+                ->take(15)
                 ->get()
                 ->map(fn ($p) => [
                     'id'         => $p->id,
@@ -215,7 +215,7 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $activities = $amprahList->concat($poList)->sortByDesc('timestamp')->values()->take(10)->toArray();
+            $activities = $amprahList->concat($poList)->sortByDesc('timestamp')->values()->take(30)->toArray();
         }
 
         // -------------------------------------------------------------
@@ -250,7 +250,7 @@ class DashboardApiController extends ApiController
             $prList = PermintaanPengadaan::where('unit_id', $user->unit_id)
                 ->with(['pengaju:id,nama', 'detail'])
                 ->latest('id')
-                ->take(4)
+                ->take(15)
                 ->get()
                 ->map(fn ($p) => [
                     'id'         => $p->id,
@@ -266,7 +266,7 @@ class DashboardApiController extends ApiController
             $amprahList = PermintaanDistribusi::where('unit_id', $user->unit_id)
                 ->with(['pengaju:id,nama', 'detail'])
                 ->latest('id')
-                ->take(4)
+                ->take(15)
                 ->get()
                 ->map(fn ($a) => [
                     'id'         => $a->id,
@@ -279,7 +279,7 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $a->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $activities = $prList->concat($amprahList)->sortByDesc('timestamp')->values()->take(10)->toArray();
+            $activities = $prList->concat($amprahList)->sortByDesc('timestamp')->values()->take(30)->toArray();
         }
 
         // -------------------------------------------------------------
@@ -314,7 +314,7 @@ class DashboardApiController extends ApiController
             $amprahList = PermintaanDistribusi::where('unit_id', $user->unit_id)
                 ->with(['detail'])
                 ->latest('id')
-                ->take(5)
+                ->take(15)
                 ->get()
                 ->map(fn ($a) => [
                     'id'         => $a->id,
@@ -330,7 +330,7 @@ class DashboardApiController extends ApiController
             $prList = PermintaanPengadaan::where('unit_id', $user->unit_id)
                 ->with(['detail'])
                 ->latest('id')
-                ->take(5)
+                ->take(15)
                 ->get()
                 ->map(fn ($p) => [
                     'id'         => $p->id,
@@ -343,7 +343,7 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $activities = $amprahList->concat($prList)->sortByDesc('timestamp')->values()->take(10)->toArray();
+            $activities = $amprahList->concat($prList)->sortByDesc('timestamp')->values()->take(30)->toArray();
         }
 
         // -------------------------------------------------------------
@@ -371,7 +371,7 @@ class DashboardApiController extends ApiController
 
             $prList = PermintaanPengadaan::with(['unit', 'gudang', 'pengaju', 'detail'])
                 ->latest('id')
-                ->take(5)
+                ->take(15)
                 ->get()
                 ->map(fn ($p) => [
                     'id'         => $p->id,
@@ -386,7 +386,7 @@ class DashboardApiController extends ApiController
 
             $amprahList = PermintaanDistribusi::with(['unit', 'pengaju', 'detail'])
                 ->latest('id')
-                ->take(5)
+                ->take(15)
                 ->get()
                 ->map(fn ($a) => [
                     'id'         => $a->id,
@@ -399,7 +399,7 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $a->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $activities = $prList->concat($amprahList)->sortByDesc('timestamp')->values()->take(10)->toArray();
+            $activities = $prList->concat($amprahList)->sortByDesc('timestamp')->values()->take(30)->toArray();
         }
 
         return $this->jsonSuccess([
