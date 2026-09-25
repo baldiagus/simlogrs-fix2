@@ -27,10 +27,13 @@ class AsetApiController extends ApiController
         ]);
 
         $query = trim($request->input('kode_aset'));
-        $aset = Aset::with(['barang.kategori', 'barang.satuan', 'unit', 'gudang', 'lokasiGudang'])
-            ->whereRaw('LOWER(kode_aset) = ?', [strtolower($query)])
-            ->orWhereRaw('LOWER(nomor_seri) = ?', [strtolower($query)])
-            ->orWhereHas('barang', fn ($q) => $q->whereRaw('LOWER(nama) LIKE ?', ['%' . strtolower($query) . '%']))
+        $aset = Aset::with(['barang.kategori', 'barang.satuan', 'barang.merek', 'unit', 'gudang', 'lokasiGudang'])
+            ->withCount('permintaanMaintenance')
+            ->where(function ($q) use ($query) {
+                $q->whereRaw('LOWER(kode_aset) = ?', [strtolower($query)])
+                  ->orWhereRaw('LOWER(nomor_seri) = ?', [strtolower($query)])
+                  ->orWhereHas('barang', fn ($b) => $b->whereRaw('LOWER(nama) LIKE ?', ['%' . strtolower($query) . '%']));
+            })
             ->first();
 
         if (! $aset) {
@@ -54,17 +57,31 @@ class AsetApiController extends ApiController
                 ->first();
         }
 
+        $latestMaintenance = $aset->permintaanMaintenance()->latest('id')->first();
+
         return $this->jsonSuccess([
-            'id'                => $aset->id,
-            'kode_aset'         => $aset->kode_aset,
-            'nomor_seri'        => $aset->nomor_seri ?? '-',
-            'nama_komoditas'    => $aset->barang?->nama ?? '-',
-            'kategori'          => $aset->barang?->kategori?->nama ?? '-',
-            'status'            => $aset->status,
-            'kondisi'           => $aset->kondisi,
-            'lokasi_tercatat'   => $lokasiSaatIni,
-            'penanggung_jawab'  => $peminjamanAktif ? $peminjamanAktif->unitPeminjam?->nama : $lokasiSaatIni,
-            'peminjaman_aktif'  => $peminjamanAktif ? [
+            'id'                   => $aset->id,
+            'kode_aset'            => $aset->kode_aset,
+            'nomor_seri'           => $aset->nomor_seri ?? '-',
+            'nama_komoditas'       => $aset->barang?->nama ?? '-',
+            'kategori'             => $aset->barang?->kategori?->nama ?? '-',
+            'merek'                => $aset->barang?->merek?->nama ?? '-',
+            'spesifikasi'          => $aset->barang?->spesifikasi ?? '-',
+            'status'               => $aset->status,
+            'kondisi'              => $aset->kondisi,
+            'lokasi_tercatat'      => $lokasiSaatIni,
+            'penanggung_jawab'     => $peminjamanAktif ? $peminjamanAktif->unitPeminjam?->nama : $lokasiSaatIni,
+            'nilai_perolehan'      => (float) ($aset->nilai_perolehan ?? 0),
+            'tanggal_perolehan'    => $aset->tanggal_perolehan?->format('Y-m-d') ?? '-',
+            'total_riwayat_servis' => (int) ($aset->permintaan_maintenance_count ?? 0),
+            'servis_terakhir'      => $latestMaintenance ? [
+                'kode'              => $latestMaintenance->kode,
+                'status'            => $latestMaintenance->status,
+                'prioritas'         => $latestMaintenance->prioritas,
+                'deskripsi'         => $latestMaintenance->deskripsi_masalah,
+                'tanggal_pengajuan' => $latestMaintenance->dibuat_pada?->format('Y-m-d') ?? '-',
+            ] : null,
+            'peminjaman_aktif'     => $peminjamanAktif ? [
                 'peminjaman_id'           => $peminjamanAktif->id,
                 'kode_pinjam'             => $peminjamanAktif->kode,
                 'unit_peminjam'           => $peminjamanAktif->unitPeminjam?->nama,
@@ -81,7 +98,9 @@ class AsetApiController extends ApiController
      */
     public function detailAset(int $id): JsonResponse
     {
-        $aset = Aset::with(['barang.kategori', 'barang.satuan', 'unit', 'gudang', 'lokasiGudang'])->find($id);
+        $aset = Aset::with(['barang.kategori', 'barang.satuan', 'barang.merek', 'unit', 'gudang', 'lokasiGudang'])
+            ->withCount('permintaanMaintenance')
+            ->find($id);
         if (! $aset) {
             return $this->jsonError('Data aset tidak ditemukan.', 404);
         }
@@ -97,17 +116,31 @@ class AsetApiController extends ApiController
                 ->first();
         }
 
+        $latestMaintenance = $aset->permintaanMaintenance()->latest('id')->first();
+
         return $this->jsonSuccess([
-            'id'                => $aset->id,
-            'kode_aset'         => $aset->kode_aset,
-            'nomor_seri'        => $aset->nomor_seri ?? '-',
-            'nama_komoditas'    => $aset->barang?->nama ?? '-',
-            'kategori'          => $aset->barang?->kategori?->nama ?? '-',
-            'status'            => $aset->status,
-            'kondisi'           => $aset->kondisi,
-            'lokasi_tercatat'   => $lokasiSaatIni,
-            'penanggung_jawab'  => $peminjamanAktif ? $peminjamanAktif->unitPeminjam?->nama : $lokasiSaatIni,
-            'peminjaman_aktif'  => $peminjamanAktif ? [
+            'id'                   => $aset->id,
+            'kode_aset'            => $aset->kode_aset,
+            'nomor_seri'           => $aset->nomor_seri ?? '-',
+            'nama_komoditas'       => $aset->barang?->nama ?? '-',
+            'kategori'             => $aset->barang?->kategori?->nama ?? '-',
+            'merek'                => $aset->barang?->merek?->nama ?? '-',
+            'spesifikasi'          => $aset->barang?->spesifikasi ?? '-',
+            'status'               => $aset->status,
+            'kondisi'              => $aset->kondisi,
+            'lokasi_tercatat'      => $lokasiSaatIni,
+            'penanggung_jawab'     => $peminjamanAktif ? $peminjamanAktif->unitPeminjam?->nama : $lokasiSaatIni,
+            'nilai_perolehan'      => (float) ($aset->nilai_perolehan ?? 0),
+            'tanggal_perolehan'    => $aset->tanggal_perolehan?->format('Y-m-d') ?? '-',
+            'total_riwayat_servis' => (int) ($aset->permintaan_maintenance_count ?? 0),
+            'servis_terakhir'      => $latestMaintenance ? [
+                'kode'              => $latestMaintenance->kode,
+                'status'            => $latestMaintenance->status,
+                'prioritas'         => $latestMaintenance->prioritas,
+                'deskripsi'         => $latestMaintenance->deskripsi_masalah,
+                'tanggal_pengajuan' => $latestMaintenance->dibuat_pada?->format('Y-m-d') ?? '-',
+            ] : null,
+            'peminjaman_aktif'     => $peminjamanAktif ? [
                 'peminjaman_id'           => $peminjamanAktif->id,
                 'kode_pinjam'             => $peminjamanAktif->kode,
                 'unit_peminjam'           => $peminjamanAktif->unitPeminjam?->nama,

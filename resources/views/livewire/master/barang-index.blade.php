@@ -261,14 +261,15 @@
         :variant="$confirmButtonVariant"
     />
 
-    <flux:modal wire:model="showDetailModal" class="md:w-[48rem]">
+    <flux:modal wire:model="showDetailModal" class="w-full max-w-4xl lg:max-w-5xl">
         @if ($selectedBarang)
-            <div>
-                <flux:heading size="lg">Detail Komoditas: {{ $selectedBarang->nama }}</flux:heading>
-                <flux:subheading>Informasi lengkap data komoditas logistik dan status ketersediaan fisik saat ini.</flux:subheading>
-            </div>
+            <div class="space-y-4">
+                <div>
+                    <flux:heading size="lg">Detail Komoditas: {{ $selectedBarang->nama }}</flux:heading>
+                    <flux:subheading>Informasi lengkap data komoditas logistik dan status ketersediaan fisik saat ini.</flux:subheading>
+                </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-xs">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-xs">
                 <div>
                     <div class="text-zinc-500 dark:text-zinc-400">Kode</div>
                     <div class="font-semibold text-zinc-900 dark:text-zinc-100 font-mono">{{ $selectedBarang->kode }}</div>
@@ -303,7 +304,7 @@
                     <div class="text-zinc-500 dark:text-zinc-400">Merek</div>
                     <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedBarang->merek?->nama ?? '-' }}</div>
                 </div>
-                <div class="col-span-2 sm:col-span-3">
+                <div class="col-span-2 sm:col-span-3 lg:col-span-2">
                     <div class="text-zinc-500 dark:text-zinc-400">Pemasok Default</div>
                     <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedBarang->pemasokDefault?->nama ?? '-' }}</div>
                 </div>
@@ -355,7 +356,7 @@
             @endphp
 
             {{-- 3 Kartu Ringkasan Stok Cepat --}}
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {{-- Saldo di Gudang --}}
                 <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/80 shadow-xs space-y-1">
                     <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400 text-xs">
@@ -535,6 +536,7 @@
 
             <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">Tutup</flux:button>
+            </div>
             </div>
         @endif
     </flux:modal>
