@@ -114,6 +114,18 @@ class IpsrsApiController extends ApiController
     public function eksekusiPreventif(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
+
+        $canExecute = $user && (
+            $user->hasRole('teknisi') ||
+            $user->hasRole('admin_logistik') ||
+            $user->hasRole('super_admin') ||
+            $user->can('create_pemeliharaan::spk::perbaikan')
+        );
+
+        if (! $canExecute) {
+            return $this->jsonError('Hanya teknisi IPSRS dan admin logistik yang berwenang menerbitkan SPK preventif.', 403);
+        }
+
         $jadwal = JadwalMaintenance::with(['aset', 'teknisi'])->find($id);
 
         if (! $jadwal) {

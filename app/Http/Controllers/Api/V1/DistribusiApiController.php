@@ -11,6 +11,7 @@ use App\Models\PengirimanBarang;
 use App\Models\PermintaanDistribusi;
 use App\Models\PermintaanDistribusiDetail;
 use App\Models\StokBatch;
+use App\Models\Unit;
 use App\Models\StokRuangan;
 use App\Services\Distribusi\DistribusiService;
 use App\Support\Generator\CodeGenerator;
@@ -95,6 +96,8 @@ class DistribusiApiController extends ApiController
         $filterStatus = $request->query('status'); // DIAJUKAN, DISETUJUI_KARU, DISETUJUI_GUDANG, SELESAI, DITOLAK
         $filterUrgensi = $request->query('urgensi');
 
+        $effectiveUnitId = $user->unit_id ?: ($user->hasRole('pengadaan') ? Unit::where('kode', 'LOGISTIK')->value('id') : null);
+
         $query = PermintaanDistribusi::query()
             ->with([
                 'unit:id,kode,nama',
@@ -104,7 +107,7 @@ class DistribusiApiController extends ApiController
                 'detail.barang:id,kode,nama,satuan_id',
                 'detail.barang.satuan:id,nama',
             ])
-            ->when($user->unit_id && ! $isGlobalAdmin, fn ($q) => $q->where('unit_id', $user->unit_id))
+            ->when($effectiveUnitId && ! $isGlobalAdmin, fn ($q) => $q->where('unit_id', $effectiveUnitId))
             ->when($filterStatus, fn ($q) => $q->where('status', $filterStatus))
             ->when($filterUrgensi, fn ($q) => $q->where('urgensi', $filterUrgensi));
 
@@ -206,12 +209,17 @@ class DistribusiApiController extends ApiController
     {
         $user = $request->user();
 
-        if (! $user->can('create_layanan_unit::permintaan::barang') &&
-            ! $user->hasRole('petugas_unit') &&
-            ! $user->hasRole('kepala_unit') &&
-            ! $user->hasRole('auditor') &&
-            ! $user->hasRole('manajemen') &&
-            ! $user->hasRole('super_admin')) {
+        $canAmprah = $user && (
+            $user->can('create_layanan_unit::permintaan::barang') ||
+            $user->hasRole('petugas_unit') ||
+            $user->hasRole('kepala_unit') ||
+            $user->hasRole('auditor') ||
+            $user->hasRole('manajemen') ||
+            $user->hasRole('pengadaan') ||
+            $user->hasRole('super_admin')
+        );
+
+        if (! $canAmprah) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengajukan amprah barang ruangan.', 403);
         }
 
@@ -234,7 +242,7 @@ class DistribusiApiController extends ApiController
             return $this->jsonError('Validasi data gagal.', 422, $validator->errors());
         }
 
-        $unitId = $user->unit_id;
+        $unitId = $user->unit_id ?: ($user->hasRole('pengadaan') ? Unit::where('kode', 'LOGISTIK')->value('id') : null) ?: Unit::first()?->id;
         if (! $unitId) {
             return $this->jsonError('Pengguna wajib terdaftar dalam unit ruangan pelayanan.', 422);
         }
@@ -516,7 +524,8 @@ class DistribusiApiController extends ApiController
         }
 
         $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
-        if (! $isGlobalAdmin && (int) $user->unit_id !== (int) $sppb->unit_id) {
+        $effectiveRcvUnitId = $user->unit_id ?: ($user->hasRole('pengadaan') ? Unit::where('kode', 'LOGISTIK')->value('id') : null);
+        if (! $isGlobalAdmin && (int) $effectiveRcvUnitId !== (int) $sppb->unit_id) {
             return $this->jsonError('Anda hanya berhak mengonfirmasi penerimaan barang untuk ruangan Anda sendiri.', 403);
         }
 

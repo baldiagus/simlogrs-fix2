@@ -78,7 +78,7 @@ class PenggunaSeeder extends Seeder
                 'no_telepon' => '081234567894',
                 'status' => 'AKTIF',
                 'role' => 'pengadaan',
-                'unit_kode' => null,
+                'unit_kode' => 'LOGISTIK',
                 'gudang_kode' => null,
             ],
             [

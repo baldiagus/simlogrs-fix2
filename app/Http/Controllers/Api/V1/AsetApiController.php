@@ -230,11 +230,12 @@ class AsetApiController extends ApiController
             ]);
 
         if (! $isGlobalAdmin) {
-            if ($user->unit_id) {
+            $effectiveUnitId = $user->unit_id ?: ($user->hasRole('pengadaan') ? Unit::where('kode', 'LOGISTIK')->value('id') : null);
+            if ($effectiveUnitId) {
                 if ($perspektif === 'penyedia') {
-                    $query->where('tipe_penyedia', 'RUANGAN')->where('unit_penyedia_id', $user->unit_id);
+                    $query->where('tipe_penyedia', 'RUANGAN')->where('unit_penyedia_id', $effectiveUnitId);
                 } else {
-                    $query->where('unit_id', $user->unit_id);
+                    $query->where('unit_id', $effectiveUnitId);
                 }
             } elseif ($user->gudang_id) {
                 $query->where('tipe_penyedia', 'GUDANG')->where('gudang_penyedia_id', $user->gudang_id);
@@ -295,14 +296,17 @@ class AsetApiController extends ApiController
     {
         $user = $request->user();
 
-        if (! $user->can('create_layanan_unit::peminjaman::aset') &&
-            ! $user->hasRole('petugas_unit') &&
-            ! $user->hasRole('kepala_unit') ||
-                $user->hasRole('auditor') ||
-                $user->hasRole('manajemen') &&
-            ! $user->hasRole('auditor') &&
-            ! $user->hasRole('manajemen') &&
-            ! $user->hasRole('super_admin')) {
+        $canPinjam = $user && (
+            $user->can('create_layanan_unit::peminjaman::aset') ||
+            $user->hasRole('petugas_unit') ||
+            $user->hasRole('kepala_unit') ||
+            $user->hasRole('auditor') ||
+            $user->hasRole('manajemen') ||
+            $user->hasRole('pengadaan') ||
+            $user->hasRole('super_admin')
+        );
+
+        if (! $canPinjam) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengajukan peminjaman aset.', 403);
         }
 
@@ -324,7 +328,7 @@ class AsetApiController extends ApiController
             return $this->jsonError('Validasi data gagal.', 422, $validator->errors());
         }
 
-        $unitPeminjamId = $user->unit_id;
+        $unitPeminjamId = $user->unit_id ?: ($user->hasRole('pengadaan') ? Unit::where('kode', 'LOGISTIK')->value('id') : null) ?: Unit::first()?->id;
         if (! $unitPeminjamId) {
             return $this->jsonError('Pengguna wajib terdaftar dalam unit pelayanan peminjam.', 422);
         }
@@ -410,7 +414,8 @@ class AsetApiController extends ApiController
                 $user->hasRole('petugas_unit') ||
                 $user->hasRole('kepala_unit') ||
                 $user->hasRole('auditor') ||
-                $user->hasRole('manajemen')
+                $user->hasRole('manajemen') ||
+                $user->hasRole('pengadaan')
             ));
 
         if (! $canCancel) {
@@ -451,7 +456,8 @@ class AsetApiController extends ApiController
                 $user->hasRole('petugas_unit') ||
                 $user->hasRole('kepala_unit') ||
                 $user->hasRole('auditor') ||
-                $user->hasRole('manajemen')
+                $user->hasRole('manajemen') ||
+                $user->hasRole('pengadaan')
             ));
 
         if (! $canExtend) {
@@ -509,6 +515,7 @@ class AsetApiController extends ApiController
             $user->hasRole('kepala_unit') ||
                 $user->hasRole('auditor') ||
                 $user->hasRole('manajemen') ||
+                $user->hasRole('pengadaan') ||
             $user->hasRole('kepala_gudang') ||
             $user->hasRole('admin_logistik') ||
             $user->hasRole('super_admin');
@@ -578,6 +585,7 @@ class AsetApiController extends ApiController
             $user->hasRole('kepala_unit') ||
                 $user->hasRole('auditor') ||
                 $user->hasRole('manajemen') ||
+                $user->hasRole('pengadaan') ||
             $user->hasRole('kepala_gudang') ||
             $user->hasRole('admin_logistik') ||
             $user->hasRole('super_admin');

@@ -18,6 +18,7 @@ class ApprovalController extends ApiController
         $user = $request->user();
 
         $isCrossUnitViewer = $user && (
+            $user->hasRole('pengadaan') ||
             $user->can('page_PengadaanDashboard') ||
             $user->can('page_AdminLogistikDashboard') ||
             $user->can('page_Dashboard') ||
@@ -100,7 +101,13 @@ class ApprovalController extends ApiController
     {
         $user = $request->user();
 
-        if (! $user->can('update_pengadaan::permintaan::pengadaan')) {
+        $canApprove = $user && (
+            $user->can('update_pengadaan::permintaan::pengadaan') ||
+            $user->hasRole('pengadaan') ||
+            $user->hasRole('super_admin')
+        );
+
+        if (! $canApprove) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk menyetujui permintaan pengadaan.', 403);
         }
 
