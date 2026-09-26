@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Aset;
 use App\Models\Barang;
+use App\Models\Gudang;
 use App\Models\KategoriBarang;
 use App\Models\StokBatch;
 use App\Models\StokRuangan;
@@ -232,5 +233,17 @@ class MasterApiController extends ApiController
     {
         $kategoris = KategoriBarang::where('status', 'AKTIF')->orderBy('nama')->get(['id', 'kode', 'nama']);
         return $this->jsonSuccess($kategoris, 'Daftar kategori berhasil dimuat.');
+    }
+
+    /**
+     * Daftar fasilitas gudang logistik aktif.
+     * GET /v1/master/gudang
+     */
+    public function daftarGudang(): JsonResponse
+    {
+        $gudangs = Gudang::where('status', 'AKTIF')
+            ->orderBy('nama')
+            ->get(['id', 'kode', 'nama', 'jenis', 'lokasi_gedung']);
+        return $this->jsonSuccess($gudangs, 'Daftar gudang aktif berhasil dimuat.');
     }
 }

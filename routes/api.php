@@ -91,7 +91,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/master/barang/{id}', [MasterApiController::class, 'detailBarang']);
         Route::get('/master/aset-lengkap', [MasterApiController::class, 'asetLengkap']);
         Route::get('/master/kategori', [MasterApiController::class, 'daftarKategori']);
-
+        Route::get('/master/gudang', [MasterApiController::class, 'daftarGudang']);
         // 11. Modul Persediaan & Opname Kepala Gudang
         Route::get('/gudang/fefo/monitoring', [PersediaanApiController::class, 'monitoringFefo']);
         Route::get('/gudang/mutasi/buku', [PersediaanApiController::class, 'bukuMutasi']);
