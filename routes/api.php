@@ -71,10 +71,15 @@ Route::prefix('v1')->group(function () {
         Route::get('/maintenance/spk/{id}', [MaintenanceApiController::class, 'spkDetail']);
         Route::post('/maintenance/spk/{id}/log', [MaintenanceApiController::class, 'submitLog']);
 
-        // 8. Modul Pengadaan & Katalog Barang (Petugas Unit & Karu)
+        // 8. Modul Pengadaan, Katalog Barang & Penerbitan PO
         Route::get('/master/barang', [PengadaanApiController::class, 'katalogBarang']);
         Route::get('/pengadaan/pr', [PengadaanApiController::class, 'daftarPr']);
         Route::post('/pengadaan/pr', [PengadaanApiController::class, 'simpanPr']);
+        Route::get('/pengadaan/pemasok', [PengadaanApiController::class, 'daftarPemasok']);
+        Route::get('/pengadaan/po', [PengadaanApiController::class, 'daftarPo']);
+        Route::get('/pengadaan/po/{id}', [PengadaanApiController::class, 'detailPo']);
+        Route::post('/pengadaan/po', [PengadaanApiController::class, 'terbitkanPo']);
+        Route::post('/pengadaan/po/{id}/kirim', [PengadaanApiController::class, 'updateStatusKirim']);
 
         // 9. Modul Distribusi & Amprah Ruangan
         Route::get('/distribusi/katalog-barang', [DistribusiApiController::class, 'katalogBarang']);
