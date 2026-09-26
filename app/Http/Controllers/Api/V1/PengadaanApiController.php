@@ -27,9 +27,10 @@ class PengadaanApiController extends ApiController
             ->with(['kategori:id,nama', 'satuan:id,nama', 'merek:id,nama'])
             ->when($tipe, fn ($q) => $q->where('tipe', $tipe))
             ->when($cari, function ($q) use ($cari) {
-                $q->where('nama', 'like', "%{$cari}%")
-                  ->orWhere('kode', 'like', "%{$cari}%")
-                  ->orWhere('spesifikasi', 'like', "%{$cari}%");
+                $q->where(function ($sub) use ($cari) {
+                    $sub->where('nama', 'like', "%{$cari}%")
+                        ->orWhere('kode', 'like', "%{$cari}%");
+                });
             })
             ->limit(50)
             ->get()
@@ -44,7 +45,7 @@ class PengadaanApiController extends ApiController
                     'id'             => $b->id,
                     'kode'           => $b->kode,
                     'nama'           => $b->nama,
-                    'spesifikasi'    => $b->spesifikasi,
+                    'spesifikasi'    => $b->nama,
                     'tipe'           => $tipe,
                     'tipe_label'     => $tipeLabel,
                     'kategori'       => $b->kategori?->nama ?? 'Umum',
