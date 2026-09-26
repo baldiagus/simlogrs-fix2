@@ -297,7 +297,11 @@ class AsetApiController extends ApiController
 
         if (! $user->can('create_layanan_unit::peminjaman::aset') &&
             ! $user->hasRole('petugas_unit') &&
-            ! $user->hasRole('kepala_unit') &&
+            ! $user->hasRole('kepala_unit') ||
+                $user->hasRole('auditor') ||
+                $user->hasRole('manajemen') &&
+            ! $user->hasRole('auditor') &&
+            ! $user->hasRole('manajemen') &&
             ! $user->hasRole('super_admin')) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengajukan peminjaman aset.', 403);
         }
@@ -404,7 +408,9 @@ class AsetApiController extends ApiController
                 $user->can('create_layanan_unit::peminjaman::aset') ||
                 $user->can('delete_layanan_unit::peminjaman::aset') ||
                 $user->hasRole('petugas_unit') ||
-                $user->hasRole('kepala_unit')
+                $user->hasRole('kepala_unit') ||
+                $user->hasRole('auditor') ||
+                $user->hasRole('manajemen')
             ));
 
         if (! $canCancel) {
@@ -443,7 +449,9 @@ class AsetApiController extends ApiController
                 $user->can('update_layanan_unit::peminjaman::aset') ||
                 $user->can('create_layanan_unit::peminjaman::aset') ||
                 $user->hasRole('petugas_unit') ||
-                $user->hasRole('kepala_unit')
+                $user->hasRole('kepala_unit') ||
+                $user->hasRole('auditor') ||
+                $user->hasRole('manajemen')
             ));
 
         if (! $canExtend) {
@@ -499,6 +507,8 @@ class AsetApiController extends ApiController
         $canApprove = $user->can('layanan_unit::approval::peminjaman') ||
             $user->can('view_any_layanan_unit::approval::karu') ||
             $user->hasRole('kepala_unit') ||
+                $user->hasRole('auditor') ||
+                $user->hasRole('manajemen') ||
             $user->hasRole('kepala_gudang') ||
             $user->hasRole('admin_logistik') ||
             $user->hasRole('super_admin');
@@ -566,6 +576,8 @@ class AsetApiController extends ApiController
         $canApprove = $user->can('layanan_unit::approval::peminjaman') ||
             $user->can('view_any_layanan_unit::approval::karu') ||
             $user->hasRole('kepala_unit') ||
+                $user->hasRole('auditor') ||
+                $user->hasRole('manajemen') ||
             $user->hasRole('kepala_gudang') ||
             $user->hasRole('admin_logistik') ||
             $user->hasRole('super_admin');

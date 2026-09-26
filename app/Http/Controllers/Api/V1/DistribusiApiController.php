@@ -39,7 +39,7 @@ class DistribusiApiController extends ApiController
                 $q->where(function ($sub) use ($cari) {
                     $sub->where('nama', 'like', "%{$cari}%")
                         ->orWhere('kode', 'like', "%{$cari}%")
-                        ->orWhere('spesifikasi', 'like', "%{$cari}%");
+                        
                 });
             })
             ->limit(50)
@@ -210,6 +210,8 @@ class DistribusiApiController extends ApiController
         if (! $user->can('create_layanan_unit::permintaan::barang') &&
             ! $user->hasRole('petugas_unit') &&
             ! $user->hasRole('kepala_unit') &&
+            ! $user->hasRole('auditor') &&
+            ! $user->hasRole('manajemen') &&
             ! $user->hasRole('super_admin')) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengajukan amprah barang ruangan.', 403);
         }
@@ -498,6 +500,8 @@ class DistribusiApiController extends ApiController
             ! $user->can('update_layanan_unit::penerimaan::barang') &&
             ! $user->hasRole('petugas_unit') &&
             ! $user->hasRole('kepala_unit') &&
+            ! $user->hasRole('auditor') &&
+            ! $user->hasRole('manajemen') &&
             ! $user->hasRole('super_admin')) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk konfirmasi penerimaan barang ruangan.', 403);
         }

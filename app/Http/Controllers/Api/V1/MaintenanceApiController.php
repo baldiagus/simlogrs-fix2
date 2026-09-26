@@ -343,7 +343,12 @@ class MaintenanceApiController extends ApiController
             $user->hasRole('super_admin') ||
             $user->hasRole('admin_logistik');
 
-        if (! $isGlobalAdmin && ! $user->can('view_any_pemeliharaan::spk::perbaikan') && ! $user->can('view_pemeliharaan::spk::perbaikan') && ! $user->hasRole('teknisi')) {
+        $canViewAll = $isGlobalAdmin ||
+            $user->can('view_any_pemeliharaan::spk::perbaikan') ||
+            $user->hasRole('auditor') ||
+            $user->hasRole('manajemen');
+
+        if (! $canViewAll && ! $user->can('view_pemeliharaan::spk::perbaikan') && ! $user->hasRole('teknisi')) {
             return $this->jsonError('Anda tidak memiliki wewenang melihat daftar SPK teknisi.', 403);
         }
 
@@ -354,7 +359,7 @@ class MaintenanceApiController extends ApiController
             'teknisi',
             'penugast',
         ])
-        ->when(! $isGlobalAdmin, fn ($q) => $q->where('teknisi_id', $user->id))
+        ->when(! $canViewAll, fn ($q) => $q->where('teknisi_id', $user->id))
         ->when($filterStatus, fn ($q) => $q->where('status', $filterStatus))
         ->orderByRaw("CASE WHEN status = 'DITUGASKAN' THEN 1 WHEN status = 'DITERIMA' THEN 2 ELSE 3 END")
         ->orderBy('id', 'desc')

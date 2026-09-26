@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\DashboardApiController;
 use App\Http\Controllers\Api\V1\MasterApiController;
 use App\Http\Controllers\Api\V1\PersediaanApiController;
 use App\Http\Controllers\Api\V1\IpsrsApiController;
+use App\Http\Controllers\Api\V1\AuditApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -107,5 +108,17 @@ Route::prefix('v1')->group(function () {
         Route::post('/maintenance/preventif/{id}/eksekusi', [IpsrsApiController::class, 'eksekusiPreventif']);
         Route::get('/maintenance/rekam-medis/katalog', [IpsrsApiController::class, 'katalogRekamMedis']);
         Route::get('/maintenance/rekam-medis/{aset_id}', [IpsrsApiController::class, 'rekamMedisAset']);
+
+        // 13. Modul Audit Internal SPI & Tata Kelola
+        Route::get('/audit/summary', [AuditApiController::class, 'summary']);
+        Route::get('/audit/trail', [AuditApiController::class, 'auditTrail']);
+        Route::get('/audit/trail/{id}', [AuditApiController::class, 'auditTrailDetail']);
+        Route::get('/audit/kepatuhan-pengadaan', [AuditApiController::class, 'kepatuhanPengadaan']);
+        Route::post('/audit/kepatuhan-pengadaan/{po_id}/capa', [AuditApiController::class, 'buatTemuanKepatuhan']);
+        Route::get('/audit/selisih-opname', [AuditApiController::class, 'selisihOpname']);
+        Route::get('/audit/temuan-capa', [AuditApiController::class, 'registerTemuan']);
+        Route::post('/audit/temuan-capa', [AuditApiController::class, 'simpanTemuan']);
+        Route::post('/audit/temuan-capa/{id}/tindak-lanjut', [AuditApiController::class, 'tindakLanjutTemuan']);
+        Route::post('/audit/temuan-capa/{id}/evaluasi', [AuditApiController::class, 'evaluasiTemuan']);
     });
 });

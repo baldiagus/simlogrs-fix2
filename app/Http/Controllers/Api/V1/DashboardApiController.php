@@ -10,6 +10,10 @@ use App\Models\PermintaanMaintenance;
 use App\Models\PermintaanPeminjaman;
 use App\Models\PermintaanPengadaan;
 use App\Models\PesananPembelian;
+use App\Models\Aset;
+use App\Models\StokBatch;
+use App\Models\StokOpname;
+use App\Models\TemuanAudit;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,7 +37,9 @@ class DashboardApiController extends ApiController
         $isPetugasGudang = in_array('petugas_gudang', $roles) || in_array('staf_gudang', $roles);
         $isKepalaGudang = in_array('kepala_gudang', $roles) || in_array('admin_logistik', $roles);
         $isKaru = in_array('kepala_unit', $roles) || $user->can('page_KepalaUnitDashboard');
-        $isPetugasUnit = in_array('petugas_unit', $roles) || (! empty($user->unit_id) && ! $isKaru);
+        $isAuditor = in_array('auditor', $roles) || $user->can('page_AuditorDashboard');
+        $isManajemen = in_array('manajemen', $roles) || $user->can('page_ManajemenDashboard');
+        $isPetugasUnit = (in_array('petugas_unit', $roles) || (! empty($user->unit_id) && ! $isKaru)) && ! $isAuditor && ! $isManajemen;
 
         $hero = [];
         $activities = [];
@@ -500,7 +506,130 @@ class DashboardApiController extends ApiController
         }
 
         // -------------------------------------------------------------
-        // KASUS 6: PENGADAAN, MANAJEMEN, SUPER ADMIN, AUDITOR (DEFAULT)
+        // KASUS 6: AUDITOR INTERNAL (SPI)
+        // -------------------------------------------------------------
+        elseif ($isAuditor) {
+            $today = now()->toDateString();
+            $openCapa = TemuanAudit::where('status_capa', '!=', 'Closed')->count();
+            $mayorOpen = TemuanAudit::where('tingkat_risiko', 'Mayor')->where('status_capa', '!=', 'Closed')->count();
+            $anomaliPo = PesananPembelian::where(function ($q) use ($today) {
+                $q->whereNull('permintaan_pengadaan_id')
+                  ->orWhere(fn ($sub) => $sub->whereNotNull('estimasi_tanggal_kirim')->where('estimasi_tanggal_kirim', '<', $today)->where('status', '!=', 'DITERIMA_LENGKAP'))
+                  ->orWhere('status', 'DITERIMA_SEBAGIAN');
+            })->count();
+            $selisihOpnameCount = StokOpname::whereHas('detail', fn ($q) => $q->where('selisih', '!=', 0))->count();
+
+            $totalAuditCases = $openCapa + $anomaliPo + $selisihOpnameCount;
+
+            $hero = [
+                'judul'        => 'Forensik Audit & Kepatuhan SPI',
+                'total'        => $totalAuditCases,
+                'satuan'       => 'Temuan',
+                'label_tombol' => 'Buka Audit SPI',
+                'target_aksi'  => 'audit_spi',
+                'sub_metrik'   => [
+                    ['label' => 'Open CAPA', 'nilai' => (string) $openCapa, 'warna' => 'danger'],
+                    ['label' => 'Anomali PO', 'nilai' => (string) $anomaliPo, 'warna' => 'warning'],
+                    ['label' => 'Selisih Opname', 'nilai' => (string) $selisihOpnameCount, 'warna' => 'purple'],
+                ],
+            ];
+
+            $temuanList = TemuanAudit::latest('id')->take(10)->get()->map(fn ($t) => [
+                'id'         => $t->id,
+                'tipe'       => 'AUDIT',
+                'kode'       => $t->kode,
+                'judul'      => 'Temuan: ' . $t->objek_audit,
+                'subjudul'   => 'Risiko ' . $t->tingkat_risiko . ' • Status: ' . $t->status_capa,
+                'status'     => $t->status_capa,
+                'waktu_lalu' => $this->diffForHumans($t->dibuat_pada),
+                'timestamp'  => $t->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+            ]);
+
+            $poAnomaliList = PesananPembelian::whereNull('permintaan_pengadaan_id')
+                ->orWhere('status', 'DITERIMA_SEBAGIAN')
+                ->latest('id')
+                ->take(10)
+                ->get()
+                ->map(fn ($p) => [
+                    'id'         => $p->id,
+                    'tipe'       => 'PO',
+                    'kode'       => $p->kode,
+                    'judul'      => 'Uji PO: ' . $p->kode . ' (Anomali)',
+                    'subjudul'   => 'Vendor: ' . ($p->pemasok?->nama ?? 'Vendor') . ' • Nilai: Rp ' . number_format($p->total_biaya, 0, ',', '.'),
+                    'status'     => $p->status,
+                    'waktu_lalu' => $this->diffForHumans($p->dibuat_pada),
+                    'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            $activities = $temuanList->concat($poAnomaliList)->sortByDesc('timestamp')->values()->take(30)->toArray();
+        }
+
+        // -------------------------------------------------------------
+        // KASUS 7: MANAJEMEN DIREKSI (EKSEKUTIF)
+        // -------------------------------------------------------------
+        elseif ($isManajemen) {
+            $valuasiPersediaan = (float) StokBatch::where('status', 'AKTIF')
+                ->selectRaw('COALESCE(SUM(jumlah * harga_satuan), 0) as total')
+                ->value('total');
+
+            $totalAset = Aset::count();
+            $asetBaik = Aset::where('kondisi', 'BAIK')->count();
+            $indeksKelaikan = $totalAset > 0 ? round(($asetBaik / $totalAset) * 100, 1) : 100;
+
+            $totalTemuan = TemuanAudit::count();
+            $closedTemuan = TemuanAudit::where('status_capa', 'Closed')->count();
+            $closingRate = $totalTemuan > 0 ? round(($closedTemuan / $totalTemuan) * 100, 1) : 100;
+
+            $spkMendesakCount = PermintaanMaintenance::whereIn('prioritas', ['CITO', 'TINGGI'])
+                ->whereNotIn('status', ['SELESAI', 'DIBATALKAN'])
+                ->count();
+
+            $hero = [
+                'judul'        => 'Valuasi & Tata Kelola Eksekutif',
+                'total'        => round($valuasiPersediaan / 1000000, 1),
+                'satuan'       => 'Jt Rp',
+                'label_tombol' => 'Audit & Mutasi',
+                'target_aksi'  => 'audit_spi',
+                'sub_metrik'   => [
+                    ['label' => 'Kelaikan Sarana', 'nilai' => $indeksKelaikan . '%', 'warna' => 'blue'],
+                    ['label' => 'Closing CAPA', 'nilai' => $closingRate . '%', 'warna' => 'purple'],
+                    ['label' => 'SPK Prioritas', 'nilai' => (string) $spkMendesakCount, 'warna' => 'danger'],
+                ],
+            ];
+
+            $spkMendesak = PermintaanMaintenance::with(['aset.barang', 'unit'])
+                ->whereIn('prioritas', ['CITO', 'TINGGI'])
+                ->whereNotIn('status', ['SELESAI', 'DIBATALKAN'])
+                ->latest('id')
+                ->take(10)
+                ->get()
+                ->map(fn ($m) => [
+                    'id'         => $m->id,
+                    'tipe'       => 'TIKET',
+                    'kode'       => $m->kode,
+                    'judul'      => 'SPK Mendesak: ' . ($m->aset?->barang?->nama ?? 'Sarana Medis'),
+                    'subjudul'   => ($m->unit?->nama ?? 'Unit') . ' • Prioritas ' . $m->prioritas,
+                    'status'     => $m->status,
+                    'waktu_lalu' => $this->diffForHumans($m->dibuat_pada),
+                    'timestamp'  => $m->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            $temuanList = TemuanAudit::latest('id')->take(10)->get()->map(fn ($t) => [
+                'id'         => $t->id,
+                'tipe'       => 'AUDIT',
+                'kode'       => $t->kode,
+                'judul'      => 'Temuan CAPA: ' . $t->objek_audit,
+                'subjudul'   => 'Risiko ' . $t->tingkat_risiko . ' • Status: ' . $t->status_capa,
+                'status'     => $t->status_capa,
+                'waktu_lalu' => $this->diffForHumans($t->dibuat_pada),
+                'timestamp'  => $t->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+            ]);
+
+            $activities = $spkMendesak->concat($temuanList)->sortByDesc('timestamp')->values()->take(30)->toArray();
+        }
+
+        // -------------------------------------------------------------
+        // KASUS 8: PENGADAAN & SUPER ADMIN (DEFAULT)
         // -------------------------------------------------------------
         else {
             $prMenunggu = PermintaanPengadaan::where('status', 'DIAJUKAN')->count();
