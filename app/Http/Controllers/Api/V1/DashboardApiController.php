@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\ApiController;
 use App\Models\PenugasanMaintenance;
+use App\Models\PenyesuaianStok;
 use App\Models\PermintaanDistribusi;
 use App\Models\PermintaanMaintenance;
 use App\Models\PermintaanPeminjaman;
@@ -17,6 +18,7 @@ class DashboardApiController extends ApiController
 {
     /**
      * Endpoint terpadu ringkasan metrik hero & aktivitas terkini berbasis peran pengguna.
+     * Hanya menampilkan transaksi berstatus antrean aktif (DIAJUKAN, DILAPORKAN, DITUGASKAN, MENUNGGU, dsb).
      * GET /api/v1/dashboard/summary
      */
     public function summary(Request $request): JsonResponse
@@ -46,7 +48,7 @@ class DashboardApiController extends ApiController
             $dikerjakan = PenugasanMaintenance::where('teknisi_id', $user->id)
                 ->where('status', 'DITERIMA')
                 ->count();
-            $tiketMasuk = PermintaanMaintenance::where('status', 'DILAPORKAN')->count();
+            $tiketMasuk = PermintaanMaintenance::whereIn('status', ['DILAPORKAN', 'MENUNGGU_SPK'])->count();
 
             $totalSpkAktif = $tugasBaru + $dikerjakan;
 
@@ -63,8 +65,9 @@ class DashboardApiController extends ApiController
                 ],
             ];
 
-            // Aktivitas Teknisi: SPK & Tiket Baru
+            // Aktivitas Teknisi: Hanya SPK aktif (DITUGASKAN, DITERIMA) & Tiket Masuk (DILAPORKAN, MENUNGGU_SPK)
             $spkList = PenugasanMaintenance::where('teknisi_id', $user->id)
+                ->whereIn('status', ['DITUGASKAN', 'DITERIMA'])
                 ->with(['permintaanMaintenance.aset.barang', 'permintaanMaintenance.unit'])
                 ->latest('id')
                 ->take(15)
@@ -80,7 +83,7 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $s->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $tiketList = PermintaanMaintenance::where('status', 'DILAPORKAN')
+            $tiketList = PermintaanMaintenance::whereIn('status', ['DILAPORKAN', 'MENUNGGU_SPK'])
                 ->with(['aset.barang', 'unit'])
                 ->latest('id')
                 ->take(15)
@@ -124,6 +127,7 @@ class DashboardApiController extends ApiController
                 ],
             ];
 
+            // Aktivitas Gudang: Siap Picking (DISETUJUI_KARU/GUDANG), Inbound Vendor (DIKIRIM_VENDOR), Pinjam Gudang (DIAJUKAN)
             $amprahList = PermintaanDistribusi::whereIn('status', ['DISETUJUI_GUDANG', 'DISETUJUI_KARU'])
                 ->when($user->gudang_id, fn ($q) => $q->where('gudang_id', $user->gudang_id))
                 ->with(['unit:id,kode,nama', 'detail'])
@@ -141,7 +145,7 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $a->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $poList = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERBITKAN', 'DITERIMA_SEBAGIAN'])
+            $poList = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])
                 ->with(['pemasok:id,nama', 'detail'])
                 ->latest('id')
                 ->take(15)
@@ -157,7 +161,25 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $activities = $amprahList->concat($poList)->sortByDesc('timestamp')->values()->take(30)->toArray();
+            $pinjamGudang = PermintaanPeminjaman::where('tipe_penyedia', 'GUDANG')
+                ->where('status', 'DIAJUKAN')
+                ->when($user->gudang_id, fn ($q) => $q->where('gudang_penyedia_id', $user->gudang_id))
+                ->with(['unitPeminjam', 'pengaju', 'detail.aset.barang'])
+                ->latest('id')
+                ->take(10)
+                ->get()
+                ->map(fn ($pj) => [
+                    'id'         => $pj->id,
+                    'tipe'       => 'PINJAM',
+                    'kode'       => $pj->kode,
+                    'judul'      => 'Pinjam Gudang: ' . ($pj->detail->first()?->aset?->barang?->nama ?? 'Aset Fisik'),
+                    'subjudul'   => 'Pemohon: ' . ($pj->pengaju?->nama ?? 'Staf') . ' • Unit: ' . ($pj->unitPeminjam?->nama ?? '-'),
+                    'status'     => $pj->status,
+                    'waktu_lalu' => $this->diffForHumans($pj->dibuat_pada),
+                    'timestamp'  => $pj->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            $activities = $amprahList->concat($poList)->concat($pinjamGudang)->sortByDesc('timestamp')->values()->take(30)->toArray();
         }
 
         // -------------------------------------------------------------
@@ -166,9 +188,9 @@ class DashboardApiController extends ApiController
         elseif ($isKepalaGudang) {
             $amprahOtorisasi = PermintaanDistribusi::where('status', 'DISETUJUI_KARU')->count();
             $poBerjalan = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])->count();
-            $siapPicking = PermintaanDistribusi::whereIn('status', ['DISETUJUI_GUDANG'])->count();
+            $penyesuaianMenunggu = PenyesuaianStok::where('status', 'MENUNGGU')->count();
 
-            $totalOtorisasi = $amprahOtorisasi + $poBerjalan;
+            $totalOtorisasi = $amprahOtorisasi + $penyesuaianMenunggu + $poBerjalan;
 
             $hero = [
                 'judul'        => 'Otorisasi & Sirkulasi Sentral',
@@ -178,12 +200,13 @@ class DashboardApiController extends ApiController
                 'target_aksi'  => 'approval',
                 'sub_metrik'   => [
                     ['label' => 'Amprah Meja 2', 'nilai' => (string) $amprahOtorisasi, 'warna' => 'warning'],
+                    ['label' => 'Otorisasi Stok', 'nilai' => (string) $penyesuaianMenunggu, 'warna' => 'purple'],
                     ['label' => 'Inbound Vendor', 'nilai' => (string) $poBerjalan, 'warna' => 'blue'],
-                    ['label' => 'Siap Picking', 'nilai' => (string) $siapPicking, 'warna' => 'purple'],
                 ],
             ];
 
-            $amprahList = PermintaanDistribusi::whereIn('status', ['DISETUJUI_KARU', 'DISETUJUI_GUDANG'])
+            // Aktivitas Kepala Gudang: Amprah Meja 2 (DISETUJUI_KARU), Penyesuaian (MENUNGGU), PO Inbound (DIKIRIM_VENDOR), Pinjam Gudang (DIAJUKAN)
+            $amprahList = PermintaanDistribusi::where('status', 'DISETUJUI_KARU')
                 ->with(['unit:id,kode,nama', 'detail'])
                 ->latest('id')
                 ->take(15)
@@ -192,30 +215,63 @@ class DashboardApiController extends ApiController
                     'id'         => $a->id,
                     'tipe'       => 'AMPRAH',
                     'kode'       => $a->kode,
-                    'judul'      => 'Amprah: ' . ($a->unit?->nama ?? 'Unit Ruangan'),
+                    'judul'      => 'Amprah Meja 2: ' . ($a->unit?->nama ?? 'Unit Ruangan'),
                     'subjudul'   => $a->detail->count() . ' item komoditas • ' . $a->urgensi,
                     'status'     => $a->status,
                     'waktu_lalu' => $this->diffForHumans($a->dibuat_pada),
                     'timestamp'  => $a->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $poList = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERBITKAN'])
+            $penyesuaianList = PenyesuaianStok::where('status', 'MENUNGGU')
+                ->with(['gudang', 'detail'])
+                ->latest('id')
+                ->take(10)
+                ->get()
+                ->map(fn ($ps) => [
+                    'id'         => $ps->id,
+                    'tipe'       => 'AMPRAH',
+                    'kode'       => $ps->kode,
+                    'judul'      => 'Penyesuaian Stok: ' . ($ps->gudang?->nama ?? 'Gudang'),
+                    'subjudul'   => $ps->detail->count() . ' batch selisih • ' . $ps->alasan,
+                    'status'     => $ps->status,
+                    'waktu_lalu' => $this->diffForHumans($ps->dibuat_pada),
+                    'timestamp'  => $ps->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            $poList = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])
                 ->with(['pemasok:id,nama', 'detail'])
                 ->latest('id')
-                ->take(15)
+                ->take(10)
                 ->get()
                 ->map(fn ($p) => [
                     'id'         => $p->id,
                     'tipe'       => 'PO',
                     'kode'       => $p->kode,
-                    'judul'      => 'PO: ' . ($p->pemasok?->nama ?? 'Vendor'),
-                    'subjudul'   => $p->detail->count() . ' item • ' . ($p->status == 'DIKIRIM_VENDOR' ? 'Dalam Pengiriman' : 'Diterbitkan'),
+                    'judul'      => 'PO Inbound: ' . ($p->pemasok?->nama ?? 'Vendor'),
+                    'subjudul'   => $p->detail->count() . ' item • ' . $p->status,
                     'status'     => $p->status,
                     'waktu_lalu' => $this->diffForHumans($p->dibuat_pada),
                     'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $activities = $amprahList->concat($poList)->sortByDesc('timestamp')->values()->take(30)->toArray();
+            $pinjamGudang = PermintaanPeminjaman::where('tipe_penyedia', 'GUDANG')
+                ->where('status', 'DIAJUKAN')
+                ->with(['unitPeminjam', 'pengaju', 'detail.aset.barang'])
+                ->latest('id')
+                ->take(10)
+                ->get()
+                ->map(fn ($pj) => [
+                    'id'         => $pj->id,
+                    'tipe'       => 'PINJAM',
+                    'kode'       => $pj->kode,
+                    'judul'      => 'Otorisasi Pinjam: ' . ($pj->detail->first()?->aset?->barang?->nama ?? 'Aset Gudang'),
+                    'subjudul'   => 'Pemohon: ' . ($pj->pengaju?->nama ?? 'Staf') . ' • Unit: ' . ($pj->unitPeminjam?->nama ?? '-'),
+                    'status'     => $pj->status,
+                    'waktu_lalu' => $this->diffForHumans($pj->dibuat_pada),
+                    'timestamp'  => $pj->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            $activities = $amprahList->concat($penyesuaianList)->concat($poList)->concat($pinjamGudang)->sortByDesc('timestamp')->values()->take(30)->toArray();
         }
 
         // -------------------------------------------------------------
@@ -228,7 +284,7 @@ class DashboardApiController extends ApiController
             $amprahMenunggu = PermintaanDistribusi::where('unit_id', $user->unit_id)
                 ->where('status', 'DIAJUKAN')
                 ->count();
-            $pinjamMenunggu = PermintaanPeminjaman::where('unit_id', $user->unit_id)
+            $pinjamMenunggu = PermintaanPeminjaman::where(fn ($q) => $q->where('unit_id', $user->unit_id)->orWhere('unit_penyedia_id', $user->unit_id))
                 ->where('status', 'DIAJUKAN')
                 ->count();
 
@@ -247,7 +303,10 @@ class DashboardApiController extends ApiController
                 ],
             ];
 
+            // Aktivitas Karu: Seluruh data aktivitas pengguna berstatus DIAJUKAN / DILAPORKAN
+            // 1. Permintaan PR: status DIAJUKAN
             $prList = PermintaanPengadaan::where('unit_id', $user->unit_id)
+                ->where('status', 'DIAJUKAN')
                 ->with(['pengaju:id,nama', 'detail'])
                 ->latest('id')
                 ->take(15)
@@ -263,7 +322,9 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
+            // 2. Amprah Ruangan: status DIAJUKAN
             $amprahList = PermintaanDistribusi::where('unit_id', $user->unit_id)
+                ->where('status', 'DIAJUKAN')
                 ->with(['pengaju:id,nama', 'detail'])
                 ->latest('id')
                 ->take(15)
@@ -279,7 +340,49 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $a->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $activities = $prList->concat($amprahList)->sortByDesc('timestamp')->values()->take(30)->toArray();
+            // 3. Sirkulasi Aset (Peminjaman): status DIAJUKAN
+            $pinjamList = PermintaanPeminjaman::where(fn ($q) => $q->where('unit_id', $user->unit_id)->orWhere('unit_penyedia_id', $user->unit_id))
+                ->where('status', 'DIAJUKAN')
+                ->with(['unitPeminjam:id,nama', 'pengaju:id,nama', 'detail.aset.barang:id,nama'])
+                ->latest('id')
+                ->take(15)
+                ->get()
+                ->map(fn ($pj) => [
+                    'id'         => $pj->id,
+                    'tipe'       => 'PINJAM',
+                    'kode'       => $pj->kode,
+                    'judul'      => 'Otorisasi Pinjam: ' . ($pj->detail->first()?->aset?->barang?->nama ?? 'Aset Fisik'),
+                    'subjudul'   => 'Pengaju: ' . ($pj->pengaju?->nama ?? 'Staf') . ' • Unit: ' . ($pj->unitPeminjam?->nama ?? '-'),
+                    'status'     => $pj->status,
+                    'waktu_lalu' => $this->diffForHumans($pj->dibuat_pada),
+                    'timestamp'  => $pj->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            // 4. Lapor Kerusakan Unit: status DILAPORKAN / MENUNGGU_SPK
+            $tiketList = PermintaanMaintenance::where('unit_id', $user->unit_id)
+                ->whereIn('status', ['DILAPORKAN', 'MENUNGGU_SPK'])
+                ->with(['aset.barang:id,nama', 'pelapor:id,nama'])
+                ->latest('id')
+                ->take(15)
+                ->get()
+                ->map(fn ($t) => [
+                    'id'         => $t->id,
+                    'tipe'       => 'TIKET',
+                    'kode'       => $t->kode,
+                    'judul'      => 'Lapor Rusak: ' . ($t->aset?->barang?->nama ?? 'Sarana Medis'),
+                    'subjudul'   => 'Pelapor: ' . ($t->pelapor?->nama ?? 'Staf') . ' • ' . $t->deskripsi_masalah,
+                    'status'     => $t->status,
+                    'waktu_lalu' => $this->diffForHumans($t->dibuat_pada),
+                    'timestamp'  => $t->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            $activities = $prList->concat($amprahList)
+                ->concat($pinjamList)
+                ->concat($tiketList)
+                ->sortByDesc('timestamp')
+                ->values()
+                ->take(30)
+                ->toArray();
         }
 
         // -------------------------------------------------------------
@@ -287,16 +390,19 @@ class DashboardApiController extends ApiController
         // -------------------------------------------------------------
         elseif ($isPetugasUnit) {
             $amprahAktif = PermintaanDistribusi::where('unit_id', $user->unit_id)
-                ->whereIn('status', ['DIAJUKAN', 'DISETUJUI_KARU', 'DISETUJUI_GUDANG'])
+                ->where('status', 'DIAJUKAN')
                 ->count();
             $prAktif = PermintaanPengadaan::where('unit_id', $user->unit_id)
-                ->whereIn('status', ['DIAJUKAN', 'DISETUJUI'])
+                ->where('status', 'DIAJUKAN')
+                ->count();
+            $pinjamAktif = PermintaanPeminjaman::where('unit_id', $user->unit_id)
+                ->where('status', 'DIAJUKAN')
                 ->count();
             $laporRusak = PermintaanMaintenance::where('unit_id', $user->unit_id)
-                ->whereIn('status', ['DILAPORKAN', 'DITUGASKAN'])
+                ->whereIn('status', ['DILAPORKAN', 'MENUNGGU_SPK'])
                 ->count();
 
-            $totalPengajuan = $amprahAktif + $prAktif + $laporRusak;
+            $totalPengajuan = $amprahAktif + $prAktif + $pinjamAktif + $laporRusak;
 
             $hero = [
                 'judul'        => 'Status Pengajuan Unit Aktif',
@@ -305,13 +411,16 @@ class DashboardApiController extends ApiController
                 'label_tombol' => 'Pantau',
                 'target_aksi'  => 'amprah_hub',
                 'sub_metrik'   => [
-                    ['label' => 'Amprah Berjalan', 'nilai' => (string) $amprahAktif, 'warna' => 'blue'],
-                    ['label' => 'PR Berjalan', 'nilai' => (string) $prAktif, 'warna' => 'purple'],
-                    ['label' => 'Servis Aktif', 'nilai' => (string) $laporRusak, 'warna' => 'warning'],
+                    ['label' => 'Amprah Diajukan', 'nilai' => (string) $amprahAktif, 'warna' => 'blue'],
+                    ['label' => 'PR Diajukan', 'nilai' => (string) $prAktif, 'warna' => 'purple'],
+                    ['label' => 'Pinjam & Servis', 'nilai' => (string) ($pinjamAktif + $laporRusak), 'warna' => 'warning'],
                 ],
             ];
 
+            // Aktivitas Petugas Ruangan: Hanya yang berstatus DIAJUKAN / DILAPORKAN
+            // 1. Amprah Ruangan: status DIAJUKAN
             $amprahList = PermintaanDistribusi::where('unit_id', $user->unit_id)
+                ->where('status', 'DIAJUKAN')
                 ->with(['detail'])
                 ->latest('id')
                 ->take(15)
@@ -321,13 +430,15 @@ class DashboardApiController extends ApiController
                     'tipe'       => 'AMPRAH',
                     'kode'       => $a->kode,
                     'judul'      => 'Amprah: ' . $a->detail->count() . ' Item Komoditas',
-                    'subjudul'   => 'Status Terkini: ' . str_replace('_', ' ', $a->status),
+                    'subjudul'   => 'Status: Menunggu Persetujuan Karu • Urgensi: ' . $a->urgensi,
                     'status'     => $a->status,
                     'waktu_lalu' => $this->diffForHumans($a->dibuat_pada),
                     'timestamp'  => $a->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
+            // 2. Permintaan PR: status DIAJUKAN
             $prList = PermintaanPengadaan::where('unit_id', $user->unit_id)
+                ->where('status', 'DIAJUKAN')
                 ->with(['detail'])
                 ->latest('id')
                 ->take(15)
@@ -337,24 +448,66 @@ class DashboardApiController extends ApiController
                     'tipe'       => 'PR',
                     'kode'       => $p->kode,
                     'judul'      => 'PR: Pengadaan ' . $p->detail->count() . ' Barang',
-                    'subjudul'   => 'Status: ' . str_replace('_', ' ', $p->status),
+                    'subjudul'   => 'Status: Menunggu Persetujuan Karu • Urgensi: ' . $p->urgensi,
                     'status'     => $p->status,
                     'waktu_lalu' => $this->diffForHumans($p->dibuat_pada),
                     'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $activities = $amprahList->concat($prList)->sortByDesc('timestamp')->values()->take(30)->toArray();
+            // 3. Sirkulasi Aset (Peminjaman): status DIAJUKAN
+            $pinjamList = PermintaanPeminjaman::where('unit_id', $user->unit_id)
+                ->where('status', 'DIAJUKAN')
+                ->with(['detail.aset.barang:id,nama'])
+                ->latest('id')
+                ->take(15)
+                ->get()
+                ->map(fn ($pj) => [
+                    'id'         => $pj->id,
+                    'tipe'       => 'PINJAM',
+                    'kode'       => $pj->kode,
+                    'judul'      => 'Pinjam Aset: ' . ($pj->detail->first()?->aset?->barang?->nama ?? 'Aset Fisik'),
+                    'subjudul'   => 'Status: Menunggu Otorisasi Karu • Keperluan: ' . ($pj->keperluan ?? '-'),
+                    'status'     => $pj->status,
+                    'waktu_lalu' => $this->diffForHumans($pj->dibuat_pada),
+                    'timestamp'  => $pj->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            // 4. Lapor Rusak Unit: status DILAPORKAN / MENUNGGU_SPK
+            $tiketList = PermintaanMaintenance::where('unit_id', $user->unit_id)
+                ->whereIn('status', ['DILAPORKAN', 'MENUNGGU_SPK'])
+                ->with(['aset.barang:id,nama'])
+                ->latest('id')
+                ->take(15)
+                ->get()
+                ->map(fn ($t) => [
+                    'id'         => $t->id,
+                    'tipe'       => 'TIKET',
+                    'kode'       => $t->kode,
+                    'judul'      => 'Lapor Rusak: ' . ($t->aset?->barang?->nama ?? 'Sarana Medis'),
+                    'subjudul'   => 'Status: Menunggu Disposisi SPK • ' . $t->deskripsi_masalah,
+                    'status'     => $t->status,
+                    'waktu_lalu' => $this->diffForHumans($t->dibuat_pada),
+                    'timestamp'  => $t->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            $activities = $amprahList->concat($prList)
+                ->concat($pinjamList)
+                ->concat($tiketList)
+                ->sortByDesc('timestamp')
+                ->values()
+                ->take(30)
+                ->toArray();
         }
 
         // -------------------------------------------------------------
         // KASUS 6: PENGADAAN, MANAJEMEN, SUPER ADMIN, AUDITOR (DEFAULT)
         // -------------------------------------------------------------
         else {
-            $prMenunggu = PermintaanPengadaan::whereIn('status', ['DIAJUKAN', 'DISETUJUI'])->count();
-            $amprahBerjalan = PermintaanDistribusi::whereIn('status', ['DIAJUKAN', 'DISETUJUI_KARU', 'DISETUJUI_GUDANG'])->count();
-            $poVendor = PesananPembelian::whereIn('status', ['DITERBITKAN', 'DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])->count();
+            $prMenunggu = PermintaanPengadaan::where('status', 'DIAJUKAN')->count();
+            $amprahBerjalan = PermintaanDistribusi::where('status', 'DIAJUKAN')->count();
+            $poVendor = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])->count();
 
-            $totalVerifikasi = $prMenunggu + $poVendor;
+            $totalVerifikasi = $prMenunggu + $poVendor + $amprahBerjalan;
 
             $hero = [
                 'judul'        => 'Antrean Verifikasi & Belanja',
@@ -364,12 +517,13 @@ class DashboardApiController extends ApiController
                 'target_aksi'  => 'approval',
                 'sub_metrik'   => [
                     ['label' => 'PR Menunggu', 'nilai' => (string) $prMenunggu, 'warna' => 'warning'],
-                    ['label' => 'Amprah Berjalan', 'nilai' => (string) $amprahBerjalan, 'warna' => 'purple'],
-                    ['label' => 'PO Vendor Aktif', 'nilai' => (string) $poVendor, 'warna' => 'blue'],
+                    ['label' => 'Amprah Masuk', 'nilai' => (string) $amprahBerjalan, 'warna' => 'purple'],
+                    ['label' => 'Inbound Vendor', 'nilai' => (string) $poVendor, 'warna' => 'blue'],
                 ],
             ];
 
-            $prList = PermintaanPengadaan::with(['unit', 'gudang', 'pengaju', 'detail'])
+            $prList = PermintaanPengadaan::where('status', 'DIAJUKAN')
+                ->with(['unit', 'gudang', 'pengaju', 'detail'])
                 ->latest('id')
                 ->take(15)
                 ->get()
@@ -384,7 +538,8 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $amprahList = PermintaanDistribusi::with(['unit', 'pengaju', 'detail'])
+            $amprahList = PermintaanDistribusi::where('status', 'DIAJUKAN')
+                ->with(['unit', 'pengaju', 'detail'])
                 ->latest('id')
                 ->take(15)
                 ->get()
@@ -399,7 +554,45 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $a->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $activities = $prList->concat($amprahList)->sortByDesc('timestamp')->values()->take(30)->toArray();
+            $poList = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])
+                ->with(['pemasok:id,nama', 'detail'])
+                ->latest('id')
+                ->take(10)
+                ->get()
+                ->map(fn ($p) => [
+                    'id'         => $p->id,
+                    'tipe'       => 'PO',
+                    'kode'       => $p->kode,
+                    'judul'      => 'PO Inbound: ' . ($p->pemasok?->nama ?? 'Vendor'),
+                    'subjudul'   => $p->detail->count() . ' item • ' . $p->status,
+                    'status'     => $p->status,
+                    'waktu_lalu' => $this->diffForHumans($p->dibuat_pada),
+                    'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            $pinjamList = PermintaanPeminjaman::where('status', 'DIAJUKAN')
+                ->with(['unitPeminjam', 'pengaju', 'detail.aset.barang'])
+                ->latest('id')
+                ->take(10)
+                ->get()
+                ->map(fn ($pj) => [
+                    'id'         => $pj->id,
+                    'tipe'       => 'PINJAM',
+                    'kode'       => $pj->kode,
+                    'judul'      => 'Pinjam: ' . ($pj->detail->first()?->aset?->barang?->nama ?? 'Aset Fisik'),
+                    'subjudul'   => 'Pemohon: ' . ($pj->pengaju?->nama ?? 'Staf') . ' • Unit: ' . ($pj->unitPeminjam?->nama ?? '-'),
+                    'status'     => $pj->status,
+                    'waktu_lalu' => $this->diffForHumans($pj->dibuat_pada),
+                    'timestamp'  => $pj->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            $activities = $prList->concat($amprahList)
+                ->concat($poList)
+                ->concat($pinjamList)
+                ->sortByDesc('timestamp')
+                ->values()
+                ->take(30)
+                ->toArray();
         }
 
         return $this->jsonSuccess([
