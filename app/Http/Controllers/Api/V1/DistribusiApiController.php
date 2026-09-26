@@ -38,8 +38,7 @@ class DistribusiApiController extends ApiController
             ->when($cari, function ($q) use ($cari) {
                 $q->where(function ($sub) use ($cari) {
                     $sub->where('nama', 'like', "%{$cari}%")
-                        ->orWhere('kode', 'like', "%{$cari}%")
-                        
+                        ->orWhere('kode', 'like', "%{$cari}%");
                 });
             })
             ->limit(50)
