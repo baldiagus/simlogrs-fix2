@@ -420,6 +420,75 @@ class AsetApiController extends ApiController
     }
 
     /**
+     * Perpanjang masa peminjaman aset aktif (DIAJUKAN, DISETUJUI, DIPINJAM).
+     * POST /v1/aset/peminjaman/{id}/perpanjang
+     */
+    public function perpanjangPeminjaman(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $pinjam = PermintaanPeminjaman::find($id);
+
+        if (! $pinjam) {
+            return $this->jsonError('Data peminjaman tidak ditemukan.', 404);
+        }
+
+        if ($pinjam->status !== 'DIPINJAM') {
+            return $this->jsonError("Hanya peminjaman dengan status DIPINJAM yang dapat diperpanjang (saat ini: {$pinjam->status}).", 422);
+        }
+
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
+        $canExtend = $isGlobalAdmin ||
+            (int) $pinjam->diajukan_oleh === (int) $user->id ||
+            ((int) $pinjam->unit_id === (int) $user->unit_id && (
+                $user->can('update_layanan_unit::peminjaman::aset') ||
+                $user->can('create_layanan_unit::peminjaman::aset') ||
+                $user->hasRole('petugas_unit') ||
+                $user->hasRole('kepala_unit')
+            ));
+
+        if (! $canExtend) {
+            return $this->jsonError('Anda tidak memiliki wewenang untuk memperpanjang peminjaman ini.', 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'tanggal_kembali_baru' => 'required|date',
+            'alasan'               => 'required|string|max:500',
+        ], [
+            'tanggal_kembali_baru.required' => 'Tanggal rencana pengembalian baru wajib diisi.',
+            'alasan.required'               => 'Alasan perpanjangan wajib dicantumkan.',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->jsonError('Validasi perpanjangan gagal.', 422, $validator->errors());
+        }
+
+        $tanggalBaru = $request->input('tanggal_kembali_baru');
+        if ($pinjam->tanggal_pinjam && $tanggalBaru <= $pinjam->tanggal_pinjam->toDateString()) {
+            return $this->jsonError('Tanggal kembali baru harus lebih lambat dari tanggal pinjam.', 422);
+        }
+
+        $catatanLama = $pinjam->catatan ? $pinjam->catatan . "\n" : '';
+        $tglLama = $pinjam->tanggal_kembali_rencana ? $pinjam->tanggal_kembali_rencana->format('d/m/Y') : '-';
+        $tglBaruFormatted = \Carbon\Carbon::parse($tanggalBaru)->format('d/m/Y');
+        $alasan = $request->input('alasan');
+
+        $logPerpanjangan = '[Perpanjangan ' . now()->format('d/m/Y H:i') . " oleh {$user->nama}]: " .
+            "Rencana kembali diperpanjang dari {$tglLama} menjadi {$tglBaruFormatted}. Alasan: {$alasan}";
+
+        $pinjam->update([
+            'tanggal_kembali_rencana' => $tanggalBaru,
+            'catatan'                 => $catatanLama . $logPerpanjangan,
+        ]);
+
+        return $this->jsonSuccess([
+            'id'                      => $pinjam->id,
+            'kode'                    => $pinjam->kode,
+            'tanggal_kembali_rencana' => $pinjam->tanggal_kembali_rencana?->format('Y-m-d'),
+            'catatan'                 => $pinjam->catatan,
+        ], "Rencana pengembalian peminjaman '{$pinjam->kode}' berhasil diperpanjang.");
+    }
+
+    /**
      * Daftar antrean otorisasi peminjaman masuk untuk Karu & Kepala Gudang.
      * GET /v1/aset/approval-peminjaman
      */

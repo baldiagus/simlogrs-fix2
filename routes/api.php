@@ -54,6 +54,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/aset/peminjaman', [AsetApiController::class, 'daftarPeminjaman']);
         Route::post('/aset/peminjaman', [AsetApiController::class, 'simpanPeminjaman']);
         Route::post('/aset/peminjaman/{id}/batal', [AsetApiController::class, 'batalPeminjaman']);
+        Route::post('/aset/peminjaman/{id}/perpanjang', [AsetApiController::class, 'perpanjangPeminjaman']);
         Route::get('/aset/approval-peminjaman', [AsetApiController::class, 'daftarApprovalPeminjaman']);
         Route::post('/aset/peminjaman/{id}/otorisasi', [AsetApiController::class, 'otorisasiPeminjaman']);
         Route::post('/aset/serah-terima', [AsetApiController::class, 'serahTerima']);
