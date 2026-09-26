@@ -14,7 +14,7 @@
                         <flux:menu>
                             @foreach ($daftarPrSiapKonversi as $pr)
                                 <flux:menu.item wire:click="konversiPo({{ $pr->id }})">
-                                    {{ $pr->kode }} - {{ $pr->unit?->nama ?? '-' }}
+                                    {{ $pr->kode }} &bull; {{ $pr->nama_pemohon }}
                                 </flux:menu.item>
                             @endforeach
                         </flux:menu>

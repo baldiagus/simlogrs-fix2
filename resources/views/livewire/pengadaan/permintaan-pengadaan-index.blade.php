@@ -49,7 +49,7 @@
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
                 <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-36">Kode PR</flux:table.column>
-                <flux:table.column>Unit Pemohon</flux:table.column>
+                <flux:table.column>Pemohon (Unit / Gudang)</flux:table.column>
                 <flux:table.column sortable :sorted="$sortBy === 'tanggal_permintaan'" :direction="$sortDirection" wire:click="sort('tanggal_permintaan')">Tanggal</flux:table.column>
                 <flux:table.column>Urgensi</flux:table.column>
                 <flux:table.column class="text-center">Jumlah Item</flux:table.column>
@@ -62,7 +62,15 @@
                     <flux:table.row :key="$item->id">
                         <flux:table.cell class="font-mono font-semibold text-xs">{{ $item->kode }}</flux:table.cell>
                         <flux:table.cell>
-                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->unit?->nama ?? '-' }}</div>
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->nama_pemohon }}</div>
+                            <div class="text-[10px] text-zinc-400 mt-0.5 font-mono flex items-center gap-1">
+                                @if ($item->unit_id)
+                                    <span class="text-emerald-600 dark:text-emerald-400 font-semibold">[Unit]</span>
+                                @elseif ($item->gudang_id)
+                                    <span class="text-blue-600 dark:text-blue-400 font-semibold">[Gudang]</span>
+                                @endif
+                                <span>&bull; {{ $item->pengaju?->nama ?? '-' }}</span>
+                            </div>
                         </flux:table.cell>
                         <flux:table.cell class="text-xs tabular-nums">{{ $item->tanggal_permintaan?->format('d/m/Y') }}</flux:table.cell>
                         <flux:table.cell>
@@ -77,7 +85,9 @@
                                 <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail" />
 
                                 @php
-                                    $canApproveThis = $isGlobalApprover || ($userUnitId && (int) $userUnitId === (int) $item->unit_id);
+                                    $canApproveThis = $isGlobalApprover 
+                                        || ($userUnitId && $item->unit_id && (int) $userUnitId === (int) $item->unit_id)
+                                        || ($userGudangId && $item->gudang_id && (int) $userGudangId === (int) $item->gudang_id);
                                 @endphp
 
                                 {{-- MEJA 1: Otorisasi Kepala Ruangan / Unit / Gudang (Khusus status DIAJUKAN & DISETUJUI) --}}
@@ -135,27 +145,90 @@
                 <flux:subheading>Lengkapi informasi permintaan dan daftar barang yang dibutuhkan.</flux:subheading>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <flux:input wire:model="kode" label="Kode PR (Otomatis)" disabled readonly class="font-mono bg-zinc-100 dark:bg-zinc-800/80 cursor-not-allowed font-semibold" />
 
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Unit Pemohon</label>
-                    <select wire:model="unit_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                        <option value="">Pilih Unit...</option>
-                        @foreach ($daftarUnit as $unit)
-                            <option value="{{ $unit->id }}">{{ $unit->nama }}</option>
-                        @endforeach
-                    </select>
-                    @error('unit_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Urgensi</label>
-                    <select wire:model="urgensi" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Urgensi <span class="text-red-500">*</span></label>
+                    <select wire:model="urgensi" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
                         <option value="REGULER">REGULER</option>
                         <option value="MENDESAK">MENDESAK</option>
                         <option value="CITO">CITO</option>
                     </select>
+                </div>
+            </div>
+
+            {{-- Pilihan Pemohon: Unit vs Gudang (Mutually Exclusive) --}}
+            <div class="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/60 space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-zinc-200/60 dark:border-zinc-700/60">
+                    <div>
+                        <div class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">Entitas Pemohon Pengadaan <span class="text-red-500">*</span></div>
+                        <div class="text-[11px] text-zinc-500 dark:text-zinc-400">Pilih salah satu: Unit Ruangan ATAU Gudang Logistik. Memilih salah satu akan menonaktifkan pilihan lainnya.</div>
+                    </div>
+                    @if ($unit_id || $gudang_id)
+                        <button type="button" wire:click="resetPemohon" class="text-xs font-medium text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1">
+                            <flux:icon name="arrow-path" class="size-3" />
+                            Reset Pilihan
+                        </button>
+                    @endif
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {{-- Dropdown 1: Unit Pemohon --}}
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                                Unit / Ruangan Pemohon
+                            </label>
+                            @if ($unit_id)
+                                <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                                    Aktif Terpilih
+                                </span>
+                            @endif
+                        </div>
+                        <select
+                            wire:model.live="unit_id"
+                            @disabled(!empty($gudang_id))
+                            class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 disabled:bg-zinc-100 disabled:dark:bg-zinc-800/40 disabled:text-zinc-400 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        >
+                            <option value="">-- Pilih Unit Ruangan --</option>
+                            @foreach ($daftarUnit as $unit)
+                                <option value="{{ $unit->id }}">{{ $unit->nama }}</option>
+                            @endforeach
+                        </select>
+                        @if ($gudang_id)
+                            <p class="text-[10px] text-zinc-400 mt-1 italic">Nonaktif karena Gudang Pemohon telah dipilih.</p>
+                        @endif
+                        @error('unit_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Dropdown 2: Gudang Pemohon --}}
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                                Gudang Pemohon
+                            </label>
+                            @if ($gudang_id)
+                                <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800">
+                                    Aktif Terpilih
+                                </span>
+                            @endif
+                        </div>
+                        <select
+                            wire:model.live="gudang_id"
+                            @disabled(!empty($unit_id))
+                            class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 disabled:bg-zinc-100 disabled:dark:bg-zinc-800/40 disabled:text-zinc-400 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        >
+                            <option value="">-- Pilih Gudang Logistik --</option>
+                            @foreach ($daftarGudang as $gudang)
+                                <option value="{{ $gudang->id }}">{{ $gudang->nama }}</option>
+                            @endforeach
+                        </select>
+                        @if ($unit_id)
+                            <p class="text-[10px] text-zinc-400 mt-1 italic">Nonaktif karena Unit Pemohon telah dipilih.</p>
+                        @endif
+                        @error('gudang_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    </div>
                 </div>
             </div>
 
@@ -221,8 +294,15 @@
 
                 <div class="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                        <div class="text-xs text-zinc-500 dark:text-zinc-400">Unit Pemohon</div>
-                        <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $selectedPr->unit?->nama ?? '-' }}</div>
+                        <div class="text-xs text-zinc-500 dark:text-zinc-400">Pemohon (Unit / Gudang)</div>
+                        <div class="font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5 mt-0.5">
+                            @if ($selectedPr->unit_id)
+                                <span class="text-[10px] px-1.5 py-0.2 rounded font-mono font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Unit</span>
+                            @elseif ($selectedPr->gudang_id)
+                                <span class="text-[10px] px-1.5 py-0.2 rounded font-mono font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">Gudang</span>
+                            @endif
+                            <span>{{ $selectedPr->nama_pemohon }}</span>
+                        </div>
                     </div>
                     <div>
                         <div class="text-xs text-zinc-500 dark:text-zinc-400">Pengaju</div>

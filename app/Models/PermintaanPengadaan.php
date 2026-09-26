@@ -25,6 +25,21 @@ class PermintaanPengadaan extends BaseModel
     {
         return $this->belongsTo(Unit::class, 'unit_id');
     }
+    public function gudang(): BelongsTo
+    {
+        return $this->belongsTo(Gudang::class, 'gudang_id');
+    }
+
+    public function getNamaPemohonAttribute(): string
+    {
+        return $this->unit ? $this->unit->nama : ($this->gudang ? $this->gudang->nama : '-');
+    }
+
+    public function getTipePemohonAttribute(): string
+    {
+        return $this->unit_id ? 'UNIT' : ($this->gudang_id ? 'GUDANG' : '-');
+    }
+
 
     public function pengaju(): BelongsTo
     {

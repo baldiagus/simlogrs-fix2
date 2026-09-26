@@ -17,16 +17,38 @@ class ApprovalController extends ApiController
     {
         $user = $request->user();
 
+        $isCrossUnitViewer = $user && (
+            $user->can('page_PengadaanDashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_Dashboard') ||
+            $user->can('page_ManajemenDashboard') ||
+            $user->can('page_AuditorDashboard')
+        );
+
         $pr = PermintaanPengadaan::whereIn('status', ['DIAJUKAN', 'DISETUJUI'])
-            ->when($user->unit_id && ! $user->can('page_AdminLogistikDashboard'), fn ($q) => $q->where('unit_id', $user->unit_id))
-            ->with(['unit:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama'])
+            ->when(! $isCrossUnitViewer, function ($q) use ($user) {
+                if ($user->unit_id && $user->gudang_id) {
+                    $q->where(function ($sub) use ($user) {
+                        $sub->where('unit_id', $user->unit_id)
+                            ->orWhere('gudang_id', $user->gudang_id);
+                    });
+                } elseif ($user->unit_id) {
+                    $q->where('unit_id', $user->unit_id);
+                } elseif ($user->gudang_id) {
+                    $q->where('gudang_id', $user->gudang_id);
+                } else {
+                    $q->where('diajukan_oleh', $user->id);
+                }
+            })
+            ->with(['unit:id,kode,nama', 'gudang:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama'])
             ->latest('dibuat_pada')
             ->get()
             ->map(fn ($item) => [
                 'id' => $item->id,
                 'tipe' => 'PR',
                 'kode' => $item->kode,
-                'unit' => $item->unit?->nama,
+                'unit' => $item->nama_pemohon,
+                'tipe_pemohon' => $item->tipe_pemohon,
                 'pengaju' => $item->pengaju?->nama,
                 'tanggal' => $item->tanggal_permintaan->format('Y-m-d'),
                 'urgensi' => $item->urgensi,

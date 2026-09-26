@@ -7,11 +7,11 @@ use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\Barang;
+use App\Models\Gudang;
 use App\Models\PermintaanPengadaan;
 use App\Models\PermintaanPengadaanDetail;
 use App\Models\Unit;
 use App\Support\Generator\CodeGenerator;
-use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class PermintaanPengadaanIndex extends Component
@@ -35,9 +35,30 @@ class PermintaanPengadaanIndex extends Component
     // Form fields
     public string $kode = '';
     public ?int $unit_id = null;
+    public ?int $gudang_id = null;
     public string $urgensi = 'REGULER';
     public string $catatan = '';
     public array $items = [];
+
+    public function updatedUnitId($value): void
+    {
+        if (! empty($value)) {
+            $this->gudang_id = null;
+        }
+    }
+
+    public function updatedGudangId($value): void
+    {
+        if (! empty($value)) {
+            $this->unit_id = null;
+        }
+    }
+
+    public function resetPemohon(): void
+    {
+        $this->unit_id = null;
+        $this->gudang_id = null;
+    }
 
     public function updatedFilterStatus(): void
     {
@@ -53,9 +74,11 @@ class PermintaanPengadaanIndex extends Component
     {
         abort_unless(auth()->user()?->can('create_pengadaan::permintaan::pengadaan'), 403);
 
-        $this->reset(['editingId', 'unit_id', 'urgensi', 'catatan', 'items']);
+        $user = auth()->user();
+        $this->reset(['editingId', 'unit_id', 'gudang_id', 'urgensi', 'catatan', 'items']);
         $this->kode = CodeGenerator::generatePr();
-        $this->unit_id = auth()->user()->unit_id;
+        $this->unit_id = $user->unit_id;
+        $this->gudang_id = $user->unit_id ? null : $user->gudang_id;
         $this->urgensi = 'REGULER';
         $this->items = [['barang_id' => null, 'jumlah' => 1]];
         $this->showModal = true;
@@ -77,12 +100,16 @@ class PermintaanPengadaanIndex extends Component
         abort_unless(auth()->user()?->can('create_pengadaan::permintaan::pengadaan'), 403);
 
         $this->validate([
-            'unit_id'            => 'required|exists:unit,id',
+            'unit_id'            => 'nullable|required_without:gudang_id|exists:unit,id',
+            'gudang_id'          => 'nullable|required_without:unit_id|exists:gudang,id',
             'urgensi'            => 'required|in:REGULER,MENDESAK,CITO',
             'catatan'            => 'nullable|string|max:1000',
             'items'              => 'required|array|min:1',
             'items.*.barang_id'  => 'required|exists:barang,id',
             'items.*.jumlah'     => 'required|integer|min:1',
+        ], [
+            'unit_id.required_without'   => 'Pilih salah satu: Unit Pemohon atau Gudang Pemohon.',
+            'gudang_id.required_without' => 'Pilih salah satu: Unit Pemohon atau Gudang Pemohon.',
         ]);
 
         $kodeFinal = $this->kode ?: CodeGenerator::generatePr();
@@ -90,6 +117,7 @@ class PermintaanPengadaanIndex extends Component
         $pr = PermintaanPengadaan::create([
             'kode'               => $kodeFinal,
             'unit_id'            => $this->unit_id,
+            'gudang_id'          => $this->gudang_id,
             'diajukan_oleh'      => auth()->id(),
             'tanggal_permintaan' => now()->toDateString(),
             'urgensi'            => $this->urgensi,
@@ -111,7 +139,7 @@ class PermintaanPengadaanIndex extends Component
 
     public function showDetail(int $id)
     {
-        $this->selectedPr = PermintaanPengadaan::with(['unit', 'pengaju', 'penyetuju', 'detail.barang'])->findOrFail($id);
+        $this->selectedPr = PermintaanPengadaan::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang'])->findOrFail($id);
         $this->showDetailModal = true;
     }
 
@@ -132,17 +160,22 @@ class PermintaanPengadaanIndex extends Component
             return false;
         }
 
+        // Kepala Gudang hanya boleh otorisasi gudang miliknya jika PR diajukan untuk gudang
+        if ($user->gudang_id && $item->gudang_id && (int) $user->gudang_id !== (int) $item->gudang_id) {
+            return false;
+        }
+
         return true;
     }
 
     public function confirmApprove(int $id): void
     {
-        $pr = PermintaanPengadaan::with('unit')->findOrFail($id);
+        $pr = PermintaanPengadaan::with(['unit', 'gudang'])->findOrFail($id);
         $this->askConfirmation(
             target: $id,
             action: 'approve',
             title: 'Konfirmasi Persetujuan PR',
-            description: "Setujui permohonan pengadaan {$pr->kode} dari {$pr->unit?->nama}?",
+            description: "Setujui permohonan pengadaan {$pr->kode} dari {$pr->nama_pemohon}?",
             buttonText: 'Ya, Setujui',
             variant: 'primary'
         );
@@ -284,21 +317,42 @@ class PermintaanPengadaanIndex extends Component
 
         $user = auth()->user();
         $daftarBarang = Barang::where('status', 'AKTIF')->get();
-        $daftarUnit = Unit::where('status', 'AKTIF')->get();
+        $daftarUnit   = Unit::where('status', 'AKTIF')->orderBy('nama')->get();
+        $daftarGudang = Gudang::where('status', 'AKTIF')->orderBy('nama')->get();
 
-        $query = PermintaanPengadaan::with(['unit', 'pengaju', 'detail'])
+        $query = PermintaanPengadaan::with(['unit', 'gudang', 'pengaju', 'detail'])
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterUrgensi, fn ($q) => $q->where('urgensi', $this->filterUrgensi))
             ->when($this->search, function ($q) {
                 $q->where(function ($sub) {
                     $sub->where('kode', 'ilike', "%{$this->search}%")
-                        ->orWhereHas('unit', fn ($u) => $u->where('nama', 'ilike', "%{$this->search}%"));
+                        ->orWhereHas('unit', fn ($u) => $u->where('nama', 'ilike', "%{$this->search}%"))
+                        ->orWhereHas('gudang', fn ($g) => $g->where('nama', 'ilike', "%{$this->search}%"));
                 });
             });
 
-        // Portal-aware: scope to user's unit for non-admin roles
-        if ($user->unit_id && !$user->can('view_any_pengadaan::permintaan::pengadaan')) {
-            $query->where('unit_id', $user->unit_id);
+        $isCrossUnitViewer = $user && (
+            $user->can('page_PengadaanDashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_Dashboard') ||
+            $user->can('page_ManajemenDashboard') ||
+            $user->can('page_AuditorDashboard')
+        );
+
+        // Batasi data hanya untuk unit atau gudang dinas milik pengguna (kecuali tim pengadaan/admin global)
+        if (! $isCrossUnitViewer) {
+            $query->where(function ($q) use ($user) {
+                if ($user->unit_id && $user->gudang_id) {
+                    $q->where('unit_id', $user->unit_id)
+                      ->orWhere('gudang_id', $user->gudang_id);
+                } elseif ($user->unit_id) {
+                    $q->where('unit_id', $user->unit_id);
+                } elseif ($user->gudang_id) {
+                    $q->where('gudang_id', $user->gudang_id);
+                } else {
+                    $q->where('diajukan_oleh', $user->id);
+                }
+            });
         }
 
         $daftarPr = $query
@@ -309,8 +363,10 @@ class PermintaanPengadaanIndex extends Component
             'daftarPr'         => $daftarPr,
             'daftarBarang'     => $daftarBarang,
             'daftarUnit'       => $daftarUnit,
-            'isGlobalApprover' => $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard')),
+            'daftarGudang'     => $daftarGudang,
+            'isGlobalApprover' => $isCrossUnitViewer,
             'userUnitId'       => $user?->unit_id,
+            'userGudangId'     => $user?->gudang_id,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Permintaan Pengadaan (PR)']);
     }
 }

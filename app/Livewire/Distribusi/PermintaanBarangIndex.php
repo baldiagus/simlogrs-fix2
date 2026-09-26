@@ -138,11 +138,16 @@ class PermintaanBarangIndex extends Component
                 return;
             }
         }
-        $isKaruApprover = $user->can('update_layanan_unit::approval::karu') || $user->can('page_AdminLogistikDashboard') || $user->can('page_Dashboard');
-        $initialStatus  = $isKaruApprover ? 'DISETUJUI_KARU' : 'DIAJUKAN';
-        $disetujuiOleh  = $isKaruApprover ? $user->id : null;
+        // Pengguna selain role 'petugas_unit' (Kepala Unit, Teknisi, Admin, dll.) langsung bypass Meja 1 ke Kepala Gudang
+        $isPetugasUnitMurni = $user->hasRole('petugas_unit')
+            && ! $user->hasRole('kepala_unit')
+            && ! $user->can('update_layanan_unit::approval::karu');
 
-        DB::transaction(function () use ($user, $initialStatus, $disetujuiOleh, $isKaruApprover) {
+        $directToGudang = ! $isPetugasUnitMurni;
+        $initialStatus  = $directToGudang ? 'DISETUJUI_KARU' : 'DIAJUKAN';
+        $disetujuiOleh  = $directToGudang ? $user->id : null;
+
+        DB::transaction(function () use ($user, $initialStatus, $disetujuiOleh, $directToGudang) {
             $kodeFinal = $this->kode ?: CodeGenerator::generate('REQ', PermintaanDistribusi::class, 'kode', 'Ym', 3);
             if (PermintaanDistribusi::where('kode', $kodeFinal)->exists()) {
                 $kodeFinal = CodeGenerator::generate('REQ', PermintaanDistribusi::class, 'kode', 'Ym', 3);
@@ -165,7 +170,7 @@ class PermintaanBarangIndex extends Component
                     'permintaan_distribusi_id' => $permintaan->id,
                     'barang_id'              => $item['barang_id'],
                     'jumlah'                 => $item['jumlah'],
-                    'jumlah_disetujui'       => $isKaruApprover ? $item['jumlah'] : null,
+                    'jumlah_disetujui'       => $directToGudang ? $item['jumlah'] : null,
                     'catatan'                => !empty($item['catatan']) ? trim($item['catatan']) : null,
                 ]);
             }
@@ -174,8 +179,8 @@ class PermintaanBarangIndex extends Component
         });
 
         $this->showModal = false;
-        $toastMsg = $isKaruApprover
-            ? "Permintaan amprah '{$this->kode}' berhasil diajukan dan otomatis disahkan (Status: DISETUJUI KARU)."
+        $toastMsg = $directToGudang
+            ? "Permintaan amprah '{$this->kode}' berhasil diajukan dan langsung diteruskan ke Kepala Gudang (Status: DISETUJUI KARU)."
             : "Permintaan amprah '{$this->kode}' berhasil diajukan, menunggu otorisasi Kepala Ruangan.";
         $this->toast($toastMsg, 'success');
     }

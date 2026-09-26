@@ -99,10 +99,43 @@ class LembarKerjaPengerjaanIndex extends Component
         $this->sparepartItems = array_values($this->sparepartItems);
     }
 
+    public function getStokTersedia(int $barangId): int
+    {
+        return (int) StokBatch::where('barang_id', $barangId)
+            ->where('status', 'AKTIF')
+            ->where('jumlah', '>', 0)
+            ->sum('jumlah');
+    }
+
     public function saveLembarKerja(): void
     {
         abort_unless(auth()->user()?->can('create_pemeliharaan::lembar::kerja'), 403);
         $this->validate();
+
+        // Validasi pembatasan stok suku cadang sesuai master barang
+        foreach ($this->sparepartItems as $index => $item) {
+            $barangId = (int) ($item['barang_id'] ?? 0);
+            $jumlahDiminta = (int) ($item['jumlah'] ?? 0);
+
+            if (! $barangId) {
+                continue;
+            }
+
+            $stokTersedia = $this->getStokTersedia($barangId);
+            $barang = Barang::with('satuan')->find($barangId);
+            $namaBarang = $barang?->nama ?? "Barang #{$barangId}";
+            $satuan = $barang?->satuan?->simbol ?? 'Unit';
+
+            if ($stokTersedia <= 0) {
+                $this->addError("sparepartItems.{$index}.barang_id", "Stok fisik '{$namaBarang}' saat ini habis (0 {$satuan}). Tidak dapat digunakan.");
+                return;
+            }
+
+            if ($jumlahDiminta > $stokTersedia) {
+                $this->addError("sparepartItems.{$index}.jumlah", "Jumlah diminta ({$jumlahDiminta} {$satuan}) melebihi stok yang tersedia ({$stokTersedia} {$satuan}).");
+                return;
+            }
+        }
 
         $user = auth()->user();
         $spk = PenugasanMaintenance::with(['permintaanMaintenance.aset'])->findOrFail($this->penugasan_id);
@@ -277,9 +310,13 @@ class LembarKerjaPengerjaanIndex extends Component
             ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
-        // Komoditas suku cadang yang aktif untuk dropdown
+        // Komoditas suku cadang yang aktif untuk dropdown beserta stok fisik tersedia
         $daftarSparepart = Barang::whereIn('tipe', ['SPAREPART', 'HABIS_PAKAI'])
             ->where('status', 'AKTIF')
+            ->with('satuan')
+            ->withSum(['stokBatch as stok_tersedia' => function ($q) {
+                $q->where('status', 'AKTIF')->where('jumlah', '>', 0);
+            }], 'jumlah')
             ->orderBy('nama')
             ->get();
 

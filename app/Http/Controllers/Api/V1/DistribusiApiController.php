@@ -267,8 +267,16 @@ class DistribusiApiController extends ApiController
             }
         }
 
+        $isPetugasUnitMurni = $user->hasRole('petugas_unit')
+            && ! $user->hasRole('kepala_unit')
+            && ! $user->can('update_layanan_unit::approval::karu');
+
+        $directToGudang = ! $isPetugasUnitMurni;
+        $statusAwal     = $directToGudang ? 'DISETUJUI_KARU' : 'DIAJUKAN';
+        $disetujuiOleh  = $directToGudang ? $user->id : null;
+
         try {
-            $amprah = DB::transaction(function () use ($request, $user, $unitId, $gudangId) {
+            $amprah = DB::transaction(function () use ($request, $user, $unitId, $gudangId, $statusAwal, $disetujuiOleh) {
                 $kodeReq = CodeGenerator::generate('REQ', PermintaanDistribusi::class, 'kode', 'Ym', 3);
 
                 $header = PermintaanDistribusi::create([
@@ -276,9 +284,10 @@ class DistribusiApiController extends ApiController
                     'unit_id'            => $unitId,
                     'gudang_id'          => $gudangId,
                     'diajukan_oleh'      => $user->id,
+                    'disetujui_oleh'     => $disetujuiOleh,
                     'tanggal_permintaan' => now()->toDateString(),
                     'urgensi'            => $request->input('urgensi'),
-                    'status'             => 'DIAJUKAN',
+                    'status'             => $statusAwal,
                     'catatan'            => $request->input('catatan'),
                 ]);
 

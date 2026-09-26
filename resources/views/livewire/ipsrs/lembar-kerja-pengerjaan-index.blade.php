@@ -240,44 +240,69 @@
                             Tidak ada suku cadang yang diganti pada servis ini (reparasi tanpa pergantian komponen).
                         </div>
                     @else
-                        <div class="space-y-2">
+                        <div class="space-y-2.5">
                             @foreach ($sparepartItems as $index => $row)
-                                <div class="flex items-center gap-2 p-2 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700" wire:key="sparepart-row-{{ $index }}">
-                                    <div class="flex-1">
-                                        <select
-                                            wire:model="sparepartItems.{{ $index }}.barang_id"
-                                            required
-                                            class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                        >
-                                            <option value="">-- Pilih Komoditas Suku Cadang --</option>
-                                            @foreach ($daftarSparepart as $sp)
-                                                <option value="{{ $sp->id }}">
-                                                    [{{ $sp->kode }}] {{ $sp->nama }} ({{ $sp->satuan?->simbol ?? 'Unit' }})
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-
-                                    <div class="w-24">
-                                        <input
-                                            type="number"
-                                            wire:model="sparepartItems.{{ $index }}.jumlah"
-                                            min="1"
-                                            required
-                                            placeholder="Jumlah"
-                                            class="w-full text-xs text-right font-mono tabular-nums rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                @php
+                                    $selectedSp = $daftarSparepart->firstWhere('id', (int) ($row['barang_id'] ?? 0));
+                                    $maxStok = $selectedSp ? (int) ($selectedSp->stok_tersedia ?? 0) : null;
+                                @endphp
+                                <div class="p-2.5 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 space-y-1.5" wire:key="sparepart-row-{{ $index }}">
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex-1">
+                                            <select
+                                                wire:model.live="sparepartItems.{{ $index }}.barang_id"
+                                                required
+                                                class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            >
+                                                <option value="">-- Pilih Komoditas Suku Cadang --</option>
+                                                @foreach ($daftarSparepart as $sp)
+                                                    @php
+                                                        $stokAda = (int) ($sp->stok_tersedia ?? 0);
+                                                    @endphp
+                                                    <option value="{{ $sp->id }}" @disabled($stokAda <= 0)>
+                                                        [{{ $sp->kode }}] {{ $sp->nama }} &bull; Sisa: {{ number_format($stokAda, 0, ',', '.') }} {{ $sp->satuan?->simbol ?? 'Unit' }} {{ $stokAda <= 0 ? '(HABIS)' : '' }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="w-28">
+                                            <input
+                                                type="number"
+                                                wire:model.live="sparepartItems.{{ $index }}.jumlah"
+                                                min="1"
+                                                @if ($maxStok !== null) max="{{ $maxStok }}" @endif
+                                                required
+                                                placeholder="Jumlah"
+                                                class="w-full text-xs text-right font-mono tabular-nums rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <flux:button
+                                            type="button"
+                                            wire:click="removeSparepartRow({{ $index }})"
+                                            size="xs"
+                                            variant="ghost"
+                                            icon="trash"
+                                            class="text-rose-600 hover:text-rose-700 shrink-0"
+                                            title="Hapus Suku Cadang"
                                         />
                                     </div>
-
-                                    <flux:button
-                                        type="button"
-                                        wire:click="removeSparepartRow({{ $index }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="trash"
-                                        class="text-rose-600 hover:text-rose-700 shrink-0"
-                                        title="Hapus Suku Cadang"
-                                    />
+                                    <div class="flex items-center justify-between text-[11px] px-0.5">
+                                        @error("sparepartItems.{$index}.barang_id")
+                                            <span class="text-rose-600 dark:text-rose-400 font-medium">{{ $message }}</span>
+                                        @else
+                                            <span></span>
+                                        @enderror
+                                        @if ($maxStok !== null)
+                                            <span class="font-mono text-zinc-500 dark:text-zinc-400">
+                                                Maksimal stok: <strong class="{{ $maxStok > 0 ? 'text-zinc-800 dark:text-zinc-200' : 'text-rose-600' }}">{{ number_format($maxStok, 0, ',', '.') }} {{ $selectedSp->satuan?->simbol ?? 'Unit' }}</strong>
+                                            </span>
+                                        @endif
+                                    </div>
+                                    @error("sparepartItems.{$index}.jumlah")
+                                        <div class="text-[11px] text-rose-600 dark:text-rose-400 font-medium px-0.5 text-right">
+                                            {{ $message }}
+                                        </div>
+                                    @enderror
                                 </div>
                             @endforeach
                         </div>
