@@ -528,6 +528,31 @@ class MaintenanceApiController extends ApiController
             $fotoLogPath = $opt['path'];
             $fotoLogUrl = $opt['url'];
         }
+        // Validasi ketersediaan stok fisik suku cadang sebelum transaksi
+        if (! empty($validated['spareparts'])) {
+            foreach ($validated['spareparts'] as $item) {
+                $barang = Barang::with('satuan')->find($item['barang_id']);
+                if ($barang && $barang->tipe !== 'SPAREPART') {
+                    return $this->jsonError("Komoditas '{$barang->nama}' bertipe {$barang->tipe}. Hanya barang bertipe SPAREPART yang dapat digunakan pada lembar kerja pengerjaan.", 422);
+                }
+                $needed = (int) $item['jumlah'];
+                $available = (int) StokBatch::where('barang_id', $item['barang_id'])
+                    ->where('status', 'AKTIF')
+                    ->where('jumlah', '>', 0)
+                    ->sum('jumlah');
+
+                $namaBarang = $barang?->nama ?? "Barang #{$item['barang_id']}";
+                $satuan = $barang?->satuan?->simbol ?? 'Unit';
+                if ($available <= 0) {
+                    return $this->jsonError("Stok fisik suku cadang '{$namaBarang}' saat ini habis (0 {$satuan}).", 422);
+                }
+
+                if ($needed > $available) {
+                    return $this->jsonError("Jumlah diminta untuk '{$namaBarang}' ({$needed} {$satuan}) melebihi stok fisik yang tersedia ({$available} {$satuan}).", 422);
+                }
+            }
+        }
+
 
         $tglPengerjaan = $validated['tanggal_pengerjaan'] ?? now();
         $ujiFungsiLolos = (bool) ($validated['uji_fungsi_kelaikan'] ?? ($validated['hasil'] === 'BERHASIL'));

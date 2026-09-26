@@ -21,9 +21,11 @@ class PengadaanApiController extends ApiController
     public function katalogBarang(Request $request): JsonResponse
     {
         $cari = $request->query('cari');
+        $tipe = $request->query('tipe');
 
         $barang = Barang::query()
             ->with(['kategori:id,nama', 'satuan:id,nama', 'merek:id,nama'])
+            ->when($tipe, fn ($q) => $q->where('tipe', $tipe))
             ->when($cari, function ($q) use ($cari) {
                 $q->where('nama', 'like', "%{$cari}%")
                   ->orWhere('kode', 'like', "%{$cari}%")
@@ -63,18 +65,38 @@ class PengadaanApiController extends ApiController
     {
         $user = $request->user();
 
+        $isCrossUnitViewer = $user && (
+            $user->can('page_PengadaanDashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_Dashboard') ||
+            $user->can('page_ManajemenDashboard') ||
+            $user->can('page_AuditorDashboard')
+        );
+
         $pr = PermintaanPengadaan::query()
-            ->when($user->unit_id && ! $user->can('page_AdminLogistikDashboard'), function ($q) use ($user) {
-                $q->where('unit_id', $user->unit_id);
+            ->when(! $isCrossUnitViewer, function ($q) use ($user) {
+                if ($user->unit_id && $user->gudang_id) {
+                    $q->where(function ($sub) use ($user) {
+                        $sub->where('unit_id', $user->unit_id)
+                            ->orWhere('gudang_id', $user->gudang_id);
+                    });
+                } elseif ($user->unit_id) {
+                    $q->where('unit_id', $user->unit_id);
+                } elseif ($user->gudang_id) {
+                    $q->where('gudang_id', $user->gudang_id);
+                } else {
+                    $q->where('diajukan_oleh', $user->id);
+                }
             })
-            ->with(['unit:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama,satuan_id', 'detail.barang.satuan:id,nama'])
+            ->with(['unit:id,kode,nama', 'gudang:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama,satuan_id', 'detail.barang.satuan:id,nama'])
             ->latest('dibuat_pada')
             ->limit(100)
             ->get()
             ->map(fn ($item) => [
                 'id'                 => $item->id,
                 'kode'               => $item->kode,
-                'unit'               => $item->unit?->nama ?? 'Unit',
+                'unit'               => $item->nama_pemohon,
+                'tipe_pemohon'       => $item->tipe_pemohon,
                 'pengaju'            => $item->pengaju?->nama ?? 'Staf',
                 'tanggal_permintaan' => $item->tanggal_permintaan?->format('Y-m-d') ?? '',
                 'urgensi'            => $item->urgensi,
@@ -111,7 +133,8 @@ class PengadaanApiController extends ApiController
         }
 
         $validator = Validator::make($request->all(), [
-            'unit_id'          => 'nullable|exists:unit,id',
+            'unit_id'          => 'nullable|required_without:gudang_id|exists:unit,id',
+            'gudang_id'        => 'nullable|required_without:unit_id|exists:gudang,id',
             'urgensi'          => 'required|in:REGULER,MENDESAK,CITO',
             'catatan'          => 'nullable|string|max:1000',
             'items'            => 'required|array|min:1',
@@ -129,25 +152,37 @@ class PengadaanApiController extends ApiController
             return $this->jsonError('Validasi data gagal.', 422, $validator->errors());
         }
 
-        $unitId = $request->input('unit_id') ?? $user->unit_id;
-        if (! $unitId) {
-            return $this->jsonError('Unit kerja pemohon wajib terdaftar.', 422);
+        $unitId = $request->input('unit_id');
+        $gudangId = $request->input('gudang_id');
+
+        if (! $unitId && ! $gudangId) {
+            $unitId = $user->unit_id;
+            $gudangId = $user->unit_id ? null : $user->gudang_id;
+        }
+
+        if (! $unitId && ! $gudangId) {
+            return $this->jsonError('Pilih salah satu entitas pemohon: Unit Ruangan atau Gudang.', 422);
+        }
+
+        // Mutual exclusion: jika unit dipilih, gudang dibersihkan, dan sebaliknya
+        if ($unitId) {
+            $gudangId = null;
         }
 
         try {
-            $pr = DB::transaction(function () use ($request, $user, $unitId) {
+            $pr = DB::transaction(function () use ($request, $user, $unitId, $gudangId) {
                 $kodePr = CodeGenerator::generatePr();
 
                 $prHeader = PermintaanPengadaan::create([
                     'kode'               => $kodePr,
                     'unit_id'            => $unitId,
+                    'gudang_id'          => $gudangId,
                     'diajukan_oleh'      => $user->id,
                     'tanggal_permintaan' => now()->toDateString(),
                     'urgensi'            => $request->input('urgensi'),
                     'status'             => 'DIAJUKAN',
                     'catatan'            => $request->input('catatan'),
                 ]);
-
                 foreach ($request->input('items') as $row) {
                     PermintaanPengadaanDetail::create([
                         'permintaan_pengadaan_id' => $prHeader->id,
@@ -157,7 +192,7 @@ class PengadaanApiController extends ApiController
                     ]);
                 }
 
-                return $prHeader->load(['unit', 'pengaju', 'detail.barang']);
+                return $prHeader->load(['unit', 'gudang', 'pengaju', 'detail.barang']);
             });
 
             return $this->jsonSuccess([
