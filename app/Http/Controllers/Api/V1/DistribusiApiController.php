@@ -29,7 +29,7 @@ class DistribusiApiController extends ApiController
     public function katalogBarang(Request $request): JsonResponse
     {
         $cari = $request->query('cari');
-        $gudangId = $request->query('gudang_id') ?: 1;
+        $gudangId = $request->query('gudang_id') ?: Gudang::where('status', 'AKTIF')->value('id');
 
         $barangs = Barang::query()
             ->whereIn('tipe', ['HABIS_PAKAI', 'SPAREPART', 'ASET'])
@@ -238,8 +238,10 @@ class DistribusiApiController extends ApiController
             return $this->jsonError('Pengguna wajib terdaftar dalam unit ruangan pelayanan.', 422);
         }
 
-        $gudangId = $request->input('gudang_id') ?: (Gudang::where('status', 'AKTIF')->value('id') ?? 1);
-        // Validasi ketersediaan stok fisik di gudang tujuan
+        $gudangId = $request->input('gudang_id') ?: Gudang::where('status', 'AKTIF')->value('id');
+        if (! $gudangId) {
+            return $this->jsonError('Fasilitas gudang aktif belum tersedia.', 422);
+        }
         foreach ($request->input('items') as $row) {
             $barangId = (int) $row['barang_id'];
             $jumlahDiminta = (int) $row['jumlah'];

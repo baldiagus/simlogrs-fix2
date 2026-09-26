@@ -425,9 +425,11 @@ class GudangApiController extends ApiController
         if (! in_array($po->status, ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])) {
             return $this->jsonError("PO {$po->kode} belum dikirim oleh vendor atau tidak dalam status dapat diterima (saat ini: {$po->status}).", 422);
         }
-
-        $gudangId = $user->gudang_id ?? 1;
-
+        $firstRackId = $request->input('items')[0]['lokasi_gudang_id'] ?? null;
+        $gudangId = $user->gudang_id ?? ($firstRackId ? \App\Models\LokasiGudang::where('id', $firstRackId)->value('gudang_id') : null) ?? \App\Models\Gudang::where('status', 'AKTIF')->value('id');
+        if (! $gudangId) {
+            return $this->jsonError('Fasilitas gudang penerima tidak valid atau belum ditentukan.', 422);
+        }
         $hasReceived = false;
         foreach ($request->input('items') as $row) {
             if ((int) $row['jumlah_diterima'] > 0) {
