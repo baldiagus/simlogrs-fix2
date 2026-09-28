@@ -31,8 +31,8 @@ Route::prefix('v1')->group(function () {
     // 2. Autentikasi Publik Mobile
     Route::post('/auth/login', [AuthController::class, 'login']);
 
-    // 3. Endpoint Terproteksi Sanctum
-    Route::middleware('auth:sanctum')->group(function () {
+        // 3. Endpoint Terproteksi Sanctum dengan Rate Limiter
+        Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::get('/dashboard/summary', [DashboardApiController::class, 'summary']);
