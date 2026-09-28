@@ -26,7 +26,17 @@ class ApprovalController extends ApiController
             $user->can('page_AuditorDashboard')
         );
 
-        $pr = PermintaanPengadaan::whereIn('status', ['DIAJUKAN', 'DISETUJUI'])
+        $isPengadaanOnly = $user && $user->hasRole('pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik']);
+        $isAdminOrAudit = $user && ($user->hasRole(['super_admin', 'admin_logistik', 'manajemen', 'auditor']) || $user->can('page_AdminLogistikDashboard'));
+
+        $prStatuses = ['DIAJUKAN'];
+        if ($isPengadaanOnly) {
+            $prStatuses = ['DISETUJUI', 'DITERUSKAN_KE_PENGADAAN'];
+        } elseif ($isAdminOrAudit) {
+            $prStatuses = ['DIAJUKAN', 'DISETUJUI', 'DITERUSKAN_KE_PENGADAAN'];
+        }
+
+        $pr = PermintaanPengadaan::whereIn('status', $prStatuses)
             ->when(! $isCrossUnitViewer, function ($q) use ($user) {
                 if ($user->unit_id && $user->gudang_id) {
                     $q->where(function ($sub) use ($user) {
@@ -147,6 +157,10 @@ class ApprovalController extends ApiController
         }
 
         if ($aksi === 'setujui') {
+            if ($user->hasRole('pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'kepala_gudang'])) {
+                return $this->jsonError('Bagian Pengadaan tidak memiliki wewenang untuk menyetujui pengajuan PR ruangan. Otorisasi persetujuan tersebut adalah wewenang Kepala Ruangan / Kepala Gudang.', 403);
+            }
+
             if ($pr->status !== 'DIAJUKAN') {
                 return $this->jsonError("PR {$pr->kode} tidak dalam status DIAJUKAN (saat ini: {$pr->status}).", 422);
             }
@@ -165,10 +179,15 @@ class ApprovalController extends ApiController
         }
 
         // Tolak
+        $catatanTolak = $request->input('catatan') ?? $pr->catatan;
+        if ($user->hasRole('pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik'])) {
+            $catatanTolak = '[Ditolak Pengadaan]: ' . ($request->input('catatan') ?? 'Tidak memenuhi kriteria belanja/katalog');
+        }
+
         $pr->update([
             'status' => 'DITOLAK',
             'disetujui_oleh' => $user->id,
-            'catatan' => $request->input('catatan') ?? $pr->catatan,
+            'catatan' => $catatanTolak,
         ]);
 
         return $this->jsonSuccess([
