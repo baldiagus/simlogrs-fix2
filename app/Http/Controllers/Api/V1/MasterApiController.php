@@ -48,7 +48,7 @@ class MasterApiController extends ApiController
                 });
             });
 
-        $items = $query->orderBy('nama')->limit(100)->get()->map(function ($b) {
+        $items = $query->orderBy('nama')->limit(100)->get()->map(function ($b) use ($canViewFinancials) {
             $tipeLabel = match ($b->tipe) {
                 'ASET'      => 'Aktiva / Aset Inventaris',
                 'SPAREPART' => 'Suku Cadang IPSRS',
