@@ -735,12 +735,6 @@ class DashboardApiController extends ApiController
      */
     private function diffForHumans($date): string
     {
-        if (! $date) {
-            return 'Baru saja';
-        }
-
-        Carbon::setLocale('id');
-        $c = Carbon::parse($date);
-        return $c->diffForHumans();
+        return $date ? Carbon::parse($date)->diffForHumans() : 'Baru saja';
     }
 }

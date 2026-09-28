@@ -18,16 +18,14 @@ trait HasConfirmationModal
         string $title,
         string $description,
         string $buttonText = 'Ya, Lanjutkan',
-        string $variant = 'primary',
-        ?string $confirmButtonText = null,
-        ?string $confirmVariant = null
+        string $variant = 'primary'
     ): void {
         $this->confirmTarget = $target;
         $this->confirmAction = $action;
         $this->confirmTitle = $title;
         $this->confirmDescription = $description;
-        $this->confirmButtonText = $confirmButtonText ?? $buttonText;
-        $this->confirmButtonVariant = $confirmVariant ?? $variant;
+        $this->confirmButtonText = $buttonText;
+        $this->confirmButtonVariant = $variant;
         $this->showConfirmModal = true;
     }
 

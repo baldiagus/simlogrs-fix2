@@ -22,6 +22,11 @@ class RoleManager extends Component
         'delete' => [],
     ];
 
+    public function boot(): void
+    {
+        abort_unless(auth()->user()?->can('view_any_user::role') || auth()->user()?->can('view_user::role') || auth()->user()?->hasRole('super_admin'), 403);
+    }
+
     public function mount()
     {
         $firstRole = Role::first();
