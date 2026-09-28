@@ -496,12 +496,12 @@ class GudangApiController extends ApiController
                     $poDetail = $po->detail->firstWhere('barang_id', $row['barang_id']);
                     if ($poDetail) {
                         $poDetail->increment('jumlah_diterima', $qty);
-                    }
 
-                    if (isset($row['harga_satuan']) && (float) $row['harga_satuan'] > 0) {
-                        Barang::where('id', $row['barang_id'])->update([
-                            'harga_beli_terakhir' => $row['harga_satuan'],
-                        ]);
+                        if ((float) $poDetail->harga_satuan > 0) {
+                            Barang::where('id', $row['barang_id'])->update([
+                                'harga_beli_terakhir' => $poDetail->harga_satuan,
+                            ]);
+                        }
                     }
                 }
 

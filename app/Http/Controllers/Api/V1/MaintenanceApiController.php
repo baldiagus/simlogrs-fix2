@@ -252,6 +252,24 @@ class MaintenanceApiController extends ApiController
         }
 
         $user = $request->user();
+        $isPrivileged = $user && (
+            $user->hasRole(['super_admin', 'admin_logistik', 'teknisi', 'auditor', 'manajemen']) ||
+            $user->can('view_any_pemeliharaan::spk::perbaikan') ||
+            $user->can('page_TeknisiDashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_AuditorDashboard') ||
+            $user->can('page_ManajemenDashboard')
+        );
+
+        $isUnitOwner = $user && (
+            ($user->unit_id && (int) $user->unit_id === (int) $tiket->unit_id) ||
+            ((int) $tiket->dilaporkan_oleh === (int) $user->id)
+        );
+
+        if (! $isPrivileged && ! $isUnitOwner) {
+            return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat tiket pemeliharaan unit lain.', 403);
+        }
+
         $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('teknisi');
         $canCancel = $tiket->status === 'DILAPORKAN' && (
             $tiket->dilaporkan_oleh === $user->id ||

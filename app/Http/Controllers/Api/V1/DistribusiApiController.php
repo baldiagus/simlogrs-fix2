@@ -156,7 +156,16 @@ class DistribusiApiController extends ApiController
     public function detailAmprah(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
+        $isGlobalAdmin = $user && (
+            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen', 'kepala_gudang', 'petugas_gudang']) ||
+            $user->can('view_any_layanan_unit::permintaan::barang') ||
+            $user->can('view_any_gudang_stok::distribusi::approval') ||
+            $user->can('page_KepalaGudangDashboard') ||
+            $user->can('page_GudangDashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_AuditorDashboard') ||
+            $user->can('page_ManajemenDashboard')
+        );
 
         $amprah = PermintaanDistribusi::with([
             'unit',
@@ -171,6 +180,14 @@ class DistribusiApiController extends ApiController
             return $this->jsonError('Data amprah tidak ditemukan.', 404);
         }
 
+        $isUnitOwner = $user && (
+            ($user->unit_id && (int) $user->unit_id === (int) $amprah->unit_id) ||
+            ((int) $amprah->diajukan_oleh === (int) $user->id)
+        );
+
+        if (! $isGlobalAdmin && ! $isUnitOwner) {
+            return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat dokumen amprah unit lain.', 403);
+        }
         $canCancel = $amprah->status === 'DIAJUKAN' && (
             (int) $amprah->diajukan_oleh === (int) $user->id ||
             ($user->unit_id && (int) $user->unit_id === (int) $amprah->unit_id && $user->hasRole('kepala_unit')) ||
