@@ -41,7 +41,7 @@ class ApprovalController extends ApiController
                     $q->where('diajukan_oleh', $user->id);
                 }
             })
-            ->with(['unit:id,kode,nama', 'gudang:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama'])
+            ->with(['unit:id,kode,nama', 'gudang:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama,satuan_id', 'detail.barang.satuan:id,nama,simbol'])
             ->latest('dibuat_pada')
             ->get()
             ->map(fn ($item) => [
@@ -56,16 +56,19 @@ class ApprovalController extends ApiController
                 'status' => $item->status,
                 'jumlah_item' => $item->detail->count(),
                 'items' => $item->detail->map(fn ($d) => [
-                    'barang' => $d->barang?->nama,
+                    'id'          => $d->id,
+                    'barang_id'   => $d->barang_id,
+                    'barang'      => $d->barang?->nama,
                     'kode_barang' => $d->barang?->kode,
-                    'jumlah' => $d->jumlah,
+                    'satuan'      => $d->barang?->satuan?->simbol ?? $d->barang?->satuan?->nama ?? 'Pcs',
+                    'jumlah'      => $d->jumlah,
                 ]),
             ]);
 
         // 2. Permintaan Distribusi (Amprah Ruangan)
         $amprah = PermintaanDistribusi::whereIn('status', ['DIAJUKAN', 'DISETUJUI_KARU'])
             ->when($user->unit_id && ! $user->can('page_AdminLogistikDashboard'), fn ($q) => $q->where('unit_id', $user->unit_id))
-            ->with(['unit:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama'])
+            ->with(['unit:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama,satuan_id', 'detail.barang.satuan:id,nama,simbol'])
             ->latest('dibuat_pada')
             ->get()
             ->map(fn ($item) => [
@@ -79,8 +82,11 @@ class ApprovalController extends ApiController
                 'status'      => $item->status,
                 'jumlah_item' => $item->detail->count(),
                 'items'       => $item->detail->map(fn ($d) => [
+                    'id'          => $d->id,
+                    'barang_id'   => $d->barang_id,
                     'barang'      => $d->barang?->nama,
                     'kode_barang' => $d->barang?->kode,
+                    'satuan'      => $d->barang?->satuan?->simbol ?? $d->barang?->satuan?->nama ?? 'Pcs',
                     'jumlah'      => $d->jumlah,
                 ]),
             ]);
