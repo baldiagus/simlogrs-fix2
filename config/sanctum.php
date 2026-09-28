@@ -50,7 +50,7 @@ return [
     |
     */
 
-    'expiration' => env('SANCTUM_EXPIRATION', 1440),
+    'expiration' => env('SANCTUM_EXPIRATION', 480), // 8 jam (sesuai 1 shift dinas rumah sakit)
 
     /*
     |--------------------------------------------------------------------------
