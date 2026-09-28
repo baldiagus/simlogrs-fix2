@@ -35,9 +35,8 @@
     31 => 'Termwind\\Laravel\\TermwindServiceProvider',
     32 => 'Rap2hpoutre\\FastExcel\\Providers\\FastExcelServiceProvider',
     33 => 'SimpleSoftwareIO\\QrCode\\QrCodeServiceProvider',
-    34 => 'Spatie\\Activitylog\\ActivitylogServiceProvider',
-    35 => 'Spatie\\Permission\\PermissionServiceProvider',
-    36 => 'App\\Providers\\AppServiceProvider',
+    34 => 'Spatie\\Permission\\PermissionServiceProvider',
+    35 => 'App\\Providers\\AppServiceProvider',
   ),
   'eager' => 
   array (
@@ -60,9 +59,8 @@
     16 => 'Termwind\\Laravel\\TermwindServiceProvider',
     17 => 'Rap2hpoutre\\FastExcel\\Providers\\FastExcelServiceProvider',
     18 => 'SimpleSoftwareIO\\QrCode\\QrCodeServiceProvider',
-    19 => 'Spatie\\Activitylog\\ActivitylogServiceProvider',
-    20 => 'Spatie\\Permission\\PermissionServiceProvider',
-    21 => 'App\\Providers\\AppServiceProvider',
+    19 => 'Spatie\\Permission\\PermissionServiceProvider',
+    20 => 'App\\Providers\\AppServiceProvider',
   ),
   'deferred' => 
   array (

@@ -43,92 +43,29 @@ class CodeGenerator
         return "{$searchPrefix}{$paddedNumber}";
     }
 
-    /**
-     * Khusus SPPB Gudang: SPPB-YYYYMMDD-XXXX (4 digit urut per hari)
-     */
-    public static function generateSppb(
-        string $modelClass = 'App\Models\PengirimanBarang',
-        string $column = 'kode'
-    ): string {
-        return static::generate('SPPB', $modelClass, $column, 'Ymd', 4);
-    }
+    protected static array $presets = [
+        'sppb' => ['SPPB', 'App\Models\PengirimanBarang', 'kode', 'Ymd', 4],
+        'pr'   => ['PR', 'App\Models\PermintaanPengadaan', 'kode', 'Y', 3],
+        'po'   => ['PO', 'App\Models\PesananPembelian', 'kode', 'Y', 3],
+        'rcv'  => ['RCV', 'App\Models\PenerimaanDistribusi', 'kode', 'Ym', 3],
+        'pinj' => ['PINJ', 'App\Models\PermintaanPeminjaman', 'kode', 'Y', 3],
+        'mnt'  => ['MNT', 'App\Models\PermintaanMaintenance', 'kode', 'Ym', 3],
+        'spk'  => ['SPK', 'App\Models\PenugasanMaintenance', 'kode', 'Ym', 3],
+        'prv'  => ['PRV', 'App\Models\JadwalMaintenance', 'kode', 'Ym', 3],
+        'opn'  => ['OPN', 'App\Models\StokOpname', 'kode', 'Ym', 3],
+        'adj'  => ['ADJ', 'App\Models\PenyesuaianStok', 'kode', 'Ym', 3],
+        'aud'  => ['AUD', 'App\Models\TemuanAudit', 'kode', 'Ym', 3],
+    ];
 
-    /**
-     * Khusus Permintaan Pengadaan: PR-YYYY-XXX
-     */
-    public static function generatePr(string $modelClass = 'App\Models\PermintaanPengadaan'): string
+    public static function __callStatic(string $name, array $args)
     {
-        return static::generate('PR', $modelClass, 'kode', 'Y', 3);
-    }
-
-    /**
-     * Khusus Pesanan Pembelian: PO-YYYY-XXX
-     */
-    public static function generatePo(string $modelClass = 'App\Models\PesananPembelian'): string
-    {
-        return static::generate('PO', $modelClass, 'kode', 'Y', 3);
-    }
-
-    /**
-     * Khusus Penerimaan Distribusi Ruangan: RCV-YYYYMM-XXX
-     */
-    public static function generateRcv(string $modelClass = 'App\Models\PenerimaanDistribusi'): string
-    {
-        return static::generate('RCV', $modelClass, 'kode', 'Ym', 3);
-    }
-
-    /**
-     * Khusus Peminjaman Aset: PINJ-YYYY-XXX
-     */
-    public static function generatePinj(string $modelClass = 'App\Models\PermintaanPeminjaman'): string
-    {
-        return static::generate('PINJ', $modelClass, 'kode', 'Y', 3);
-    }
-
-    /**
-     * Khusus Maintenance IPSRS: MNT-YYYYMM-XXX
-     */
-    public static function generateMnt(string $modelClass = 'App\Models\PermintaanMaintenance'): string
-    {
-        return static::generate('MNT', $modelClass, 'kode', 'Ym', 3);
-    }
-
-    /**
-     * Khusus SPK Maintenance IPSRS: SPK-YYYYMM-XXX
-     */
-    public static function generateSpk(string $modelClass = 'App\Models\PenugasanMaintenance'): string
-    {
-        return static::generate('SPK', $modelClass, 'kode', 'Ym', 3);
-    }
-
-    /**
-     * Khusus Jadwal Preventif IPSRS: PRV-YYYYMM-XXX
-     */
-    public static function generatePrv(string $modelClass = 'App\Models\JadwalMaintenance'): string
-    {
-        return static::generate('PRV', $modelClass, 'kode', 'Ym', 3);
-    }
-
-    /**
-     * Khusus Stock Opname Gudang: OPN-YYYYMM-XXX
-     */
-    public static function generateOpn(string $modelClass = 'App\Models\StokOpname'): string
-    {
-        return static::generate('OPN', $modelClass, 'kode', 'Ym', 3);
-    }
-
-    /**
-     * Khusus Penyesuaian Stok Gudang: ADJ-YYYYMM-XXX
-     */
-    public static function generateAdj(string $modelClass = 'App\Models\PenyesuaianStok'): string
-    {
-        return static::generate('ADJ', $modelClass, 'kode', 'Ym', 3);
-    }
-    /**
-     * Khusus Temuan Audit SPI: AUD-YYYYMM-XXX
-     */
-    public static function generateAud(string $modelClass = 'App\Models\TemuanAudit'): string
-    {
-        return static::generate('AUD', $modelClass, 'kode', 'Ym', 3);
+        if (str_starts_with($name, 'generate')) {
+            $key = strtolower(substr($name, 8));
+            if (isset(static::$presets[$key])) {
+                [$prefix, $model, $col, $date, $pad] = static::$presets[$key];
+                return static::generate($prefix, $args[0] ?? $model, $args[1] ?? $col, $date, $pad);
+            }
+        }
+        throw new \BadMethodCallException("Method {$name} tidak ditemukan.");
     }
 }

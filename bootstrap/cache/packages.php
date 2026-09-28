@@ -86,13 +86,6 @@
       0 => 'SimpleSoftwareIO\\QrCode\\QrCodeServiceProvider',
     ),
   ),
-  'spatie/laravel-activitylog' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Spatie\\Activitylog\\ActivitylogServiceProvider',
-    ),
-  ),
   'spatie/laravel-permission' => 
   array (
     'providers' => 

@@ -15,7 +15,6 @@
         "livewire/livewire": "^3.5",
         "rap2hpoutre/fast-excel": "^5.4",
         "simplesoftwareio/simple-qrcode": "^4.2",
-        "spatie/laravel-activitylog": "^4.12",
         "spatie/laravel-permission": "^6.0"
     },
     "require-dev": {

@@ -4,29 +4,9 @@ namespace App\Traits;
 
 use App\Models\LogAudit;
 use Illuminate\Support\Facades\Log;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
 
 trait HasAuditLog
 {
-    use LogsActivity;
-
-    /**
-     * Konfigurasi kompatibilitas Spatie ActivityLog.
-     */
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logAll()
-            ->logOnlyDirty()
-            ->dontSubmitEmptyLogs()
-            ->dontLogIfAttributesChangedOnly([
-                'diperbarui_pada',
-                'updated_at',
-                'remember_token',
-                'password',
-            ]);
-    }
 
     /**
      * Boot trait untuk otomatis merekam snapshot diff ke tabel log_audit (JSONB).

@@ -4,7 +4,6 @@ namespace App\Support\Auth;
 
 use App\Models\Gudang;
 use App\Models\Unit;
-use Illuminate\Database\Eloquent\Builder;
 
 class ContextManager
 {
@@ -68,37 +67,4 @@ class ContextManager
         return ! empty($parts) ? implode(' | ', $parts) : 'Mode Global Seluruh RS';
     }
 
-    /**
-     * Scope query otomatis berbasis unit emulasi atau unit dinas user.
-     */
-    public function scopeUnit(Builder $query, string $column = 'unit_id'): Builder
-    {
-        if ($unitId = $this->getUnitId()) {
-            return $query->where($column, $unitId);
-        }
-
-        $user = auth()->user();
-        if ($user && $user->unit_id && ! $user->can('page_Dashboard')) {
-            return $query->where($column, $user->unit_id);
-        }
-
-        return $query;
-    }
-
-    /**
-     * Scope query otomatis berbasis gudang emulasi atau gudang dinas user.
-     */
-    public function scopeGudang(Builder $query, string $column = 'gudang_id'): Builder
-    {
-        if ($gudangId = $this->getGudangId()) {
-            return $query->where($column, $gudangId);
-        }
-
-        $user = auth()->user();
-        if ($user && $user->gudang_id && ! $user->can('page_Dashboard')) {
-            return $query->where($column, $user->gudang_id);
-        }
-
-        return $query;
-    }
 }
