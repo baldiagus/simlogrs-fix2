@@ -236,7 +236,7 @@ class DashboardApiController extends ApiController
                 ->get()
                 ->map(fn ($ps) => [
                     'id'         => $ps->id,
-                    'tipe'       => 'AMPRAH',
+                    'tipe'       => 'PENYESUAIAN',
                     'kode'       => $ps->kode,
                     'judul'      => 'Penyesuaian Stok: ' . ($ps->gudang?->nama ?? 'Gudang'),
                     'subjudul'   => $ps->detail->count() . ' batch selisih • ' . $ps->alasan,
