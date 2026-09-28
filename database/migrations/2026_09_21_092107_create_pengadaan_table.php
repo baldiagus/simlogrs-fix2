@@ -11,6 +11,8 @@ return new class extends Migration
         // 1. Anggaran Pengadaan
         Schema::create('anggaran_pengadaan', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('unit_id')->nullable()->constrained('unit')->nullOnDelete();
+            $table->string('tipe', 30)->default('UNIT'); // UNIT, SPAREPART_IPSRS, UMUM
             $table->string('kode', 50)->unique();
             $table->string('pos_anggaran', 200);
             $table->decimal('pagu', 15, 2)->default(0);
@@ -28,7 +30,8 @@ return new class extends Migration
         Schema::create('permintaan_pengadaan', function (Blueprint $table) {
             $table->id();
             $table->string('kode', 50)->unique(); // PR-YYYY-XXX
-            $table->foreignId('unit_id')->constrained('unit')->restrictOnDelete();
+            $table->foreignId('unit_id')->nullable()->constrained('unit')->nullOnDelete();
+            $table->foreignId('gudang_id')->nullable()->constrained('gudang')->nullOnDelete();
             $table->foreignId('diajukan_oleh')->constrained('pengguna')->restrictOnDelete();
             $table->date('tanggal_permintaan');
             $table->string('urgensi', 20)->default('REGULER'); // REGULER, MENDESAK, CITO
@@ -38,6 +41,9 @@ return new class extends Migration
             $table->timestamp('dibuat_pada')->nullable();
             $table->timestamp('diperbarui_pada')->nullable();
         });
+
+        // Check Constraint XOR: Pemohon PR wajib berasal dari Unit ATAU Gudang (salah satu, eksklusif)
+        \Illuminate\Support\Facades\DB::statement('ALTER TABLE permintaan_pengadaan ADD CONSTRAINT chk_pr_pemohon_xor CHECK ((unit_id IS NOT NULL AND gudang_id IS NULL) OR (unit_id IS NULL AND gudang_id IS NOT NULL));');
 
         // 3. Permintaan Pengadaan Detail
         Schema::create('permintaan_pengadaan_detail', function (Blueprint $table) {
@@ -108,6 +114,7 @@ return new class extends Migration
 
     public function down(): void
     {
+        \Illuminate\Support\Facades\DB::statement('ALTER TABLE permintaan_pengadaan DROP CONSTRAINT IF EXISTS chk_pr_pemohon_xor;');
         Schema::dropIfExists('penerimaan_barang_detail');
         Schema::dropIfExists('penerimaan_barang');
         Schema::dropIfExists('pesanan_pembelian_detail');

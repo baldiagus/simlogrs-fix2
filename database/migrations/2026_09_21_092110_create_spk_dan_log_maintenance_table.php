@@ -36,6 +36,7 @@ return new class extends Migration
             $table->text('tindakan');
             $table->string('hasil', 30)->default('BERHASIL'); // BERHASIL, PENDING, GAGAL
             $table->text('catatan')->nullable();
+            $table->string('foto_pengerjaan', 255)->nullable();
             $table->timestamp('dibuat_pada')->nullable();
             $table->timestamp('diperbarui_pada')->nullable();
         });
@@ -61,7 +62,10 @@ return new class extends Migration
             $table->id();
             $table->string('kode', 50)->unique(); // PRV-YYYYMM-XXX
             $table->foreignId('aset_id')->constrained('aset')->restrictOnDelete();
+            $table->foreignId('teknisi_id')->nullable()->constrained('pengguna')->nullOnDelete();
             $table->string('frekuensi', 30)->default('BULANAN'); // MINGGUAN, BULANAN, TRIWULAN, SEMESTER, TAHUNAN
+            $table->integer('interval_nilai')->default(1);
+            $table->string('interval_tipe', 20)->default('BULAN'); // HARI, MINGGU, BULAN
             $table->string('jenis_maintenance', 150);
             $table->date('tanggal_terakhir')->nullable();
             $table->date('tanggal_berikutnya');

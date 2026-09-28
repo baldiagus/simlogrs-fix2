@@ -70,6 +70,7 @@ return new class extends Migration
             $table->foreignId('pengembalian_peminjaman_detail_id')->nullable()->constrained('pengembalian_peminjaman_detail')->nullOnDelete();
             $table->foreignId('dilaporkan_oleh')->constrained('pengguna')->restrictOnDelete();
             $table->text('deskripsi_masalah');
+            $table->string('foto_kerusakan', 255)->nullable();
             $table->string('prioritas', 20)->default('SEDANG'); // RENDAH, SEDANG, TINGGI, CITO
             $table->string('status', 30)->default('DILAPORKAN'); // DILAPORKAN, DITUGASKAN, SEDANG_DIKERJAKAN, MENUNGGU_SPAREPART, UJI_FUNGSI, SELESAI, DIBATALKAN
             $table->timestamp('dibuat_pada')->nullable();

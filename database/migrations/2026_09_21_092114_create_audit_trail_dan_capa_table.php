@@ -37,7 +37,7 @@ return new class extends Migration
             $table->string('status_capa', 20)->default('In Progress'); // In Progress, In Review, Closed
             $table->text('analisis_penyebab')->nullable();
             $table->text('tindakan_perbaikan')->nullable();
-            $table->string('bukti_perbaikan', 255)->nullable();
+            $table->jsonb('bukti_perbaikan')->default('[]');
             $table->text('catatan_evaluasi')->nullable();
             $table->foreignId('auditor_id')->constrained('pengguna')->restrictOnDelete();
             $table->foreignId('dievaluasi_oleh')->nullable()->constrained('pengguna')->nullOnDelete();
