@@ -244,7 +244,7 @@ class PengadaanApiController extends ApiController
     public function daftarPo(Request $request): JsonResponse
     {
         $user = $request->user();
-        $hasPoAccess = $user && (
+        $isGlobal = $user && (
             $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik', 'manajemen', 'auditor', 'kepala_gudang', 'petugas_gudang']) ||
             $user->can('view_any_pengadaan::pesanan::pembelian') ||
             $user->can('view_any_pengadaan::penerimaan::po') ||
@@ -255,10 +255,11 @@ class PengadaanApiController extends ApiController
             $user->can('page_AuditorDashboard')
         );
 
-        if (! $hasPoAccess) {
+        $hasUnitAccess = $user && ($user->unit_id || $user->hasRole(['kepala_unit', 'petugas_unit']));
+
+        if (! $isGlobal && ! $hasUnitAccess) {
             return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat daftar PO.', 403);
         }
-
         $status = $request->query('status');
         $search = $request->query('search');
 
@@ -275,8 +276,12 @@ class PengadaanApiController extends ApiController
                 $sub->where('kode', 'like', "%{$search}%")
                     ->orWhereHas('pemasok', fn ($p) => $p->where('nama', 'like', "%{$search}%"));
             });
-        })
-        ->latest('id');
+        });
+
+        if (! $isGlobal && $user->unit_id) {
+            $query->whereHas('permintaanPengadaan', fn ($q) => $q->where('unit_id', $user->unit_id));
+        }
+
         $pos = $query->limit(100)->get()->map(function ($po) {
             return [
                 'id'                      => $po->id,
