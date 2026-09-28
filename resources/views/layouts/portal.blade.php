@@ -96,7 +96,6 @@
         $isAuditActive = request()->is(
             '*/audit-trail*',
             '*/kepatuhan-pengadaan*',
-            '*/selisih-opname*',
             '*/temuan-capa*'
         );
     @endphp
@@ -342,7 +341,7 @@
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_audit_manajemen::selisih::opname')
-                        <flux:sidebar.item icon="scale" href="/{{ $portalKey }}/selisih-opname" wire:navigate :current="request()->is('*/selisih-opname*')">
+                        <flux:sidebar.item icon="scale" href="/{{ $portalKey }}/otorisasi-penyesuaian" wire:navigate :current="request()->is('*/otorisasi-penyesuaian*')">
                             Selisih Opname (Audit)
                         </flux:sidebar.item>
                     @endcan

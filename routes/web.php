@@ -141,7 +141,6 @@ foreach ($portals as $portalKey => $dashboardClass) {
             Route::get('/buku-mutasi', BukuMutasiIndex::class)->name('buku-mutasi');
             Route::get('/stok-opname', StockOpnameIndex::class)->name('stok-opname');
             Route::get('/otorisasi-penyesuaian', OtorisasiPenyesuaianIndex::class)->name('otorisasi-penyesuaian');
-            Route::get('/selisih-opname', OtorisasiPenyesuaianIndex::class)->name('selisih-opname');
 
             // Tata Kelola Audit Internal, SPI & CAPA (Grup 8)
             Route::get('/audit-trail', AuditTrailIndex::class)->name('audit-trail');
