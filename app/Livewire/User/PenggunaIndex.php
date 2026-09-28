@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -167,9 +168,9 @@ class PenggunaIndex extends Component
         ];
 
         if (! $this->editingId) {
-            $rules['password'] = 'required|string|min:6|confirmed';
+            $rules['password'] = ['required', 'string', 'confirmed', Password::min(8)->letters()->numbers()];
         } else {
-            $rules['password'] = 'nullable|string|min:6|confirmed';
+            $rules['password'] = ['nullable', 'string', 'confirmed', Password::min(8)->letters()->numbers()];
         }
 
         $this->validate($rules);

@@ -21,11 +21,20 @@ class MasterApiController extends ApiController
      */
     public function barangLengkap(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $canViewFinancials = $user && (
+            $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik', 'manajemen', 'auditor']) ||
+            $user->can('view_any_pengadaan::pesanan::pembelian') ||
+            $user->can('view_any_pengadaan::realisasi::anggaran') ||
+            $user->can('page_PengadaanDashboard') ||
+            $user->can('page_ManajemenDashboard') ||
+            $user->can('page_AuditorDashboard')
+        );
+
         $tipe = $request->query('tipe');
         $kategoriId = $request->query('kategori_id');
         $status = $request->query('status');
         $cari = $request->query('cari');
-
         $query = Barang::query()
             ->with(['kategori:id,nama', 'satuan:id,nama,simbol', 'merek:id,nama', 'pemasokDefault:id,nama'])
             ->when($tipe, fn ($q) => $q->where('tipe', $tipe))
@@ -66,7 +75,7 @@ class MasterApiController extends ApiController
                 'simbol_satuan'       => $b->satuan?->simbol ?? $b->satuan?->nama ?? 'Pcs',
                 'merek'               => $b->merek?->nama ?? '-',
                 'pemasok'             => $b->pemasokDefault?->nama ?? '-',
-                'harga_beli_terakhir' => (float) ($b->harga_beli_terakhir ?? 0),
+                'harga_beli_terakhir' => $canViewFinancials ? (float) ($b->harga_beli_terakhir ?? 0) : 0.0,
                 'harga_estimasi'      => (float) ($b->harga_estimasi ?? 0),
                 'stok_minimum'        => (int) ($b->stok_minimum ?? 0),
                 'stok_maksimum'       => (int) ($b->stok_maksimum ?? 0),
@@ -87,8 +96,17 @@ class MasterApiController extends ApiController
      */
     public function detailBarang(Request $request, int $id): JsonResponse
     {
+        $user = $request->user();
+        $canViewFinancials = $user && (
+            $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik', 'manajemen', 'auditor']) ||
+            $user->can('view_any_pengadaan::pesanan::pembelian') ||
+            $user->can('view_any_pengadaan::realisasi::anggaran') ||
+            $user->can('page_PengadaanDashboard') ||
+            $user->can('page_ManajemenDashboard') ||
+            $user->can('page_AuditorDashboard')
+        );
+
         $barang = Barang::with([
-            'kategori',
             'satuan',
             'merek',
             'pemasokDefault',
@@ -141,7 +159,7 @@ class MasterApiController extends ApiController
                 'rak'                 => $sb->lokasiGudang?->kode ?? '-',
                 'tanggal_kedaluwarsa' => $sb->tanggal_kedaluwarsa?->format('Y-m-d'),
                 'jumlah'              => (int) $sb->jumlah,
-                'harga_satuan'        => (float) $sb->harga_satuan,
+                'harga_satuan'        => $canViewFinancials ? (float) $sb->harga_satuan : 0.0,
             ])->values();
 
             $daftarRuangan = $barang->stokRuangan->where('jumlah', '>', 0)->map(fn ($sr) => [
@@ -162,7 +180,7 @@ class MasterApiController extends ApiController
             'simbol_satuan'       => $barang->satuan?->simbol ?? $barang->satuan?->nama ?? 'Pcs',
             'merek'               => $barang->merek?->nama ?? '-',
             'pemasok'             => $barang->pemasokDefault?->nama ?? '-',
-            'harga_beli_terakhir' => (float) ($barang->harga_beli_terakhir ?? 0),
+            'harga_beli_terakhir' => $canViewFinancials ? (float) ($barang->harga_beli_terakhir ?? 0) : 0.0,
             'harga_estimasi'      => (float) ($barang->harga_estimasi ?? 0),
             'stok_minimum'        => (int) ($barang->stok_minimum ?? 0),
             'stok_maksimum'       => (int) ($barang->stok_maksimum ?? 0),
