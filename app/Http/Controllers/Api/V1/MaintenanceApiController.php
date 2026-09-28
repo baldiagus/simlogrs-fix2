@@ -315,7 +315,7 @@ class MaintenanceApiController extends ApiController
 
         $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
         $canCancel = $tiket->dilaporkan_oleh === $user->id ||
-            $user->hasRole('kepala_unit') ||
+            ($user->hasRole('kepala_unit') && (int) $user->unit_id === (int) $tiket->unit_id) ||
             $isGlobalAdmin;
 
         if (! $canCancel) {
@@ -430,6 +430,9 @@ class MaintenanceApiController extends ApiController
         if (! $spk) {
             return $this->jsonError('Dokumen SPK tidak ditemukan.', 404);
         }
+        if ($user->hasRole('teknisi') && ! $isGlobalAdmin && (int) $spk->teknisi_id !== (int) $user->id) {
+            return $this->jsonError('Anda hanya diizinkan melihat SPK yang ditugaskan kepada Anda.', 403);
+        }
 
         return $this->jsonSuccess([
             'id'                => $spk->id,
@@ -496,6 +499,12 @@ class MaintenanceApiController extends ApiController
 
         if (! $spk) {
             return $this->jsonError('Dokumen SPK tidak ditemukan.', 404);
+        }
+        $isOwner = (int) $spk->teknisi_id === (int) $user->id;
+        $isSupervisor = $user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_AdminLogistikDashboard');
+
+        if (! $isOwner && ! $isSupervisor) {
+            return $this->jsonError('Anda hanya diizinkan mengisi lembar kerja untuk SPK yang ditugaskan kepada Anda.', 403);
         }
 
         if ($spk->status === 'SELESAI' || $spk->status === 'DIBATALKAN') {

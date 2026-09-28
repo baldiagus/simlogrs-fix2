@@ -40,6 +40,17 @@ class AuditKepatuhanPengadaanIndex extends Component
     #[Validate('required|date|after_or_equal:today')]
     public string $due_date_capa = '';
 
+    public function boot(): void
+    {
+        abort_unless(
+            auth()->user()?->can('view_any_audit_manajemen::kepatuhan::pengadaan') ||
+            auth()->user()?->can('page_AuditorDashboard') ||
+            auth()->user()?->can('page_Dashboard'),
+            403,
+            'Akses ditolak: Anda tidak memiliki wewenang mengakses Audit Kepatuhan Pengadaan.'
+        );
+    }
+
     public function mount(): void
     {
         $this->due_date_capa = now()->addDays(14)->toDateString();
@@ -47,6 +58,13 @@ class AuditKepatuhanPengadaanIndex extends Component
 
     public function openTerbitkanCapa(int $poId, string $tipeAnomali): void
     {
+        abort_unless(
+            auth()->user()?->can('create_audit_manajemen::temuan::capa') ||
+            auth()->user()?->hasRole(['auditor', 'super_admin']),
+            403,
+            'Hanya Auditor SPI yang berwenang menerbitkan temuan audit kepatuhan.'
+        );
+
         $this->selectedPo = PesananPembelian::with(['pemasok', 'permintaanPengadaan'])->findOrFail($poId);
 
         $this->objek_audit = "Pesanan Pembelian (PO) {$this->selectedPo->kode} - Rekanan: {$this->selectedPo->pemasok?->nama}";
@@ -70,6 +88,13 @@ class AuditKepatuhanPengadaanIndex extends Component
 
     public function saveCapa(): void
     {
+        abort_unless(
+            auth()->user()?->can('create_audit_manajemen::temuan::capa') ||
+            auth()->user()?->hasRole(['auditor', 'super_admin']),
+            403,
+            'Hanya Auditor SPI yang berwenang menerbitkan temuan audit kepatuhan.'
+        );
+
         $this->validate();
 
         $user = auth()->user();

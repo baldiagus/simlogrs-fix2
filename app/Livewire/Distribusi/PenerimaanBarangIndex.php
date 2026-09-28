@@ -90,51 +90,63 @@ class PenerimaanBarangIndex extends Component
             return;
         }
 
-        DB::transaction(function () use ($sppb) {
-            // Create PenerimaanDistribusi (RCV-YYYYMM-XXX)
-            $kodeRcv = CodeGenerator::generate('RCV', PenerimaanDistribusi::class, 'kode', 'Ym', 3);
+        try {
+            DB::transaction(function () use ($sppbId, &$sppb) {
+                $sppb = PengirimanBarang::lockForUpdate()->with(['permintaanDistribusi', 'unit', 'gudang', 'detail.barang', 'detail.stokBatch'])
+                    ->findOrFail($sppbId);
 
-            $penerimaan = PenerimaanDistribusi::create([
-                'kode'                 => $kodeRcv,
-                'pengiriman_barang_id' => $sppb->id,
-                'unit_id'              => $sppb->unit_id,
-                'tanggal_terima'       => now()->toDateString(),
-                'status'               => 'SELESAI',
-                'catatan'              => 'Penerimaan fisik barang dari SPPB ' . $sppb->kode,
-                'diterima_oleh'        => auth()->id(),
-            ]);
+                if ($sppb->status !== 'DIKIRIM') {
+                    throw new \Exception("Pengiriman {$sppb->kode} telah diproses sebelumnya (Status: {$sppb->status}).");
+                }
 
-            // For each detail in $sppb->detail:
-            foreach ($sppb->detail as $detail) {
-                // Create PenerimaanDistribusiDetail
-                PenerimaanDistribusiDetail::create([
-                    'penerimaan_distribusi_id' => $penerimaan->id,
-                    'barang_id'                => $detail->barang_id,
-                    'jumlah_diterima'          => $detail->jumlah_dikirim,
+                // Create PenerimaanDistribusi (RCV-YYYYMM-XXX)
+                $kodeRcv = CodeGenerator::generate('RCV', PenerimaanDistribusi::class, 'kode', 'Ym', 3);
+
+                $penerimaan = PenerimaanDistribusi::create([
+                    'kode'                 => $kodeRcv,
+                    'pengiriman_barang_id' => $sppb->id,
+                    'unit_id'              => $sppb->unit_id,
+                    'tanggal_terima'       => now()->toDateString(),
+                    'status'               => 'SELESAI',
+                    'catatan'              => 'Penerimaan fisik barang dari SPPB ' . $sppb->kode,
+                    'diterima_oleh'        => auth()->id(),
                 ]);
 
-                // Add/Increment StokRuangan
-                $stok = StokRuangan::firstOrCreate(
-                    [
-                        'unit_id'   => $sppb->unit_id,
-                        'barang_id' => $detail->barang_id,
-                    ],
-                    [
-                        'jumlah' => 0,
-                    ]
-                );
+                // For each detail in $sppb->detail:
+                foreach ($sppb->detail as $detail) {
+                    // Create PenerimaanDistribusiDetail
+                    PenerimaanDistribusiDetail::create([
+                        'penerimaan_distribusi_id' => $penerimaan->id,
+                        'barang_id'                => $detail->barang_id,
+                        'jumlah_diterima'          => $detail->jumlah_dikirim,
+                    ]);
 
-                $stok->increment('jumlah', $detail->jumlah_dikirim);
-            }
+                    // Add/Increment StokRuangan
+                    $stok = StokRuangan::firstOrCreate(
+                        [
+                            'unit_id'   => $sppb->unit_id,
+                            'barang_id' => $detail->barang_id,
+                        ],
+                        [
+                            'jumlah' => 0,
+                        ]
+                    );
 
-            // Update status SPPB
-            $sppb->update(['status' => 'DITERIMA']);
+                    $stok->increment('jumlah', $detail->jumlah_dikirim);
+                }
 
-            // Update status PermintaanDistribusi
-            if ($sppb->permintaanDistribusi) {
-                $sppb->permintaanDistribusi->update(['status' => 'SELESAI']);
-            }
-        });
+                // Update status SPPB
+                $sppb->update(['status' => 'DITERIMA']);
+
+                // Update status PermintaanDistribusi
+                if ($sppb->permintaanDistribusi) {
+                    $sppb->permintaanDistribusi->update(['status' => 'SELESAI']);
+                }
+            });
+        } catch (\Throwable $e) {
+            $this->toast($e->getMessage(), 'danger');
+            return;
+        }
 
         $this->showDetailModal = false;
         $this->selectedSppb = null;

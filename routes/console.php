@@ -34,23 +34,23 @@ Artisan::command('simlog:sweep-expired-batches', function () {
         ->whereNotIn('status', ['KEDALUWARSA', 'HABIS'])
         ->update(['status' => 'KEDALUWARSA']);
 
-    // Batch yang akan kedaluwarsa dalam 90 hari -> HAMPIR_KEDALUWARSA
+    // Batch yang akan kedaluwarsa dalam 90 hari (pantauan FEFO aktif)
     $warningCount = StokBatch::whereNotNull('tanggal_kedaluwarsa')
         ->where('tanggal_kedaluwarsa', '>', $today)
         ->where('tanggal_kedaluwarsa', '<=', $in90Days)
         ->where('status', 'AKTIF')
-        ->update(['status' => 'HAMPIR_KEDALUWARSA']);
+        ->count();
 
     Cache::put('simlog:last_run:sweep_expired', [
         'waktu' => now()->toDateTimeString(),
         'status' => 'Sukses',
-        'ringkasan' => "{$expiredCount} batch dikunci KEDALUWARSA, {$warningCount} batch ditandai HAMPIR_KEDALUWARSA",
+        'ringkasan' => "{$expiredCount} batch dikunci KEDALUWARSA, {$warningCount} batch dalam pantauan <90 hari",
         'expired_count' => $expiredCount,
         'warning_count' => $warningCount,
     ]);
 
-    $this->info("Sweeping selesai: {$expiredCount} batch kedaluwarsa, {$warningCount} batch hampir kedaluwarsa.");
-})->purpose('Mengunci status batch kedaluwarsa dan menandai batch <90 hari')->dailyAt('00:01');
+    $this->info("Sweeping selesai: {$expiredCount} batch kedaluwarsa, {$warningCount} batch aktif dalam pantauan FEFO <90 hari.");
+})->purpose('Mengunci status batch kedaluwarsa dan memantau batch <90 hari')->dailyAt('00:01');
 
 /**
  * 2. Alert Overdue Loans (Jadwal: Harian 06:00 WIB)

@@ -19,11 +19,36 @@ use Illuminate\Support\Facades\Validator;
 class AuditApiController extends ApiController
 {
     /**
+     * Guard otorisasi akses data forensik & kepatuhan audit.
+     */
+    protected function authorizeForensicAccess(Request $request): ?JsonResponse
+    {
+        $user = $request->user();
+        $canAccess = $user && (
+            $user->hasRole(['auditor', 'super_admin', 'manajemen']) ||
+            $user->can('view_any_audit_manajemen::audit::trail') ||
+            $user->can('view_audit_manajemen::audit::trail') ||
+            $user->can('page_AuditorDashboard') ||
+            $user->can('page_ManajemenDashboard') ||
+            $user->can('page_Dashboard')
+        );
+
+        if (! $canAccess) {
+            return $this->jsonError('Akses ditolak: Data forensik hanya untuk Auditor Internal SPI & Manajemen.', 403);
+        }
+
+        return null;
+    }
+
+    /**
      * Ringkasan metrik eksekutif Audit Internal SPI & Tata Kelola.
      * GET /api/v1/audit/summary
      */
     public function summary(Request $request): JsonResponse
     {
+        if ($auth = $this->authorizeForensicAccess($request)) {
+            return $auth;
+        }
         $today = now()->toDateString();
 
         $totalTemuan = TemuanAudit::count();
@@ -81,6 +106,9 @@ class AuditApiController extends ApiController
      */
     public function auditTrail(Request $request): JsonResponse
     {
+        if ($auth = $this->authorizeForensicAccess($request)) {
+            return $auth;
+        }
         $aksi = $request->query('aksi');
         $entitas = $request->query('entitas');
         $search = $request->query('search');
@@ -135,6 +163,9 @@ class AuditApiController extends ApiController
      */
     public function auditTrailDetail(Request $request, int $id): JsonResponse
     {
+        if ($auth = $this->authorizeForensicAccess($request)) {
+            return $auth;
+        }
         $log = LogAudit::with(['pengguna:id,nama,nip', 'peran:id,name'])->find($id);
 
         if (! $log) {
@@ -163,6 +194,9 @@ class AuditApiController extends ApiController
      */
     public function kepatuhanPengadaan(Request $request): JsonResponse
     {
+        if ($auth = $this->authorizeForensicAccess($request)) {
+            return $auth;
+        }
         $filterAnomali = $request->query('anomali'); // 'TANPA_PR', 'TERLAMBAT', 'SELISIH_RCV'
         $search = $request->query('search');
 
@@ -250,6 +284,13 @@ class AuditApiController extends ApiController
     public function buatTemuanKepatuhan(Request $request, int $po_id): JsonResponse
     {
         $user = $request->user();
+        $canCreateTemuan = $user && (
+            $user->hasRole(['auditor', 'super_admin']) ||
+            $user->can('create_audit_manajemen::temuan::capa')
+        );
+        if (! $canCreateTemuan) {
+            return $this->jsonError('Hanya Auditor SPI yang berwenang menerbitkan temuan audit kepatuhan.', 403);
+        }
 
         $po = PesananPembelian::with(['pemasok', 'permintaanPengadaan'])->find($po_id);
         if (! $po) {
@@ -308,6 +349,9 @@ class AuditApiController extends ApiController
      */
     public function selisihOpname(Request $request): JsonResponse
     {
+        if ($auth = $this->authorizeForensicAccess($request)) {
+            return $auth;
+        }
         // 1. Sesi Opname dengan Selisih Kuantitas
         $sesiOpname = StokOpname::whereHas('detail', function ($q) {
             $q->where('selisih', '!=', 0);
@@ -427,6 +471,22 @@ class AuditApiController extends ApiController
             });
         })
         ->latest('id');
+        $user = $request->user();
+        $isGlobalAuditor = $user && (
+            $user->hasRole(['auditor', 'super_admin', 'manajemen']) ||
+            $user->can('view_any_audit_manajemen::temuan::capa') ||
+            $user->can('page_AuditorDashboard')
+        );
+
+        if (! $isGlobalAuditor) {
+            if ($user->unit_id) {
+                $query->where('unit_id', $user->unit_id);
+            } elseif ($user->gudang_id) {
+                $query->where('gudang_id', $user->gudang_id);
+            } else {
+                return $this->jsonError('Anda tidak memiliki wewenang untuk mengakses data temuan audit.', 403);
+            }
+        }
 
         $paginated = $query->paginate(15);
 
@@ -475,6 +535,13 @@ class AuditApiController extends ApiController
     public function simpanTemuan(Request $request): JsonResponse
     {
         $user = $request->user();
+        $canCreateTemuan = $user && (
+            $user->hasRole(['auditor', 'super_admin']) ||
+            $user->can('create_audit_manajemen::temuan::capa')
+        );
+        if (! $canCreateTemuan) {
+            return $this->jsonError('Hanya Auditor SPI yang berwenang menerbitkan temuan audit.', 403);
+        }
 
         $validator = Validator::make($request->all(), [
             'objek_audit'    => 'required|string|min:5|max:150',
@@ -524,6 +591,15 @@ class AuditApiController extends ApiController
         if (! $temuan) {
             return $this->jsonError('Temuan audit tidak ditemukan.', 404);
         }
+        $user = $request->user();
+        $isTargetAuditee = $user && (
+            $user->hasRole(['super_admin', 'admin_logistik', 'auditor']) ||
+            ($temuan->unit_id && (int) $user->unit_id === (int) $temuan->unit_id) ||
+            ($temuan->gudang_id && (int) $user->gudang_id === (int) $temuan->gudang_id)
+        );
+        if (! $isTargetAuditee) {
+            return $this->jsonError('Anda tidak memiliki wewenang mengirimkan tindak lanjut untuk temuan audit fasilitas/unit lain.', 403);
+        }
 
         $validator = Validator::make($request->all(), [
             'analisis_penyebab'  => 'required|string|min:10',
@@ -560,6 +636,13 @@ class AuditApiController extends ApiController
 
         if (! $temuan) {
             return $this->jsonError('Temuan audit tidak ditemukan.', 404);
+        }
+        $canEvaluate = $user && (
+            $user->hasRole(['auditor', 'super_admin']) ||
+            $user->can('update_audit_manajemen::temuan::capa')
+        );
+        if (! $canEvaluate) {
+            return $this->jsonError('Hanya Auditor Internal SPI yang berwenang mengevaluasi dan menutup temuan CAPA.', 403);
         }
 
         $validator = Validator::make($request->all(), [

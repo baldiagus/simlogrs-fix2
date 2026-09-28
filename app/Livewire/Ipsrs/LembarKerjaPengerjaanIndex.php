@@ -71,6 +71,10 @@ class LembarKerjaPengerjaanIndex extends Component
 
         $this->penugasan_id = $spkId;
         $this->formSpk = PenugasanMaintenance::with(['permintaanMaintenance.aset.barang', 'permintaanMaintenance.unit'])->findOrFail($spkId);
+        $user = auth()->user();
+        $isOwner = (int) $this->formSpk->teknisi_id === (int) $user?->id;
+        $isSupervisor = $user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_AdminLogistikDashboard'));
+        abort_unless($isOwner || $isSupervisor, 403, 'Anda hanya berhak mengisi lembar kerja untuk SPK yang ditugaskan kepada Anda.');
 
         $this->tanggal_pengerjaan = now()->format('Y-m-d\TH:i');
         $this->jam_mulai = now()->subHours(2)->format('H:i');
@@ -139,6 +143,9 @@ class LembarKerjaPengerjaanIndex extends Component
 
         $user = auth()->user();
         $spk = PenugasanMaintenance::with(['permintaanMaintenance.aset'])->findOrFail($this->penugasan_id);
+        $isOwner = (int) $spk->teknisi_id === (int) $user?->id;
+        $isSupervisor = $user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_AdminLogistikDashboard'));
+        abort_unless($isOwner || $isSupervisor, 403, 'Anda hanya berhak mengisi lembar kerja untuk SPK yang ditugaskan kepada Anda.');
         $tiket = $spk->permintaanMaintenance;
 
         try {

@@ -25,6 +25,17 @@ class RealisasiAnggaranIndex extends Component
     public ?int $selectedAnggaranId = null;
     public bool $showDetailModal = false;
 
+    public function boot(): void
+    {
+        abort_unless(
+            auth()->user()?->can('page_RealisasiAnggaranIndex') ||
+            auth()->user()?->can('view_any_pengadaan::realisasi::anggaran') ||
+            auth()->user()?->can('page_ManajemenDashboard'),
+            403,
+            'Akses ditolak: Anda tidak memiliki wewenang melihat Pagu & Realisasi Anggaran.'
+        );
+    }
+
     public function mount(): void
     {
         abort_unless(

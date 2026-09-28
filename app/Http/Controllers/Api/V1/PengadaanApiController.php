@@ -27,6 +27,7 @@ class PengadaanApiController extends ApiController
         $tipe = $request->query('tipe');
 
         $barang = Barang::query()
+            ->where('status', 'AKTIF')
             ->with(['kategori:id,nama', 'satuan:id,nama', 'merek:id,nama'])
             ->when($tipe, fn ($q) => $q->where('tipe', $tipe))
             ->when($cari, function ($q) use ($cari) {

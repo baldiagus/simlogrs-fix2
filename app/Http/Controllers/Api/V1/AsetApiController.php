@@ -682,8 +682,22 @@ class AsetApiController extends ApiController
 
         $pinjam = PermintaanPeminjaman::with(['detail.aset', 'unitPenyedia', 'gudangPenyedia'])->find($request->input('peminjaman_id'));
 
+        if (! $pinjam) {
+            return $this->jsonError('Data peminjaman tidak ditemukan.', 404);
+        }
+
         if ($pinjam->status !== 'DISETUJUI') {
             return $this->jsonError("Permintaan {$pinjam->kode} tidak dalam status siap serah terima (saat ini: {$pinjam->status}).", 422);
+        }
+
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
+        if (! $isGlobalAdmin) {
+            if ($pinjam->tipe_penyedia === 'RUANGAN' && (int) $user->unit_id !== (int) $pinjam->unit_penyedia_id) {
+                return $this->jsonError('Anda tidak memiliki wewenang menyerahkan aset dari ruangan penyedia ini.', 403);
+            }
+            if ($pinjam->tipe_penyedia === 'GUDANG' && (int) $user->gudang_id !== (int) $pinjam->gudang_penyedia_id) {
+                return $this->jsonError('Anda tidak memiliki wewenang menyerahkan aset dari gudang penyedia ini.', 403);
+            }
         }
 
         try {
@@ -717,8 +731,22 @@ class AsetApiController extends ApiController
 
         $pinjam = PermintaanPeminjaman::with('detail')->find($request->input('peminjaman_id'));
 
+        if (! $pinjam) {
+            return $this->jsonError('Data peminjaman tidak ditemukan.', 404);
+        }
+
         if ($pinjam->status !== 'DIPINJAM') {
             return $this->jsonError("Peminjaman {$pinjam->kode} tidak dalam status aktif dipinjam (saat ini: {$pinjam->status}).", 422);
+        }
+
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
+        if (! $isGlobalAdmin) {
+            if ($pinjam->tipe_penyedia === 'RUANGAN' && (int) $user->unit_id !== (int) $pinjam->unit_penyedia_id) {
+                return $this->jsonError('Anda tidak memiliki wewenang menerima pengembalian aset untuk ruangan penyedia ini.', 403);
+            }
+            if ($pinjam->tipe_penyedia === 'GUDANG' && (int) $user->gudang_id !== (int) $pinjam->gudang_penyedia_id) {
+                return $this->jsonError('Anda tidak memiliki wewenang menerima pengembalian aset untuk gudang penyedia ini.', 403);
+            }
         }
 
         try {

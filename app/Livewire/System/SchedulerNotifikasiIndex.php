@@ -15,6 +15,17 @@ class SchedulerNotifikasiIndex extends Component
 
     public bool $isProcessing = false;
 
+    public function boot(): void
+    {
+        abort_unless(
+            auth()->user()?->can('page_SchedulerNotifikasiIndex') ||
+            auth()->user()?->can('view_any_system::scheduler') ||
+            auth()->user()?->can('page_SuperAdminDashboard'),
+            403,
+            'Akses ditolak: Anda tidak memiliki wewenang mengelola Task Scheduler.'
+        );
+    }
+
     public function mount(): void
     {
         abort_unless(
@@ -28,6 +39,13 @@ class SchedulerNotifikasiIndex extends Component
 
     public function triggerSweepExpired(): void
     {
+        abort_unless(
+            auth()->user()?->can('create_system::scheduler') ||
+            auth()->user()?->hasRole('super_admin'),
+            403,
+            'Akses ditolak: Hanya Super Admin yang berwenang mengeksekusi task scheduler.'
+        );
+
         $this->isProcessing = true;
         try {
             Artisan::call('simlog:sweep-expired-batches');
@@ -43,6 +61,13 @@ class SchedulerNotifikasiIndex extends Component
     public function triggerAlertOverdue(): void
     {
         $this->isProcessing = true;
+        abort_unless(
+            auth()->user()?->can('create_system::scheduler') ||
+            auth()->user()?->hasRole('super_admin'),
+            403,
+            'Akses ditolak: Hanya Super Admin yang berwenang mengeksekusi task scheduler.'
+        );
+
         try {
             Artisan::call('simlog:alert-overdue-loans');
             $output = trim(Artisan::output());
@@ -58,6 +83,13 @@ class SchedulerNotifikasiIndex extends Component
     {
         $this->isProcessing = true;
         try {
+        abort_unless(
+            auth()->user()?->can('create_system::scheduler') ||
+            auth()->user()?->hasRole('super_admin'),
+            403,
+            'Akses ditolak: Hanya Super Admin yang berwenang mengeksekusi task scheduler.'
+        );
+
             Artisan::call('simlog:generate-preventive-maintenance');
             $output = trim(Artisan::output());
             $this->toast("Task Generate Preventive Maintenance berhasil dijalankan: {$output}", 'success');
@@ -70,6 +102,13 @@ class SchedulerNotifikasiIndex extends Component
 
     public function render()
     {
+        abort_unless(
+            auth()->user()?->can('page_SchedulerNotifikasiIndex') ||
+            auth()->user()?->can('view_any_system::scheduler') ||
+            auth()->user()?->can('page_SuperAdminDashboard'),
+            403
+        );
+
         $lastSweep = Cache::get('simlog:last_run:sweep_expired', [
             'waktu' => 'Belum pernah dijalankan',
             'status' => 'Pending',

@@ -144,6 +144,15 @@ class StockOpnameIndex extends Component
 
     public function openHitungFisik(int $opnameId): void
     {
+        abort_unless(
+            auth()->user()?->can('update_gudang_stok::stok::opname') ||
+            auth()->user()?->can('create_gudang_stok::stok::opname') ||
+            auth()->user()?->can('page_KepalaGudangDashboard') ||
+            auth()->user()?->can('page_Dashboard'),
+            403,
+            'Anda tidak memiliki wewenang mengakses formulir hitung fisik.'
+        );
+
         $this->activeOpname = StokOpname::with([
             'gudang',
             'detail.barang.satuan',
@@ -173,6 +182,21 @@ class StockOpnameIndex extends Component
         if (! $this->activeOpname) {
             return;
         }
+        abort_unless(
+            auth()->user()?->can('update_gudang_stok::stok::opname') ||
+            auth()->user()?->can('create_gudang_stok::stok::opname') ||
+            auth()->user()?->can('page_KepalaGudangDashboard') ||
+            auth()->user()?->can('page_Dashboard'),
+            403,
+            'Anda tidak memiliki wewenang menginput hasil stock opname.'
+        );
+
+        $user = auth()->user();
+        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
+        if (! $isGlobalAdmin && $user?->gudang_id && (int) $user?->gudang_id !== (int) $this->activeOpname->gudang_id) {
+            abort(403, 'Anda tidak memiliki wewenang memproses opname di fasilitas gudang ini.');
+        }
+
 
         $user = auth()->user();
 
@@ -239,10 +263,13 @@ class StockOpnameIndex extends Component
                     }
                 }
             } else {
-                // Selisih = 0 -> Selesai / DISETUJUI
+                // Selisih = 0 -> Selesai / DISETUJUI hanya jika pengguna punya wewenang otorisasi
+                $canAuthorize = $user->can('update_gudang_stok::otorisasi::penyesuaian') ||
+                    $user->hasRole(['kepala_gudang', 'admin_logistik', 'super_admin']);
+
                 $this->activeOpname->update([
-                    'status'        => 'DISETUJUI',
-                    'disetujui_oleh'=> $user->id,
+                    'status'         => $canAuthorize ? 'DISETUJUI' : 'MENUNGGU_APPROVAL',
+                    'disetujui_oleh' => $canAuthorize ? $user->id : null,
                 ]);
             }
         });
@@ -279,6 +306,21 @@ class StockOpnameIndex extends Component
         if (! $this->activeOpname) {
             return;
         }
+        abort_unless(
+            auth()->user()?->can('update_gudang_stok::stok::opname') ||
+            auth()->user()?->can('create_gudang_stok::stok::opname') ||
+            auth()->user()?->can('page_KepalaGudangDashboard') ||
+            auth()->user()?->can('page_Dashboard'),
+            403,
+            'Anda tidak memiliki wewenang mengimpor hasil stock opname.'
+        );
+
+        $user = auth()->user();
+        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
+        if (! $isGlobalAdmin && $user?->gudang_id && (int) $user?->gudang_id !== (int) $this->activeOpname->gudang_id) {
+            abort(403, 'Anda tidak memiliki wewenang memproses opname di fasilitas gudang ini.');
+        }
+
 
         try {
             $path = $this->fileExcel->getRealPath();

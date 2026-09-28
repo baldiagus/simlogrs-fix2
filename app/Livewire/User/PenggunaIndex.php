@@ -43,6 +43,17 @@ class PenggunaIndex extends Component
     public string $selectedRole = 'petugas_unit';
     public string $status = 'AKTIF';
 
+    public function boot(): void
+    {
+        abort_unless(
+            auth()->user()?->can('page_PenggunaIndex') ||
+            auth()->user()?->can('view_any_user::pengguna') ||
+            auth()->user()?->can('page_SuperAdminDashboard'),
+            403,
+            'Akses ditolak: Anda tidak memiliki wewenang mengelola Akun Pengguna.'
+        );
+    }
+
     public function mount(): void
     {
         abort_unless(
@@ -134,6 +145,14 @@ class PenggunaIndex extends Component
 
     public function save(): void
     {
+        abort_unless(
+            auth()->user()?->can('create_user::pengguna') ||
+            auth()->user()?->can('update_user::pengguna') ||
+            auth()->user()?->hasRole('super_admin'),
+            403,
+            'Anda tidak memiliki izin menyimpan data pengguna.'
+        );
+
         $rules = [
             'nama'         => 'required|string|max:255',
             'nip'          => 'nullable|string|max:30',
@@ -205,6 +224,13 @@ class PenggunaIndex extends Component
 
     public function executeResetPassword(int $id): void
     {
+        abort_unless(
+            auth()->user()?->can('update_user::pengguna') ||
+            auth()->user()?->hasRole('super_admin'),
+            403,
+            'Anda tidak memiliki wewenang mereset kata sandi pengguna.'
+        );
+
         $user = User::findOrFail($id);
         $user->update([
             'password' => Hash::make('password'),
@@ -236,6 +262,13 @@ class PenggunaIndex extends Component
 
     public function executeToggleStatus(int $id): void
     {
+        abort_unless(
+            auth()->user()?->can('update_user::pengguna') ||
+            auth()->user()?->hasRole('super_admin'),
+            403,
+            'Anda tidak memiliki wewenang mengubah status akun pengguna.'
+        );
+
         $user = User::findOrFail($id);
 
         if (auth()->id() === $user->id) {
@@ -251,6 +284,13 @@ class PenggunaIndex extends Component
 
     public function render()
     {
+        abort_unless(
+            auth()->user()?->can('page_PenggunaIndex') ||
+            auth()->user()?->can('view_any_user::pengguna') ||
+            auth()->user()?->can('page_SuperAdminDashboard'),
+            403
+        );
+
         $query = User::with(['roles', 'unit', 'gudang']);
 
         if (! empty($this->search)) {

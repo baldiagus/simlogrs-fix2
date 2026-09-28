@@ -519,9 +519,7 @@ class DistribusiApiController extends ApiController
             return $this->jsonError('Data pengiriman SPPB tidak ditemukan.', 404);
         }
 
-        if ($sppb->status !== 'DIKIRIM') {
-            return $this->jsonError("Pengiriman {$sppb->kode} tidak dalam status DIKIRIM (saat ini: {$sppb->status}).", 422);
-        }
+
 
         $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
         $effectiveRcvUnitId = $user->unit_id ?: ($user->hasRole('pengadaan') ? Unit::where('kode', 'LOGISTIK')->value('id') : null);
@@ -530,7 +528,13 @@ class DistribusiApiController extends ApiController
         }
 
         try {
-            $penerimaan = DB::transaction(function () use ($sppb, $user) {
+            $penerimaan = DB::transaction(function () use ($id, $user) {
+                $sppb = PengirimanBarang::lockForUpdate()->with(['permintaanDistribusi', 'unit', 'gudang', 'detail.barang'])->findOrFail($id);
+
+                if ($sppb->status !== 'DIKIRIM') {
+                    throw new Exception("Pengiriman {$sppb->kode} telah diproses sebelumnya (saat ini: {$sppb->status}).");
+                }
+
                 $kodeRcv = CodeGenerator::generate('RCV', PenerimaanDistribusi::class, 'kode', 'Ym', 3);
 
                 $rcv = PenerimaanDistribusi::create([
@@ -563,7 +567,7 @@ class DistribusiApiController extends ApiController
                     $stok->increment('jumlah', $detail->jumlah_dikirim);
                 }
 
-                $sppb->update(['status' => 'SELESAI']);
+                $sppb->update(['status' => 'DITERIMA']);
 
                 if ($sppb->permintaanDistribusi) {
                     $sppb->permintaanDistribusi->update(['status' => 'SELESAI']);

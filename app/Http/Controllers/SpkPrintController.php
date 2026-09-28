@@ -29,6 +29,14 @@ class SpkPrintController extends Controller
             'teknisi',
             'penugast',
         ])->findOrFail($id);
+        $isSupervisor = $user->hasRole(['super_admin', 'admin_logistik'])
+            || $user->can('page_AdminLogistikDashboard')
+            || $user->can('page_Dashboard');
+
+        if (! $isSupervisor && $user->hasRole('teknisi') && (int) $spk->teknisi_id !== (int) $user->id) {
+            abort(403, 'Anda hanya memiliki wewenang mencetak SPK yang ditugaskan kepada Anda.');
+        }
+
 
         $pdf = Pdf::loadView('pdf.spk-maintenance', [
             'spk' => $spk,

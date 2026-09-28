@@ -21,6 +21,17 @@ class MasterRekananIndex extends Component
     public ?int $selectedPemasokId = null;
     public bool $showDetailModal = false;
 
+    public function boot(): void
+    {
+        abort_unless(
+            auth()->user()?->can('page_MasterRekananIndex') ||
+            auth()->user()?->can('view_any_pengadaan::master::rekanan') ||
+            auth()->user()?->can('page_ManajemenDashboard'),
+            403,
+            'Akses ditolak: Anda tidak memiliki wewenang melihat Evaluasi Rekanan Vendor.'
+        );
+    }
+
     public function mount(): void
     {
         abort_unless(

@@ -134,10 +134,24 @@ class RegisterTemuanCapaIndex extends Component
             : null;
     }
 
+    protected function authorizeAuditeeAccess(TemuanAudit $temuan): void
+    {
+        $user = auth()->user();
+        $isAuthorized = $user && (
+            $user->hasRole(['super_admin', 'auditor', 'admin_logistik']) ||
+            $user->can('page_Dashboard') ||
+            ($temuan->unit_id && (int) $user->unit_id === (int) $temuan->unit_id) ||
+            ($temuan->gudang_id && (int) $user->gudang_id === (int) $temuan->gudang_id)
+        );
+
+        abort_unless($isAuthorized, 403, 'Anda tidak memiliki wewenang mengelola tindak lanjut temuan audit unit ini.');
+    }
+
     public function openTindakLanjut(int $id): void
     {
         $this->selectedTemuanId = $id;
         $temuan = TemuanAudit::findOrFail($id);
+        $this->authorizeAuditeeAccess($temuan);
         $this->analisis_penyebab = $temuan->analisis_penyebab ?? '';
         $this->tindakan_perbaikan = $temuan->tindakan_perbaikan ?? '';
         $this->fileBuktiList = [];
@@ -157,6 +171,7 @@ class RegisterTemuanCapaIndex extends Component
         ]);
 
         $temuan = TemuanAudit::findOrFail($this->selectedTemuanId);
+        $this->authorizeAuditeeAccess($temuan);
         $existingBukti = is_array($temuan->bukti_perbaikan) ? $temuan->bukti_perbaikan : [];
 
         if (! empty($this->fileBuktiList)) {
@@ -193,6 +208,7 @@ class RegisterTemuanCapaIndex extends Component
         }
 
         $temuan = TemuanAudit::findOrFail($this->selectedTemuanId);
+        $this->authorizeAuditeeAccess($temuan);
         $bukti = is_array($temuan->bukti_perbaikan) ? $temuan->bukti_perbaikan : [];
         if (isset($bukti[$index])) {
             $path = $bukti[$index]['path'] ?? null;

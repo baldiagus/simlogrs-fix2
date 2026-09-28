@@ -56,6 +56,25 @@ class PengembalianPeminjamanIndex extends Component
     /**
      * Buka modal inspeksi fisik dan siapkan baris kondisi aset.
      */
+    protected function authorizeProviderAccess(PermintaanPeminjaman $pinjam): void
+    {
+        $user = auth()->user();
+        $isGlobalAdmin = $user && (
+            $user->can('page_Dashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_SuperAdminDashboard')
+        );
+
+        if (! $isGlobalAdmin) {
+            if ($pinjam->tipe_penyedia === 'RUANGAN' && (! $user?->unit_id || (int) $user->unit_id !== (int) $pinjam->unit_penyedia_id)) {
+                abort(403, 'Hanya ruangan penyedia yang berhak memproses inspeksi & pengembalian fisik aset.');
+            }
+            if ($pinjam->tipe_penyedia === 'GUDANG' && (! $user?->gudang_id || (int) $user->gudang_id !== (int) $pinjam->gudang_penyedia_id)) {
+                abort(403, 'Hanya fasilitas gudang penyedia yang berhak memproses inspeksi & pengembalian fisik aset.');
+            }
+        }
+    }
+
     public function openPengembalianModal(int $id): void
     {
         $this->checkAccess();
@@ -67,6 +86,7 @@ class PengembalianPeminjamanIndex extends Component
             'pengaju',
             'detail.aset.barang',
         ])->findOrFail($id);
+        $this->authorizeProviderAccess($pinjam);
 
         if ($pinjam->status !== 'DIPINJAM') {
             $this->toast('Hanya peminjaman berstatus DIPINJAM yang dapat diproses pengembalian.', 'warning');
@@ -136,6 +156,7 @@ class PengembalianPeminjamanIndex extends Component
         }
 
         $pinjam = PermintaanPeminjaman::findOrFail($this->selectedPinjamId);
+        $this->authorizeProviderAccess($pinjam);
 
         if ($pinjam->status !== 'DIPINJAM') {
             $this->toast('Status transaksi peminjaman sudah tidak aktif dipinjam.', 'warning');

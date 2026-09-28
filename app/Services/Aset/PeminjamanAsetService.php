@@ -97,36 +97,30 @@ class PeminjamanAsetService
                     continue;
                 }
 
-                if ($kondisi === 'BAIK') {
-                    // Aset kembali ke lokasi penyedia asal
-                    $updateData = [
-                        'status'  => 'TERSEDIA',
-                        'kondisi' => 'BAIK',
-                    ];
+                $updateData = [
+                    'status'  => $kondisi === 'BAIK' ? 'TERSEDIA' : 'DALAM_MAINTENANCE',
+                    'kondisi' => $kondisi,
+                ];
 
-                    if ($pinjam->tipe_penyedia === 'GUDANG') {
-                        $updateData['unit_id']   = null;
-                        $updateData['gudang_id'] = $pinjam->gudang_penyedia_id;
-                    } else {
-                        $updateData['unit_id']   = $pinjam->unit_penyedia_id;
-                        $updateData['gudang_id'] = null;
-                    }
-
-                    $aset->update($updateData);
+                if ($pinjam->tipe_penyedia === 'GUDANG') {
+                    $updateData['unit_id']   = null;
+                    $updateData['gudang_id'] = $pinjam->gudang_penyedia_id;
                 } else {
-                    // Kondisi rusak: aset beralih ke maintenance dan picu tiket IPSRS otomatis
-                    $aset->update([
-                        'status'  => 'DALAM_MAINTENANCE',
-                        'kondisi' => $kondisi,
-                    ]);
+                    $updateData['unit_id']   = $pinjam->unit_penyedia_id;
+                    $updateData['gudang_id'] = null;
+                }
 
+                $aset->update($updateData);
+
+                if ($kondisi !== 'BAIK') {
                     $prioritas = $kondisi === 'RUSAK_BERAT' ? 'CITO' : 'SEDANG';
                     $kodeMnt = CodeGenerator::generate('MNT', PermintaanMaintenance::class, 'kode', 'Ym', 3);
 
+                    $ownerUnitId = $pinjam->tipe_penyedia === 'RUANGAN' ? $pinjam->unit_penyedia_id : $pinjam->unit_id;
                     PermintaanMaintenance::create([
                         'kode'                              => $kodeMnt,
                         'aset_id'                           => $aset->id,
-                        'unit_id'                           => $pinjam->unit_id,
+                        'unit_id'                           => $ownerUnitId,
                         'pengembalian_peminjaman_detail_id' => $kembaliDetail->id,
                         'dilaporkan_oleh'                   => $actor->id,
                         'deskripsi_masalah'                 => "Aset dikembalikan pasca-peminjaman ({$pinjam->kode}) dalam kondisi {$kondisi}. " . ($itemCatatan ? "Catatan: {$itemCatatan}" : ''),
