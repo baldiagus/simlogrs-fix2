@@ -9,6 +9,7 @@ use App\Models\Gudang;
 use App\Models\KategoriBarang;
 use App\Models\StokBatch;
 use App\Models\StokRuangan;
+use App\Models\Unit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -245,5 +246,17 @@ class MasterApiController extends ApiController
             ->orderBy('nama')
             ->get(['id', 'kode', 'nama', 'jenis', 'lokasi_gedung']);
         return $this->jsonSuccess($gudangs, 'Daftar gudang aktif berhasil dimuat.');
+    }
+
+    /**
+     * Daftar unit ruangan aktif.
+     * GET /v1/master/unit
+     */
+    public function daftarUnit(): JsonResponse
+    {
+        $units = Unit::where('status', 'AKTIF')
+            ->orderBy('nama')
+            ->get(['id', 'kode', 'nama', 'jenis', 'lokasi_gedung']);
+        return $this->jsonSuccess($units, 'Daftar unit aktif berhasil dimuat.');
     }
 }

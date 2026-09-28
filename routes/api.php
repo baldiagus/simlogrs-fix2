@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\MasterApiController;
 use App\Http\Controllers\Api\V1\PersediaanApiController;
 use App\Http\Controllers\Api\V1\IpsrsApiController;
 use App\Http\Controllers\Api\V1\AuditApiController;
+use App\Http\Controllers\Api\V1\AnggaranApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -98,6 +99,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/master/aset-lengkap', [MasterApiController::class, 'asetLengkap']);
         Route::get('/master/kategori', [MasterApiController::class, 'daftarKategori']);
         Route::get('/master/gudang', [MasterApiController::class, 'daftarGudang']);
+        Route::get('/master/unit', [MasterApiController::class, 'daftarUnit']);
         // 11. Modul Persediaan & Opname Kepala Gudang
         Route::get('/gudang/fefo/monitoring', [PersediaanApiController::class, 'monitoringFefo']);
         Route::get('/gudang/mutasi/buku', [PersediaanApiController::class, 'bukuMutasi']);
@@ -125,5 +127,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/audit/temuan-capa', [AuditApiController::class, 'simpanTemuan']);
         Route::post('/audit/temuan-capa/{id}/tindak-lanjut', [AuditApiController::class, 'tindakLanjutTemuan']);
         Route::post('/audit/temuan-capa/{id}/evaluasi', [AuditApiController::class, 'evaluasiTemuan']);
+
+        // 14. Modul Pagu & Realisasi Pengeluaran Logistik & Suku Cadang IPSRS
+        Route::get('/anggaran/realisasi', [AnggaranApiController::class, 'realisasi']);
+        Route::get('/anggaran/unit/{unitId}', [AnggaranApiController::class, 'unitDetail']);
     });
 });
