@@ -44,6 +44,7 @@ class PersediaanApiController extends ApiController
         }
 
         $gudangId = $isGlobal ? $request->query('gudang_id', $user->gudang_id) : $user->gudang_id;
+        $kategori = $request->query('kategori', 'SEMUA');
         $cari = $request->query('cari');
 
         $today = now()->toDateString();
@@ -187,6 +188,7 @@ class PersediaanApiController extends ApiController
 
         $jenis = $request->query('jenis'); // MASUK, KELUAR, PENYESUAIAN, TRANSFER
         $gudangId = $isGlobal ? $request->query('gudang_id') : $user->gudang_id;
+        $barangId = $request->query('barang_id');
         $tanggalMulai = $request->query('tanggal_mulai');
         $tanggalSelesai = $request->query('tanggal_selesai');
         $cari = $request->query('cari');

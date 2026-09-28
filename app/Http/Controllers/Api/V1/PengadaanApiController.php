@@ -137,6 +137,19 @@ class PengadaanApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengajukan permintaan pengadaan.', 403);
         }
 
+        $unitId = $request->input('unit_id') ?: $user->unit_id;
+        $gudangId = $request->input('gudang_id') ?: ($user->unit_id ? null : $user->gudang_id);
+
+        if (! $unitId && ! $gudangId && ($user->hasRole('super_admin') || $user->can('create_pengadaan::permintaan::pengadaan'))) {
+            $firstUnit = \App\Models\Unit::where('status', 'AKTIF')->first();
+            $unitId = $firstUnit?->id;
+        }
+
+        $request->merge([
+            'unit_id' => $unitId,
+            'gudang_id' => $unitId ? null : $gudangId,
+        ]);
+
         $validator = Validator::make($request->all(), [
             'unit_id'          => 'nullable|required_without:gudang_id|exists:unit,id',
             'gudang_id'        => 'nullable|required_without:unit_id|exists:gudang,id',
