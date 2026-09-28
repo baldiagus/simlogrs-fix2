@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
             : ['127.0.0.1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
         );
 
+        $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
+
         $middleware->alias([
             'portal.access' => \App\Http\Middleware\PortalAccessMiddleware::class,
         ]);

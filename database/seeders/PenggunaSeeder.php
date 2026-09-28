@@ -18,7 +18,7 @@ class PenggunaSeeder extends Seeder
      */
     public function run(): void
     {
-        $defaultPassword = Hash::make('password');
+        $defaultPassword = Hash::make(env('SEEDER_DEFAULT_PASSWORD', 'SimlogRS@2026!'));
 
         $users = [
             [

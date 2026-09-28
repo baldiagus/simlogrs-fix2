@@ -10,6 +10,7 @@ use App\Models\Gudang;
 use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -216,7 +217,7 @@ class PenggunaIndex extends Component
             target: $user->id,
             action: 'executeResetPassword',
             title: 'Reset Kata Sandi Pegawai',
-            description: "Reset kata sandi akun {$user->nama} ({$user->username}) ke default kedinasan 'password'?",
+            description: "Reset kata sandi akun {$user->nama} ({$user->username}) ke kata sandi acak sementara?",
             buttonText: 'Ya, Reset Sandi',
             variant: 'primary'
         );
@@ -232,11 +233,12 @@ class PenggunaIndex extends Component
         );
 
         $user = User::findOrFail($id);
+        $tempPassword = Str::password(10, true, true, false);
         $user->update([
-            'password' => Hash::make('password'),
+            'password' => Hash::make($tempPassword),
         ]);
 
-        $this->toast("Kata sandi {$user->nama} berhasil direset ke 'password'.", 'success');
+        $this->toast("Kata sandi {$user->nama} berhasil direset ke sandi sementara: {$tempPassword}", 'success');
     }
 
     public function confirmToggleStatus(int $id): void
