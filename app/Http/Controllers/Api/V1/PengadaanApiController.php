@@ -230,6 +230,22 @@ class PengadaanApiController extends ApiController
      */
     public function daftarPo(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $hasPoAccess = $user && (
+            $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik', 'manajemen', 'auditor', 'kepala_gudang', 'petugas_gudang']) ||
+            $user->can('view_any_pengadaan::pesanan::pembelian') ||
+            $user->can('view_any_pengadaan::penerimaan::po') ||
+            $user->can('page_PesananPembelianIndex') ||
+            $user->can('page_PenerimaanPoIndex') ||
+            $user->can('page_PengadaanDashboard') ||
+            $user->can('page_ManajemenDashboard') ||
+            $user->can('page_AuditorDashboard')
+        );
+
+        if (! $hasPoAccess) {
+            return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat daftar PO.', 403);
+        }
+
         $status = $request->query('status');
         $search = $request->query('search');
 
@@ -239,6 +255,7 @@ class PengadaanApiController extends ApiController
             'pembuat:id,nama',
             'detail.barang.satuan',
         ])
+
         ->when($status, fn ($q) => $q->where('status', $status))
         ->when($search, function ($q) use ($search) {
             $q->where(function ($sub) use ($search) {
@@ -247,7 +264,6 @@ class PengadaanApiController extends ApiController
             });
         })
         ->latest('id');
-
         $pos = $query->limit(100)->get()->map(function ($po) {
             return [
                 'id'                      => $po->id,
@@ -288,6 +304,22 @@ class PengadaanApiController extends ApiController
      */
     public function detailPo(Request $request, int $id): JsonResponse
     {
+        $user = $request->user();
+        $hasPoAccess = $user && (
+            $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik', 'manajemen', 'auditor', 'kepala_gudang', 'petugas_gudang']) ||
+            $user->can('view_any_pengadaan::pesanan::pembelian') ||
+            $user->can('view_any_pengadaan::penerimaan::po') ||
+            $user->can('page_PesananPembelianIndex') ||
+            $user->can('page_PenerimaanPoIndex') ||
+            $user->can('page_PengadaanDashboard') ||
+            $user->can('page_ManajemenDashboard') ||
+            $user->can('page_AuditorDashboard')
+        );
+
+        if (! $hasPoAccess) {
+            return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat dokumen PO ini.', 403);
+        }
+
         $po = PesananPembelian::with([
             'pemasok',
             'permintaanPengadaan.unit',
@@ -298,6 +330,7 @@ class PengadaanApiController extends ApiController
         if (! $po) {
             return $this->jsonError('Dokumen PO tidak ditemukan.', 404);
         }
+
 
         return $this->jsonSuccess([
             'id'                      => $po->id,
@@ -374,6 +407,22 @@ class PengadaanApiController extends ApiController
 
         if (! in_array($pr->status, ['DISETUJUI', 'DIPROSES'])) {
             return $this->jsonError("Hanya PR yang telah disetujui / diserahkan ke pengadaan yang dapat diterbitkan PO (saat ini: {$pr->status}).", 422);
+        }
+
+        $prDetailsByBarang = $pr->detail->keyBy('barang_id');
+        foreach ($request->input('items') as $row) {
+            $barangId = $row['barang_id'];
+            $qty = (int) $row['jumlah'];
+
+            $prDetail = $prDetailsByBarang->get($barangId);
+            if (! $prDetail) {
+                return $this->jsonError("Barang dengan ID {$barangId} tidak terdaftar pada dokumen PR {$pr->kode}.", 422);
+            }
+
+            $maxAllowed = (int) ($prDetail->jumlah_disetujui ?? $prDetail->jumlah);
+            if ($qty > $maxAllowed) {
+                return $this->jsonError("Jumlah barang ({$qty}) melebihi kuantitas yang disetujui pada PR ({$maxAllowed}).", 422);
+            }
         }
 
         try {

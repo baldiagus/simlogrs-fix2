@@ -29,8 +29,22 @@ class GudangApiController extends ApiController
      */
     public function daftarRak(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $isGlobal = $user && (
+            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
+            $user->can('view_any_master::lokasi::gudang') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_AuditorDashboard') ||
+            $user->can('page_ManajemenDashboard')
+        );
+
+        $hasWarehouseAccess = $isGlobal || ($user && $user->gudang_id);
+        if (! $hasWarehouseAccess) {
+            return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat denah rak gudang.', 403);
+        }
+
         $cari = $request->query('cari');
-        $gudangId = $request->query('gudang_id');
+        $gudangId = $isGlobal ? $request->query('gudang_id') : $user->gudang_id;
 
         $rakList = LokasiGudang::query()
             ->with('gudang:id,kode,nama')
@@ -70,12 +84,27 @@ class GudangApiController extends ApiController
      * Detail rak gudang: daftar stok batch barang dan aset fisik.
      * GET /v1/gudang/rak/{id}
      */
-    public function detailRak(int $id): JsonResponse
+    public function detailRak(Request $request, int $id): JsonResponse
     {
+        $user = $request->user();
+        $isGlobal = $user && (
+            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
+            $user->can('view_any_master::lokasi::gudang') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_AuditorDashboard') ||
+            $user->can('page_ManajemenDashboard')
+        );
+
         $rak = LokasiGudang::with(['gudang:id,kode,nama'])->find($id);
 
         if (! $rak) {
             return $this->jsonError('Data rak gudang tidak ditemukan.', 404);
+        }
+
+        if (! $isGlobal) {
+            if (! $user?->gudang_id || (int) $user->gudang_id !== (int) $rak->gudang_id) {
+                return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat detail rak fasilitas gudang ini.', 403);
+            }
         }
 
         // 1. Stok Batch Barang di Rak ini
@@ -274,6 +303,19 @@ class GudangApiController extends ApiController
         ]);
 
         $opname = StokOpname::find($validated['stok_opname_id']);
+        if (! $opname) {
+            return $this->jsonError('Sesi stock opname tidak ditemukan.', 404);
+        }
+
+        $isGlobalAdmin = $user && (
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
+            $user->can('page_AdminLogistikDashboard')
+        );
+
+        if (! $isGlobalAdmin && (int) $user?->gudang_id !== (int) $opname->gudang_id) {
+            return $this->jsonError('Anda tidak memiliki wewenang menginput stock opname untuk fasilitas gudang lain.', 403);
+        }
+
         if ($opname->status !== 'BERJALAN') {
             return $this->jsonError("Sesi stock opname {$opname->kode} tidak sedang dalam status BERJALAN (status: {$opname->status}).", 422);
         }

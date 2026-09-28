@@ -28,8 +28,22 @@ class PersediaanApiController extends ApiController
     public function monitoringFefo(Request $request): JsonResponse
     {
         $user = $request->user();
-        $gudangId = $request->query('gudang_id', $user->gudang_id);
-        $kategori = strtoupper($request->query('kategori', 'SEMUA'));
+        $isGlobal = $user && (
+            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
+            $user->can('view_any_gudang_stok::monitoring::fefo') ||
+            $user->can('page_KepalaGudangDashboard') ||
+            $user->can('page_GudangDashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_AuditorDashboard') ||
+            $user->can('page_ManajemenDashboard')
+        );
+
+        $hasWarehouseAccess = $isGlobal || ($user && $user->gudang_id);
+        if (! $hasWarehouseAccess) {
+            return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat monitoring FEFO gudang.', 403);
+        }
+
+        $gudangId = $isGlobal ? $request->query('gudang_id', $user->gudang_id) : $user->gudang_id;
         $cari = $request->query('cari');
 
         $today = now()->toDateString();
@@ -155,9 +169,24 @@ class PersediaanApiController extends ApiController
      */
     public function bukuMutasi(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $isGlobal = $user && (
+            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
+            $user->can('view_any_gudang_stok::buku::mutasi') ||
+            $user->can('page_KepalaGudangDashboard') ||
+            $user->can('page_GudangDashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_AuditorDashboard') ||
+            $user->can('page_ManajemenDashboard')
+        );
+
+        $hasWarehouseAccess = $isGlobal || ($user && $user->gudang_id);
+        if (! $hasWarehouseAccess) {
+            return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat buku mutasi gudang.', 403);
+        }
+
         $jenis = $request->query('jenis'); // MASUK, KELUAR, PENYESUAIAN, TRANSFER
-        $gudangId = $request->query('gudang_id');
-        $barangId = $request->query('barang_id');
+        $gudangId = $isGlobal ? $request->query('gudang_id') : $user->gudang_id;
         $tanggalMulai = $request->query('tanggal_mulai');
         $tanggalSelesai = $request->query('tanggal_selesai');
         $cari = $request->query('cari');
@@ -217,9 +246,24 @@ class PersediaanApiController extends ApiController
      */
     public function daftarOpname(Request $request): JsonResponse
     {
-        $status = $request->query('status');
-        $gudangId = $request->query('gudang_id');
+        $user = $request->user();
+        $isGlobal = $user && (
+            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
+            $user->can('view_any_gudang_stok::stok::opname') ||
+            $user->can('page_KepalaGudangDashboard') ||
+            $user->can('page_GudangDashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_AuditorDashboard') ||
+            $user->can('page_ManajemenDashboard')
+        );
 
+        $hasWarehouseAccess = $isGlobal || ($user && $user->gudang_id);
+        if (! $hasWarehouseAccess) {
+            return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat sesi stock opname.', 403);
+        }
+
+        $status = $request->query('status');
+        $gudangId = $isGlobal ? $request->query('gudang_id') : $user->gudang_id;
         $query = StokOpname::with([
             'gudang:id,kode,nama',
             'pembuat:id,nama',
