@@ -58,7 +58,7 @@ class AsetApiController extends ApiController
         }
 
         $latestMaintenance = $aset->permintaanMaintenance()->latest('id')->first();
-
+        $riwayatPeminjaman = $this->getRiwayatPeminjaman($aset->id);
         return $this->jsonSuccess([
             'id'                   => $aset->id,
             'kode_aset'            => $aset->kode_aset,
@@ -73,7 +73,8 @@ class AsetApiController extends ApiController
             'penanggung_jawab'     => $peminjamanAktif ? $peminjamanAktif->unitPeminjam?->nama : $lokasiSaatIni,
             'nilai_perolehan'      => (float) ($aset->nilai_perolehan ?? 0),
             'tanggal_perolehan'    => $aset->tanggal_perolehan?->format('Y-m-d') ?? '-',
-            'total_riwayat_servis' => (int) ($aset->permintaan_maintenance_count ?? 0),
+            'total_riwayat_servis'     => (int) ($aset->permintaan_maintenance_count ?? 0),
+            'total_riwayat_peminjaman' => $riwayatPeminjaman->count(),
             'servis_terakhir'      => $latestMaintenance ? [
                 'kode'              => $latestMaintenance->kode,
                 'status'            => $latestMaintenance->status,
@@ -89,6 +90,7 @@ class AsetApiController extends ApiController
                 'tanggal_kembali_rencana' => $peminjamanAktif->tanggal_kembali_rencana?->format('Y-m-d'),
                 'is_overdue'              => now()->startOfDay()->gt($peminjamanAktif->tanggal_kembali_rencana),
             ] : null,
+            'riwayat_peminjaman'       => $riwayatPeminjaman,
         ], 'Data aset berhasil ditemukan.');
     }
 
@@ -117,7 +119,7 @@ class AsetApiController extends ApiController
         }
 
         $latestMaintenance = $aset->permintaanMaintenance()->latest('id')->first();
-
+        $riwayatPeminjaman = $this->getRiwayatPeminjaman($aset->id);
         return $this->jsonSuccess([
             'id'                   => $aset->id,
             'kode_aset'            => $aset->kode_aset,
@@ -132,7 +134,8 @@ class AsetApiController extends ApiController
             'penanggung_jawab'     => $peminjamanAktif ? $peminjamanAktif->unitPeminjam?->nama : $lokasiSaatIni,
             'nilai_perolehan'      => (float) ($aset->nilai_perolehan ?? 0),
             'tanggal_perolehan'    => $aset->tanggal_perolehan?->format('Y-m-d') ?? '-',
-            'total_riwayat_servis' => (int) ($aset->permintaan_maintenance_count ?? 0),
+            'total_riwayat_servis'     => (int) ($aset->permintaan_maintenance_count ?? 0),
+            'total_riwayat_peminjaman' => $riwayatPeminjaman->count(),
             'servis_terakhir'      => $latestMaintenance ? [
                 'kode'              => $latestMaintenance->kode,
                 'status'            => $latestMaintenance->status,
@@ -148,6 +151,7 @@ class AsetApiController extends ApiController
                 'tanggal_kembali_rencana' => $peminjamanAktif->tanggal_kembali_rencana?->format('Y-m-d'),
                 'is_overdue'              => now()->startOfDay()->gt($peminjamanAktif->tanggal_kembali_rencana),
             ] : null,
+            'riwayat_peminjaman'       => $riwayatPeminjaman,
         ], 'Data aset berhasil ditemukan.');
     }
 
@@ -206,6 +210,44 @@ class AsetApiController extends ApiController
     }
 
     /**
+     * Mengambil riwayat kronologis sirkulasi peminjaman dan pengembalian fisik aset.
+     */
+    private function getRiwayatPeminjaman(int $asetId)
+    {
+        return PermintaanPeminjamanDetail::where('aset_id', $asetId)
+            ->with([
+                'permintaanPeminjaman.unitPeminjam',
+                'permintaanPeminjaman.pengaju',
+                'pengembalianDetail.pengembalianPeminjaman.pemeriksa',
+            ])
+            ->whereHas('permintaanPeminjaman')
+            ->get()
+            ->sortByDesc(fn ($d) => $d->permintaanPeminjaman?->id)
+            ->map(function ($d) {
+                $pinjam = $d->permintaanPeminjaman;
+                $kembali = $d->pengembalianDetail->first();
+                $pengembalianHeader = $kembali?->pengembalianPeminjaman;
+
+                return [
+                    'id'                      => $d->id,
+                    'kode_peminjaman'         => $pinjam?->kode ?? '-',
+                    'unit_peminjam'           => $pinjam?->unitPeminjam?->nama ?? 'Ruangan',
+                    'peminjam'                => $pinjam?->pengaju?->nama ?? '-',
+                    'tanggal_pinjam'          => $pinjam?->tanggal_pinjam?->format('Y-m-d') ?? '-',
+                    'tanggal_kembali_rencana' => $pinjam?->tanggal_kembali_rencana?->format('Y-m-d') ?? '-',
+                    'tanggal_kembali_aktual'  => $pengembalianHeader?->tanggal_kembali_aktual?->format('Y-m-d'),
+                    'status'                  => $pinjam?->status ?? '-',
+                    'keperluan'               => $pinjam?->keperluan ?? '-',
+                    'kondisi_saat_pinjam'     => $d->kondisi_saat_pinjam ?? 'BAIK',
+                    'kondisi_saat_kembali'    => $kembali?->kondisi_saat_kembali,
+                    'catatan_pengembalian'    => $kembali?->catatan,
+                    'pemeriksa_kembali'       => $pengembalianHeader?->pemeriksa?->nama,
+                ];
+            })
+            ->values();
+    }
+
+    /**
      * Riwayat daftar transaksi peminjaman aset unit pengguna.
      * GET /v1/aset/peminjaman
      */
@@ -238,7 +280,11 @@ class AsetApiController extends ApiController
                     $query->where('unit_id', $effectiveUnitId);
                 }
             } elseif ($user->gudang_id) {
-                $query->where('tipe_penyedia', 'GUDANG')->where('gudang_penyedia_id', $user->gudang_id);
+                if ($perspektif === 'penyedia') {
+                    $query->where('tipe_penyedia', 'GUDANG')->where('gudang_penyedia_id', $user->gudang_id);
+                } else {
+                    $query->where('diajukan_oleh', $user->id);
+                }
             } else {
                 return $this->jsonSuccess([], 'Pengguna tidak terikat pada unit atau gudang operasional.');
             }

@@ -206,7 +206,7 @@ class DashboardApiController extends ApiController
                 'label_tombol' => 'Otorisasi',
                 'target_aksi'  => 'approval',
                 'sub_metrik'   => [
-                    ['label' => 'Amprah Meja 2', 'nilai' => (string) $amprahOtorisasi, 'warna' => 'warning'],
+                    ['label' => 'Verifikasi Gudang', 'nilai' => (string) $amprahOtorisasi, 'warna' => 'warning'],
                     ['label' => 'Otorisasi Stok', 'nilai' => (string) $penyesuaianMenunggu, 'warna' => 'purple'],
                     ['label' => 'Inbound Vendor', 'nilai' => (string) $poBerjalan, 'warna' => 'blue'],
                 ],
@@ -222,7 +222,7 @@ class DashboardApiController extends ApiController
                     'id'         => $a->id,
                     'tipe'       => 'AMPRAH',
                     'kode'       => $a->kode,
-                    'judul'      => 'Amprah Meja 2: ' . ($a->unit?->nama ?? 'Unit Ruangan'),
+                    'judul'      => 'Otorisasi Amprah: ' . ($a->unit?->nama ?? 'Unit Ruangan'),
                     'subjudul'   => $a->detail->count() . ' item komoditas • ' . $a->urgensi,
                     'status'     => $a->status,
                     'waktu_lalu' => $this->diffForHumans($a->dibuat_pada),

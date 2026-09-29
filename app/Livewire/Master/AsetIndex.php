@@ -24,6 +24,7 @@ class AsetIndex extends Component
     public bool $showModal = false;
     public bool $showQrModal = false;
     public bool $showDetailModal = false;
+    public bool $showSirkulasiModal = false;
     public ?int $editingId = null;
     public ?Aset $selectedAset = null;
     public ?string $qrCodeSvg = null;
@@ -232,10 +233,32 @@ class AsetIndex extends Component
 
     public function showDetail(int $id): void
     {
-        $this->selectedAset = Aset::with(['barang', 'unit', 'gudang', 'lokasiGudang'])
+        $this->selectedAset = Aset::with([
+            'barang',
+            'unit',
+            'gudang',
+            'lokasiGudang',
+            'peminjamanDetail.permintaanPeminjaman.unitPeminjam',
+            'peminjamanDetail.pengembalianDetail.pengembalianPeminjaman',
+        ])
             ->withCount('permintaanMaintenance')
             ->findOrFail($id);
         $this->showDetailModal = true;
+    }
+    public function openSirkulasiModal(int $id): void
+    {
+        $this->selectedAset = Aset::with([
+            'barang',
+            'unit',
+            'gudang',
+            'lokasiGudang',
+            'peminjamanDetail.permintaanPeminjaman.unitPeminjam',
+            'peminjamanDetail.permintaanPeminjaman.pengaju',
+            'peminjamanDetail.pengembalianDetail.pengembalianPeminjaman.pemeriksa',
+        ])
+            ->withCount('permintaanMaintenance')
+            ->findOrFail($id);
+        $this->showSirkulasiModal = true;
     }
 
     public function render()

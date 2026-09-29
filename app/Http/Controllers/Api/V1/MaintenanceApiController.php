@@ -35,9 +35,10 @@ class MaintenanceApiController extends ApiController
             $user->can('page_AdminLogistikDashboard') ||
             $user->hasRole('kepala_unit') ||
             $user->hasRole('petugas_unit') ||
+            $user->hasRole('kepala_gudang') ||
+            $user->hasRole('petugas_gudang') ||
             $user->hasRole('admin_logistik') ||
             $user->hasRole('super_admin');
-
         if (! $user || ! $canLapor) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk melaporkan kerusakan sarana.', 403);
         }
@@ -136,15 +137,19 @@ class MaintenanceApiController extends ApiController
             $user->hasRole('kepala_unit') ||
             $user->hasRole('teknisi') ||
             $user->hasRole('super_admin') ||
-            $user->hasRole('admin_logistik');
-
+            $user->hasRole('admin_logistik') ||
+            $user->hasRole('kepala_gudang') ||
+            $user->hasRole('petugas_gudang') ||
+            $user->hasRole('pengadaan') ||
+            $user->hasRole('manajemen') ||
+            $user->hasRole('auditor');
         if (! $canView) {
             return $this->jsonError('Anda tidak memiliki wewenang melihat daftar tiket kerusakan.', 403);
         }
 
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('teknisi');
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('teknisi') || $user->hasRole('auditor') || $user->hasRole('manajemen');
         $userUnitId = $user->unit_id;
-
+        $userGudangId = $user->gudang_id;
         $filterStatus = $request->query('status');
         $filterPrioritas = $request->query('prioritas');
         $cari = $request->query('cari');
@@ -156,6 +161,12 @@ class MaintenanceApiController extends ApiController
             'penugasanAktif.teknisi',
         ])
         ->when($userUnitId && ! $isGlobalAdmin, fn ($q) => $q->where('unit_id', $userUnitId))
+        ->when($userGudangId && ! $userUnitId && ! $isGlobalAdmin, function ($q) use ($user, $userGudangId) {
+            $q->where(function ($sub) use ($user, $userGudangId) {
+                $sub->where('dilaporkan_oleh', $user->id)
+                    ->orWhereHas('aset', fn ($a) => $a->where('gudang_id', $userGudangId));
+            });
+        })
         ->when($filterStatus, fn ($q) => $q->where('status', $filterStatus))
         ->when($filterPrioritas, fn ($q) => $q->where('prioritas', $filterPrioritas))
         ->when($cari, function ($q) use ($cari) {
@@ -263,6 +274,7 @@ class MaintenanceApiController extends ApiController
 
         $isUnitOwner = $user && (
             ($user->unit_id && (int) $user->unit_id === (int) $tiket->unit_id) ||
+            ($user->gudang_id && (int) $user->gudang_id === (int) $tiket->aset?->gudang_id) ||
             ((int) $tiket->dilaporkan_oleh === (int) $user->id)
         );
 
@@ -334,6 +346,7 @@ class MaintenanceApiController extends ApiController
         $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
         $canCancel = $tiket->dilaporkan_oleh === $user->id ||
             ($user->hasRole('kepala_unit') && (int) $user->unit_id === (int) $tiket->unit_id) ||
+            ($user->hasRole('kepala_gudang') && (int) $user->gudang_id === (int) $tiket->aset?->gudang_id) ||
             $isGlobalAdmin;
 
         if (! $canCancel) {

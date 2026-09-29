@@ -46,4 +46,9 @@ class Aset extends BaseModel
     {
         return $this->hasMany(PermintaanMaintenance::class, 'aset_id');
     }
+
+    public function peminjamanDetail(): HasMany
+    {
+        return $this->hasMany(PermintaanPeminjamanDetail::class, 'aset_id');
+    }
 }
