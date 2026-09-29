@@ -76,8 +76,28 @@ class ApprovalController extends ApiController
             ]);
 
         // 2. Permintaan Distribusi (Amprah Ruangan)
-        $amprah = PermintaanDistribusi::whereIn('status', ['DIAJUKAN', 'DISETUJUI_KARU'])
-            ->when(! $isCrossUnitViewer && $user->unit_id, fn ($q) => $q->where('unit_id', $user->unit_id))
+        $isKaruOnly = $user && ($user->hasRole('kepala_unit') || $user->unit_id) && ! $user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang']);
+        $isGudangRole = $user && ($user->hasRole(['kepala_gudang', 'petugas_gudang']) || $user->gudang_id) && ! $user->hasRole(['super_admin', 'admin_logistik']);
+        $isAdminLogistik = $user && $user->hasRole('admin_logistik') && ! $user->hasRole('super_admin');
+        $isSuperAdmin = $user && $user->hasRole('super_admin');
+        $isAuditOrManajemen = $user && $user->hasRole(['auditor', 'manajemen']);
+
+        if ($isKaruOnly) {
+            // Kepala Ruangan (Meja 1): HANYA memproses DIAJUKAN dari unit ruangannya sendiri
+            $amprahStatuses = ['DIAJUKAN'];
+        } elseif ($isGudangRole || $isAdminLogistik) {
+            // Kepala Gudang & Admin Logistik (Meja 2): HANYA memproses amprah yang SUDAH disetujui Karu
+            $amprahStatuses = ['DISETUJUI_KARU'];
+        } elseif ($isSuperAdmin || $isAuditOrManajemen) {
+            // Super Admin & Audit/Manajemen: Dapat memantau seluruh antrean Meja 1 & Meja 2
+            $amprahStatuses = ['DIAJUKAN', 'DISETUJUI_KARU'];
+        } else {
+            $amprahStatuses = [];
+        }
+
+        $amprah = PermintaanDistribusi::whereIn('status', $amprahStatuses)
+            ->when($isKaruOnly && $user->unit_id, fn ($q) => $q->where('unit_id', $user->unit_id))
+            ->when($isGudangRole && $user->gudang_id, fn ($q) => $q->where('gudang_id', $user->gudang_id))
             ->with(['unit:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama,satuan_id', 'detail.barang.satuan:id,nama,simbol'])
             ->latest('dibuat_pada')
             ->get()
@@ -217,11 +237,15 @@ class ApprovalController extends ApiController
 
         // Meja 1: Approval Karu (status DIAJUKAN)
         if ($amprah->status === 'DIAJUKAN') {
-            if (! $user->can('update_layanan_unit::approval::karu') && ! $user->can('page_AdminLogistikDashboard')) {
+            if ($user->hasRole(['kepala_gudang', 'petugas_gudang']) && ! $user->hasRole('super_admin')) {
+                return $this->jsonError('Kepala Gudang tidak berwenang mengesahkan pengajuan Meja 1. Permohonan harus disetujui oleh Kepala Ruangan pemohon terlebih dahulu.', 403);
+            }
+
+            if (! $user->can('update_layanan_unit::approval::karu') && ! $user->hasRole(['super_admin', 'admin_logistik'])) {
                 return $this->jsonError('Anda tidak memiliki wewenang mengesahkan permohonan ruangan ini.', 403);
             }
 
-            if ($user->unit_id && (int) $user->unit_id !== (int) $amprah->unit_id && ! $user->can('page_AdminLogistikDashboard')) {
+            if ($user->unit_id && (int) $user->unit_id !== (int) $amprah->unit_id && ! $user->hasRole(['super_admin', 'admin_logistik'])) {
                 return $this->jsonError('Anda hanya berhak mengesahkan permohonan dari unit ruangan Anda sendiri.', 403);
             }
 
@@ -253,8 +277,16 @@ class ApprovalController extends ApiController
 
         // Meja 2: Approval Admin Logistik (status DISETUJUI_KARU)
         if ($amprah->status === 'DISETUJUI_KARU') {
-            if (! $user->can('update_gudang_stok::distribusi::approval') && ! $user->can('page_AdminLogistikDashboard')) {
+            if ($user->hasRole('kepala_unit') && ! $user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang'])) {
+                return $this->jsonError('Otorisasi pengeluaran barang gudang (Meja 2) adalah wewenang Kepala Gudang / Admin Logistik.', 403);
+            }
+
+            if (! $user->can('update_gudang_stok::distribusi::approval') && ! $user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang'])) {
                 return $this->jsonError('Anda tidak memiliki wewenang otorisasi distribusi gudang logistik.', 403);
+            }
+
+            if ($user->gudang_id && (int) $user->gudang_id !== (int) $amprah->gudang_id && ! $user->hasRole(['super_admin', 'admin_logistik'])) {
+                return $this->jsonError('Anda hanya berhak mengesahkan permohonan untuk fasilitas gudang Anda sendiri.', 403);
             }
 
             if ($aksi === 'setujui') {
