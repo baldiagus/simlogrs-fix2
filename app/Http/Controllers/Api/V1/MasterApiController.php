@@ -167,6 +167,13 @@ class MasterApiController extends ApiController
                 'jumlah' => (int) $sr->jumlah,
             ])->values();
         }
+        $stokGudang = (int) StokBatch::where('barang_id', $barang->id)
+            ->where('status', 'AKTIF')
+            ->where('jumlah', '>', 0)
+            ->sum('jumlah');
+
+        $stokRuangan = (int) StokRuangan::where('barang_id', $barang->id)->sum('jumlah');
+        $totalAset = (int) Aset::where('barang_id', $barang->id)->count();
 
         $data = [
             'id'                  => $barang->id,
@@ -186,6 +193,9 @@ class MasterApiController extends ApiController
             'stok_maksimum'       => (int) ($barang->stok_maksimum ?? 0),
             'titik_pesan'         => (int) ($barang->titik_pesan ?? 0),
             'status'              => $barang->status,
+            'stok_gudang'         => $stokGudang,
+            'stok_ruangan'        => $stokRuangan,
+            'total_aset'          => $totalAset,
             'daftar_aset'         => $daftarAset,
             'daftar_batch'        => $daftarBatch,
             'daftar_ruangan'      => $daftarRuangan,

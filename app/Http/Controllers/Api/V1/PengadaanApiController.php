@@ -423,7 +423,7 @@ class PengadaanApiController extends ApiController
             return $this->jsonError('Dokumen PR tidak ditemukan.', 404);
         }
 
-        if (! in_array($pr->status, ['DISETUJUI', 'DIPROSES'])) {
+        if (! in_array($pr->status, ['DISETUJUI', 'DIPROSES', 'DITERUSKAN_KE_PENGADAAN'])) {
             return $this->jsonError("Hanya PR yang telah disetujui / diserahkan ke pengadaan yang dapat diterbitkan PO (saat ini: {$pr->status}).", 422);
         }
 
