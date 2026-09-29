@@ -20,6 +20,8 @@ class UnitSeeder extends Seeder
             ['kode' => 'FARMASI', 'nama' => 'Instalasi Farmasi Sentral', 'jenis' => 'PENUNJANG_MEDIS', 'penanggung_jawab' => 'Apt. Wulandari, S.Farm', 'lokasi_gedung' => 'Gedung A Lantai 1'],
             ['kode' => 'LAB', 'nama' => 'Laboratorium Patologi Klinik', 'jenis' => 'PENUNJANG_MEDIS', 'penanggung_jawab' => 'dr. Siregar, Sp.PK', 'lokasi_gedung' => 'Gedung A Lantai 2'],
             ['kode' => 'LOGISTIK', 'nama' => 'Bagian Logistik & Pengadaan', 'jenis' => 'ADMINISTRASI', 'penanggung_jawab' => 'Drs. Hendrawan, M.M.', 'lokasi_gedung' => 'Gedung Administrasi Lantai 2'],
+            ['kode' => 'DIREKSI', 'nama' => 'Direktorat & Manajemen Eksekutif', 'jenis' => 'ADMINISTRASI', 'penanggung_jawab' => 'Drs. H. Mulyono, M.Kes', 'lokasi_gedung' => 'Gedung Administrasi Lantai 3'],
+            ['kode' => 'SPI', 'nama' => 'Satuan Pengawas Internal (SPI)', 'jenis' => 'ADMINISTRASI', 'penanggung_jawab' => 'Rina Kartika, S.E., Ak., CA', 'lokasi_gedung' => 'Gedung Administrasi Lantai 2'],
         ];
 
         foreach ($units as $u) {

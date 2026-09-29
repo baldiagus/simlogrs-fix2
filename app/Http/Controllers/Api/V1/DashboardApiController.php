@@ -35,7 +35,7 @@ class DashboardApiController extends ApiController
         $roles = $user->getRoleNames()->toArray();
         $isSuperAdmin = in_array('super_admin', $roles);
         $isTeknisi = ! $isSuperAdmin && (in_array('teknisi', $roles) || $user->can('page_TeknisiDashboard'));
-        $isPetugasGudang = in_array('petugas_gudang', $roles) || in_array('staf_gudang', $roles);
+        $isPetugasGudang = in_array('petugas_gudang', $roles);
         $isKepalaGudang = $isSuperAdmin || in_array('kepala_gudang', $roles) || in_array('admin_logistik', $roles);
         $isKaru = in_array('kepala_unit', $roles) || $user->can('page_KepalaUnitDashboard');
         $isAuditor = in_array('auditor', $roles) || $user->can('page_AuditorDashboard');

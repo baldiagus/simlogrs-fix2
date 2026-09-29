@@ -24,7 +24,6 @@ class PeranSeeder extends Seeder
             ['kode' => 'teknisi', 'nama' => 'Teknisi Sarana & IPSRS', 'deskripsi' => 'Pelaksana SPK perbaikan, lembar kerja teknisi, dan pemeliharaan preventif'],
             ['kode' => 'manajemen', 'nama' => 'Manajemen Direksi', 'deskripsi' => 'Pemantau eksekutif realisasi anggaran, valuasi persediaan, dan CAPA'],
             ['kode' => 'auditor', 'nama' => 'Auditor Internal (SPI)', 'deskripsi' => 'Pengawas kepatuhan prosedur, forensik audit trail, dan register CAPA'],
-            ['kode' => 'staf_gudang', 'nama' => 'Staf Gudang Pendukung', 'deskripsi' => 'Staf pembantu penataan rak dan ekspedisi internal'],
             ['kode' => 'panel_user', 'nama' => 'Pengguna Portal Terdaftar', 'deskripsi' => 'Role dasar seluruh pegawai untuk otorisasi login portal'],
         ];
 

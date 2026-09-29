@@ -126,8 +126,8 @@ class PenggunaSeeder extends Seeder
                 'no_telepon' => '081234567898',
                 'status' => 'AKTIF',
                 'role' => 'manajemen',
-                'unit_kode' => null,
-                'gudang_kode' => null,
+                'unit_kode' => 'DIREKSI',
+                'gudang_kode' => 'GUD_SENTRAL',
             ],
             [
                 'nama' => 'Rina Kartika, S.E., Ak., CA',
@@ -138,8 +138,8 @@ class PenggunaSeeder extends Seeder
                 'no_telepon' => '081234567899',
                 'status' => 'AKTIF',
                 'role' => 'auditor',
-                'unit_kode' => null,
-                'gudang_kode' => null,
+                'unit_kode' => 'SPI',
+                'gudang_kode' => 'GUD_SENTRAL',
             ],
         ];
 

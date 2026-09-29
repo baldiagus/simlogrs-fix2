@@ -18,7 +18,7 @@ class ApprovalController extends ApiController
         $user = $request->user();
 
         $isCrossUnitViewer = $user && (
-            $user->hasRole('pengadaan') ||
+            $user->hasRole(['pengadaan', 'manajemen', 'auditor', 'super_admin', 'admin_logistik']) ||
             $user->can('page_PengadaanDashboard') ||
             $user->can('page_AdminLogistikDashboard') ||
             $user->can('page_Dashboard') ||
@@ -77,7 +77,7 @@ class ApprovalController extends ApiController
 
         // 2. Permintaan Distribusi (Amprah Ruangan)
         $amprah = PermintaanDistribusi::whereIn('status', ['DIAJUKAN', 'DISETUJUI_KARU'])
-            ->when($user->unit_id && ! $user->can('page_AdminLogistikDashboard'), fn ($q) => $q->where('unit_id', $user->unit_id))
+            ->when(! $isCrossUnitViewer && $user->unit_id, fn ($q) => $q->where('unit_id', $user->unit_id))
             ->with(['unit:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama,satuan_id', 'detail.barang.satuan:id,nama,simbol'])
             ->latest('dibuat_pada')
             ->get()
