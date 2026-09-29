@@ -84,6 +84,7 @@ class AsetApiController extends ApiController
             ] : null,
             'peminjaman_aktif'     => $peminjamanAktif ? [
                 'peminjaman_id'           => $peminjamanAktif->id,
+                'peminjaman_detail_id'    => $peminjamanAktif->detail->firstWhere('aset_id', $aset->id)?->id,
                 'kode_pinjam'             => $peminjamanAktif->kode,
                 'unit_peminjam'           => $peminjamanAktif->unitPeminjam?->nama,
                 'tanggal_pinjam'          => $peminjamanAktif->tanggal_pinjam?->format('Y-m-d'),
@@ -145,6 +146,7 @@ class AsetApiController extends ApiController
             ] : null,
             'peminjaman_aktif'     => $peminjamanAktif ? [
                 'peminjaman_id'           => $peminjamanAktif->id,
+                'peminjaman_detail_id'    => $peminjamanAktif->detail->firstWhere('aset_id', $aset->id)?->id,
                 'kode_pinjam'             => $peminjamanAktif->kode,
                 'unit_peminjam'           => $peminjamanAktif->unitPeminjam?->nama,
                 'tanggal_pinjam'          => $peminjamanAktif->tanggal_pinjam?->format('Y-m-d'),
@@ -768,7 +770,7 @@ class AsetApiController extends ApiController
         $request->validate([
             'peminjaman_id'                             => 'required|exists:permintaan_peminjaman,id',
             'inspeksi'                                  => 'required|array|min:1',
-            'inspeksi.*.permintaan_peminjaman_detail_id' => 'required|exists:permintaan_peminjaman_detail,id',
+            'inspeksi.*.permintaan_peminjaman_detail_id' => 'nullable|integer',
             'inspeksi.*.aset_id'                        => 'required|exists:aset,id',
             'inspeksi.*.kondisi_saat_kembali'           => 'required|in:BAIK,RUSAK_RINGAN,RUSAK_BERAT',
             'inspeksi.*.catatan'                        => 'nullable|string|max:500',
@@ -786,19 +788,31 @@ class AsetApiController extends ApiController
         }
 
         $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
-        if (! $isGlobalAdmin) {
-            if ($pinjam->tipe_penyedia === 'RUANGAN' && (int) $user->unit_id !== (int) $pinjam->unit_penyedia_id) {
-                return $this->jsonError('Anda tidak memiliki wewenang menerima pengembalian aset untuk ruangan penyedia ini.', 403);
-            }
-            if ($pinjam->tipe_penyedia === 'GUDANG' && (int) $user->gudang_id !== (int) $pinjam->gudang_penyedia_id) {
-                return $this->jsonError('Anda tidak memiliki wewenang menerima pengembalian aset untuk gudang penyedia ini.', 403);
+        $isPenyedia = ($pinjam->tipe_penyedia === 'RUANGAN' && (int) $user->unit_id === (int) $pinjam->unit_penyedia_id)
+            || ($pinjam->tipe_penyedia === 'GUDANG' && (int) $user->gudang_id === (int) $pinjam->gudang_penyedia_id);
+        $isPeminjam = ((int) $user->unit_id === (int) $pinjam->unit_id)
+            || ((int) $user->id === (int) $pinjam->diajukan_oleh);
+
+        if (! $isGlobalAdmin && ! $isPenyedia && ! $isPeminjam) {
+            return $this->jsonError('Anda tidak memiliki wewenang untuk memproses pengembalian peminjaman aset ini.', 403);
+        }
+        $inspeksi = $request->input('inspeksi');
+        foreach ($inspeksi as &$row) {
+            $detailId = $row['permintaan_peminjaman_detail_id'] ?? null;
+            $exists = $detailId && \App\Models\PermintaanPeminjamanDetail::where('id', $detailId)->where('permintaan_peminjaman_id', $pinjam->id)->exists();
+            if (! $exists) {
+                $matchedDetail = $pinjam->detail->firstWhere('aset_id', $row['aset_id']) ?? $pinjam->detail->first();
+                if ($matchedDetail) {
+                    $row['permintaan_peminjaman_detail_id'] = $matchedDetail->id;
+                }
             }
         }
+        unset($row);
 
         try {
             $pengembalian = $service->prosesPengembalian(
                 $pinjam,
-                $request->input('inspeksi'),
+                $inspeksi,
                 $user,
                 $request->input('catatan')
             );
