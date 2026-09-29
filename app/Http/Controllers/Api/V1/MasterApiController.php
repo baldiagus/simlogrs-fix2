@@ -148,25 +148,21 @@ class MasterApiController extends ApiController
             });
         }
 
-        // Jika Tipe HABIS_PAKAI / SPAREPART: daftar batch & stok ruangan
-        $daftarBatch = [];
-        $daftarRuangan = [];
-        if ($barang->tipe !== 'ASET') {
-            $daftarBatch = $barang->stokBatch->where('jumlah', '>', 0)->map(fn ($sb) => [
-                'id'                  => $sb->id,
-                'nomor_batch'         => $sb->nomor_batch,
-                'gudang'              => $sb->gudang?->nama ?? 'Gudang Sentral',
-                'rak'                 => $sb->lokasiGudang?->kode ?? '-',
-                'tanggal_kedaluwarsa' => $sb->tanggal_kedaluwarsa?->format('Y-m-d'),
-                'jumlah'              => (int) $sb->jumlah,
-                'harga_satuan'        => $canViewFinancials ? (float) $sb->harga_satuan : 0.0,
-            ])->values();
+        // Rincian batch fisik gudang & sebaran stok ruangan (berlaku untuk seluruh komoditas jika ada batch fisik)
+        $daftarBatch = $barang->stokBatch->where('jumlah', '>', 0)->map(fn ($sb) => [
+            'id'                  => $sb->id,
+            'nomor_batch'         => $sb->nomor_batch,
+            'gudang'              => $sb->gudang?->nama ?? 'Gudang Sentral',
+            'rak'                 => $sb->lokasiGudang?->nama ?? $sb->lokasiGudang?->kode ?? '-',
+            'tanggal_kedaluwarsa' => $sb->tanggal_kedaluwarsa?->format('Y-m-d'),
+            'jumlah'              => (int) $sb->jumlah,
+            'harga_satuan'        => (float) $sb->harga_satuan,
+        ])->values();
 
-            $daftarRuangan = $barang->stokRuangan->where('jumlah', '>', 0)->map(fn ($sr) => [
-                'unit'   => $sr->unit?->nama ?? 'Ruangan',
-                'jumlah' => (int) $sr->jumlah,
-            ])->values();
-        }
+        $daftarRuangan = $barang->stokRuangan->where('jumlah', '>', 0)->map(fn ($sr) => [
+            'unit'   => $sr->unit?->nama ?? 'Ruangan',
+            'jumlah' => (int) $sr->jumlah,
+        ])->values();
         $stokGudang = (int) StokBatch::where('barang_id', $barang->id)
             ->where('status', 'AKTIF')
             ->where('jumlah', '>', 0)
