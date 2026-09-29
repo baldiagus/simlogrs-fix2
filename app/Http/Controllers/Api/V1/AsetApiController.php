@@ -469,7 +469,7 @@ class AsetApiController extends ApiController
         }
 
         $pinjam->update([
-            'status'  => 'DITOLAK',
+            'status'  => 'DIBATALKAN',
             'catatan' => ($pinjam->catatan ? $pinjam->catatan . "\n" : '') . '[Dibatalkan oleh pemohon pada ' . now()->format('d/m/Y H:i') . ']',
         ]);
 

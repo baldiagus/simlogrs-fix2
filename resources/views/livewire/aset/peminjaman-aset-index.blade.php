@@ -60,6 +60,7 @@
                             <option value="DIPINJAM">DIPINJAM</option>
                             <option value="SELESAI">SELESAI</option>
                             <option value="DITOLAK">DITOLAK</option>
+                            <option value="DIBATALKAN">DIBATALKAN</option>
                         </select>
                     </div>
 
