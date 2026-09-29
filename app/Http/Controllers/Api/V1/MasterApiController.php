@@ -271,7 +271,8 @@ class MasterApiController extends ApiController
     public function daftarGudang(): JsonResponse
     {
         $gudangs = Gudang::where('status', 'AKTIF')
-            ->orderBy('nama')
+            ->withCount(['stokBatch as active_batches_count' => fn ($q) => $q->where('status', 'AKTIF')])
+            ->orderBy('id')
             ->get(['id', 'kode', 'nama', 'jenis', 'lokasi_gedung']);
         return $this->jsonSuccess($gudangs, 'Daftar gudang aktif berhasil dimuat.');
     }

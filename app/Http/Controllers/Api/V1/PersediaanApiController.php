@@ -616,15 +616,13 @@ class PersediaanApiController extends ApiController
                     $saldoSebelum = $batch->jumlah;
 
                     if ($detail->jenis_penyesuaian === 'KURANG') {
-                        if ($saldoSebelum < $qty) {
-                            throw new Exception("Saldo stok batch '{$batch->nomor_batch}' ({$detail->barang?->nama}) saat ini tidak mencukupi untuk dikurangi {$qty} unit.");
-                        }
-
-                        $saldoSesudah = $saldoSebelum - $qty;
+                        $qtyPotong = min($saldoSebelum, $qty);
+                        $saldoSesudah = $saldoSebelum - $qtyPotong;
                         $batch->update([
                             'jumlah' => $saldoSesudah,
                             'status' => $saldoSesudah == 0 ? 'HABIS' : 'AKTIF',
                         ]);
+                        $qty = $qtyPotong;
                     } else {
                         // TAMBAH
                         $saldoSesudah = $saldoSebelum + $qty;
