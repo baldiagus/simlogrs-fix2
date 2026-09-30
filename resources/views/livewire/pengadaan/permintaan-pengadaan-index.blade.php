@@ -28,10 +28,9 @@
             <div class="w-full sm:w-56">
                 <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status</option>
-                    <option value="DIAJUKAN">DIAJUKAN</option>
-                    <option value="DISETUJUI">DISETUJUI</option>
-                    <option value="DITERUSKAN_KE_PENGADAAN">DITERUSKAN KE PENGADAAN</option>
-                    <option value="DITOLAK">DITOLAK</option>
+                    <option value="{{ \App\Models\PermintaanPengadaan::STATUS_DIAJUKAN }}">{{ \App\Models\PermintaanPengadaan::STATUS_DIAJUKAN }}</option>
+                    <option value="{{ \App\Models\PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN }}">DITERUSKAN KE PENGADAAN</option>
+                    <option value="{{ \App\Models\PermintaanPengadaan::STATUS_DITOLAK }}">{{ \App\Models\PermintaanPengadaan::STATUS_DITOLAK }}</option>
                 </select>
             </div>
 
@@ -90,20 +89,17 @@
                                         || ($userGudangId && $item->gudang_id && (int) $userGudangId === (int) $item->gudang_id);
                                 @endphp
 
-                                {{-- MEJA 1: Otorisasi Kepala Ruangan / Unit / Gudang (Khusus status DIAJUKAN & DISETUJUI) --}}
+                                {{-- MEJA 1: Otorisasi Kepala Ruangan / Unit / Gudang (Khusus status DIAJUKAN) --}}
                                 @can('update_pengadaan::permintaan::pengadaan')
-                                    @if ($item->status === 'DIAJUKAN' && $canApproveThis)
+                                    @if ($item->status === \App\Models\PermintaanPengadaan::STATUS_DIAJUKAN && $canApproveThis)
                                         <flux:button wire:click="confirmApprove({{ $item->id }})" size="xs" variant="ghost" icon="check-circle" title="Setujui (Karu)" class="text-emerald-600 hover:text-emerald-700" wire:loading.attr="disabled" />
                                         <flux:button wire:click="confirmReject({{ $item->id }})" size="xs" variant="ghost" icon="x-circle" title="Tolak (Karu)" class="text-rose-600 hover:text-rose-700" wire:loading.attr="disabled" />
-                                    @endif
-                                    @if ($item->status === 'DISETUJUI' && $canApproveThis)
-                                        <flux:button wire:click="confirmTeruskan({{ $item->id }})" size="xs" variant="ghost" icon="arrow-right-circle" title="Teruskan ke Bagian Pengadaan" class="text-blue-600 hover:text-blue-700" wire:loading.attr="disabled" />
                                     @endif
                                 @endcan
 
                                 {{-- MEJA 2: Meja Bagian Pengadaan (Khusus status DITERUSKAN_KE_PENGADAAN) --}}
                                 @can('create_pengadaan::pesanan::pembelian')
-                                    @if ($item->status === 'DITERUSKAN_KE_PENGADAAN')
+                                    @if ($item->status === \App\Models\PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN)
                                         <flux:button
                                             as="a"
                                             href="/{{ request()->segment(1) ?? 'pengadaan' }}/pesanan-pembelian?konversi_pr={{ $item->id }}"

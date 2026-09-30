@@ -175,7 +175,7 @@ class PesananPembelianIndex extends Component
 
         $daftarPemasok = Pemasok::where('status', 'AKTIF')->get();
 
-        $daftarPrSiapKonversi = PermintaanPengadaan::where('status', 'DITERUSKAN_KE_PENGADAAN')
+        $daftarPrSiapKonversi = PermintaanPengadaan::where('status', PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN)
             ->whereDoesntHave('pesananPembelian')
             ->get();
 

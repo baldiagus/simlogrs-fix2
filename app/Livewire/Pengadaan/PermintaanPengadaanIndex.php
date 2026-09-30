@@ -121,7 +121,7 @@ class PermintaanPengadaanIndex extends Component
             'diajukan_oleh'      => auth()->id(),
             'tanggal_permintaan' => now()->toDateString(),
             'urgensi'            => $this->urgensi,
-            'status'             => 'DIAJUKAN',
+            'status'             => PermintaanPengadaan::STATUS_DIAJUKAN,
             'catatan'            => $this->catatan ?: null,
         ]);
 
@@ -217,19 +217,19 @@ class PermintaanPengadaanIndex extends Component
             abort(403, 'Anda tidak memiliki wewenang mengesahkan permohonan dari unit ini.');
         }
 
-        if ($pr->status !== 'DIAJUKAN') {
+        if ($pr->status !== PermintaanPengadaan::STATUS_DIAJUKAN) {
             $this->toast('Hanya PR berstatus DIAJUKAN yang dapat disetujui.', 'danger');
             return;
         }
         $pr->update([
-            'status'         => 'DISETUJUI',
+            'status'         => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN,
             'disetujui_oleh' => auth()->id(),
         ]);
 
         // Default full approval for each detail
         $pr->detail()->update(['jumlah_disetujui' => \Illuminate\Support\Facades\DB::raw('jumlah')]);
 
-        $this->toast("PR '{$pr->kode}' telah disetujui.", 'success');
+        $this->toast("PR '{$pr->kode}' telah disetujui dan diteruskan ke bagian pengadaan.", 'success');
     }
 
     public function reject(int $id)
@@ -242,12 +242,12 @@ class PermintaanPengadaanIndex extends Component
             abort(403, 'Anda tidak memiliki wewenang menolak permohonan dari unit ini.');
         }
 
-        if ($pr->status !== 'DIAJUKAN') {
+        if ($pr->status !== PermintaanPengadaan::STATUS_DIAJUKAN) {
             $this->toast('Hanya PR berstatus DIAJUKAN yang dapat ditolak.', 'danger');
             return;
         }
         $pr->update([
-            'status'         => 'DITOLAK',
+            'status'         => PermintaanPengadaan::STATUS_DITOLAK,
             'disetujui_oleh' => auth()->id(),
         ]);
 
@@ -264,11 +264,11 @@ class PermintaanPengadaanIndex extends Component
             abort(403, 'Anda tidak memiliki wewenang meneruskan permohonan dari unit ini.');
         }
 
-        if ($pr->status !== 'DISETUJUI') {
-            $this->toast('Hanya PR berstatus DISETUJUI yang dapat diteruskan.', 'danger');
+        if ($pr->status !== PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN && $pr->status !== 'DISETUJUI') {
+            $this->toast('Permohonan tidak dapat diteruskan.', 'danger');
             return;
         }
-        $pr->update(['status' => 'DITERUSKAN_KE_PENGADAAN']);
+        $pr->update(['status' => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN]);
 
         $this->toast("PR '{$pr->kode}' diteruskan ke bagian pengadaan.", 'success');
     }
@@ -277,7 +277,7 @@ class PermintaanPengadaanIndex extends Component
         abort_unless(auth()->user()?->can('create_pengadaan::pesanan::pembelian'), 403);
         $pr = PermintaanPengadaan::findOrFail($id);
 
-        if ($pr->status !== 'DITERUSKAN_KE_PENGADAAN') {
+        if ($pr->status !== PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN) {
             $this->toast('Hanya PR berstatus DITERUSKAN KE PENGADAAN yang dapat ditolak oleh bagian pengadaan.', 'danger');
             return;
         }
@@ -301,7 +301,7 @@ class PermintaanPengadaanIndex extends Component
         $pr = PermintaanPengadaan::findOrFail($this->rejectPrId);
         $catatanAwal = $pr->catatan ? $pr->catatan . "\n" : '';
         $pr->update([
-            'status' => 'DITOLAK',
+            'status' => PermintaanPengadaan::STATUS_DITOLAK,
             'catatan' => $catatanAwal . '[Ditolak Pengadaan]: ' . trim($this->alasanPenolakanPengadaan),
             'disetujui_oleh' => auth()->id(),
         ]);

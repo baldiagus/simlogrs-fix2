@@ -373,6 +373,7 @@ class GudangApiController extends ApiController
 
         $canView = $user->can('create_gudang_stok::penerimaan::po') ||
             $user->can('view_any_gudang_stok::penerimaan::po') ||
+            $user->can('view_gudang_stok::penerimaan::po') ||
             $user->hasRole('petugas_gudang') ||
             $user->hasRole('kepala_gudang') ||
             $user->hasRole('admin_logistik') ||

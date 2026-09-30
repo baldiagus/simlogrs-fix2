@@ -11,6 +11,12 @@ class PermintaanPengadaan extends BaseModel
     use HasAuditLog;
 
     protected $table = 'permintaan_pengadaan';
+    public const STATUS_DIAJUKAN = 'DIAJUKAN';
+    public const STATUS_DITERUSKAN_KE_PENGADAAN = 'DITERUSKAN_KE_PENGADAAN';
+    public const STATUS_DITOLAK = 'DITOLAK';
+    public const STATUS_DIPROSES = 'DIPROSES';
+    public const STATUS_SELESAI = 'SELESAI';
+
 
     protected function casts(): array
     {

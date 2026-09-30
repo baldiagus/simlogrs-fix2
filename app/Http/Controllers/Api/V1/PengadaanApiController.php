@@ -436,8 +436,8 @@ class PengadaanApiController extends ApiController
             return $this->jsonError('Dokumen PR tidak ditemukan.', 404);
         }
 
-        if (! in_array($pr->status, ['DISETUJUI', 'DIPROSES', 'DITERUSKAN_KE_PENGADAAN'])) {
-            return $this->jsonError("Hanya PR yang telah disetujui / diserahkan ke pengadaan yang dapat diterbitkan PO (saat ini: {$pr->status}).", 422);
+        if (! in_array($pr->status, [PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN, PermintaanPengadaan::STATUS_DIPROSES, 'DISETUJUI'])) {
+            return $this->jsonError("Hanya PR yang telah diserahkan ke pengadaan yang dapat diterbitkan PO (saat ini: {$pr->status}).", 422);
         }
 
         $prDetailsByBarang = $pr->detail->keyBy('barang_id');
@@ -492,7 +492,7 @@ class PengadaanApiController extends ApiController
                 }
 
                 // Update status PR menjadi DIPROSES
-                $pr->update(['status' => 'DIPROSES']);
+                $pr->update(['status' => PermintaanPengadaan::STATUS_DIPROSES]);
 
                 return $poHeader;
             });

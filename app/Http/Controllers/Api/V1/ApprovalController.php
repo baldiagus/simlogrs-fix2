@@ -29,11 +29,11 @@ class ApprovalController extends ApiController
         $isPengadaanOnly = $user && $user->hasRole('pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik']);
         $isAdminOrAudit = $user && ($user->hasRole(['super_admin', 'admin_logistik', 'manajemen', 'auditor']) || $user->can('page_AdminLogistikDashboard'));
 
-        $prStatuses = ['DIAJUKAN'];
+        $prStatuses = [PermintaanPengadaan::STATUS_DIAJUKAN];
         if ($isPengadaanOnly) {
-            $prStatuses = ['DISETUJUI', 'DITERUSKAN_KE_PENGADAAN'];
+            $prStatuses = [PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN];
         } elseif ($isAdminOrAudit) {
-            $prStatuses = ['DIAJUKAN', 'DISETUJUI', 'DITERUSKAN_KE_PENGADAAN'];
+            $prStatuses = [PermintaanPengadaan::STATUS_DIAJUKAN, PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN];
         }
 
         $pr = PermintaanPengadaan::whereIn('status', $prStatuses)
@@ -161,18 +161,18 @@ class ApprovalController extends ApiController
         $aksi = $request->input('aksi');
 
         if ($aksi === 'serahkan' || $aksi === 'teruskan') {
-            if ($pr->status !== 'DISETUJUI') {
-                return $this->jsonError("Hanya PR berstatus DISETUJUI yang dapat diserahkan ke bagian pengadaan (saat ini: {$pr->status}).", 422);
+            if ($pr->status !== 'DISETUJUI' && $pr->status !== PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN) {
+                return $this->jsonError("Hanya PR berstatus DISETUJUI / DITERUSKAN yang dapat diserahkan ke bagian pengadaan (saat ini: {$pr->status}).", 422);
             }
 
             $pr->update([
-                'status' => 'DITERUSKAN_KE_PENGADAAN',
+                'status' => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN,
                 'catatan' => $request->input('catatan') ?? $pr->catatan,
             ]);
 
             return $this->jsonSuccess([
                 'kode' => $pr->kode,
-                'status' => 'DITERUSKAN_KE_PENGADAAN',
+                'status' => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN,
             ], "PR {$pr->kode} berhasil diserahkan ke bagian pengadaan.");
         }
 
@@ -181,12 +181,12 @@ class ApprovalController extends ApiController
                 return $this->jsonError('Bagian Pengadaan tidak memiliki wewenang untuk menyetujui pengajuan PR ruangan. Otorisasi persetujuan tersebut adalah wewenang Kepala Ruangan / Kepala Gudang.', 403);
             }
 
-            if ($pr->status !== 'DIAJUKAN') {
+            if ($pr->status !== PermintaanPengadaan::STATUS_DIAJUKAN) {
                 return $this->jsonError("PR {$pr->kode} tidak dalam status DIAJUKAN (saat ini: {$pr->status}).", 422);
             }
 
             $pr->update([
-                'status' => 'DISETUJUI',
+                'status' => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN,
                 'disetujui_oleh' => $user->id,
                 'catatan' => $request->input('catatan') ?? $pr->catatan,
             ]);
@@ -194,8 +194,8 @@ class ApprovalController extends ApiController
 
             return $this->jsonSuccess([
                 'kode' => $pr->kode,
-                'status' => 'DISETUJUI',
-            ], "PR {$pr->kode} berhasil disetujui.");
+                'status' => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN,
+            ], "PR {$pr->kode} berhasil disetujui dan diteruskan ke bagian pengadaan.");
         }
 
         // Tolak
@@ -205,14 +205,14 @@ class ApprovalController extends ApiController
         }
 
         $pr->update([
-            'status' => 'DITOLAK',
+            'status' => PermintaanPengadaan::STATUS_DITOLAK,
             'disetujui_oleh' => $user->id,
             'catatan' => $catatanTolak,
         ]);
 
         return $this->jsonSuccess([
             'kode' => $pr->kode,
-            'status' => 'DITOLAK',
+            'status' => PermintaanPengadaan::STATUS_DITOLAK,
         ], "PR {$pr->kode} ditolak.");
     }
 
