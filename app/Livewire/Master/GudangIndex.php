@@ -39,7 +39,7 @@ class GudangIndex extends Component
     public ?string $penanggung_jawab = null;
 
     #[Validate('nullable|exists:pengguna,id')]
-    public ?int $kepala_gudang_id = null;
+    public string $kepala_gudang_id = '';
 
     #[Validate('nullable|string|max:100')]
     public ?string $lokasi_gedung = null;
@@ -54,6 +54,7 @@ class GudangIndex extends Component
         $this->reset(['editingId', 'kode', 'nama', 'jenis', 'penanggung_jawab', 'lokasi_gedung', 'status', 'kepala_gudang_id']);
         $this->jenis = 'SENTRAL';
         $this->status = 'AKTIF';
+        $this->kepala_gudang_id = '';
         $this->showModal = true;
     }
 
@@ -67,7 +68,7 @@ class GudangIndex extends Component
         $this->nama = $gudang->nama;
         $this->jenis = $gudang->jenis;
         $this->penanggung_jawab = $gudang->penanggung_jawab;
-        $this->kepala_gudang_id = $gudang->kepala_gudang_id;
+        $this->kepala_gudang_id = $gudang->kepala_gudang_id ? (string) $gudang->kepala_gudang_id : '';
         $this->lokasi_gedung = $gudang->lokasi_gedung;
         $this->status = $gudang->status;
         $this->showModal = true;
@@ -85,12 +86,13 @@ class GudangIndex extends Component
         if ($this->editingId) {
             abort_unless(auth()->user()?->can('update_master::gudang'), 403);
             $gudang = Gudang::findOrFail($this->editingId);
-            $namaKepala = $this->kepala_gudang_id ? User::where('id', $this->kepala_gudang_id)->value('nama') : $this->penanggung_jawab;
+            $kepalaId = $this->kepala_gudang_id !== '' ? (int) $this->kepala_gudang_id : null;
+            $namaKepala = $kepalaId ? User::where('id', $kepalaId)->value('nama') : $this->penanggung_jawab;
             $gudang->update([
                 'kode' => strtoupper($this->kode),
                 'nama' => $this->nama,
                 'jenis' => $this->jenis,
-                'kepala_gudang_id' => $this->kepala_gudang_id,
+                'kepala_gudang_id' => $kepalaId,
                 'penanggung_jawab' => $namaKepala,
                 'lokasi_gedung' => $this->lokasi_gedung,
                 'status' => $this->status,
@@ -98,12 +100,13 @@ class GudangIndex extends Component
             $this->toast("Gudang '{$gudang->nama}' berhasil diperbarui.", 'success');
         } else {
             abort_unless(auth()->user()?->can('create_master::gudang'), 403);
-            $namaKepala = $this->kepala_gudang_id ? User::where('id', $this->kepala_gudang_id)->value('nama') : $this->penanggung_jawab;
+            $kepalaId = $this->kepala_gudang_id !== '' ? (int) $this->kepala_gudang_id : null;
+            $namaKepala = $kepalaId ? User::where('id', $kepalaId)->value('nama') : $this->penanggung_jawab;
             Gudang::create([
                 'kode' => strtoupper($this->kode),
                 'nama' => $this->nama,
                 'jenis' => $this->jenis,
-                'kepala_gudang_id' => $this->kepala_gudang_id,
+                'kepala_gudang_id' => $kepalaId,
                 'penanggung_jawab' => $namaKepala,
                 'lokasi_gedung' => $this->lokasi_gedung,
                 'status' => $this->status,

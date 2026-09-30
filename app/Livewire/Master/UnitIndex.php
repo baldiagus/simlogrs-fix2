@@ -34,7 +34,7 @@ class UnitIndex extends Component
     public ?string $penanggung_jawab = null;
 
     #[Validate('nullable|exists:pengguna,id')]
-    public ?int $kepala_unit_id = null;
+    public string $kepala_unit_id = '';
 
     #[Validate('nullable|string|max:100')]
     public ?string $lokasi_gedung = null;
@@ -55,6 +55,7 @@ class UnitIndex extends Component
         $this->reset(['editingId', 'kode', 'nama', 'jenis', 'penanggung_jawab', 'lokasi_gedung', 'status', 'kepala_unit_id']);
         $this->jenis = 'PELAYANAN_MEDIS';
         $this->status = 'AKTIF';
+        $this->kepala_unit_id = '';
         $this->showModal = true;
     }
 
@@ -68,7 +69,7 @@ class UnitIndex extends Component
         $this->nama = $unit->nama;
         $this->jenis = $unit->jenis;
         $this->penanggung_jawab = $unit->penanggung_jawab;
-        $this->kepala_unit_id = $unit->kepala_unit_id;
+        $this->kepala_unit_id = $unit->kepala_unit_id ? (string) $unit->kepala_unit_id : '';
         $this->lokasi_gedung = $unit->lokasi_gedung;
         $this->status = $unit->status;
         $this->showModal = true;
@@ -86,12 +87,13 @@ class UnitIndex extends Component
         if ($this->editingId) {
             abort_unless(auth()->user()?->can('update_master::unit'), 403);
             $unit = Unit::findOrFail($this->editingId);
-            $namaKepala = $this->kepala_unit_id ? User::where('id', $this->kepala_unit_id)->value('nama') : $this->penanggung_jawab;
+            $kepalaId = $this->kepala_unit_id !== '' ? (int) $this->kepala_unit_id : null;
+            $namaKepala = $kepalaId ? User::where('id', $kepalaId)->value('nama') : $this->penanggung_jawab;
             $unit->update([
                 'kode' => strtoupper($this->kode),
                 'nama' => $this->nama,
                 'jenis' => $this->jenis,
-                'kepala_unit_id' => $this->kepala_unit_id,
+                'kepala_unit_id' => $kepalaId,
                 'penanggung_jawab' => $namaKepala,
                 'lokasi_gedung' => $this->lokasi_gedung,
                 'status' => $this->status,
@@ -99,12 +101,13 @@ class UnitIndex extends Component
             $this->toast("Unit '{$unit->nama}' berhasil diperbarui.", 'success');
         } else {
             abort_unless(auth()->user()?->can('create_master::unit'), 403);
-            $namaKepala = $this->kepala_unit_id ? User::where('id', $this->kepala_unit_id)->value('nama') : $this->penanggung_jawab;
+            $kepalaId = $this->kepala_unit_id !== '' ? (int) $this->kepala_unit_id : null;
+            $namaKepala = $kepalaId ? User::where('id', $kepalaId)->value('nama') : $this->penanggung_jawab;
             Unit::create([
                 'kode' => strtoupper($this->kode),
                 'nama' => $this->nama,
                 'jenis' => $this->jenis,
-                'kepala_unit_id' => $this->kepala_unit_id,
+                'kepala_unit_id' => $kepalaId,
                 'penanggung_jawab' => $namaKepala,
                 'lokasi_gedung' => $this->lokasi_gedung,
                 'status' => $this->status,
