@@ -171,8 +171,8 @@ class AsetApiController extends ApiController
             ->where('status', 'TERSEDIA')
             ->where('kondisi', 'BAIK')
             ->with(['barang.kategori:id,nama', 'barang.satuan:id,nama', 'barang.merek:id,nama', 'unit:id,kode,nama', 'gudang:id,kode,nama', 'lokasiGudang:id,kode,nama'])
-            // Jangan meminjam aset dari ruangan sendiri
-            ->when($user->unit_id, function ($q) use ($user) {
+            // Jangan meminjam aset dari ruangan sendiri (dikecualikan untuk role manajemen/admin global)
+            ->when($user->unit_id && ! $user->hasRole(['super_admin', 'admin_logistik', 'manajemen']), function ($q) use ($user) {
                 $q->where(function ($sub) use ($user) {
                     $sub->whereNull('unit_id')
                         ->orWhere('unit_id', '!=', $user->unit_id);
@@ -394,7 +394,7 @@ class AsetApiController extends ApiController
         $unitPenyediaId = $isRuangan ? $aset->unit_id : null;
         $gudangPenyediaId = ! $isRuangan ? $aset->gudang_id : null;
 
-        if ($isRuangan && (int) $unitPenyediaId === (int) $unitPeminjamId) {
+        if ($isRuangan && (int) $unitPenyediaId === (int) $unitPeminjamId && ! $user->hasRole(['super_admin', 'manajemen'])) {
             return $this->jsonError('Unit penyedia tidak boleh sama dengan unit peminjam.', 422);
         }
 
@@ -572,7 +572,7 @@ class AsetApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengakses otorisasi peminjaman aset.', 403);
         }
 
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('manajemen');
 
         $query = PermintaanPeminjaman::query()
             ->whereIn('status', ['DIAJUKAN', 'DISETUJUI'])
@@ -647,7 +647,7 @@ class AsetApiController extends ApiController
             return $this->jsonError('Data peminjaman tidak ditemukan.', 404);
         }
 
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('manajemen');
         if (! $isGlobalAdmin) {
             if ($pinjam->tipe_penyedia === 'RUANGAN' && (int) $user->unit_id !== (int) $pinjam->unit_penyedia_id) {
                 return $this->jsonError('Anda tidak memiliki wewenang memproses permintaan dari ruangan penyedia ini.', 403);
@@ -787,7 +787,7 @@ class AsetApiController extends ApiController
             return $this->jsonError("Peminjaman {$pinjam->kode} tidak dalam status aktif dipinjam (saat ini: {$pinjam->status}).", 422);
         }
 
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('manajemen');
         $isPenyedia = ($pinjam->tipe_penyedia === 'RUANGAN' && (int) $user->unit_id === (int) $pinjam->unit_penyedia_id)
             || ($pinjam->tipe_penyedia === 'GUDANG' && (int) $user->gudang_id === (int) $pinjam->gudang_penyedia_id);
         $isPeminjam = ((int) $user->unit_id === (int) $pinjam->unit_id)
