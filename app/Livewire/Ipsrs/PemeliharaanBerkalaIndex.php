@@ -255,18 +255,11 @@ class PemeliharaanBerkalaIndex extends Component
             ->orderBy('kode_aset')
             ->get();
 
-        // Daftar Teknisi Aktif
+        // Daftar Teknisi Aktif (murni peran teknisi)
         $daftarTeknisi = User::where('status', 'AKTIF')
-            ->where(function ($q) {
-                $q->whereHas('roles', fn ($r) => $r->where('name', 'teknisi'))
-                    ->orWhere('gudang_id', 2);
-            })
+            ->whereHas('roles', fn ($r) => $r->where('name', 'teknisi'))
             ->orderBy('nama')
             ->get();
-
-        if ($daftarTeknisi->isEmpty()) {
-            $daftarTeknisi = User::where('status', 'AKTIF')->orderBy('nama')->get();
-        }
 
         return view('livewire.ipsrs.pemeliharaan-berkala-index', [
             'daftarJadwal'  => $daftarJadwal,
