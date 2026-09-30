@@ -46,7 +46,7 @@
                                 {{ str_replace('_', ' ', $item->jenis) }}
                             </span>
                         </flux:table.cell>
-                        <flux:table.cell class="text-zinc-500">{{ $item->penanggung_jawab ?? '-' }}</flux:table.cell>
+                        <flux:table.cell class="text-zinc-500">{{ $item->kepalaUnit?->nama ?? $item->penanggung_jawab ?? '-' }}</flux:table.cell>
                         <flux:table.cell class="text-zinc-500">{{ $item->lokasi_gedung ?? '-' }}</flux:table.cell>
                         <flux:table.cell class="text-center">
                             <x-status-badge :status="$item->status" />
@@ -93,7 +93,15 @@
             </div>
 
             <flux:input wire:model="nama" label="Nama Ruangan / Unit" placeholder="misal: Instalasi Gawat Darurat" required />
-            <flux:input wire:model="penanggung_jawab" label="Penanggung Jawab / Kepala Unit" placeholder="misal: dr. Pratama, Sp.EM" />
+            <div>
+                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Penanggung Jawab / Kepala Unit</label>
+                <select wire:model="kepala_unit_id" class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                    <option value="">— Belum Ditentukan —</option>
+                    @foreach ($daftarPengguna as $pgn)
+                        <option value="{{ $pgn->id }}">{{ $pgn->nama }} ({{ $pgn->nip ?? 'Tanpa NIP' }})</option>
+                    @endforeach
+                </select>
+            </div>
             <flux:input wire:model="lokasi_gedung" label="Lokasi Gedung / Lantai" placeholder="misal: Gedung A Lantai 1" />
 
             <div>
@@ -137,8 +145,8 @@
                         <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ str_replace('_', ' ', $selectedItem->jenis) }}</div>
                     </div>
                     <div>
-                        <div class="text-zinc-500 dark:text-zinc-400">Penanggung Jawab</div>
-                        <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->penanggung_jawab ?? '-' }}</div>
+                        <div class="text-zinc-500 dark:text-zinc-400">Penanggung Jawab / Kepala Unit</div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedItem->kepalaUnit?->nama ?? $selectedItem->penanggung_jawab ?? '-' }}</div>
                     </div>
                     <div>
                         <div class="text-zinc-500 dark:text-zinc-400">Lokasi Gedung</div>

@@ -6,6 +6,7 @@ use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
+use App\Models\User;
 use App\Models\Gudang;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -21,7 +22,7 @@ class GudangIndex extends Component
 
     public function showDetail(int $id): void
     {
-        $this->selectedItem = Gudang::withCount(['lokasiGudang', 'stokBatch'])->findOrFail($id);
+        $this->selectedItem = Gudang::withCount(['lokasiGudang', 'stokBatch'])->with('kepalaGudang:id,nama,nip')->findOrFail($id);
         $this->showDetailModal = true;
     }
 
@@ -37,6 +38,9 @@ class GudangIndex extends Component
     #[Validate('nullable|string|max:150')]
     public ?string $penanggung_jawab = null;
 
+    #[Validate('nullable|exists:pengguna,id')]
+    public ?int $kepala_gudang_id = null;
+
     #[Validate('nullable|string|max:100')]
     public ?string $lokasi_gedung = null;
 
@@ -47,7 +51,7 @@ class GudangIndex extends Component
     {
         abort_unless(auth()->user()?->can('create_master::gudang'), 403);
 
-        $this->reset(['editingId', 'kode', 'nama', 'jenis', 'penanggung_jawab', 'lokasi_gedung', 'status']);
+        $this->reset(['editingId', 'kode', 'nama', 'jenis', 'penanggung_jawab', 'lokasi_gedung', 'status', 'kepala_gudang_id']);
         $this->jenis = 'SENTRAL';
         $this->status = 'AKTIF';
         $this->showModal = true;
@@ -63,6 +67,7 @@ class GudangIndex extends Component
         $this->nama = $gudang->nama;
         $this->jenis = $gudang->jenis;
         $this->penanggung_jawab = $gudang->penanggung_jawab;
+        $this->kepala_gudang_id = $gudang->kepala_gudang_id;
         $this->lokasi_gedung = $gudang->lokasi_gedung;
         $this->status = $gudang->status;
         $this->showModal = true;
@@ -80,22 +85,26 @@ class GudangIndex extends Component
         if ($this->editingId) {
             abort_unless(auth()->user()?->can('update_master::gudang'), 403);
             $gudang = Gudang::findOrFail($this->editingId);
+            $namaKepala = $this->kepala_gudang_id ? User::where('id', $this->kepala_gudang_id)->value('nama') : $this->penanggung_jawab;
             $gudang->update([
                 'kode' => strtoupper($this->kode),
                 'nama' => $this->nama,
                 'jenis' => $this->jenis,
-                'penanggung_jawab' => $this->penanggung_jawab,
+                'kepala_gudang_id' => $this->kepala_gudang_id,
+                'penanggung_jawab' => $namaKepala,
                 'lokasi_gedung' => $this->lokasi_gedung,
                 'status' => $this->status,
             ]);
             $this->toast("Gudang '{$gudang->nama}' berhasil diperbarui.", 'success');
         } else {
             abort_unless(auth()->user()?->can('create_master::gudang'), 403);
+            $namaKepala = $this->kepala_gudang_id ? User::where('id', $this->kepala_gudang_id)->value('nama') : $this->penanggung_jawab;
             Gudang::create([
                 'kode' => strtoupper($this->kode),
                 'nama' => $this->nama,
                 'jenis' => $this->jenis,
-                'penanggung_jawab' => $this->penanggung_jawab,
+                'kepala_gudang_id' => $this->kepala_gudang_id,
+                'penanggung_jawab' => $namaKepala,
                 'lokasi_gedung' => $this->lokasi_gedung,
                 'status' => $this->status,
             ]);
@@ -136,6 +145,7 @@ class GudangIndex extends Component
         abort_unless(auth()->user()?->can('view_any_master::gudang') || auth()->user()?->can('view_master::gudang'), 403);
 
         $items = Gudang::query()
+            ->with('kepalaGudang:id,nama')
             ->when($this->search, function ($q) {
                 $q->where(function ($sub) {
                     $sub->where('nama', 'ilike', "%{$this->search}%")
@@ -146,8 +156,11 @@ class GudangIndex extends Component
             ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
+        $daftarPengguna = User::where('status', 'AKTIF')->orderBy('nama')->get(['id', 'nama', 'nip']);
+
         return view('livewire.master.gudang-index', [
             'items' => $items,
+            'daftarPengguna' => $daftarPengguna,
             'editingId' => $this->editingId,
             'sortBy' => $this->sortBy,
             'sortDirection' => $this->sortDirection,
