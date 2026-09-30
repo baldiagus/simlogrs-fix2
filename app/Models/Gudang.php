@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Gudang extends BaseModel
 {
@@ -21,5 +22,10 @@ class Gudang extends BaseModel
     public function stokBatch(): HasMany
     {
         return $this->hasMany(StokBatch::class, 'gudang_id');
+    }
+
+    public function kepalaGudang(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'kepala_gudang_id');
     }
 }

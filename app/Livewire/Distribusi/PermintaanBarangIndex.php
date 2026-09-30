@@ -79,6 +79,26 @@ class PermintaanBarangIndex extends Component
         }
     }
 
+    /**
+     * Saat barang dalam daftar item berubah, otomatis arahkan ke gudang yang memiliki stok.
+     */
+    public function updatedItems(): void
+    {
+        $firstBarangId = collect($this->items)->pluck('barang_id')->filter()->first();
+        if ($firstBarangId) {
+            $bestGudang = StokBatch::where('barang_id', $firstBarangId)
+                ->where('status', 'AKTIF')
+                ->where('jumlah', '>', 0)
+                ->groupBy('gudang_id')
+                ->selectRaw('gudang_id, sum(jumlah) as total')
+                ->orderByDesc('total')
+                ->value('gudang_id');
+            if ($bestGudang) {
+                $this->gudang_id = $bestGudang;
+            }
+        }
+    }
+
     public function save(): void
     {
         abort_unless(auth()->user()?->can('create_layanan_unit::permintaan::barang'), 403);

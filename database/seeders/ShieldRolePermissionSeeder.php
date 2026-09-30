@@ -121,6 +121,30 @@ class ShieldRolePermissionSeeder extends Seeder
             '%_master::pemasok%',
             'view_any_master::barang%',
             'view_master::barang%',
+            // Layanan unit: peminjaman aset, amprah, lapor servis (selaras DB aktual)
+            'create_layanan_unit::peminjaman::aset',
+            'view_any_layanan_unit::peminjaman::aset',
+            'view_layanan_unit::peminjaman::aset',
+            'create_layanan_unit::approval::peminjaman',
+            'view_any_layanan_unit::approval::karu',
+            'view_layanan_unit::approval::karu',
+            'view_any_layanan_unit::approval::peminjaman',
+            'view_layanan_unit::approval::peminjaman',
+            'create_layanan_unit::permintaan::barang',
+            'view_any_layanan_unit::permintaan::barang',
+            'view_layanan_unit::permintaan::barang',
+            'create_layanan_unit::pengembalian::aset',
+            'view_any_layanan_unit::pengembalian::aset',
+            'view_layanan_unit::pengembalian::aset',
+            'create_layanan_unit::lapor::servis',
+            'view_any_layanan_unit::lapor::servis',
+            'view_layanan_unit::lapor::servis',
+            'create_layanan_unit::stok::ruangan',
+            'view_any_layanan_unit::stok::ruangan',
+            'view_layanan_unit::stok::ruangan',
+            'create_layanan_unit::penerimaan::barang',
+            'view_any_layanan_unit::penerimaan::barang',
+            'view_layanan_unit::penerimaan::barang',
         ]);
 
         // 9. Role: kepala_unit
@@ -182,6 +206,14 @@ class ShieldRolePermissionSeeder extends Seeder
             'page_ManajemenDashboard',
             'view_any_%',
             'view_%',
+            // Create layanan unit (selaras DB aktual: manajemen boleh meminjam/mengajukan)
+            'create_layanan_unit::approval::peminjaman',
+            'create_layanan_unit::lapor::servis',
+            'create_layanan_unit::peminjaman::aset',
+            'create_layanan_unit::penerimaan::barang',
+            'create_layanan_unit::pengembalian::aset',
+            'create_layanan_unit::permintaan::barang',
+            'create_layanan_unit::stok::ruangan',
         ]);
 
         // 13. Role: auditor
@@ -190,6 +222,14 @@ class ShieldRolePermissionSeeder extends Seeder
             '%_audit_manajemen::%',
             'view_any_%',
             'view_%',
+            // Create layanan unit (selaras DB aktual: auditor boleh meminjam/mengajukan)
+            'create_layanan_unit::approval::peminjaman',
+            'create_layanan_unit::lapor::servis',
+            'create_layanan_unit::peminjaman::aset',
+            'create_layanan_unit::penerimaan::barang',
+            'create_layanan_unit::pengembalian::aset',
+            'create_layanan_unit::permintaan::barang',
+            'create_layanan_unit::stok::ruangan',
         ]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Unit extends BaseModel
 {
@@ -16,5 +17,10 @@ class Unit extends BaseModel
     public function aset(): HasMany
     {
         return $this->hasMany(Aset::class, 'unit_id');
+    }
+
+    public function kepalaUnit(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'kepala_unit_id');
     }
 }

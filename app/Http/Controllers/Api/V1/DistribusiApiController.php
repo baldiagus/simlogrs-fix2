@@ -259,12 +259,20 @@ class DistribusiApiController extends ApiController
             return $this->jsonError('Validasi data gagal.', 422, $validator->errors());
         }
 
-        $unitId = $user->unit_id ?: ($user->hasRole('pengadaan') ? Unit::where('kode', 'LOGISTIK')->value('id') : null) ?: Unit::first()?->id;
+        $unitId = $user->unit_id;
         if (! $unitId) {
-            return $this->jsonError('Pengguna wajib terdaftar dalam unit ruangan pelayanan.', 422);
+            return $this->jsonError('Anda harus terdaftar pada unit/ruangan untuk mengajukan amprah.', 422);
         }
 
-        $gudangId = $request->input('gudang_id') ?: Gudang::where('status', 'AKTIF')->value('id');
+        // Auto-route ke gudang yang memiliki stok barang pertama jika gudang_id tidak dikirim
+        $gudangId = $request->input('gudang_id');
+        if (! $gudangId) {
+            $firstBarangId = (int) ($request->input('items.0.barang_id') ?? 0);
+            $gudangId = $firstBarangId
+                ? StokBatch::where('barang_id', $firstBarangId)->where('status', 'AKTIF')->where('jumlah', '>', 0)->groupBy('gudang_id')->selectRaw('gudang_id, sum(jumlah) as total')->orderByDesc('total')->value('gudang_id')
+                : null;
+            $gudangId = $gudangId ?: Gudang::where('status', 'AKTIF')->value('id');
+        }
         if (! $gudangId) {
             return $this->jsonError('Fasilitas gudang aktif belum tersedia.', 422);
         }
@@ -396,11 +404,13 @@ class DistribusiApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang untuk melihat antrean picking FEFO.', 403);
         }
 
-        $gudangId = $user->gudang_id;
+        $isGlobalPickAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
+        $gudangIds = Gudang::where('kepala_gudang_id', $user->id)->pluck('id');
+        $filterGudang = $gudangIds->isNotEmpty() ? $gudangIds->toArray() : ($user->gudang_id ? [$user->gudang_id] : []);
 
         $items = PermintaanDistribusi::query()
             ->whereIn('status', ['DISETUJUI_GUDANG', 'DISETUJUI_KARU'])
-            ->when($gudangId, fn ($q) => $q->where('gudang_id', $gudangId))
+            ->when(! $isGlobalPickAdmin && $filterGudang, fn ($q) => $q->whereIn('gudang_id', $filterGudang))
             ->with(['unit:id,kode,nama', 'pengaju:id,nama', 'detail.barang.satuan'])
             ->latest('id')
             ->get()

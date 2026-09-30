@@ -9,6 +9,7 @@ use App\Livewire\Concerns\HasToast;
 use App\Models\PermintaanDistribusi;
 use App\Models\PermintaanDistribusiDetail;
 use App\Models\StokBatch;
+use App\Models\Gudang;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -245,11 +246,17 @@ class DistribusiApprovalIndex extends Component
             || auth()->user()?->can('page_DistribusiApprovalIndex'),
             403
         );
+        $user = auth()->user();
+        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
 
         $allowedStatuses = ['DISETUJUI_KARU', 'DISETUJUI_GUDANG', 'SEDANG_DIKIRIM', 'SELESAI', 'DITOLAK'];
 
         $query = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang.satuan'])
             ->whereIn('status', $allowedStatuses)
+            ->when(! $isGlobalAdmin && $user?->gudang_id, function ($q) use ($user) {
+                $gudangIds = Gudang::where('kepala_gudang_id', $user->id)->pluck('id');
+                $q->whereIn('gudang_id', $gudangIds->isNotEmpty() ? $gudangIds : [$user->gudang_id]);
+            })
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterUrgensi, fn ($q) => $q->where('urgensi', $this->filterUrgensi))
             ->when($this->search, function ($q) {

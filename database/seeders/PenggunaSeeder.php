@@ -180,5 +180,16 @@ class PenggunaSeeder extends Seeder
                 );
             }
         }
+
+        // Tetapkan kepala unit & kepala gudang berdasarkan role pengguna yang baru di-seed
+        $kepalaUnit = User::whereHas('roles', fn ($q) => $q->where('name', 'kepala_unit'))->first();
+        if ($kepalaUnit?->unit_id) {
+            Unit::where('id', $kepalaUnit->unit_id)->update(['kepala_unit_id' => $kepalaUnit->id]);
+        }
+
+        $kepalaGudang = User::whereHas('roles', fn ($q) => $q->where('name', 'kepala_gudang'))->first();
+        if ($kepalaGudang?->gudang_id) {
+            Gudang::where('id', $kepalaGudang->gudang_id)->update(['kepala_gudang_id' => $kepalaGudang->id]);
+        }
     }
 }

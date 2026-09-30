@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('penanggung_jawab', 150)->nullable();
             $table->string('lokasi_gedung', 100)->nullable();
             $table->string('status', 20)->default('AKTIF'); // AKTIF, NONAKTIF
+            $table->unsignedBigInteger('kepala_unit_id')->nullable(); // FK pengguna, diisi seeder
             $table->timestamp('dibuat_pada')->nullable();
             $table->timestamp('diperbarui_pada')->nullable();
         });
@@ -31,6 +32,7 @@ return new class extends Migration
             $table->string('penanggung_jawab', 150)->nullable();
             $table->string('lokasi_gedung', 100)->nullable();
             $table->string('status', 20)->default('AKTIF'); // AKTIF, NONAKTIF
+            $table->unsignedBigInteger('kepala_gudang_id')->nullable(); // FK pengguna, diisi seeder
             $table->timestamp('dibuat_pada')->nullable();
             $table->timestamp('diperbarui_pada')->nullable();
         });

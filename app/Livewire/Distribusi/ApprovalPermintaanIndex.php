@@ -7,6 +7,8 @@ use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\PermintaanDistribusi;
+use App\Models\Gudang;
+use App\Models\Unit;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -128,11 +130,22 @@ class ApprovalPermintaanIndex extends Component
         $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
 
         if (! $isGlobalAdmin) {
-            if ($user?->unit_id && (int) $user->unit_id !== (int) $permintaan->unit_id) {
-                abort(403, 'Anda tidak memiliki wewenang untuk melihat permohonan dari unit ini.');
+            // Karu: hanya boleh lihat amprah dari unit yang dia kepalai
+            if ($user?->unit_id) {
+                $unitIds = Unit::where('kepala_unit_id', $user->id)->pluck('id');
+                if ($unitIds->isNotEmpty() && ! $unitIds->contains($permintaan->unit_id)) {
+                    abort(403, 'Anda tidak memiliki wewenang untuk melihat permohonan dari unit ini.');
+                } elseif ($unitIds->isEmpty() && (int) $user->unit_id !== (int) $permintaan->unit_id) {
+                    abort(403, 'Anda tidak memiliki wewenang untuk melihat permohonan dari unit ini.');
+                }
             }
-            if ($user?->gudang_id && (int) $user->gudang_id !== (int) $permintaan->gudang_id) {
-                abort(403, 'Anda tidak memiliki wewenang untuk melihat permohonan ke gudang ini.');
+            if ($user?->gudang_id) {
+                $gudangIds = Gudang::where('kepala_gudang_id', $user->id)->pluck('id');
+                if ($gudangIds->isNotEmpty() && ! $gudangIds->contains($permintaan->gudang_id)) {
+                    abort(403, 'Anda tidak memiliki wewenang untuk melihat permohonan ke gudang ini.');
+                } elseif ($gudangIds->isEmpty() && (int) $user->gudang_id !== (int) $permintaan->gudang_id) {
+                    abort(403, 'Anda tidak memiliki wewenang untuk melihat permohonan ke gudang ini.');
+                }
             }
         }
         $this->selectedPermintaan = $permintaan;
@@ -156,11 +169,21 @@ class ApprovalPermintaanIndex extends Component
 
         $isGlobalAdmin = $user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard');
         if (! $isGlobalAdmin) {
-            if ($user?->unit_id && (int) $user->unit_id !== (int) $permintaan->unit_id) {
-                abort(403, 'Anda tidak memiliki wewenang untuk memproses permohonan dari unit ini.');
+            if ($user?->unit_id) {
+                $unitIds = Unit::where('kepala_unit_id', $user->id)->pluck('id');
+                if ($unitIds->isNotEmpty() && ! $unitIds->contains($permintaan->unit_id)) {
+                    abort(403, 'Anda tidak memiliki wewenang untuk memproses permohonan dari unit ini.');
+                } elseif ($unitIds->isEmpty() && (int) $user->unit_id !== (int) $permintaan->unit_id) {
+                    abort(403, 'Anda tidak memiliki wewenang untuk memproses permohonan dari unit ini.');
+                }
             }
-            if ($user?->gudang_id && (int) $user->gudang_id !== (int) $permintaan->gudang_id) {
-                abort(403, 'Anda tidak memiliki wewenang untuk memproses permohonan ke gudang ini.');
+            if ($user?->gudang_id) {
+                $gudangIds = Gudang::where('kepala_gudang_id', $user->id)->pluck('id');
+                if ($gudangIds->isNotEmpty() && ! $gudangIds->contains($permintaan->gudang_id)) {
+                    abort(403, 'Anda tidak memiliki wewenang untuk memproses permohonan ke gudang ini.');
+                } elseif ($gudangIds->isEmpty() && (int) $user->gudang_id !== (int) $permintaan->gudang_id) {
+                    abort(403, 'Anda tidak memiliki wewenang untuk memproses permohonan ke gudang ini.');
+                }
             }
         }
     }
@@ -184,9 +207,11 @@ class ApprovalPermintaanIndex extends Component
             ->withCount('detail')
             ->when(! $isGlobalAdmin, function ($q) use ($user) {
                 if ($user?->unit_id) {
-                    $q->where('unit_id', $user->unit_id);
+                    $unitIds = Unit::where('kepala_unit_id', $user->id)->pluck('id');
+                    $q->whereIn('unit_id', $unitIds->isNotEmpty() ? $unitIds : [$user->unit_id]);
                 } elseif ($user?->gudang_id) {
-                    $q->where('gudang_id', $user->gudang_id);
+                    $gudangIds = Gudang::where('kepala_gudang_id', $user->id)->pluck('id');
+                    $q->whereIn('gudang_id', $gudangIds->isNotEmpty() ? $gudangIds : [$user->gudang_id]);
                 }
             })
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))

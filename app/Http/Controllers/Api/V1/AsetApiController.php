@@ -376,9 +376,9 @@ class AsetApiController extends ApiController
             return $this->jsonError('Validasi data gagal.', 422, $validator->errors());
         }
 
-        $unitPeminjamId = $user->unit_id ?: ($user->hasRole('pengadaan') ? Unit::where('kode', 'LOGISTIK')->value('id') : null) ?: Unit::first()?->id;
+        $unitPeminjamId = $user->unit_id;
         if (! $unitPeminjamId) {
-            return $this->jsonError('Pengguna wajib terdaftar dalam unit pelayanan peminjam.', 422);
+            return $this->jsonError('Anda harus terdaftar pada unit/ruangan untuk mengajukan peminjaman aset.', 422);
         }
 
         $aset = Aset::where('id', $request->input('aset_id'))

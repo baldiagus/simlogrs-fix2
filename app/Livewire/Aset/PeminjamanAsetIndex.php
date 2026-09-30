@@ -366,10 +366,9 @@ class PeminjamanAsetIndex extends Component
         abort_unless(auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
 
         $user = auth()->user();
-        $unitPeminjamId = $user->unit_id ?? Unit::where('status', 'AKTIF')->value('id');
-
+        $unitPeminjamId = $user->unit_id;
         if (! $unitPeminjamId) {
-            $this->toast('Unit peminjam belum terkonfigurasi pada akun Anda.', 'danger');
+            $this->toast('Anda harus terdaftar pada unit/ruangan untuk mengajukan peminjaman aset.', 'danger');
             return;
         }
 

@@ -12,6 +12,8 @@ use App\Models\PermintaanPengadaan;
 use App\Models\PesananPembelian;
 use App\Models\Aset;
 use App\Models\StokBatch;
+use App\Models\Gudang;
+use App\Models\Unit;
 use App\Models\StokOpname;
 use App\Models\TemuanAudit;
 use Carbon\Carbon;
@@ -193,7 +195,12 @@ class DashboardApiController extends ApiController
         // KASUS 3: KEPALA GUDANG & ADMIN LOGISTIK
         // -------------------------------------------------------------
         elseif ($isKepalaGudang) {
-            $amprahOtorisasi = PermintaanDistribusi::where('status', 'DISETUJUI_KARU')->count();
+            $gudangIds = Gudang::where('kepala_gudang_id', $user->id)->pluck('id');
+            $filterGudang = $gudangIds->isNotEmpty() ? $gudangIds->toArray() : ($user->gudang_id ? [$user->gudang_id] : []);
+
+            $amprahOtorisasi = PermintaanDistribusi::where('status', 'DISETUJUI_KARU')
+                ->when($filterGudang, fn ($q) => $q->whereIn('gudang_id', $filterGudang))
+                ->count();
             $poBerjalan = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])->count();
             $penyesuaianMenunggu = PenyesuaianStok::where('status', 'MENUNGGU')->count();
 
@@ -214,6 +221,7 @@ class DashboardApiController extends ApiController
 
             // Aktivitas Kepala Gudang: Amprah Meja 2 (DISETUJUI_KARU), Penyesuaian (MENUNGGU), PO Inbound (DIKIRIM_VENDOR), Pinjam Gudang (DIAJUKAN)
             $amprahList = PermintaanDistribusi::where('status', 'DISETUJUI_KARU')
+                ->when($filterGudang, fn ($q) => $q->whereIn('gudang_id', $filterGudang))
                 ->with(['unit:id,kode,nama', 'detail'])
                 ->latest('id')
                 ->take(15)
@@ -263,6 +271,7 @@ class DashboardApiController extends ApiController
 
             $pinjamGudang = PermintaanPeminjaman::where('tipe_penyedia', 'GUDANG')
                 ->where('status', 'DIAJUKAN')
+                ->when($filterGudang, fn ($q) => $q->whereIn('gudang_penyedia_id', $filterGudang))
                 ->with(['unitPeminjam', 'pengaju', 'detail.aset.barang'])
                 ->latest('id')
                 ->take(10)
@@ -285,13 +294,16 @@ class DashboardApiController extends ApiController
         // KASUS 4: KEPALA RUANGAN (KARU)
         // -------------------------------------------------------------
         elseif ($isKaru) {
-            $prMenunggu = PermintaanPengadaan::where('unit_id', $user->unit_id)
+            $unitIds = Unit::where('kepala_unit_id', $user->id)->pluck('id');
+            $filterUnit = $unitIds->isNotEmpty() ? $unitIds->toArray() : ($user->unit_id ? [$user->unit_id] : []);
+
+            $prMenunggu = PermintaanPengadaan::whereIn('unit_id', $filterUnit)
                 ->where('status', 'DIAJUKAN')
                 ->count();
-            $amprahMenunggu = PermintaanDistribusi::where('unit_id', $user->unit_id)
+            $amprahMenunggu = PermintaanDistribusi::whereIn('unit_id', $filterUnit)
                 ->where('status', 'DIAJUKAN')
                 ->count();
-            $pinjamMenunggu = PermintaanPeminjaman::where(fn ($q) => $q->where('unit_id', $user->unit_id)->orWhere('unit_penyedia_id', $user->unit_id))
+            $pinjamMenunggu = PermintaanPeminjaman::where(fn ($q) => $q->whereIn('unit_id', $filterUnit)->orWhereIn('unit_penyedia_id', $filterUnit))
                 ->where('status', 'DIAJUKAN')
                 ->count();
 
@@ -312,7 +324,7 @@ class DashboardApiController extends ApiController
 
             // Aktivitas Karu: Seluruh data aktivitas pengguna berstatus DIAJUKAN / DILAPORKAN
             // 1. Permintaan PR: status DIAJUKAN
-            $prList = PermintaanPengadaan::where('unit_id', $user->unit_id)
+            $prList = PermintaanPengadaan::whereIn('unit_id', $filterUnit)
                 ->where('status', 'DIAJUKAN')
                 ->with(['pengaju:id,nama', 'detail'])
                 ->latest('id')
@@ -330,7 +342,7 @@ class DashboardApiController extends ApiController
                 ]);
 
             // 2. Amprah Ruangan: status DIAJUKAN
-            $amprahList = PermintaanDistribusi::where('unit_id', $user->unit_id)
+            $amprahList = PermintaanDistribusi::whereIn('unit_id', $filterUnit)
                 ->where('status', 'DIAJUKAN')
                 ->with(['pengaju:id,nama', 'detail'])
                 ->latest('id')
@@ -348,7 +360,7 @@ class DashboardApiController extends ApiController
                 ]);
 
             // 3. Sirkulasi Aset (Peminjaman): status DIAJUKAN
-            $pinjamList = PermintaanPeminjaman::where(fn ($q) => $q->where('unit_id', $user->unit_id)->orWhere('unit_penyedia_id', $user->unit_id))
+            $pinjamList = PermintaanPeminjaman::where(fn ($q) => $q->whereIn('unit_id', $filterUnit)->orWhereIn('unit_penyedia_id', $filterUnit))
                 ->where('status', 'DIAJUKAN')
                 ->with(['unitPeminjam:id,nama', 'pengaju:id,nama', 'detail.aset.barang:id,nama'])
                 ->latest('id')
@@ -366,7 +378,7 @@ class DashboardApiController extends ApiController
                 ]);
 
             // 4. Lapor Kerusakan Unit: status DILAPORKAN / MENUNGGU_SPK
-            $tiketList = PermintaanMaintenance::where('unit_id', $user->unit_id)
+            $tiketList = PermintaanMaintenance::whereIn('unit_id', $filterUnit)
                 ->whereIn('status', ['DILAPORKAN', 'MENUNGGU_SPK'])
                 ->with(['aset.barang:id,nama', 'pelapor:id,nama'])
                 ->latest('id')
