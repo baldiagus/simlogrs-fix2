@@ -17,7 +17,7 @@ class StokRuanganIndex extends Component
     use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
 
     #[Url(history: true)]
-    public string $filterKondisi = ''; // '', 'TERSEDIA', 'MENIPIS', 'HABIS'
+    public string $filterKondisi = ''; // '', 'TERSEDIA', 'HABIS'
 
     #[Url(history: true)]
     public ?int $filterUnitId = null;
@@ -134,14 +134,13 @@ class StokRuanganIndex extends Component
 
         // Metrik Ringkasan
         $countTotalItem = (clone $baseQuery)->count();
+        $countTersedia = (clone $baseQuery)->where('jumlah', '>', 0)->count();
         $countHabis = (clone $baseQuery)->where('jumlah', '<=', 0)->count();
-        $countMenipis = (clone $baseQuery)->where('jumlah', '>', 0)->whereColumn('jumlah', '<=', 'stok_minimum')->count();
 
         // Data List
         $query = (clone $baseQuery)
             ->with(['barang.satuan', 'barang.kategori', 'unit'])
             ->when($this->filterKondisi === 'TERSEDIA', fn ($q) => $q->where('jumlah', '>', 0))
-            ->when($this->filterKondisi === 'MENIPIS', fn ($q) => $q->where('jumlah', '>', 0)->whereColumn('jumlah', '<=', 'stok_minimum'))
             ->when($this->filterKondisi === 'HABIS', fn ($q) => $q->where('jumlah', '<=', 0))
             ->when($this->search, function ($q) {
                 $q->where(function ($sub) {
@@ -169,8 +168,8 @@ class StokRuanganIndex extends Component
             'isGlobalAdmin'  => $isGlobalAdmin,
             'userUnitId'     => $user?->unit_id,
             'countTotalItem' => $countTotalItem,
+            'countTersedia'  => $countTersedia,
             'countHabis'     => $countHabis,
-            'countMenipis'   => $countMenipis,
             'pageTitle'      => $pageTitle,
         ])->layout('layouts.portal', [
             'portal' => $this->getPortalName(),

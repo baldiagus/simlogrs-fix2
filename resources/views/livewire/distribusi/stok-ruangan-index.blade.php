@@ -12,15 +12,14 @@
         </flux:card>
 
         <flux:card class="p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs flex items-center gap-4">
-            <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
-                <flux:icon name="exclamation-triangle" class="w-6 h-6" />
+            <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+                <flux:icon name="check-circle" class="w-6 h-6" />
             </div>
             <div>
-                <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Persediaan Menipis (&le; Min)</div>
-                <div class="text-xl font-bold text-amber-600 dark:text-amber-400">{{ $countMenipis }} Item</div>
+                <div class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Persediaan Tersedia (&gt; 0)</div>
+                <div class="text-xl font-bold text-emerald-600 dark:text-emerald-400">{{ $countTersedia }} Item</div>
             </div>
         </flux:card>
-
         <flux:card class="p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs flex items-center gap-4">
             <div class="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
                 <flux:icon name="x-circle" class="w-6 h-6" />
@@ -62,7 +61,6 @@
                 <select wire:model.live="filterKondisi" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Kondisi Stok</option>
                     <option value="TERSEDIA">Tersedia (&gt; 0)</option>
-                    <option value="MENIPIS">Menipis (&le; Batas Min)</option>
                     <option value="HABIS">Habis (0)</option>
                 </select>
             </div>
@@ -88,7 +86,6 @@
                     <flux:table.column>Unit / Ruangan</flux:table.column>
                 @endif
                 <flux:table.column sortable :sorted="$sortBy === 'jumlah'" :direction="$sortDirection" wire:click="sort('jumlah')" class="text-right w-36">Sisa Fisik</flux:table.column>
-                <flux:table.column class="text-right w-28">Batas Min</flux:table.column>
                 <flux:table.column class="text-center w-32">Status</flux:table.column>
                 <flux:table.column class="text-right w-44">Aksi</flux:table.column>
             </flux:table.columns>
@@ -98,7 +95,6 @@
                     @php
                         $satuan = $stok->barang?->satuan?->simbol ?? 'Pcs';
                         $isHabis = $stok->jumlah <= 0;
-                        $isMenipis = ! $isHabis && $stok->jumlah <= $stok->stok_minimum;
                     @endphp
                     <flux:table.row :key="$stok->id">
                         {{-- Kode Barang --}}
@@ -125,15 +121,10 @@
 
                         {{-- Sisa Fisik --}}
                         <flux:table.cell class="text-right">
-                            <span class="font-bold text-sm {{ $isHabis ? 'text-rose-600 dark:text-rose-400' : ($isMenipis ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-900 dark:text-zinc-100') }}">
+                            <span class="font-bold text-sm {{ $isHabis ? 'text-rose-600 dark:text-rose-400' : 'text-zinc-900 dark:text-zinc-100' }}">
                                 {{ number_format($stok->jumlah, 0, ',', '.') }}
                             </span>
                             <span class="text-xs text-zinc-500 ml-1">{{ $satuan }}</span>
-                        </flux:table.cell>
-
-                        {{-- Batas Min --}}
-                        <flux:table.cell class="text-right text-xs text-zinc-500">
-                            {{ $stok->stok_minimum }} {{ $satuan }}
                         </flux:table.cell>
 
                         {{-- Status Badge --}}
@@ -141,10 +132,6 @@
                             @if ($isHabis)
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
                                     HABIS
-                                </span>
-                            @elseif ($isMenipis)
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
-                                    MENIPIS
                                 </span>
                             @else
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
