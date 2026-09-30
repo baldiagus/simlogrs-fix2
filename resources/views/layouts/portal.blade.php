@@ -69,7 +69,8 @@
             '*/approval-permintaan*',
             '*/distribusi-approval*',
             '*/picking-distribusi*',
-            '*/penerimaan-barang*'
+            '*/penerimaan-barang*',
+            '*/stok-ruangan*'
         );
 
         $isSirkulasiActive = request()->is(
@@ -223,7 +224,7 @@
                 </flux:sidebar.group>
             @endcan
 
-            @if ($user->can('view_any_layanan_unit::permintaan::barang') || $user->can('view_any_layanan_unit::approval::karu') || $user->can('view_any_layanan_unit::penerimaan::barang') || $user->can('view_any_gudang_stok::distribusi::approval') || $user->can('view_any_gudang_stok::picking::distribusi'))
+            @if ($user->can('view_any_layanan_unit::permintaan::barang') || $user->can('view_any_layanan_unit::approval::karu') || $user->can('view_any_layanan_unit::penerimaan::barang') || $user->can('view_any_layanan_unit::stok::ruangan') || $user->can('view_any_gudang_stok::distribusi::approval') || $user->can('view_any_gudang_stok::picking::distribusi'))
                 <flux:sidebar.group expandable :expanded="$isDistribusiActive" heading="Distribusi & Amprah" class="grid">
                     @can('view_any_layanan_unit::permintaan::barang')
                         <flux:sidebar.item icon="arrow-up-tray" href="/{{ $portalKey }}/permintaan-barang" wire:navigate :current="request()->is('*/permintaan-barang')">
@@ -248,6 +249,11 @@
                     @can('view_any_layanan_unit::penerimaan::barang')
                         <flux:sidebar.item icon="inbox" href="/{{ $portalKey }}/penerimaan-barang" wire:navigate :current="request()->is('*/penerimaan-barang')">
                             Terima di Ruangan
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_layanan_unit::stok::ruangan')
+                        <flux:sidebar.item icon="cube" href="/{{ $portalKey }}/stok-ruangan" wire:navigate :current="request()->is('*/stok-ruangan')">
+                            Persediaan Ruangan
                         </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
