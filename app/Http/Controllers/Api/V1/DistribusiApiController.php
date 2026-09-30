@@ -395,6 +395,8 @@ class DistribusiApiController extends ApiController
 
         $canPick = $user->can('create_gudang_stok::picking::distribusi') ||
             $user->can('update_gudang_stok::picking::distribusi') ||
+            $user->can('view_any_gudang_stok::picking::distribusi') ||
+            $user->can('view_gudang_stok::picking::distribusi') ||
             $user->hasRole('petugas_gudang') ||
             $user->hasRole('kepala_gudang') ||
             $user->hasRole('admin_logistik') ||

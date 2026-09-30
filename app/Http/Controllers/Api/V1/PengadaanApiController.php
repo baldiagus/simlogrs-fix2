@@ -93,21 +93,33 @@ class PengadaanApiController extends ApiController
                     $q->where('diajukan_oleh', $user->id);
                 }
             })
-            ->with(['unit:id,kode,nama', 'gudang:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama,satuan_id', 'detail.barang.satuan:id,nama'])
+            ->with(['unit:id,kode,nama', 'gudang:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama,satuan_id', 'detail.barang.satuan:id,nama', 'pesananPembelian:id,permintaan_pengadaan_id,kode,status'])
             ->latest('dibuat_pada')
             ->limit(100)
             ->get()
-            ->map(fn ($item) => [
-                'id'                 => $item->id,
-                'kode'               => $item->kode,
-                'unit'               => $item->nama_pemohon,
-                'tipe_pemohon'       => $item->tipe_pemohon,
-                'pengaju'            => $item->pengaju?->nama ?? 'Staf',
-                'tanggal_permintaan' => $item->tanggal_permintaan?->format('Y-m-d') ?? '',
-                'urgensi'            => $item->urgensi,
-                'status'             => $item->status,
-                'catatan'            => $item->catatan,
-                'jumlah_item'        => $item->detail->count(),
+            ->map(function ($item) {
+                $status = $item->status;
+                if ($status === 'DIPROSES' && $item->pesananPembelian->isNotEmpty()) {
+                    $allPoReceived = $item->pesananPembelian->every(fn ($po) => $po->status === 'DITERIMA_LENGKAP');
+                    if ($allPoReceived) {
+                        $status = 'SELESAI';
+                        $item->update(['status' => 'SELESAI']);
+                    }
+                }
+
+                return [
+                    'id'                 => $item->id,
+                    'kode'               => $item->kode,
+                    'unit'               => $item->nama_pemohon,
+                    'tipe_pemohon'       => $item->tipe_pemohon,
+                    'pengaju'            => $item->pengaju?->nama ?? 'Staf',
+                    'tanggal_permintaan' => $item->tanggal_permintaan?->format('Y-m-d') ?? '',
+                    'urgensi'            => $item->urgensi,
+                    'status'             => $status,
+                    'nomor_po'           => $item->pesananPembelian->first()?->kode,
+                    'status_po'          => $item->pesananPembelian->first()?->status,
+                    'catatan'            => $item->catatan,
+                    'jumlah_item'        => $item->detail->count(),
                 'items'              => $item->detail->map(fn ($d) => [
                     'id'          => $d->id,
                     'barang_id'   => $d->barang_id,
@@ -117,7 +129,8 @@ class PengadaanApiController extends ApiController
                     'jumlah'      => $d->jumlah,
                     'catatan'     => $d->catatan,
                 ]),
-            ]);
+                ];
+            });
 
         return $this->jsonSuccess($pr, 'Daftar permintaan pengadaan berhasil dimuat.');
     }

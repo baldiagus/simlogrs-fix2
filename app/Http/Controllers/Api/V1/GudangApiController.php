@@ -578,6 +578,10 @@ class GudangApiController extends ApiController
                 // 5. Update status PO
                 $po->update(['status' => $statusPo]);
 
+                // 6. Jika seluruh barang PO telah diterima lengkap, update status PR induk menjadi SELESAI
+                if ($statusPo === 'DITERIMA_LENGKAP' && $po->permintaan_pengadaan_id) {
+                    $po->permintaanPengadaan()->update(['status' => 'SELESAI']);
+                }
                 return $rcv;
             });
 
