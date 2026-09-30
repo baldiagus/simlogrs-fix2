@@ -69,7 +69,10 @@ class UnitIndex extends Component
         $this->nama = $unit->nama;
         $this->jenis = $unit->jenis;
         $this->penanggung_jawab = $unit->penanggung_jawab;
-        $this->kepala_unit_id = $unit->kepala_unit_id ? (string) $unit->kepala_unit_id : '';
+        $matchedId = $unit->kepala_unit_id
+            ?: ($unit->penanggung_jawab ? User::where('nama', $unit->penanggung_jawab)->value('id') : null)
+            ?: User::where('unit_id', $unit->id)->whereHas('roles', fn ($q) => $q->whereIn('name', ['kepala_unit', 'manajemen', 'auditor']))->value('id');
+        $this->kepala_unit_id = $matchedId ? (string) $matchedId : '';
         $this->lokasi_gedung = $unit->lokasi_gedung;
         $this->status = $unit->status;
         $this->showModal = true;

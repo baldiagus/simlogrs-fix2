@@ -68,7 +68,10 @@ class GudangIndex extends Component
         $this->nama = $gudang->nama;
         $this->jenis = $gudang->jenis;
         $this->penanggung_jawab = $gudang->penanggung_jawab;
-        $this->kepala_gudang_id = $gudang->kepala_gudang_id ? (string) $gudang->kepala_gudang_id : '';
+        $matchedId = $gudang->kepala_gudang_id
+            ?: ($gudang->penanggung_jawab ? User::where('nama', $gudang->penanggung_jawab)->value('id') : null)
+            ?: User::where('gudang_id', $gudang->id)->whereHas('roles', fn ($q) => $q->where('name', 'kepala_gudang'))->value('id');
+        $this->kepala_gudang_id = $matchedId ? (string) $matchedId : '';
         $this->lokasi_gedung = $gudang->lokasi_gedung;
         $this->status = $gudang->status;
         $this->showModal = true;

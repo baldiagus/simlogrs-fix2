@@ -141,6 +141,114 @@ class PenggunaSeeder extends Seeder
                 'unit_kode' => 'SPI',
                 'gudang_kode' => 'GUD_SENTRAL',
             ],
+            [
+                'nama' => 'Ir. Gunawan, S.T.',
+                'nip' => '198305142008011009',
+                'username' => 'karu_ipsrs',
+                'email' => 'karu_ipsrs@simlogrs.local',
+                'password' => $defaultPassword,
+                'no_telepon' => '081234567821',
+                'status' => 'AKTIF',
+                'role' => 'kepala_unit',
+                'unit_kode' => 'IPSRS',
+                'gudang_kode' => null,
+            ],
+            [
+                'nama' => 'dr. Handayani, Sp.An-KIC',
+                'nip' => '198109202007012005',
+                'username' => 'karu_icu',
+                'email' => 'karu_icu@simlogrs.local',
+                'password' => $defaultPassword,
+                'no_telepon' => '081234567822',
+                'status' => 'AKTIF',
+                'role' => 'kepala_unit',
+                'unit_kode' => 'ICU',
+                'gudang_kode' => null,
+            ],
+            [
+                'nama' => 'Ns. Ratna, S.Kep',
+                'nip' => '198603172010012008',
+                'username' => 'karu_rawat1',
+                'email' => 'karu_rawat1@simlogrs.local',
+                'password' => $defaultPassword,
+                'no_telepon' => '081234567823',
+                'status' => 'AKTIF',
+                'role' => 'kepala_unit',
+                'unit_kode' => 'RAWAT_1',
+                'gudang_kode' => null,
+            ],
+            [
+                'nama' => 'Apt. Wulandari, S.Farm',
+                'nip' => '198902112014022006',
+                'username' => 'karu_farmasi',
+                'email' => 'karu_farmasi@simlogrs.local',
+                'password' => $defaultPassword,
+                'no_telepon' => '081234567824',
+                'status' => 'AKTIF',
+                'role' => 'kepala_unit',
+                'unit_kode' => 'FARMASI',
+                'gudang_kode' => null,
+            ],
+            [
+                'nama' => 'dr. Siregar, Sp.PK',
+                'nip' => '197904252005011004',
+                'username' => 'karu_lab',
+                'email' => 'karu_lab@simlogrs.local',
+                'password' => $defaultPassword,
+                'no_telepon' => '081234567825',
+                'status' => 'AKTIF',
+                'role' => 'kepala_unit',
+                'unit_kode' => 'LAB',
+                'gudang_kode' => null,
+            ],
+            [
+                'nama' => 'Drs. Hendrawan, M.M.',
+                'nip' => '197608122000031003',
+                'username' => 'karu_logistik',
+                'email' => 'karu_logistik@simlogrs.local',
+                'password' => $defaultPassword,
+                'no_telepon' => '081234567826',
+                'status' => 'AKTIF',
+                'role' => 'kepala_unit',
+                'unit_kode' => 'LOGISTIK',
+                'gudang_kode' => null,
+            ],
+            [
+                'nama' => 'Sujono',
+                'nip' => '198411122009011005',
+                'username' => 'kagud_ipsrs',
+                'email' => 'kagud_ipsrs@simlogrs.local',
+                'password' => $defaultPassword,
+                'no_telepon' => '081234567831',
+                'status' => 'AKTIF',
+                'role' => 'kepala_gudang',
+                'unit_kode' => null,
+                'gudang_kode' => 'GUD_IPSRS',
+            ],
+            [
+                'nama' => 'Nurul Aini',
+                'nip' => '199001052015022004',
+                'username' => 'kagud_atk',
+                'email' => 'kagud_atk@simlogrs.local',
+                'password' => $defaultPassword,
+                'no_telepon' => '081234567832',
+                'status' => 'AKTIF',
+                'role' => 'kepala_gudang',
+                'unit_kode' => null,
+                'gudang_kode' => 'GUD_ATK',
+            ],
+            [
+                'nama' => 'Dedy Kusuma',
+                'nip' => '198706182011011007',
+                'username' => 'kagud_b3',
+                'email' => 'kagud_b3@simlogrs.local',
+                'password' => $defaultPassword,
+                'no_telepon' => '081234567833',
+                'status' => 'AKTIF',
+                'role' => 'kepala_gudang',
+                'unit_kode' => null,
+                'gudang_kode' => 'GUD_B3',
+            ],
         ];
 
         foreach ($users as $u) {
@@ -181,15 +289,28 @@ class PenggunaSeeder extends Seeder
             }
         }
 
-        // Tetapkan kepala unit & kepala gudang berdasarkan role pengguna yang baru di-seed
-        $kepalaUnit = User::whereHas('roles', fn ($q) => $q->where('name', 'kepala_unit'))->first();
-        if ($kepalaUnit?->unit_id) {
-            Unit::where('id', $kepalaUnit->unit_id)->update(['kepala_unit_id' => $kepalaUnit->id]);
+        // Tetapkan kepala unit pada setiap unit berdasarkan nama penanggung jawab atau role pimpinan unit
+        foreach (Unit::all() as $unit) {
+            $user = User::where('nama', $unit->penanggung_jawab)->first()
+                ?? User::where('unit_id', $unit->id)->whereHas('roles', fn ($q) => $q->whereIn('name', ['kepala_unit', 'manajemen', 'auditor']))->first();
+            if ($user) {
+                $unit->update([
+                    'kepala_unit_id' => $user->id,
+                    'penanggung_jawab' => $user->nama,
+                ]);
+            }
         }
 
-        $kepalaGudang = User::whereHas('roles', fn ($q) => $q->where('name', 'kepala_gudang'))->first();
-        if ($kepalaGudang?->gudang_id) {
-            Gudang::where('id', $kepalaGudang->gudang_id)->update(['kepala_gudang_id' => $kepalaGudang->id]);
+        // Tetapkan kepala gudang pada setiap fasilitas gudang berdasarkan penanggung jawab atau role kepala gudang
+        foreach (Gudang::all() as $gudang) {
+            $user = User::where('nama', $gudang->penanggung_jawab)->first()
+                ?? User::where('gudang_id', $gudang->id)->whereHas('roles', fn ($q) => $q->where('name', 'kepala_gudang'))->first();
+            if ($user) {
+                $gudang->update([
+                    'kepala_gudang_id' => $user->id,
+                    'penanggung_jawab' => $user->nama,
+                ]);
+            }
         }
     }
 }
