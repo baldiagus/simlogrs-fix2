@@ -171,8 +171,8 @@ class AsetApiController extends ApiController
             ->where('status', 'TERSEDIA')
             ->where('kondisi', 'BAIK')
             ->with(['barang.kategori:id,nama', 'barang.satuan:id,nama', 'barang.merek:id,nama', 'unit:id,kode,nama', 'gudang:id,kode,nama', 'lokasiGudang:id,kode,nama'])
-            // Jangan meminjam aset dari ruangan sendiri (dikecualikan untuk role manajemen/admin global)
-            ->when($user->unit_id && ! $user->hasRole(['super_admin', 'admin_logistik', 'manajemen']), function ($q) use ($user) {
+            // Jangan meminjam aset dari ruangan sendiri (selaras dengan validasi web)
+            ->when($user->unit_id, function ($q) use ($user) {
                 $q->where(function ($sub) use ($user) {
                     $sub->whereNull('unit_id')
                         ->orWhere('unit_id', '!=', $user->unit_id);
@@ -394,8 +394,8 @@ class AsetApiController extends ApiController
         $unitPenyediaId = $isRuangan ? $aset->unit_id : null;
         $gudangPenyediaId = ! $isRuangan ? $aset->gudang_id : null;
 
-        if ($isRuangan && (int) $unitPenyediaId === (int) $unitPeminjamId && ! $user->hasRole(['super_admin', 'manajemen'])) {
-            return $this->jsonError('Unit penyedia tidak boleh sama dengan unit peminjam.', 422);
+        if ($isRuangan && (int) $unitPenyediaId === (int) $unitPeminjamId) {
+            return $this->jsonError('Unit penyedia tidak boleh sama dengan unit peminjam. Aset sudah berada di unit Anda.', 422);
         }
 
         try {
