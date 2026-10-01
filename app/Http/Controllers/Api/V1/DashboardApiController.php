@@ -18,6 +18,7 @@ use App\Models\Unit;
 use App\Models\StokOpname;
 use App\Models\TemuanAudit;
 use Carbon\Carbon;
+use App\Services\Anggaran\AnggaranRealtimeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -647,32 +648,32 @@ class DashboardApiController extends ApiController
         // KASUS 7: MANAJEMEN DIREKSI (EKSEKUTIF)
         // -------------------------------------------------------------
         elseif ($isManajemen) {
-            $valuasiPersediaan = (float) StokBatch::where('status', 'AKTIF')
-                ->selectRaw('COALESCE(SUM(jumlah * harga_satuan), 0) as total')
-                ->value('total');
+            $tahun = date('Y');
+            $service = app(AnggaranRealtimeService::class);
+            $anggaranEksekutif = $service->getRingkasanEksekutif($tahun);
 
-            $totalAset = Aset::count();
-            $asetBaik = Aset::where('kondisi', 'BAIK')->count();
-            $indeksKelaikan = $totalAset > 0 ? round(($asetBaik / $totalAset) * 100, 1) : 100;
+            $totalPengeluaran = (float) $anggaranEksekutif['total_realisasi_global'];
+            $totalAmprah = (float) $anggaranEksekutif['total_realisasi_distribusi'];
+            $totalSparepart = (float) $anggaranEksekutif['total_realisasi_sparepart'];
+            $unitAktifCount = Unit::where('status', 'AKTIF')->count();
 
-            $totalTemuan = TemuanAudit::count();
-            $closedTemuan = TemuanAudit::where('status_capa', 'Closed')->count();
-            $closingRate = $totalTemuan > 0 ? round(($closedTemuan / $totalTemuan) * 100, 1) : 100;
-
-            $spkMendesakCount = PermintaanMaintenance::whereIn('prioritas', ['CITO', 'TINGGI'])
-                ->whereNotIn('status', ['SELESAI', 'DIBATALKAN'])
-                ->count();
+            $totalDisplay = $totalPengeluaran >= 1000000
+                ? round($totalPengeluaran / 1000000, 1)
+                : ($totalPengeluaran > 0 ? round($totalPengeluaran / 1000, 0) : 0);
+            $satuanDisplay = $totalPengeluaran >= 1000000
+                ? 'Jt Rp'
+                : ($totalPengeluaran > 0 ? 'Ribu Rp' : 'Rp');
 
             $hero = [
-                'judul'        => 'Valuasi & Tata Kelola Eksekutif',
-                'total'        => round($valuasiPersediaan / 1000000, 1),
-                'satuan'       => 'Jt Rp',
-                'label_tombol' => 'Audit & Mutasi',
-                'target_aksi'  => 'audit_spi',
+                'judul'        => 'Pengeluaran Logistik & IPSRS',
+                'total'        => $totalDisplay,
+                'satuan'       => $satuanDisplay,
+                'label_tombol' => 'Pengeluaran RS',
+                'target_aksi'  => 'pagu_realisasi',
                 'sub_metrik'   => [
-                    ['label' => 'Kelaikan Sarana', 'nilai' => $indeksKelaikan . '%', 'warna' => 'blue'],
-                    ['label' => 'Closing CAPA', 'nilai' => $closingRate . '%', 'warna' => 'purple'],
-                    ['label' => 'SPK Prioritas', 'nilai' => (string) $spkMendesakCount, 'warna' => 'danger'],
+                    ['label' => 'Amprah Logistik', 'nilai' => 'Rp ' . number_format($totalAmprah, 0, ',', '.'), 'warna' => 'teal'],
+                    ['label' => 'Sparepart Servis', 'nilai' => 'Rp ' . number_format($totalSparepart, 0, ',', '.'), 'warna' => 'purple'],
+                    ['label' => 'Unit Terlayani', 'nilai' => $unitAktifCount . ' Ruangan', 'warna' => 'blue'],
                 ],
             ];
 
