@@ -10,6 +10,7 @@ use App\Models\PenerimaanDistribusi;
 use App\Models\PenerimaanDistribusiDetail;
 use App\Models\PengirimanBarang;
 use App\Models\StokRuangan;
+use App\Models\Aset;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
@@ -112,6 +113,7 @@ class PenerimaanBarangIndex extends Component
                     'diterima_oleh'        => auth()->id(),
                 ]);
 
+                $hasAssetItem = false;
                 // For each detail in $sppb->detail:
                 foreach ($sppb->detail as $detail) {
                     // Create PenerimaanDistribusiDetail
@@ -121,18 +123,66 @@ class PenerimaanBarangIndex extends Component
                         'jumlah_diterima'          => $detail->jumlah_dikirim,
                     ]);
 
-                    // Add/Increment StokRuangan
-                    $stok = StokRuangan::firstOrCreate(
-                        [
-                            'unit_id'   => $sppb->unit_id,
-                            'barang_id' => $detail->barang_id,
-                        ],
-                        [
-                            'jumlah' => 0,
-                        ]
-                    );
+                    $barang = $detail->barang;
+                    $isAset = $barang && ($barang->tipe === 'ASET' || str_contains(strtoupper($barang->kategori?->nama ?? ''), 'ASET'));
+                    $qty = (int) $detail->jumlah_dikirim;
 
-                    $stok->increment('jumlah', $detail->jumlah_dikirim);
+                    if ($isAset) {
+                        $hasAssetItem = true;
+                        // 1. Cek apakah ada unit fisik aset di gudang pengirim yang siap dialihkan
+                        $existingGudangAsets = Aset::where('barang_id', $detail->barang_id)
+                            ->where('gudang_id', $sppb->gudang_id)
+                            ->whereNull('unit_id')
+                            ->where('status', 'TERSEDIA')
+                            ->limit($qty)
+                            ->get();
+
+                        $transferredCount = 0;
+                        foreach ($existingGudangAsets as $asetGudang) {
+                            $asetGudang->update([
+                                'unit_id'          => $sppb->unit_id,
+                                'gudang_id'        => null,
+                                'lokasi_gudang_id' => null,
+                                'status'           => 'TERSEDIA',
+                                'kondisi'          => 'BAIK',
+                            ]);
+                            $transferredCount++;
+                        }
+
+                        // 2. Jika belum ada unit aset di gudang, daftarkan otomatis ke register aset ruangan
+                        $remainingToCreate = $qty - $transferredCount;
+                        for ($i = 0; $i < $remainingToCreate; $i++) {
+                            $kodeAset = CodeGenerator::generate('AST', Aset::class, 'kode_aset');
+                            $batch = $detail->stokBatch;
+                            $nilaiPerolehan = (float) ($batch?->harga_satuan ?: ($barang->harga_beli_terakhir ?: ($barang->harga_estimasi ?: 0)));
+                            $nomorSeri = $batch?->nomor_batch ?: ('SN-' . $barang->kode . '-' . date('Ymd') . '-' . str_pad((string) ($i + 1), 3, '0', STR_PAD_LEFT));
+
+                            Aset::create([
+                                'barang_id'         => $barang->id,
+                                'unit_id'           => $sppb->unit_id,
+                                'gudang_id'         => null,
+                                'lokasi_gudang_id'  => null,
+                                'kode_aset'         => $kodeAset,
+                                'nomor_seri'        => $nomorSeri,
+                                'tanggal_perolehan' => now()->toDateString(),
+                                'nilai_perolehan'   => $nilaiPerolehan,
+                                'kondisi'           => 'BAIK',
+                                'status'            => 'TERSEDIA',
+                            ]);
+                        }
+                    } else {
+                        // Komoditas habis pakai atau sparepart: catat ke stok_ruangan
+                        $stok = StokRuangan::firstOrCreate(
+                            [
+                                'unit_id'   => $sppb->unit_id,
+                                'barang_id' => $detail->barang_id,
+                            ],
+                            [
+                                'jumlah' => 0,
+                            ]
+                        );
+                        $stok->increment('jumlah', $qty);
+                    }
                 }
 
                 // Update status SPPB
@@ -151,7 +201,10 @@ class PenerimaanBarangIndex extends Component
         $this->showDetailModal = false;
         $this->selectedSppb = null;
 
-        $this->toast("Barang dari SPPB {$sppb->kode} berhasil diterima dan ditambahkan ke stok ruangan!", 'success');
+        $msg = ($hasAssetItem ?? false)
+            ? "Barang dari SPPB {$sppb->kode} berhasil diterima dan didaftarkan ke inventaris aset unit Anda!"
+            : "Barang dari SPPB {$sppb->kode} berhasil diterima dan ditambahkan ke stok ruangan!";
+        $this->toast($msg, 'success');
     }
 
     protected function authorizePenerimaan(): void
