@@ -9,6 +9,7 @@ use App\Models\PesananPembelian;
 use App\Models\PesananPembelianDetail;
 use App\Models\PermintaanPengadaan;
 use App\Models\PermintaanPengadaanDetail;
+use App\Models\StokBatch;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,6 +46,11 @@ class PengadaanApiController extends ApiController
                     'SPAREPART' => 'Suku Cadang IPSRS',
                     default     => 'Habis Pakai (ATK/ART)',
                 };
+                $stokGudang = (int) StokBatch::where('barang_id', $b->id)
+                    ->where('status', 'AKTIF')
+                    ->where('jumlah', '>', 0)
+                    ->sum('jumlah');
+
                 return [
                     'id'             => $b->id,
                     'kode'           => $b->kode,
@@ -56,6 +62,7 @@ class PengadaanApiController extends ApiController
                     'satuan'         => $b->satuan?->nama ?? 'Pcs',
                     'merek'          => $b->merek?->nama ?? '-',
                     'harga_estimasi' => (float) ($b->harga_estimasi ?? 0),
+                    'stok'           => $stokGudang,
                 ];
             });
 
