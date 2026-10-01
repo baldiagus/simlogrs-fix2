@@ -157,6 +157,7 @@ class MaintenanceApiController extends ApiController
         }
 
         $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('teknisi') || $user->hasRole('kepala_teknisi') || $user->hasRole('auditor') || $user->hasRole('manajemen');
+        $userUnitId = $user->unit_id;
         $userGudangId = $user->gudang_id;
         $filterStatus = $request->query('status');
         $filterPrioritas = $request->query('prioritas');
@@ -387,6 +388,8 @@ class MaintenanceApiController extends ApiController
         if (! $canViewAll && ! $user->can('view_pemeliharaan::spk::perbaikan') && ! $user->hasRole(['teknisi', 'kepala_teknisi'])) {
             return $this->jsonError('Anda tidak memiliki wewenang melihat daftar SPK teknisi.', 403);
         }
+
+        $filterStatus = $request->query('status'); // DITUGASKAN, DITERIMA, SELESAI
         $spks = PenugasanMaintenance::with([
             'permintaanMaintenance.aset.barang',
             'permintaanMaintenance.unit',
