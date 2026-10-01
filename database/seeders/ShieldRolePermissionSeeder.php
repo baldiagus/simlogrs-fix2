@@ -195,7 +195,6 @@ class ShieldRolePermissionSeeder extends Seeder
         // 11. Role: kepala_teknisi (Koordinator IPSRS)
         $givePermissions('kepala_teknisi', [
             'page_TeknisiDashboard',
-            'page_KepalaUnitDashboard',
             '%_pemeliharaan::%',
             '%_layanan_unit::lapor::servis%',
             '%_pengadaan::permintaan::pengadaan%',

@@ -42,6 +42,21 @@
         ];
         $currentPortal = $portalMeta[$portalKey] ?? $portalMeta['super-admin'];
 
+        $userRole = $user?->roles?->where('name', '!=', 'panel_user')->first();
+        $userRoleLabel = match($userRole?->name) {
+            'kepala_teknisi' => 'Kepala / Koordinator Teknisi IPSRS',
+            'teknisi'        => 'Teknisi Sarana & IPSRS',
+            'super_admin'    => 'Super Administrator',
+            'admin_logistik' => 'Admin Logistik',
+            'kepala_gudang'  => 'Kepala Gudang',
+            'petugas_gudang' => 'Petugas Gudang',
+            'pengadaan'      => 'Bagian Pengadaan',
+            'kepala_unit'    => 'Kepala Ruangan / Unit',
+            'petugas_unit'   => 'Petugas / Staf Ruangan',
+            'manajemen'      => 'Manajemen Direksi',
+            'auditor'        => 'Auditor Internal (SPI)',
+            default          => $currentPortal['label'],
+        };
         // Evaluasi grup sidebar aktif (tertutup default, terbuka otomatis di rute aktif)
         $isMasterActive = request()->is(
             '*/barang', '*/barang/*',
@@ -374,8 +389,8 @@
 
         <div class="flex items-center gap-2">
             <span class="text-xs text-zinc-400 font-medium hidden sm:inline">Ruang Kerja:</span>
-            <flux:badge size="sm" :color="$currentPortal['badge']" class="font-semibold uppercase tracking-wider text-[10px]">
-                {{ $currentPortal['label'] }}
+            <flux:badge size="sm" :color="($user?->hasRole('kepala_teknisi') && $portalKey === 'teknisi') ? 'violet' : $currentPortal['badge']" class="font-semibold uppercase tracking-wider text-[10px]">
+                {{ ($user?->hasRole('kepala_teknisi') && $portalKey === 'teknisi') ? 'Kepala Teknisi' : $currentPortal['label'] }}
             </flux:badge>
         </div>
 
@@ -412,7 +427,7 @@
                 <div class="px-3 py-2 text-xs border-b border-zinc-100 dark:border-zinc-800">
                     <div class="font-bold text-zinc-900 dark:text-zinc-100">{{ $user?->nama }}</div>
                     <div class="font-mono text-[11px] text-zinc-400">{{ $user?->email }}</div>
-                    <div class="text-[10px] text-zinc-500 mt-1 uppercase font-semibold">Peran: {{ $currentPortal['label'] }}</div>
+                    <div class="text-[10px] text-zinc-500 mt-1 uppercase font-semibold">Peran: {{ $userRoleLabel }}</div>
                 </div>
 
                 <flux:menu.separator />

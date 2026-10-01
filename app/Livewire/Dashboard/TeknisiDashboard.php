@@ -8,11 +8,26 @@ class TeknisiDashboard extends Component
 {
     public function render()
     {
-        abort_unless(auth()->user()?->can('page_TeknisiDashboard'), 403);
+        $user = auth()->user();
+        abort_unless($user?->can('page_TeknisiDashboard'), 403);
+
+        $isKepalaTeknisi = $user->hasRole('kepala_teknisi');
+
+        $portalTitle = $isKepalaTeknisi
+            ? 'Pusat Komando & Dashboard Kepala Teknisi IPSRS'
+            : 'Dashboard Teknisi Sarana & IPSRS';
+
+        $portalSubtitle = $isKepalaTeknisi
+            ? 'Pengawasan tiket perbaikan ruangan, disposisi SPK teknisi, pemeliharaan preventif berkala, dan inventaris sarana RS.'
+            : 'Disposisi SPK perbaikan, lembar kerja pengerjaan, pemakaian suku cadang, dan kalender servis.';
+
+        $title = $isKepalaTeknisi
+            ? 'Pusat Komando Kepala Teknisi IPSRS'
+            : 'Dashboard Teknisi IPSRS';
 
         return view('livewire.dashboard.portal-dashboard', [
-            'portalTitle' => 'Dashboard Teknisi Sarana & IPSRS',
-            'portalSubtitle' => 'Disposisi SPK perbaikan, lembar kerja pengerjaan, pemakaian suku cadang, dan kalender servis.',
-        ])->layout('layouts.portal', ['portal' => 'teknisi', 'title' => 'Dashboard Teknisi IPSRS']);
+            'portalTitle' => $portalTitle,
+            'portalSubtitle' => $portalSubtitle,
+        ])->layout('layouts.portal', ['portal' => 'teknisi', 'title' => $title]);
     }
 }

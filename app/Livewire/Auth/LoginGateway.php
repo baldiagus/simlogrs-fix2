@@ -64,6 +64,10 @@ class LoginGateway extends Component
 
     protected function resolvePortalUrl($user): string
     {
+        if ($user->hasRole('kepala_teknisi')) {
+            return '/teknisi/dashboard';
+        }
+
         $portalMap = [
             'page_Dashboard'              => '/super-admin/dashboard',
             'page_AdminLogistikDashboard' => '/admin-logistik/dashboard',
