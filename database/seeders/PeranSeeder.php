@@ -21,6 +21,7 @@ class PeranSeeder extends Seeder
             ['kode' => 'pengadaan', 'nama' => 'Bagian Pengadaan', 'deskripsi' => 'Pelaksana verifikasi PR, penerbitan PO vendor, dan kontrol serapan pagu'],
             ['kode' => 'kepala_unit', 'nama' => 'Kepala Ruangan / Unit', 'deskripsi' => 'Otorisator permohonan pengadaan, amprah ruangan, dan izin pinjam aset'],
             ['kode' => 'petugas_unit', 'nama' => 'Petugas / Staf Ruangan', 'deskripsi' => 'Penginput amprah barang rutin, lapor kerusakan sarana, dan terima distribusi'],
+            ['kode' => 'kepala_teknisi', 'nama' => 'Kepala / Koordinator Teknisi IPSRS', 'deskripsi' => 'Pengatur tiket perbaikan, disposisi SPK, pengadaan sparepart/alat, dan pengelola preventif maintenance'],
             ['kode' => 'teknisi', 'nama' => 'Teknisi Sarana & IPSRS', 'deskripsi' => 'Pelaksana SPK perbaikan, lembar kerja teknisi, dan pemeliharaan preventif'],
             ['kode' => 'manajemen', 'nama' => 'Manajemen Direksi', 'deskripsi' => 'Pemantau eksekutif realisasi anggaran, valuasi persediaan, dan CAPA'],
             ['kode' => 'auditor', 'nama' => 'Auditor Internal (SPI)', 'deskripsi' => 'Pengawas kepatuhan prosedur, forensik audit trail, dan register CAPA'],

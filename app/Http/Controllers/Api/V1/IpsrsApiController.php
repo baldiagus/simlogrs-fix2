@@ -117,6 +117,7 @@ class IpsrsApiController extends ApiController
 
         $canExecute = $user && (
             $user->hasRole('teknisi') ||
+            $user->hasRole('kepala_teknisi') ||
             $user->hasRole('admin_logistik') ||
             $user->hasRole('super_admin') ||
             $user->can('create_pemeliharaan::spk::perbaikan')

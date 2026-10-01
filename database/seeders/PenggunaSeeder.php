@@ -149,7 +149,7 @@ class PenggunaSeeder extends Seeder
                 'password' => $defaultPassword,
                 'no_telepon' => '081234567821',
                 'status' => 'AKTIF',
-                'role' => 'kepala_unit',
+                'role' => 'kepala_teknisi',
                 'unit_kode' => 'IPSRS',
                 'gudang_kode' => null,
             ],
@@ -292,7 +292,7 @@ class PenggunaSeeder extends Seeder
         // Tetapkan kepala unit pada setiap unit berdasarkan nama penanggung jawab atau role pimpinan unit
         foreach (Unit::all() as $unit) {
             $user = User::where('nama', $unit->penanggung_jawab)->first()
-                ?? User::where('unit_id', $unit->id)->whereHas('roles', fn ($q) => $q->whereIn('name', ['kepala_unit', 'manajemen', 'auditor']))->first();
+                ?? User::where('unit_id', $unit->id)->whereHas('roles', fn ($q) => $q->whereIn('name', ['kepala_unit', 'manajemen', 'auditor', 'kepala_teknisi']))->first();
             if ($user) {
                 $unit->update([
                     'kepala_unit_id' => $user->id,

@@ -71,7 +71,7 @@ class UnitIndex extends Component
         $this->penanggung_jawab = $unit->penanggung_jawab;
         $matchedId = $unit->kepala_unit_id
             ?: ($unit->penanggung_jawab ? User::where('nama', $unit->penanggung_jawab)->value('id') : null)
-            ?: User::where('unit_id', $unit->id)->whereHas('roles', fn ($q) => $q->whereIn('name', ['kepala_unit', 'manajemen', 'auditor']))->value('id');
+            ?: User::where('unit_id', $unit->id)->whereHas('roles', fn ($q) => $q->whereIn('name', ['kepala_unit', 'manajemen', 'auditor', 'kepala_teknisi']))->value('id');
         $this->kepala_unit_id = $matchedId ? (string) $matchedId : '';
         $this->lokasi_gedung = $unit->lokasi_gedung;
         $this->status = $unit->status;

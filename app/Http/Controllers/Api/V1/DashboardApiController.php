@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\ApiController;
 use App\Models\PenugasanMaintenance;
+use App\Models\JadwalMaintenance;
 use App\Models\PenyesuaianStok;
 use App\Models\PermintaanDistribusi;
 use App\Models\PermintaanMaintenance;
@@ -36,21 +37,103 @@ class DashboardApiController extends ApiController
 
         $roles = $user->getRoleNames()->toArray();
         $isSuperAdmin = in_array('super_admin', $roles);
-        $isTeknisi = ! $isSuperAdmin && (in_array('teknisi', $roles) || $user->can('page_TeknisiDashboard'));
+        $isKepalaTeknisi = in_array('kepala_teknisi', $roles) || $user->hasRole('kepala_teknisi');
+        $isTeknisi = ! $isSuperAdmin && ! $isKepalaTeknisi && (in_array('teknisi', $roles) || $user->can('page_TeknisiDashboard'));
         $isPetugasGudang = in_array('petugas_gudang', $roles);
         $isKepalaGudang = $isSuperAdmin || in_array('kepala_gudang', $roles) || in_array('admin_logistik', $roles);
-        $isKaru = in_array('kepala_unit', $roles) || $user->can('page_KepalaUnitDashboard');
+        $isKaru = in_array('kepala_unit', $roles) || $user->can('page_KepalaUnitDashboard') || $isKepalaTeknisi;
         $isAuditor = in_array('auditor', $roles) || $user->can('page_AuditorDashboard');
         $isManajemen = in_array('manajemen', $roles) || $user->can('page_ManajemenDashboard');
-        $isPetugasUnit = (in_array('petugas_unit', $roles) || (! empty($user->unit_id) && ! $isKaru)) && ! $isAuditor && ! $isManajemen;
+        $isPetugasUnit = (in_array('petugas_unit', $roles) || (! empty($user->unit_id) && ! $isKaru)) && ! $isAuditor && ! $isManajemen && ! $isKepalaTeknisi;
 
         $hero = [];
         $activities = [];
 
         // -------------------------------------------------------------
-        // KASUS 1: TEKNISI IPSRS
+        // KASUS 0: KEPALA / KOORDINATOR TEKNISI IPSRS
         // -------------------------------------------------------------
-        if ($isTeknisi) {
+        if ($isKepalaTeknisi) {
+            $tiketMasuk = PermintaanMaintenance::whereIn('status', ['DILAPORKAN', 'MENUNGGU_SPK'])->count();
+            $spkAktif = PenugasanMaintenance::whereIn('status', ['DITUGASKAN', 'DITERIMA'])->count();
+            $preventifJatuhTempo = JadwalMaintenance::where('status', 'AKTIF')
+                ->whereDate('tanggal_berikutnya', '<=', now()->toDateString())
+                ->count();
+            $prMenunggu = PermintaanPengadaan::where('unit_id', $user->unit_id)
+                ->where('status', 'DIAJUKAN')
+                ->count();
+
+            $totalAksi = $tiketMasuk + $spkAktif + $preventifJatuhTempo + $prMenunggu;
+
+            $hero = [
+                'judul'        => 'Pusat Komando & Disposisi IPSRS',
+                'total'        => $totalAksi,
+                'satuan'       => 'Agenda',
+                'label_tombol' => 'Disposisi & Otorisasi',
+                'target_aksi'  => 'approval',
+                'sub_metrik'   => [
+                    ['label' => 'Tiket Masuk', 'nilai' => (string) $tiketMasuk, 'warna' => 'danger'],
+                    ['label' => 'SPK Berjalan', 'nilai' => (string) $spkAktif, 'warna' => 'blue'],
+                    ['label' => 'Preventif Due', 'nilai' => (string) $preventifJatuhTempo, 'warna' => 'warning'],
+                    ['label' => 'Otorisasi PR', 'nilai' => (string) $prMenunggu, 'warna' => 'purple'],
+                ],
+            ];
+
+            $tiketList = PermintaanMaintenance::whereIn('status', ['DILAPORKAN', 'MENUNGGU_SPK'])
+                ->with(['aset.barang', 'unit', 'pelapor'])
+                ->latest('id')
+                ->take(10)
+                ->get()
+                ->map(fn ($t) => [
+                    'id'         => $t->id,
+                    'tipe'       => 'TIKET',
+                    'kode'       => $t->kode,
+                    'judul'      => 'Tiket: ' . ($t->aset?->barang?->nama ?? 'Sarana Medis'),
+                    'subjudul'   => ($t->unit?->nama ?? 'Unit') . ' • Prioritas ' . $t->prioritas,
+                    'status'     => $t->status,
+                    'waktu_lalu' => $this->diffForHumans($t->dibuat_pada),
+                    'timestamp'  => $t->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            $spkList = PenugasanMaintenance::whereIn('status', ['DITUGASKAN', 'DITERIMA'])
+                ->with(['permintaanMaintenance.aset.barang', 'permintaanMaintenance.unit', 'teknisi'])
+                ->latest('id')
+                ->take(10)
+                ->get()
+                ->map(fn ($s) => [
+                    'id'         => $s->id,
+                    'tipe'       => 'SPK',
+                    'kode'       => $s->kode,
+                    'judul'      => 'SPK: ' . ($s->permintaanMaintenance?->aset?->barang?->nama ?? 'Perbaikan'),
+                    'subjudul'   => 'Teknisi: ' . ($s->teknisi?->nama ?? '-') . ' (' . ($s->permintaanMaintenance?->unit?->nama ?? 'Unit') . ')',
+                    'status'     => $s->status,
+                    'waktu_lalu' => $this->diffForHumans($s->dibuat_pada),
+                    'timestamp'  => $s->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            $prList = PermintaanPengadaan::where('unit_id', $user->unit_id)
+                ->where('status', 'DIAJUKAN')
+                ->with(['pengaju:id,nama', 'detail'])
+                ->latest('id')
+                ->take(10)
+                ->get()
+                ->map(fn ($p) => [
+                    'id'         => $p->id,
+                    'tipe'       => 'PR',
+                    'kode'       => $p->kode,
+                    'judul'      => 'PR Sparepart: ' . $p->detail->count() . ' Barang',
+                    'subjudul'   => 'Pengaju: ' . ($p->pengaju?->nama ?? 'Staf IPSRS') . ' • Urgensi: ' . $p->urgensi,
+                    'status'     => $p->status,
+                    'waktu_lalu' => $this->diffForHumans($p->dibuat_pada),
+                    'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+                ]);
+
+            $activities = $tiketList->concat($spkList)->concat($prList)->sortByDesc('timestamp')->values()->take(30)->toArray();
+        }
+
+        // -------------------------------------------------------------
+        // KASUS 1: TEKNISI IPSRS LAPANGAN
+        // -------------------------------------------------------------
+        elseif ($isTeknisi) {
             $tugasBaru = PenugasanMaintenance::where('teknisi_id', $user->id)
                 ->where('status', 'DITUGASKAN')
                 ->count();

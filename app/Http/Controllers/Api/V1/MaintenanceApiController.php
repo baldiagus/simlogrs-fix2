@@ -34,7 +34,7 @@ class MaintenanceApiController extends ApiController
             $user->can('page_KepalaUnitDashboard') ||
             $user->can('page_AdminLogistikDashboard') ||
             $user->hasRole('kepala_unit') ||
-            $user->hasRole('petugas_unit') ||
+            $user->hasRole('kepala_teknisi') ||
             $user->hasRole('kepala_gudang') ||
             $user->hasRole('petugas_gudang') ||
             $user->hasRole('admin_logistik') ||
@@ -145,7 +145,7 @@ class MaintenanceApiController extends ApiController
             $user->hasRole('petugas_unit') ||
             $user->hasRole('kepala_unit') ||
             $user->hasRole('teknisi') ||
-            $user->hasRole('super_admin') ||
+            $user->hasRole('kepala_teknisi') ||
             $user->hasRole('admin_logistik') ||
             $user->hasRole('kepala_gudang') ||
             $user->hasRole('petugas_gudang') ||
@@ -156,8 +156,7 @@ class MaintenanceApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang melihat daftar tiket kerusakan.', 403);
         }
 
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('teknisi') || $user->hasRole('auditor') || $user->hasRole('manajemen');
-        $userUnitId = $user->unit_id;
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('teknisi') || $user->hasRole('kepala_teknisi') || $user->hasRole('auditor') || $user->hasRole('manajemen');
         $userGudangId = $user->gudang_id;
         $filterStatus = $request->query('status');
         $filterPrioritas = $request->query('prioritas');
@@ -273,9 +272,7 @@ class MaintenanceApiController extends ApiController
 
         $user = $request->user();
         $isPrivileged = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik', 'teknisi', 'auditor', 'manajemen']) ||
-            $user->can('view_any_pemeliharaan::spk::perbaikan') ||
-            $user->can('page_TeknisiDashboard') ||
+            $user->hasRole(['super_admin', 'admin_logistik', 'teknisi', 'kepala_teknisi', 'auditor', 'manajemen']) ||
             $user->can('page_AdminLogistikDashboard') ||
             $user->can('page_AuditorDashboard') ||
             $user->can('page_ManajemenDashboard')
@@ -290,8 +287,7 @@ class MaintenanceApiController extends ApiController
         if (! $isPrivileged && ! $isUnitOwner) {
             return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat tiket pemeliharaan unit lain.', 403);
         }
-
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('teknisi');
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('teknisi') || $user->hasRole('kepala_teknisi');
         $canCancel = $tiket->status === 'DILAPORKAN' && (
             $tiket->dilaporkan_oleh === $user->id ||
             $user->hasRole('kepala_unit') ||
@@ -386,13 +382,11 @@ class MaintenanceApiController extends ApiController
         $canViewAll = $isGlobalAdmin ||
             $user->can('view_any_pemeliharaan::spk::perbaikan') ||
             $user->hasRole('auditor') ||
-            $user->hasRole('manajemen');
-
-        if (! $canViewAll && ! $user->can('view_pemeliharaan::spk::perbaikan') && ! $user->hasRole('teknisi')) {
+            $user->hasRole('manajemen') ||
+            $user->hasRole('kepala_teknisi');
+        if (! $canViewAll && ! $user->can('view_pemeliharaan::spk::perbaikan') && ! $user->hasRole(['teknisi', 'kepala_teknisi'])) {
             return $this->jsonError('Anda tidak memiliki wewenang melihat daftar SPK teknisi.', 403);
         }
-
-        $filterStatus = $request->query('status'); // DITUGASKAN, DITERIMA, SELESAI
         $spks = PenugasanMaintenance::with([
             'permintaanMaintenance.aset.barang',
             'permintaanMaintenance.unit',
@@ -451,8 +445,8 @@ class MaintenanceApiController extends ApiController
         $isGlobalAdmin = $user?->can('page_Dashboard') ||
             $user?->can('page_AdminLogistikDashboard') ||
             $user?->hasRole('super_admin') ||
-            $user?->hasRole('admin_logistik');
-
+            $user?->hasRole('admin_logistik') ||
+            $user?->hasRole('kepala_teknisi');
         if (! $user || (! $isGlobalAdmin && ! $user->can('view_any_pemeliharaan::spk::perbaikan') && ! $user->can('view_pemeliharaan::spk::perbaikan') && ! $user->hasRole('teknisi'))) {
             return $this->jsonError('Anda tidak memiliki wewenang melihat detail SPK.', 403);
         }
@@ -541,8 +535,7 @@ class MaintenanceApiController extends ApiController
             return $this->jsonError('Dokumen SPK tidak ditemukan.', 404);
         }
         $isOwner = (int) $spk->teknisi_id === (int) $user->id;
-        $isSupervisor = $user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_AdminLogistikDashboard');
-
+        $isSupervisor = $user->hasRole(['super_admin', 'admin_logistik', 'kepala_teknisi']) || $user->can('page_AdminLogistikDashboard');
         if (! $isOwner && ! $isSupervisor) {
             return $this->jsonError('Anda hanya diizinkan mengisi lembar kerja untuk SPK yang ditugaskan kepada Anda.', 403);
         }

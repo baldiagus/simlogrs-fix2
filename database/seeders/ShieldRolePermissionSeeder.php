@@ -191,7 +191,29 @@ class ShieldRolePermissionSeeder extends Seeder
             'view_any_master::aset',
             'view_master::aset',
         ]);
-        // 11. Role: teknisi
+        // 11. Role: kepala_teknisi (Koordinator IPSRS)
+        $givePermissions('kepala_teknisi', [
+            'page_TeknisiDashboard',
+            'page_KepalaUnitDashboard',
+            '%_pemeliharaan::%',
+            '%_layanan_unit::lapor::servis%',
+            '%_pengadaan::permintaan::pengadaan%',
+            'create_layanan_unit::peminjaman::aset',
+            'view_any_layanan_unit::peminjaman::aset',
+            'view_layanan_unit::peminjaman::aset',
+            'create_layanan_unit::permintaan::barang',
+            'view_any_layanan_unit::permintaan::barang',
+            'view_layanan_unit::permintaan::barang',
+            'view_any_layanan_unit::approval::karu',
+            'view_layanan_unit::approval::karu',
+            'update_layanan_unit::approval::karu',
+            'view_any_master::%',
+            'view_master::%',
+            'view_any_gudang_stok::stok::batch%',
+            'view_gudang_stok::stok::batch%',
+        ]);
+
+        // 12. Role: teknisi
         $givePermissions('teknisi', [
             'page_TeknisiDashboard',
             '%_pemeliharaan::%',
