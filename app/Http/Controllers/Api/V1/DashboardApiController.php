@@ -657,17 +657,10 @@ class DashboardApiController extends ApiController
             $totalSparepart = (float) $anggaranEksekutif['total_realisasi_sparepart'];
             $unitAktifCount = Unit::where('status', 'AKTIF')->count();
 
-            $totalDisplay = $totalPengeluaran >= 1000000
-                ? round($totalPengeluaran / 1000000, 1)
-                : ($totalPengeluaran > 0 ? round($totalPengeluaran / 1000, 0) : 0);
-            $satuanDisplay = $totalPengeluaran >= 1000000
-                ? 'Jt Rp'
-                : ($totalPengeluaran > 0 ? 'Ribu Rp' : 'Rp');
-
             $hero = [
                 'judul'        => 'Pengeluaran Logistik & IPSRS',
-                'total'        => $totalDisplay,
-                'satuan'       => $satuanDisplay,
+                'total'        => (int) $totalPengeluaran,
+                'satuan'       => 'Rp',
                 'label_tombol' => 'Pengeluaran RS',
                 'target_aksi'  => 'pagu_realisasi',
                 'sub_metrik'   => [
