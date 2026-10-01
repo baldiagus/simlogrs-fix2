@@ -6,6 +6,7 @@ use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
+use App\Models\Aset;
 use App\Models\StokRuangan;
 use App\Models\Unit;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,15 @@ use Livewire\Component;
 class StokRuanganIndex extends Component
 {
     use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
+
+    #[Url(history: true)]
+    public string $activeTab = 'bhp'; // 'bhp' atau 'aset'
+
+    #[Url(history: true)]
+    public string $filterKondisiAset = ''; // '', 'BAIK', 'RUSAK_RINGAN', 'RUSAK_BERAT'
+
+    #[Url(history: true)]
+    public string $filterStatusAset = ''; // '', 'DIGUNAKAN', 'TERSEDIA', 'DIPINJAM'
 
     #[Url(history: true)]
     public string $filterKondisi = ''; // '', 'TERSEDIA', 'HABIS'
@@ -35,6 +45,22 @@ class StokRuanganIndex extends Component
     }
 
     public function updatedFilterUnitId(): void
+    {
+        $this->resetPage();
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->activeTab = $tab;
+        $this->resetPage();
+    }
+
+    public function updatedFilterKondisiAset(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterStatusAset(): void
     {
         $this->resetPage();
     }
@@ -151,9 +177,32 @@ class StokRuanganIndex extends Component
                     ->orWhereHas('unit', fn ($u) => $u->where('nama', 'ilike', "%{$this->search}%"));
                 });
             });
-
         $daftarStok = $query
             ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
+            ->paginate($this->perPage);
+
+        // 2. Query Aset Fisik Ruangan
+        $baseAsetQuery = Aset::query()
+            ->when($effectiveUnitId, fn ($q) => $q->where('unit_id', $effectiveUnitId))
+            ->when(! $effectiveUnitId && ! $isGlobalAdmin, fn ($q) => $q->whereRaw('1 = 0'));
+
+        $countTotalAset = (clone $baseAsetQuery)->count();
+        $countAsetBaik = (clone $baseAsetQuery)->where('kondisi', 'BAIK')->count();
+
+        $asetQuery = (clone $baseAsetQuery)
+            ->with(['barang.kategori', 'barang.satuan', 'unit'])
+            ->when($this->filterKondisiAset, fn ($q) => $q->where('kondisi', $this->filterKondisiAset))
+            ->when($this->filterStatusAset, fn ($q) => $q->where('status', $this->filterStatusAset))
+            ->when($this->search, function ($q) {
+                $q->where(function ($sub) {
+                    $sub->where('kode_aset', 'ilike', "%{$this->search}%")
+                        ->orWhere('nomor_seri', 'ilike', "%{$this->search}%")
+                        ->orWhereHas('barang', fn ($b) => $b->where('nama', 'ilike', "%{$this->search}%"));
+                });
+            });
+
+        $daftarAset = $asetQuery
+            ->orderBy($this->sortBy ?: 'kode_aset', $this->sortDirection === 'desc' ? 'desc' : 'asc')
             ->paginate($this->perPage);
 
         $daftarUnit = $isGlobalAdmin ? Unit::where('status', 'AKTIF')->orderBy('nama')->get(['id', 'nama', 'kode']) : collect();
@@ -163,13 +212,20 @@ class StokRuanganIndex extends Component
             : 'Persediaan Lokal Ruangan';
 
         return view('livewire.distribusi.stok-ruangan-index', [
+            'activeTab'      => $this->activeTab,
             'daftarStok'     => $daftarStok,
+            'daftarAset'     => $daftarAset,
             'daftarUnit'     => $daftarUnit,
             'isGlobalAdmin'  => $isGlobalAdmin,
             'userUnitId'     => $user?->unit_id,
             'countTotalItem' => $countTotalItem,
             'countTersedia'  => $countTersedia,
             'countHabis'     => $countHabis,
+            'countTotalAset' => $countTotalAset,
+            'countAsetBaik'  => $countAsetBaik,
+            'sortBy'         => $this->sortBy,
+            'sortDirection'  => $this->sortDirection,
+            'selectedStok'   => $this->selectedStok,
             'pageTitle'      => $pageTitle,
         ])->layout('layouts.portal', [
             'portal' => $this->getPortalName(),
