@@ -157,9 +157,14 @@ class LaporServisIndex extends Component
 
         $user = auth()->user();
         $userUnitId = $user?->unit_id;
+        $isGlobalViewer = $user && (
+            $user->hasRole(['super_admin', 'admin_logistik', 'teknisi', 'kepala_teknisi', 'auditor', 'manajemen']) ||
+            $user->can('view_any_pemeliharaan::spk::perbaikan') ||
+            $user->can('page_AdminLogistikDashboard')
+        );
 
         $query = PermintaanMaintenance::with(['aset.barang', 'unit', 'pelapor', 'penugasanAktif.teknisi'])
-            ->when($userUnitId, fn ($q) => $q->where('unit_id', $userUnitId))
+            ->when($userUnitId && ! $isGlobalViewer, fn ($q) => $q->where('unit_id', $userUnitId))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterPrioritas, fn ($q) => $q->where('prioritas', $this->filterPrioritas))
             ->when($this->search, function ($q) {

@@ -112,6 +112,7 @@ Route::prefix('v1')->group(function () {
 
         // 12. Modul Teknisi IPSRS: Jadwal Preventif & Rekam Medis Aset
         Route::get('/maintenance/preventif/jadwal', [IpsrsApiController::class, 'jadwalPreventif']);
+        Route::post('/maintenance/preventif/jadwal', [IpsrsApiController::class, 'simpanJadwalPreventif']);
         Route::post('/maintenance/preventif/{id}/eksekusi', [IpsrsApiController::class, 'eksekusiPreventif']);
         Route::get('/maintenance/rekam-medis/katalog', [IpsrsApiController::class, 'katalogRekamMedis']);
         Route::get('/maintenance/rekam-medis/{aset_id}', [IpsrsApiController::class, 'rekamMedisAset']);

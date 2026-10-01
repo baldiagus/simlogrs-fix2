@@ -41,7 +41,7 @@ class DashboardApiController extends ApiController
         $isTeknisi = ! $isSuperAdmin && ! $isKepalaTeknisi && (in_array('teknisi', $roles) || $user->can('page_TeknisiDashboard'));
         $isPetugasGudang = in_array('petugas_gudang', $roles);
         $isKepalaGudang = $isSuperAdmin || in_array('kepala_gudang', $roles) || in_array('admin_logistik', $roles);
-        $isKaru = in_array('kepala_unit', $roles) || $user->can('page_KepalaUnitDashboard') || $isKepalaTeknisi;
+        $isKaru = (in_array('kepala_unit', $roles) || $user->can('page_KepalaUnitDashboard')) && ! $isKepalaTeknisi;
         $isAuditor = in_array('auditor', $roles) || $user->can('page_AuditorDashboard');
         $isManajemen = in_array('manajemen', $roles) || $user->can('page_ManajemenDashboard');
         $isPetugasUnit = (in_array('petugas_unit', $roles) || (! empty($user->unit_id) && ! $isKaru)) && ! $isAuditor && ! $isManajemen && ! $isKepalaTeknisi;
@@ -58,23 +58,23 @@ class DashboardApiController extends ApiController
             $preventifJatuhTempo = JadwalMaintenance::where('status', 'AKTIF')
                 ->whereDate('tanggal_berikutnya', '<=', now()->toDateString())
                 ->count();
-            $prMenunggu = PermintaanPengadaan::where('unit_id', $user->unit_id)
-                ->where('status', 'DIAJUKAN')
+            $spkSelesai = PenugasanMaintenance::where('status', 'SELESAI')
+                ->whereMonth('diperbarui_pada', now()->month)
                 ->count();
 
-            $totalAksi = $tiketMasuk + $spkAktif + $preventifJatuhTempo + $prMenunggu;
+            $totalAksi = $tiketMasuk + $spkAktif + $preventifJatuhTempo;
 
             $hero = [
                 'judul'        => 'Pusat Komando & Disposisi IPSRS',
                 'total'        => $totalAksi,
                 'satuan'       => 'Agenda',
-                'label_tombol' => 'Disposisi & Otorisasi',
-                'target_aksi'  => 'approval',
+                'label_tombol' => 'Buka Komando',
+                'target_aksi'  => 'ipsrs_hub',
                 'sub_metrik'   => [
                     ['label' => 'Tiket Masuk', 'nilai' => (string) $tiketMasuk, 'warna' => 'danger'],
                     ['label' => 'SPK Berjalan', 'nilai' => (string) $spkAktif, 'warna' => 'blue'],
                     ['label' => 'Preventif Due', 'nilai' => (string) $preventifJatuhTempo, 'warna' => 'warning'],
-                    ['label' => 'Otorisasi PR', 'nilai' => (string) $prMenunggu, 'warna' => 'purple'],
+                    ['label' => 'SPK Selesai', 'nilai' => (string) $spkSelesai, 'warna' => 'purple'],
                 ],
             ];
 
@@ -110,24 +110,7 @@ class DashboardApiController extends ApiController
                     'timestamp'  => $s->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
                 ]);
 
-            $prList = PermintaanPengadaan::where('unit_id', $user->unit_id)
-                ->where('status', 'DIAJUKAN')
-                ->with(['pengaju:id,nama', 'detail'])
-                ->latest('id')
-                ->take(10)
-                ->get()
-                ->map(fn ($p) => [
-                    'id'         => $p->id,
-                    'tipe'       => 'PR',
-                    'kode'       => $p->kode,
-                    'judul'      => 'PR Sparepart: ' . $p->detail->count() . ' Barang',
-                    'subjudul'   => 'Pengaju: ' . ($p->pengaju?->nama ?? 'Staf IPSRS') . ' • Urgensi: ' . $p->urgensi,
-                    'status'     => $p->status,
-                    'waktu_lalu' => $this->diffForHumans($p->dibuat_pada),
-                    'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
-                ]);
-
-            $activities = $tiketList->concat($spkList)->concat($prList)->sortByDesc('timestamp')->values()->take(30)->toArray();
+            $activities = $tiketList->concat($spkList)->sortByDesc('timestamp')->values()->take(30)->toArray();
         }
 
         // -------------------------------------------------------------

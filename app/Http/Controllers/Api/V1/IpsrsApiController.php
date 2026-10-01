@@ -179,6 +179,66 @@ class IpsrsApiController extends ApiController
     }
 
     /**
+     * Tambah Jadwal Pemeliharaan Preventif Baru (Khusus Kepala Teknisi / Super Admin)
+     * POST /v1/maintenance/preventif/jadwal
+     */
+    public function simpanJadwalPreventif(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $canCreate = $user && (
+            $user->can('create_pemeliharaan::pemeliharaan::berkala') ||
+            $user->hasRole('kepala_teknisi') ||
+            $user->hasRole('super_admin')
+        );
+
+        if (! $canCreate) {
+            return $this->jsonError('Hanya Kepala / Koordinator Teknisi yang berwenang menambahkan jadwal preventif.', 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'aset_id'            => 'required|exists:aset,id',
+            'jenis_maintenance'  => 'required|string|max:150',
+            'interval_nilai'     => 'required|integer|min:1',
+            'interval_tipe'      => 'required|in:HARI,MINGGU,BULAN,TAHUN',
+            'tanggal_berikutnya' => 'required|date',
+            'teknisi_id'         => 'nullable|exists:pengguna,id',
+            'catatan'            => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->jsonError('Validasi data jadwal gagal.', 422, $validator->errors());
+        }
+
+        $intervalNilai = (int) $request->input('interval_nilai');
+        $intervalTipe = $request->input('interval_tipe');
+        $frekuensi = $intervalTipe === 'BULAN'
+            ? ($intervalNilai === 1 ? 'BULANAN' : "{$intervalNilai}_BULAN")
+            : "{$intervalNilai}_{$intervalTipe}";
+
+        $kode = CodeGenerator::generatePrv();
+
+        $jadwal = JadwalMaintenance::create([
+            'kode'               => $kode,
+            'aset_id'            => $request->input('aset_id'),
+            'jenis_maintenance'  => $request->input('jenis_maintenance'),
+            'interval_nilai'     => $intervalNilai,
+            'interval_tipe'      => $intervalTipe,
+            'frekuensi'          => $frekuensi,
+            'teknisi_id'         => $request->input('teknisi_id'),
+            'tanggal_berikutnya' => $request->input('tanggal_berikutnya'),
+            'catatan'            => $request->input('catatan'),
+            'status'             => 'AKTIF',
+            'dibuat_oleh'        => $user->id,
+        ]);
+
+        return $this->jsonSuccess([
+            'id'   => $jadwal->id,
+            'kode' => $jadwal->kode,
+        ], "Jadwal pemeliharaan preventif {$jadwal->kode} berhasil ditambahkan.", 201);
+    }
+
+    /**
      * 3. Rekam Medis Aset Fisik (Comprehensive Life-Cycle History)
      * GET /v1/maintenance/rekam-medis/{aset_id}
      */

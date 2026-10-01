@@ -8,6 +8,9 @@ use App\Models\LokasiGudang;
 use App\Models\MerekBarang;
 use App\Models\Pemasok;
 use App\Models\SatuanBarang;
+use App\Models\Barang;
+use App\Models\Aset;
+use App\Models\Unit;
 use Illuminate\Database\Seeder;
 
 class MasterDataSeeder extends Seeder
@@ -204,6 +207,120 @@ class MasterDataSeeder extends Seeder
                     ],
                     $rak
                 );
+            }
+        }
+
+        // 6. Master Barang Standar
+        $katAtk = KategoriBarang::where('kode', 'KAT-ATK')->value('id') ?? 1;
+        $katElk = KategoriBarang::where('kode', 'KAT-ELK')->value('id') ?? 4;
+        $katSpk = KategoriBarang::where('kode', 'KAT-SPK')->value('id') ?? 3;
+        $satRim = SatuanBarang::where('kode', 'SAT-RIM')->value('id') ?? 3;
+        $satPcs = SatuanBarang::where('kode', 'SAT-PCS')->value('id') ?? 1;
+        $satBtl = SatuanBarang::where('kode', 'SAT-BTL')->value('id') ?? 4;
+        $mrkSidu = MerekBarang::where('kode', 'MRK-SIDU')->value('id') ?? 1;
+        $mrkEpsn = MerekBarang::where('kode', 'MRK-EPSN')->value('id') ?? 4;
+
+        $barangList = [
+            [
+                'kode'                => 'BRG-2026-001',
+                'nama'                => 'HVS A4',
+                'tipe'                => 'HABIS_PAKAI',
+                'kategori_id'         => $katAtk,
+                'satuan_id'           => $satRim,
+                'merek_id'            => $mrkSidu,
+                'stok_minimum'        => 20,
+                'stok_maksimum'       => 100,
+                'titik_pesan'         => 30,
+                'harga_beli_terakhir' => 60000.00,
+                'harga_estimasi'      => 70000.00,
+                'status'              => 'AKTIF',
+            ],
+            [
+                'kode'                => 'BRG-2026-002',
+                'nama'                => 'Printer',
+                'tipe'                => 'ASET',
+                'kategori_id'         => $katElk,
+                'satuan_id'           => $satPcs,
+                'merek_id'            => $mrkEpsn,
+                'stok_minimum'        => 2,
+                'stok_maksimum'       => 10,
+                'titik_pesan'         => 3,
+                'harga_beli_terakhir' => 2000000.00,
+                'harga_estimasi'      => 3000000.00,
+                'status'              => 'AKTIF',
+            ],
+            [
+                'kode'                => 'BRG-2026-003',
+                'nama'                => 'Freon AC',
+                'tipe'                => 'SPAREPART',
+                'kategori_id'         => $katSpk,
+                'satuan_id'           => $satBtl,
+                'merek_id'            => null,
+                'stok_minimum'        => 5,
+                'stok_maksimum'       => 20,
+                'titik_pesan'         => 8,
+                'harga_beli_terakhir' => 150000.00,
+                'harga_estimasi'      => 180000.00,
+                'status'              => 'AKTIF',
+            ],
+        ];
+
+        foreach ($barangList as $b) {
+            Barang::firstOrCreate(['kode' => $b['kode']], $b);
+        }
+
+        // 7. Register Aset Fisik Awal
+        $printer = Barang::where('kode', 'BRG-2026-002')->first();
+        $unitIgd = Unit::where('kode', 'IGD')->value('id');
+        $unitDireksi = Unit::where('kode', 'DIREKSI')->value('id');
+        $unitSpi = Unit::where('kode', 'SPI')->value('id');
+
+        if ($printer) {
+            $asetList = [
+                [
+                    'kode_aset'         => 'AST-2026-001',
+                    'nomor_seri'        => 'PRINTER-IGD-1',
+                    'barang_id'         => $printer->id,
+                    'unit_id'           => $unitIgd,
+                    'tanggal_perolehan' => '2026-01-15',
+                    'nilai_perolehan'   => 2000000.00,
+                    'kondisi'           => 'BAIK',
+                    'status'            => 'TERSEDIA',
+                ],
+                [
+                    'kode_aset'         => 'AST-2026-002',
+                    'nomor_seri'        => 'PRINTER-IGD-2',
+                    'barang_id'         => $printer->id,
+                    'unit_id'           => $unitIgd,
+                    'tanggal_perolehan' => '2026-02-10',
+                    'nilai_perolehan'   => 2000000.00,
+                    'kondisi'           => 'BAIK',
+                    'status'            => 'TERSEDIA',
+                ],
+                [
+                    'kode_aset'         => 'AST-2026-003',
+                    'nomor_seri'        => 'PRINTER-MJN-1',
+                    'barang_id'         => $printer->id,
+                    'unit_id'           => $unitDireksi,
+                    'tanggal_perolehan' => '2026-01-20',
+                    'nilai_perolehan'   => 2000000.00,
+                    'kondisi'           => 'BAIK',
+                    'status'            => 'TERSEDIA',
+                ],
+                [
+                    'kode_aset'         => 'AST-2026-004',
+                    'nomor_seri'        => 'PRINTER-AUD-1',
+                    'barang_id'         => $printer->id,
+                    'unit_id'           => $unitSpi,
+                    'tanggal_perolehan' => '2026-02-05',
+                    'nilai_perolehan'   => 2000000.00,
+                    'kondisi'           => 'BAIK',
+                    'status'            => 'TERSEDIA',
+                ],
+            ];
+
+            foreach ($asetList as $ast) {
+                Aset::firstOrCreate(['kode_aset' => $ast['kode_aset']], $ast);
             }
         }
     }

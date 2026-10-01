@@ -155,6 +155,7 @@ class ShieldRolePermissionSeeder extends Seeder
             '%_layanan_unit::permintaan::barang%',
             '%_layanan_unit::peminjaman::aset%',
             '%_layanan_unit::pengembalian::aset%',
+            '%_layanan_unit::lapor::servis%',
             '%_layanan_unit::stok::ruangan%',
             '%_pengadaan::permintaan::pengadaan%',
             'view_any_master::barang%',
@@ -216,13 +217,19 @@ class ShieldRolePermissionSeeder extends Seeder
         // 12. Role: teknisi
         $givePermissions('teknisi', [
             'page_TeknisiDashboard',
-            '%_pemeliharaan::%',
+            'view_any_pemeliharaan::%',
+            'view_pemeliharaan::%',
+            '%_pemeliharaan::spk::perbaikan%',
+            '%_pemeliharaan::lembar::kerja%',
+            '%_pemeliharaan::peminjaman::alat%',
+            'create_pemeliharaan::permintaan::sparepart',
             'view_any_master::aset%',
             'view_master::aset%',
             'view_any_gudang_stok::stok::batch%',
             'view_gudang_stok::stok::batch%',
+            'view_any_layanan_unit::lapor::servis',
+            'view_layanan_unit::lapor::servis',
         ]);
-
         // 12. Role: manajemen
         $givePermissions('manajemen', [
             'page_ManajemenDashboard',
