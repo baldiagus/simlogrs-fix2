@@ -11,6 +11,7 @@ use App\Models\PergerakanStok;
 use App\Models\PermintaanMaintenance;
 use App\Models\StokBatch;
 use App\Models\SukuCadangMaintenance;
+use App\Models\User;
 use App\Support\File\FileOptimizer;
 use App\Support\Generator\CodeGenerator;
 use Exception;
@@ -18,6 +19,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class MaintenanceApiController extends ApiController
@@ -362,6 +364,103 @@ class MaintenanceApiController extends ApiController
         $tiket->update(['status' => 'DIBATALKAN']);
 
         return $this->jsonSuccess(null, "Laporan kerusakan {$tiket->kode} berhasil dibatalkan.");
+    }
+
+    /**
+     * Daftar teknisi resmi IPSRS untuk opsi penugasan SPK.
+     * GET /v1/maintenance/teknisi
+     */
+    public function daftarTeknisi(Request $request): JsonResponse
+    {
+        $teknisi = User::where('status', 'AKTIF')
+            ->whereHas('roles', fn ($r) => $r->where('name', 'teknisi'))
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'email', 'nip']);
+
+        return $this->jsonSuccess($teknisi, 'Daftar teknisi IPSRS berhasil dimuat.');
+    }
+
+    /**
+     * Disposisi tiket kerusakan dan penerbitan SPK penugasan teknisi.
+     * POST /v1/maintenance/tiket/{id}/disposisi
+     */
+    public function disposisiTiket(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        $canDisposisi = $user && (
+            $user->can('create_pemeliharaan::spk::perbaikan') ||
+            $user->hasRole('kepala_teknisi') ||
+            $user->hasRole('admin_logistik') ||
+            $user->hasRole('super_admin')
+        );
+
+        if (! $canDisposisi) {
+            return $this->jsonError('Anda tidak memiliki wewenang untuk menerbitkan SPK penugasan teknisi.', 403);
+        }
+
+        $tiket = PermintaanMaintenance::with('aset')->find($id);
+
+        if (! $tiket) {
+            return $this->jsonError('Tiket kerusakan tidak ditemukan.', 404);
+        }
+
+        if (! in_array($tiket->status, ['DILAPORKAN', 'MENUNGGU_SPK'], true)) {
+            return $this->jsonError("Tiket {$tiket->kode} sudah diproses sebelumnya (saat ini: {$tiket->status}).", 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'teknisi_id'        => 'required|exists:pengguna,id',
+            'tanggal_penugasan' => 'nullable|date',
+            'target_selesai'    => 'nullable|date',
+            'instruksi_khusus'  => 'nullable|string|max:500',
+        ], [
+            'teknisi_id.required' => 'Teknisi penanggung jawab wajib dipilih.',
+            'teknisi_id.exists'   => 'Teknisi yang dipilih tidak valid di sistem.',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->jsonError('Validasi disposisi gagal.', 422, $validator->errors());
+        }
+
+        $teknisiId = (int) $request->input('teknisi_id');
+        $tglPenugasan = $request->input('tanggal_penugasan') ?: now()->toDateString();
+        $targetSelesai = $request->input('target_selesai') ?: now()->addDays(2)->toDateString();
+        $instruksiKhusus = $request->input('instruksi_khusus');
+
+        $kodeSpk = CodeGenerator::generateSpk();
+
+        try {
+            $spk = DB::transaction(function () use ($kodeSpk, $tiket, $teknisiId, $user, $tglPenugasan, $targetSelesai, $instruksiKhusus) {
+                $spkRecord = PenugasanMaintenance::create([
+                    'kode'                      => $kodeSpk,
+                    'permintaan_maintenance_id' => $tiket->id,
+                    'teknisi_id'                => $teknisiId,
+                    'ditugaskan_oleh'           => $user->id,
+                    'tanggal_penugasan'         => $tglPenugasan,
+                    'target_selesai'            => $targetSelesai,
+                    'instruksi_khusus'          => $instruksiKhusus,
+                    'status'                    => 'DITUGASKAN',
+                ]);
+
+                $tiket->update([
+                    'status' => 'DITUGASKAN',
+                ]);
+
+                return $spkRecord;
+            });
+
+            $teknisi = User::find($teknisiId);
+
+            return $this->jsonSuccess([
+                'id'       => $spk->id,
+                'kode_spk' => $spk->kode,
+                'teknisi'  => $teknisi?->nama ?? 'Teknisi',
+                'status'   => 'DITUGASKAN',
+            ], "Surat Perintah Kerja {$spk->kode} berhasil diterbitkan dan ditugaskan ke {$teknisi?->nama}.", 201);
+        } catch (\Throwable $e) {
+            return $this->jsonError('Gagal menerbitkan SPK: ' . $e->getMessage(), 500);
+        }
     }
 
     /**

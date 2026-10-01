@@ -65,7 +65,9 @@ Route::prefix('v1')->group(function () {
         // 7. Pemeliharaan Sarana & Mobile Teknisi IPSRS
         Route::get('/maintenance/tiket', [MaintenanceApiController::class, 'daftarTiketUnit']);
         Route::get('/maintenance/aset-unit', [MaintenanceApiController::class, 'asetUnitTersedia']);
+        Route::get('/maintenance/teknisi', [MaintenanceApiController::class, 'daftarTeknisi']);
         Route::get('/maintenance/tiket/{id}', [MaintenanceApiController::class, 'detailTiketUnit']);
+        Route::post('/maintenance/tiket/{id}/disposisi', [MaintenanceApiController::class, 'disposisiTiket']);
         Route::post('/maintenance/tiket/{id}/batal', [MaintenanceApiController::class, 'batalTiketUnit']);
         Route::post('/maintenance/lapor-cepat', [MaintenanceApiController::class, 'laporCepat']);
         Route::get('/maintenance/spk', [MaintenanceApiController::class, 'spkList']);
