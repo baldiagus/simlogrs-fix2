@@ -170,6 +170,10 @@ class AsetApiController extends ApiController
         $aset = Aset::query()
             ->where('status', 'TERSEDIA')
             ->where('kondisi', 'BAIK')
+            // Kunci integritas: kecualikan aset yang sedang dalam proses pengajuan atau aktif dipinjam
+            ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($q) {
+                $q->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+            })
             ->with(['barang.kategori:id,nama', 'barang.satuan:id,nama', 'barang.merek:id,nama', 'unit:id,kode,nama', 'gudang:id,kode,nama', 'lokasiGudang:id,kode,nama'])
             // Jangan meminjam aset dari ruangan sendiri (selaras dengan validasi web)
             ->when($user->unit_id, function ($q) use ($user) {
@@ -385,9 +389,17 @@ class AsetApiController extends ApiController
             ->where('status', 'TERSEDIA')
             ->where('kondisi', 'BAIK')
             ->first();
-
         if (! $aset) {
             return $this->jsonError('Aset yang dipilih tidak tersedia untuk dipinjam.', 422);
+        }
+
+        // Kunci integritas: periksa apakah aset sedang dalam transaksi peminjaman aktif lain
+        $isSedangDipinjam = PermintaanPeminjaman::whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM'])
+            ->whereHas('detail', fn ($d) => $d->where('aset_id', $aset->id))
+            ->exists();
+
+        if ($isSedangDipinjam) {
+            return $this->jsonError("Aset '{$aset->kode_aset}' ({$aset->barang?->nama}) sedang dalam proses pengajuan atau sedang aktif dipinjam oleh unit lain.", 422);
         }
 
         $isRuangan = $aset->unit_id !== null;
@@ -669,11 +681,21 @@ class AsetApiController extends ApiController
                 return $this->jsonError("Hanya permintaan berstatus DIAJUKAN yang dapat disetujui (saat ini: {$pinjam->status}).", 422);
             }
 
+            // Kunci integritas: periksa apakah ada aset di permohonan ini yang sudah disetujui/dipinjam pada transaksi lain
+            $asetIds = $pinjam->detail->pluck('aset_id')->filter();
+            $konflik = PermintaanPeminjaman::whereIn('status', ['DISETUJUI', 'DIPINJAM'])
+                ->where('id', '!=', $pinjam->id)
+                ->whereHas('detail', fn ($d) => $d->whereIn('aset_id', $asetIds))
+                ->first();
+
+            if ($konflik) {
+                return $this->jsonError("Aset pada permohonan ini telah disetujui atau sedang aktif dipinjam pada transaksi {$konflik->kode}.", 422);
+            }
+
             $pinjam->update([
                 'status'         => 'DISETUJUI',
                 'disetujui_oleh' => $user->id,
             ]);
-
             return $this->jsonSuccess([
                 'kode'   => $pinjam->kode,
                 'status' => 'DISETUJUI',

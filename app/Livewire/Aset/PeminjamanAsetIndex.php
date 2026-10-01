@@ -249,10 +249,16 @@ class PeminjamanAsetIndex extends Component
     public function getDaftarBarangAsetTersedia()
     {
         return Barang::whereHas('aset', function ($q) {
-            $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK');
+            $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK')
+                ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
+                    $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                });
         })
         ->withCount(['aset' => function ($q) {
-            $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK');
+            $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK')
+                ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
+                    $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                });
         }])
         ->with('satuan')
         ->orderBy('nama')
@@ -271,9 +277,11 @@ class PeminjamanAsetIndex extends Component
         $assets = Aset::where('barang_id', $this->selected_barang_id)
             ->where('status', 'TERSEDIA')
             ->where('kondisi', 'BAIK')
+            ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
+                $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+            })
             ->with(['unit', 'gudang'])
             ->get();
-
         $providers = [];
 
         // Kelompokkan penyedia ruangan unit
@@ -410,6 +418,15 @@ class PeminjamanAsetIndex extends Component
             return;
         }
 
+        // Kunci integritas: periksa apakah aset sedang dalam transaksi peminjaman aktif lain
+        $isSedangDipinjam = PermintaanPeminjaman::whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM'])
+            ->whereHas('detail', fn ($d) => $d->where('aset_id', $aset->id))
+            ->exists();
+
+        if ($isSedangDipinjam) {
+            $this->addError('selected_aset_id', "Aset '{$aset->kode_aset}' ({$aset->barang?->nama}) sedang dalam proses pengajuan atau sedang aktif dipinjam oleh unit lain.");
+            return;
+        }
         if ($this->tipe_penyedia === 'RUANGAN' && $this->unit_penyedia_id === $unitPeminjamId) {
             $this->addError('selected_penyedia_key', 'Unit penyedia tidak boleh sama dengan unit peminjam.');
             return;
@@ -638,7 +655,10 @@ class PeminjamanAsetIndex extends Component
         $this->applyPeminjamanScope($countAktifQuery, $user, $isGlobalAdmin);
         $countAktif = $countAktifQuery->count();
 
-        $countKatalogQuery = Aset::where('status', 'TERSEDIA')->where('kondisi', 'BAIK');
+        $countKatalogQuery = Aset::where('status', 'TERSEDIA')->where('kondisi', 'BAIK')
+            ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($q) {
+                $q->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+            });
         $this->applyKatalogScope($countKatalogQuery, $user, $isGlobalAdmin);
         $countKatalog = $countKatalogQuery->count();
         $daftarPeminjaman = collect();
@@ -675,8 +695,10 @@ class PeminjamanAsetIndex extends Component
         if ($this->activeTab === 'katalog') {
             $queryKatalog = Aset::with(['barang.satuan', 'unit', 'gudang', 'lokasiGudang'])
                 ->where('status', 'TERSEDIA')
-                ->where('kondisi', 'BAIK');
-
+                ->where('kondisi', 'BAIK')
+                ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($q) {
+                    $q->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                });
             $this->applyKatalogScope($queryKatalog, $user, $isGlobalAdmin);
 
             $queryKatalog->when($this->filterKatalogLokasi === 'RUANGAN', fn ($q) => $q->whereNotNull('unit_id'))

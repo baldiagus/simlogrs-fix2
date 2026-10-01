@@ -32,9 +32,18 @@ class PeminjamanAsetService
             ]);
 
             foreach ($pinjam->detail as $detail) {
-                $aset = $detail->aset;
+                // Kunci aset dengan pessimistic locking
+                $aset = Aset::where('id', $detail->aset_id)->lockForUpdate()->first();
                 if (! $aset) {
                     continue;
+                }
+
+                if ($aset->status === 'DIPINJAM') {
+                    throw new Exception("Aset '{$aset->kode_aset}' ({$aset->barang?->nama}) saat ini sedang berstatus aktif DIPINJAM oleh unit lain.");
+                }
+
+                if ($aset->status !== 'TERSEDIA') {
+                    throw new Exception("Aset '{$aset->kode_aset}' tidak dalam status TERSEDIA untuk diserahterimakan (saat ini: {$aset->status}).");
                 }
 
                 // Chain of custody: kepemilikan operasional berpindah ke unit peminjam.

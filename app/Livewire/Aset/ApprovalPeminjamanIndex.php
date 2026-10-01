@@ -206,6 +206,18 @@ class ApprovalPeminjamanIndex extends Component
             return;
         }
 
+        // Kunci integritas: periksa apakah ada aset di permohonan ini yang sudah disetujui/dipinjam pada transaksi lain
+        $asetIds = $pinjam->detail->pluck('aset_id')->filter();
+        $konflik = PermintaanPeminjaman::whereIn('status', ['DISETUJUI', 'DIPINJAM'])
+            ->where('id', '!=', $pinjam->id)
+            ->whereHas('detail', fn ($d) => $d->whereIn('aset_id', $asetIds))
+            ->first();
+
+        if ($konflik) {
+            $this->toast("Aset pada permohonan ini telah disetujui atau sedang aktif dipinjam pada transaksi {$konflik->kode}.", 'danger');
+            return;
+        }
+
         $pinjam->update([
             'status'         => 'DISETUJUI',
             'disetujui_oleh' => auth()->id(),
