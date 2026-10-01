@@ -93,7 +93,7 @@ class PengadaanApiController extends ApiController
                     $q->where('diajukan_oleh', $user->id);
                 }
             })
-            ->with(['unit:id,kode,nama', 'gudang:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama,satuan_id', 'detail.barang.satuan:id,nama', 'pesananPembelian:id,permintaan_pengadaan_id,kode,status'])
+            ->with(['unit:id,kode,nama', 'gudang:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama,satuan_id,harga_beli_terakhir,harga_estimasi', 'detail.barang.satuan:id,nama', 'pesananPembelian:id,permintaan_pengadaan_id,kode,status'])
             ->latest('dibuat_pada')
             ->limit(100)
             ->get()
@@ -121,13 +121,15 @@ class PengadaanApiController extends ApiController
                     'catatan'            => $item->catatan,
                     'jumlah_item'        => $item->detail->count(),
                 'items'              => $item->detail->map(fn ($d) => [
-                    'id'          => $d->id,
-                    'barang_id'   => $d->barang_id,
-                    'nama_barang' => $d->barang?->nama ?? 'Barang',
-                    'kode_barang' => $d->barang?->kode,
-                    'satuan'      => $d->barang?->satuan?->nama ?? 'Pcs',
-                    'jumlah'      => $d->jumlah,
-                    'catatan'     => $d->catatan,
+                    'id'                  => $d->id,
+                    'barang_id'           => $d->barang_id,
+                    'nama_barang'         => $d->barang?->nama ?? 'Barang',
+                    'kode_barang'         => $d->barang?->kode,
+                    'satuan'              => $d->barang?->satuan?->nama ?? 'Pcs',
+                    'jumlah'              => $d->jumlah,
+                    'catatan'             => $d->catatan,
+                    'harga_beli_terakhir' => (float) ($d->barang?->harga_beli_terakhir ?? 0),
+                    'harga_estimasi'      => (float) ($d->barang?->harga_estimasi ?? 0),
                 ]),
                 ];
             });

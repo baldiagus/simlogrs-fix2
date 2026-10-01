@@ -51,7 +51,7 @@ class ApprovalController extends ApiController
                     $q->where('diajukan_oleh', $user->id);
                 }
             })
-            ->with(['unit:id,kode,nama', 'gudang:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama,satuan_id', 'detail.barang.satuan:id,nama,simbol'])
+            ->with(['unit:id,kode,nama', 'gudang:id,kode,nama', 'pengaju:id,nama', 'detail.barang:id,kode,nama,satuan_id,harga_beli_terakhir,harga_estimasi', 'detail.barang.satuan:id,nama,simbol'])
             ->latest('dibuat_pada')
             ->get()
             ->map(fn ($item) => [
@@ -66,12 +66,14 @@ class ApprovalController extends ApiController
                 'status' => $item->status,
                 'jumlah_item' => $item->detail->count(),
                 'items' => $item->detail->map(fn ($d) => [
-                    'id'          => $d->id,
-                    'barang_id'   => $d->barang_id,
-                    'barang'      => $d->barang?->nama,
-                    'kode_barang' => $d->barang?->kode,
-                    'satuan'      => $d->barang?->satuan?->simbol ?? $d->barang?->satuan?->nama ?? 'Pcs',
-                    'jumlah'      => $d->jumlah,
+                    'id'                  => $d->id,
+                    'barang_id'           => $d->barang_id,
+                    'barang'              => $d->barang?->nama,
+                    'kode_barang'         => $d->barang?->kode,
+                    'satuan'              => $d->barang?->satuan?->simbol ?? $d->barang?->satuan?->nama ?? 'Pcs',
+                    'jumlah'              => $d->jumlah,
+                    'harga_beli_terakhir' => (float) ($d->barang?->harga_beli_terakhir ?? 0),
+                    'harga_estimasi'      => (float) ($d->barang?->harga_estimasi ?? 0),
                 ]),
             ]);
 
