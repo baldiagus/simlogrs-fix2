@@ -127,12 +127,31 @@ class AsetIndex extends Component
         $this->showModal = true;
     }
 
+    public function canUserEditAset($user, Aset $aset): bool
+    {
+        if (! $user || ! $user->can('update_master::aset')) {
+            return false;
+        }
+
+        // Super Admin & Admin Logistik memiliki akses penuh untuk seluruh aset RS
+        if ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_AdminLogistikDashboard')) {
+            return true;
+        }
+
+        // Pengguna unit hanya berhak mengedit aset yang terdaftar pada unit/ruangannya sendiri
+        return $aset->unit_id !== null && (int) $user->unit_id === (int) $aset->unit_id;
+    }
+
     public function edit(int $id)
     {
-        abort_unless(auth()->user()?->can('update_master::aset'), 403);
-
         $aset = Aset::with(['barang', 'unit', 'gudang', 'lokasiGudang'])->findOrFail($id);
-        $this->editingId = $aset->id;
+        $user = auth()->user();
+
+        abort_unless(
+            $this->canUserEditAset($user, $aset),
+            403,
+            'Akses ditolak: Anda tidak memiliki wewenang mengubah informasi aset milik unit lain.'
+        );
         $this->barang_id = $aset->barang_id;
         $this->kode_aset = $aset->kode_aset;
         $this->nomor_seri = $aset->nomor_seri;
@@ -195,6 +214,28 @@ class AsetIndex extends Component
             ? strtoupper(trim($this->kode_aset))
             : CodeGenerator::generate('AST', Aset::class, 'kode_aset');
 
+        $user = auth()->user();
+        $isGlobalAdmin = $user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_AdminLogistikDashboard'));
+
+        if ($this->editingId) {
+            $existing = Aset::findOrFail($this->editingId);
+            abort_unless(
+                $this->canUserEditAset($user, $existing),
+                403,
+                'Akses ditolak: Anda tidak memiliki wewenang mengubah informasi aset milik unit lain.'
+            );
+
+            // Jika bukan admin logistik/super admin, kunci field kepemilikan dan nilai perolehan finansial
+            if (! $isGlobalAdmin) {
+                $unitId = $existing->unit_id;
+                $gudangId = $existing->gudang_id;
+                $lokasiGudangId = $existing->lokasi_gudang_id;
+                $this->nilai_perolehan = (float) $existing->nilai_perolehan;
+            }
+        } else {
+            abort_unless($user?->can('create_master::aset'), 403);
+        }
+
         $data = [
             'barang_id'         => $this->barang_id,
             'unit_id'           => $unitId,
@@ -209,16 +250,13 @@ class AsetIndex extends Component
         ];
 
         if ($this->editingId) {
-            abort_unless(auth()->user()?->can('update_master::aset'), 403);
             $aset = Aset::findOrFail($this->editingId);
             $aset->update($data);
             $this->toast("Register aset '{$aset->kode_aset}' berhasil diperbarui.", 'success');
         } else {
-            abort_unless(auth()->user()?->can('create_master::aset'), 403);
             $aset = Aset::create($data);
             $this->toast("Aset baru '{$aset->kode_aset}' berhasil didaftarkan.", 'success');
         }
-
         $this->showModal = false;
     }
 

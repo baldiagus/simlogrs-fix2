@@ -153,9 +153,18 @@
                                 <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail Aset" />
                                 <flux:button wire:click="showQr({{ $item->id }})" size="xs" variant="ghost" icon="qr-code" title="Cetak Stiker QR Code" />
 
-                                @can('update_master::aset')
+                                @php
+                                    $user = auth()->user();
+                                    $canEditThisAset = $user && $user->can('update_master::aset') && (
+                                        $user->hasRole(['super_admin', 'admin_logistik']) ||
+                                        $user->can('page_AdminLogistikDashboard') ||
+                                        ($user->unit_id && (int) $user->unit_id === (int) $item->unit_id)
+                                    );
+                                @endphp
+
+                                @if ($canEditThisAset)
                                     <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
-                                @endcan
+                                @endif
                             </div>
                         </flux:table.cell>
                     </flux:table.row>

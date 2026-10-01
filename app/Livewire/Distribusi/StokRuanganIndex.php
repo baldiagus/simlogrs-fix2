@@ -26,6 +26,12 @@ class StokRuanganIndex extends Component
     #[Url(history: true)]
     public string $filterStatusAset = ''; // '', 'DIGUNAKAN', 'TERSEDIA', 'DIPINJAM'
 
+    public bool $showUbahStatusAsetModal = false;
+    public ?int $selectedAsetId = null;
+    public ?Aset $selectedAset = null;
+    public string $statusAsetBaru = 'DIGUNAKAN';
+    public string $kondisiAsetBaru = 'BAIK';
+
     #[Url(history: true)]
     public string $filterKondisi = ''; // '', 'TERSEDIA', 'HABIS'
 
@@ -63,6 +69,62 @@ class StokRuanganIndex extends Component
     public function updatedFilterStatusAset(): void
     {
         $this->resetPage();
+    }
+
+    public function openUbahStatusAset(int $asetId): void
+    {
+        $aset = Aset::with(['barang', 'unit'])->findOrFail($asetId);
+        $user = auth()->user();
+
+        $canUpdate = $user && (
+            $user->can('update_layanan_unit::stok::ruangan') ||
+            $user->can('page_Dashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->hasRole(['super_admin', 'admin_logistik', 'kepala_unit'])
+        );
+        abort_unless($canUpdate, 403, 'Anda tidak memiliki wewenang mengubah status aset operasional.');
+
+        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $aset->unit_id) {
+            abort(403, 'Anda tidak berwenang mengubah aset milik unit lain.');
+        }
+
+        $this->selectedAsetId = $aset->id;
+        $this->selectedAset = $aset;
+        $this->statusAsetBaru = in_array($aset->status, ['DIGUNAKAN', 'TERSEDIA']) ? $aset->status : 'DIGUNAKAN';
+        $this->kondisiAsetBaru = $aset->kondisi;
+        $this->showUbahStatusAsetModal = true;
+    }
+
+    public function simpanStatusAset(): void
+    {
+        $this->validate([
+            'statusAsetBaru'  => 'required|in:DIGUNAKAN,TERSEDIA',
+            'kondisiAsetBaru' => 'required|in:BAIK,RUSAK_RINGAN,RUSAK_BERAT',
+        ]);
+
+        if (! $this->selectedAsetId) {
+            return;
+        }
+
+        $user = auth()->user();
+        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+
+        $aset = Aset::findOrFail($this->selectedAsetId);
+        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $aset->unit_id) {
+            abort(403, 'Anda tidak berwenang mengubah aset milik unit lain.');
+        }
+
+        $aset->update([
+            'status'  => $this->statusAsetBaru,
+            'kondisi' => $this->kondisiAsetBaru,
+        ]);
+
+        $this->toast("Status aset '{$aset->kode_aset}' berhasil diperbarui menjadi {$this->statusAsetBaru}.", 'success');
+
+        $this->showUbahStatusAsetModal = false;
+        $this->selectedAsetId = null;
+        $this->selectedAset = null;
     }
 
     public function openCatatPemakaian(int $id): void
@@ -226,6 +288,7 @@ class StokRuanganIndex extends Component
             'sortBy'         => $this->sortBy,
             'sortDirection'  => $this->sortDirection,
             'selectedStok'   => $this->selectedStok,
+            'selectedAset'   => $this->selectedAset,
             'pageTitle'      => $pageTitle,
         ])->layout('layouts.portal', [
             'portal' => $this->getPortalName(),
