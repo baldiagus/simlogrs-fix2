@@ -47,14 +47,27 @@ class AsetApiController extends ApiController
         // Lokasi aktif saat ini
         $lokasiSaatIni = $aset->unit ? $aset->unit->nama : ($aset->gudang ? $aset->gudang->nama . ($aset->lokasiGudang ? " (Rak: {$aset->lokasiGudang->nama})" : '') : '-');
 
-        // Cari transaksi peminjaman aktif jika aset sedang berstatus DIPINJAM
+        // Cari transaksi peminjaman aktif (DIPINJAM, atau antrean DIAJUKAN/DISETUJUI)
         $peminjamanAktif = null;
-        if ($aset->status === 'DIPINJAM') {
-            $peminjamanAktif = PermintaanPeminjaman::whereHas('detail', fn ($q) => $q->where('aset_id', $aset->id))
-                ->where('status', 'DIPINJAM')
-                ->with(['unitPeminjam', 'pengaju'])
-                ->latest('id')
-                ->first();
+        $antreanPeminjaman = null;
+        $transaksiPinjam = PermintaanPeminjaman::whereHas('detail', fn ($q) => $q->where('aset_id', $aset->id))
+            ->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM'])
+            ->with(['unitPeminjam', 'pengaju'])
+            ->latest('id')
+            ->first();
+
+        if ($transaksiPinjam) {
+            if ($transaksiPinjam->status === 'DIPINJAM') {
+                $peminjamanAktif = $transaksiPinjam;
+            } else {
+                $antreanPeminjaman = [
+                    'peminjaman_id' => $transaksiPinjam->id,
+                    'kode_pinjam'   => $transaksiPinjam->kode,
+                    'unit_peminjam' => $transaksiPinjam->unitPeminjam?->nama ?? 'Unit Ruangan',
+                    'pengaju'       => $transaksiPinjam->pengaju?->nama ?? 'Staf',
+                    'status'        => $transaksiPinjam->status,
+                ];
+            }
         }
 
         $latestMaintenance = $aset->permintaanMaintenance()->latest('id')->first();
@@ -96,6 +109,9 @@ class AsetApiController extends ApiController
                 'tanggal_kembali_rencana' => $peminjamanAktif->tanggal_kembali_rencana?->format('Y-m-d'),
                 'is_overdue'              => now()->startOfDay()->gt($peminjamanAktif->tanggal_kembali_rencana),
             ] : null,
+            'is_sedang_diajukan'       => $antreanPeminjaman !== null,
+            'status_sirkulasi'         => $transaksiPinjam ? $transaksiPinjam->status : $aset->status,
+            'antrean_peminjaman'       => $antreanPeminjaman,
             'riwayat_peminjaman'       => $riwayatPeminjaman,
         ], 'Data aset berhasil ditemukan.');
     }
@@ -115,13 +131,27 @@ class AsetApiController extends ApiController
 
         $lokasiSaatIni = $aset->unit ? $aset->unit->nama : ($aset->gudang ? $aset->gudang->nama . ($aset->lokasiGudang ? " (Rak: {$aset->lokasiGudang->nama})" : '') : '-');
 
+        // Cari transaksi peminjaman aktif (DIPINJAM, atau antrean DIAJUKAN/DISETUJUI)
         $peminjamanAktif = null;
-        if ($aset->status === 'DIPINJAM') {
-            $peminjamanAktif = PermintaanPeminjaman::whereHas('detail', fn ($q) => $q->where('aset_id', $aset->id))
-                ->where('status', 'DIPINJAM')
-                ->with(['unitPeminjam', 'pengaju'])
-                ->latest('id')
-                ->first();
+        $antreanPeminjaman = null;
+        $transaksiPinjam = PermintaanPeminjaman::whereHas('detail', fn ($q) => $q->where('aset_id', $aset->id))
+            ->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM'])
+            ->with(['unitPeminjam', 'pengaju'])
+            ->latest('id')
+            ->first();
+
+        if ($transaksiPinjam) {
+            if ($transaksiPinjam->status === 'DIPINJAM') {
+                $peminjamanAktif = $transaksiPinjam;
+            } else {
+                $antreanPeminjaman = [
+                    'peminjaman_id' => $transaksiPinjam->id,
+                    'kode_pinjam'   => $transaksiPinjam->kode,
+                    'unit_peminjam' => $transaksiPinjam->unitPeminjam?->nama ?? 'Unit Ruangan',
+                    'pengaju'       => $transaksiPinjam->pengaju?->nama ?? 'Staf',
+                    'status'        => $transaksiPinjam->status,
+                ];
+            }
         }
 
         $latestMaintenance = $aset->permintaanMaintenance()->latest('id')->first();
@@ -163,6 +193,9 @@ class AsetApiController extends ApiController
                 'tanggal_kembali_rencana' => $peminjamanAktif->tanggal_kembali_rencana?->format('Y-m-d'),
                 'is_overdue'              => now()->startOfDay()->gt($peminjamanAktif->tanggal_kembali_rencana),
             ] : null,
+            'is_sedang_diajukan'       => $antreanPeminjaman !== null,
+            'status_sirkulasi'         => $transaksiPinjam ? $transaksiPinjam->status : $aset->status,
+            'antrean_peminjaman'       => $antreanPeminjaman,
             'riwayat_peminjaman'       => $riwayatPeminjaman,
         ], 'Data aset berhasil ditemukan.');
     }
