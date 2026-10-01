@@ -67,9 +67,18 @@ class MaintenanceApiController extends ApiController
         if (! $aset) {
             return $this->jsonError('Aset sarana tidak ditemukan. Harap sertakan aset_id atau kode_aset yang valid.', 404);
         }
+        $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
+        if (! $isGlobalAdmin) {
+            $isAsetUnitUser = $user->unit_id && (int) $aset->unit_id === (int) $user->unit_id;
+            $isAsetGudangUser = $user->gudang_id && (int) $aset->gudang_id === (int) $user->gudang_id;
+
+            if (! $isAsetUnitUser && ! $isAsetGudangUser) {
+                return $this->jsonError('Anda hanya berhak melaporkan kerusakan untuk aset yang berada di unit atau gudang Anda.', 403);
+            }
+        }
 
         $prioritas = $validated['prioritas'] ?? 'SEDANG';
-        $unitId = $validated['unit_id'] ?? $aset->unit_id ?? $user->unit_id;
+        $unitId = $user->unit_id ?: $aset->unit_id;
 
         // Simpan foto kerusakan fisik jika diunggah
         $fotoPath = null;
