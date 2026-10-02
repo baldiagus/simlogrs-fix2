@@ -161,7 +161,7 @@ class BarangIndex extends Component
             'merek_id'    => 'nullable|exists:merek_barang,id',
             'pemasok_default_id' => 'nullable|exists:pemasok,id',
             'kode'        => 'nullable|string|max:50|unique:barang,kode,' . ($this->editingId ?? 'NULL') . ',id',
-            'nama'        => 'required|string|max:255',
+            'nama'        => 'required|string|min:3|max:255',
             'tipe'        => 'required|in:HABIS_PAKAI,ASET,SPAREPART',
             'stok_minimum' => 'nullable|integer|min:0',
             'stok_maksimum' => 'nullable|integer|min:0',
@@ -169,6 +169,14 @@ class BarangIndex extends Component
             'harga_beli_terakhir' => 'required|numeric|min:0',
             'harga_estimasi' => 'required|numeric|min:0',
             'status'      => 'required|in:AKTIF,NONAKTIF',
+        ], [
+            'kategori_id.required' => 'Kategori komoditas wajib dipilih.',
+            'satuan_id.required'   => 'Satuan kemasan barang wajib dipilih.',
+            'nama.required'        => 'Nama komoditas barang wajib diisi.',
+            'nama.min'             => 'Nama komoditas minimal 3 karakter.',
+            'tipe.required'        => 'Tipe komoditas wajib dipilih.',
+            'harga_beli_terakhir.required' => 'Harga beli terakhir wajib diisi.',
+            'harga_estimasi.required'      => 'Harga estimasi pengadaan wajib diisi.',
         ]);
 
         if ($this->editingId) {

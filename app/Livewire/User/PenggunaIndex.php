@@ -173,7 +173,21 @@ class PenggunaIndex extends Component
             $rules['password'] = ['nullable', 'string', 'confirmed', Password::min(8)->letters()->numbers()];
         }
 
-        $this->validate($rules);
+        $messages = [
+            'nama.required'         => 'Nama lengkap pengguna wajib diisi.',
+            'username.required'     => 'Username wajib diisi.',
+            'username.alpha_dash'   => 'Username hanya boleh berisi huruf, angka, garis bawah, dan tanda hubung.',
+            'username.unique'       => 'Username sudah digunakan oleh akun lain.',
+            'email.required'        => 'Alamat email dinas wajib diisi.',
+            'email.email'           => 'Format alamat email tidak valid.',
+            'email.unique'          => 'Alamat email sudah terdaftar di sistem.',
+            'selectedRole.required' => 'Peran hak akses (Role) dinas wajib dipilih.',
+            'password.required'     => 'Kata sandi akun baru wajib diisi.',
+            'password.confirmed'    => 'Konfirmasi kata sandi tidak cocok.',
+            'status.required'       => 'Status akun pengguna wajib ditentukan.',
+        ];
+
+        $this->validate($rules, $messages);
 
         $payload = [
             'nama'       => $this->nama,

@@ -85,9 +85,16 @@ class PemasokIndex extends Component
     {
         $this->validate([
             'kode' => 'required|string|max:50|unique:pemasok,kode,' . ($this->editingId ?? 'NULL') . ',id',
-            'nama' => 'required|string|max:150',
+            'nama' => 'required|string|min:3|max:150',
             'email' => 'nullable|email|max:100',
             'status' => 'required|in:AKTIF,NONAKTIF',
+        ], [
+            'kode.required' => 'Kode pemasok rekanan wajib diisi.',
+            'kode.unique'   => 'Kode pemasok sudah terdaftar.',
+            'nama.required' => 'Nama perusahaan / rekanan wajib diisi.',
+            'nama.min'      => 'Nama rekanan minimal 3 karakter.',
+            'email.email'   => 'Format alamat email tidak valid.',
+            'status.required' => 'Status rekanan wajib ditentukan.',
         ]);
 
         $data = [

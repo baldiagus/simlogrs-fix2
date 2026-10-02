@@ -176,10 +176,9 @@
                             wire:model="nomor_surat_jalan"
                             placeholder="No. surat jalan vendor..."
                             required
-                            class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
+                            class="w-full text-sm rounded-lg border {{ $errors->has('nomor_surat_jalan') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
                         />
-                        @error('nomor_surat_jalan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                    </div>
+                        @error('nomor_surat_jalan') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
 
                     <div>
                         <x-searchable-select
@@ -262,9 +261,9 @@
                                                     min="0"
                                                     max="{{ $row['sisa'] }}"
                                                     placeholder="Maks: {{ $row['sisa'] }}"
-                                                    class="w-full text-right font-mono tabular-nums text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
+                                                    class="w-full text-right font-mono tabular-nums text-sm rounded-md border {{ $errors->has("itemRows.{$idx}.jumlah_diterima") ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
                                                 />
-                                                @error("itemRows.{$idx}.jumlah_diterima") <span class="text-red-500 text-[10px] mt-0.5 leading-tight">{{ $message }}</span> @enderror
+                                                @error("itemRows.{$idx}.jumlah_diterima") <span class="text-red-500 text-[10px] mt-0.5 leading-tight font-medium">{{ $message }}</span> @enderror
                                             </div>
 
                                             <div class="flex flex-col">
@@ -289,9 +288,9 @@
                                                     type="text"
                                                     wire:model="itemRows.{{ $idx }}.nomor_batch"
                                                     placeholder="Batch pabrik..."
-                                                    class="w-full font-mono uppercase text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
+                                                    class="w-full font-mono uppercase text-sm rounded-md border {{ $errors->has("itemRows.{$idx}.nomor_batch") ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
                                                 />
-                                                @error("itemRows.{$idx}.nomor_batch") <span class="text-red-500 text-[10px] mt-0.5 leading-tight">{{ $message }}</span> @enderror
+                                                @error("itemRows.{$idx}.nomor_batch") <span class="text-red-500 text-[10px] mt-0.5 leading-tight font-medium">{{ $message }}</span> @enderror
                                             </div>
 
                                             <div class="flex flex-col">

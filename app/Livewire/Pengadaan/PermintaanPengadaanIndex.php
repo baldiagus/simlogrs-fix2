@@ -108,8 +108,14 @@ class PermintaanPengadaanIndex extends Component
             'items.*.barang_id'  => 'required|exists:barang,id',
             'items.*.jumlah'     => 'required|integer|min:1',
         ], [
-            'unit_id.required_without'   => 'Pilih salah satu: Unit Pemohon atau Gudang Pemohon.',
-            'gudang_id.required_without' => 'Pilih salah satu: Unit Pemohon atau Gudang Pemohon.',
+            'unit_id.required_without'   => 'Pilih salah satu pemohon: Ruangan Unit atau Gudang Logistik.',
+            'gudang_id.required_without' => 'Pilih salah satu pemohon: Ruangan Unit atau Gudang Logistik.',
+            'urgensi.required'           => 'Tingkat urgensi pengadaan wajib ditentukan.',
+            'items.required'             => 'Minimal 1 baris komoditas barang wajib ditambahkan.',
+            'items.min'                  => 'Minimal 1 baris komoditas barang wajib ditambahkan.',
+            'items.*.barang_id.required' => 'Komoditas barang wajib dipilih.',
+            'items.*.jumlah.required'    => 'Kuantitas barang wajib diisi.',
+            'items.*.jumlah.min'         => 'Kuantitas barang minimal 1 unit.',
         ]);
 
         $kodeFinal = $this->kode ?: CodeGenerator::generatePr();

@@ -182,19 +182,19 @@
                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                         Tanggal Permintaan <span class="text-red-500">*</span>
                     </label>
-                    <input type="date" wire:model="tanggal_permintaan" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                    @error('tanggal_permintaan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    <input type="date" wire:model="tanggal_permintaan" required class="w-full text-sm rounded-lg border {{ $errors->has('tanggal_permintaan') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                    @error('tanggal_permintaan') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="col-span-3">
                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                         Urgensi <span class="text-red-500">*</span>
                     </label>
-                    <select wire:model="urgensi" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <select wire:model="urgensi" required class="w-full text-sm rounded-lg border {{ $errors->has('urgensi') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
                         <option value="REGULER">REGULER</option>
                         <option value="CITO">CITO (Darurat)</option>
                     </select>
-                    @error('urgensi') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    @error('urgensi') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="col-span-6">
@@ -278,9 +278,9 @@
                                         @if (!empty($items[$index]['barang_id']) && $stokMax <= 0) disabled @endif
                                         required
                                         placeholder="{{ $stokMax <= 0 ? '0' : '1' }}"
-                                        class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 text-right font-mono tabular-nums focus:outline-none focus:ring-1 focus:ring-blue-500 {{ !empty($items[$index]['barang_id']) && $stokMax <= 0 ? 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-400 cursor-not-allowed' : '' }}"
+                                        class="w-full text-sm rounded-lg border {{ $errors->has("items.{$index}.jumlah") ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 text-right font-mono tabular-nums focus:outline-none focus:ring-1 focus:ring-blue-500 {{ !empty($items[$index]['barang_id']) && $stokMax <= 0 ? 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-400 cursor-not-allowed' : '' }}"
                                     />
-                                    @error("items.{$index}.jumlah") <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                                    @error("items.{$index}.jumlah") <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
                                     @if (!empty($items[$index]['barang_id']) && $stokMax <= 0)
                                         <p class="text-[10px] text-rose-600 dark:text-rose-400 font-medium mt-1">Stok 0 unit, tidak dapat diisi.</p>
                                     @endif

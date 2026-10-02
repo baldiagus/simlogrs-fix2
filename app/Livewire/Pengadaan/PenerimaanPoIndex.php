@@ -82,10 +82,14 @@ class PenerimaanPoIndex extends Component
         abort_unless(auth()->user()?->can('create_gudang_stok::penerimaan::po'), 403);
 
         $this->validate([
-            'nomor_surat_jalan' => 'required|string|max:100',
+            'nomor_surat_jalan' => 'required|string|min:3|max:100',
             'gudang_id'         => 'required|exists:gudang,id',
             'catatan'           => 'nullable|string|max:1000',
             'itemRows'          => 'required|array|min:1',
+        ], [
+            'nomor_surat_jalan.required' => 'Nomor surat jalan pengiriman dari vendor wajib diisi.',
+            'nomor_surat_jalan.min'      => 'Nomor surat jalan minimal 3 karakter.',
+            'gudang_id.required'         => 'Gudang penerima logistik wajib dipilih.',
         ]);
 
         $hasReceived = false;

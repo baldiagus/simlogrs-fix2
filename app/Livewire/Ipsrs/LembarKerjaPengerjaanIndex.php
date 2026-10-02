@@ -34,7 +34,9 @@ class LembarKerjaPengerjaanIndex extends Component
     public ?int $penugasan_id = null;
     public ?PenugasanMaintenance $formSpk = null;
 
-    #[Validate('required|date')]
+    #[Validate('required|date', message: [
+        'required' => 'Tanggal pengerjaan fisik wajib diisi.',
+    ])]
     public string $tanggal_pengerjaan = '';
 
     #[Validate('nullable|string')]
@@ -43,15 +45,22 @@ class LembarKerjaPengerjaanIndex extends Component
     #[Validate('nullable|string')]
     public ?string $jam_selesai = '10:00';
 
-    #[Validate('required|string|min:5')]
+    #[Validate('required|string|min:5', message: [
+        'required' => 'Diagnosa teknis penyebab kerusakan wajib diisi.',
+        'min'      => 'Diagnosa teknis minimal 5 karakter.',
+    ])]
     public string $diagnosa = '';
 
-    #[Validate('required|string|min:5')]
+    #[Validate('required|string|min:5', message: [
+        'required' => 'Uraian tindakan perbaikan fisik wajib diisi.',
+        'min'      => 'Uraian tindakan minimal 5 karakter.',
+    ])]
     public string $tindakan = '';
 
-    #[Validate('required|in:BERHASIL,PENDING,GAGAL')]
+    #[Validate('required|in:BERHASIL,PENDING,GAGAL', message: [
+        'required' => 'Hasil akhir pengerjaan servis wajib dipilih.',
+    ])]
     public string $hasil = 'BERHASIL';
-
     #[Validate('nullable|string')]
     public ?string $catatan = null;
 

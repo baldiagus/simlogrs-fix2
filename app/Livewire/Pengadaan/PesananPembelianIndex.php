@@ -99,6 +99,11 @@ class PesananPembelianIndex extends Component
             'catatan'               => 'nullable|string|max:1000',
             'itemRows'              => 'required|array|min:1',
             'itemRows.*.harga_satuan' => 'required|numeric|min:0',
+        ], [
+            'pemasok_id.required'        => 'Pemasok / vendor rekanan wajib dipilih.',
+            'syarat_pembayaran.required' => 'Syarat termin pembayaran wajib ditentukan.',
+            'itemRows.*.harga_satuan.required' => 'Harga satuan barang wajib diisi.',
+            'itemRows.*.harga_satuan.min'      => 'Harga satuan tidak boleh bernilai negatif.',
         ]);
 
         DB::transaction(function () {

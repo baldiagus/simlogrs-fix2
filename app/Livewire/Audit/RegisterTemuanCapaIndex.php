@@ -105,6 +105,13 @@ class RegisterTemuanCapaIndex extends Component
             'tingkat_risiko' => 'required|in:Mayor,Moderat,Minor',
             'tanggal_audit'  => 'required|date',
             'due_date_capa'  => 'required|date|after_or_equal:tanggal_audit',
+        ], [
+            'objek_audit.required'    => 'Objek pemeriksaan audit wajib diisi.',
+            'objek_audit.min'         => 'Objek audit minimal 5 karakter.',
+            'ringkasan.required'      => 'Uraian ringkasan temuan wajib diisi.',
+            'ringkasan.min'           => 'Uraian ringkasan temuan minimal 10 karakter.',
+            'tingkat_risiko.required' => 'Tingkat klasifikasi risiko temuan wajib ditentukan.',
+            'due_date_capa.after_or_equal' => 'Batas waktu CAPA tidak boleh mendahului tanggal audit.',
         ]);
 
         $user = auth()->user();
@@ -168,6 +175,11 @@ class RegisterTemuanCapaIndex extends Component
             'analisis_penyebab'  => 'required|string|min:10',
             'tindakan_perbaikan' => 'required|string|min:10',
             'fileBuktiList.*'    => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf,xlsx,docx|max:10240',
+        ], [
+            'analisis_penyebab.required'  => 'Analisis akar penyebab masalah wajib diisi.',
+            'analisis_penyebab.min'       => 'Analisis penyebab minimal 10 karakter.',
+            'tindakan_perbaikan.required' => 'Uraian tindakan perbaikan (CAPA) wajib diisi.',
+            'tindakan_perbaikan.min'      => 'Tindakan perbaikan minimal 10 karakter.',
         ]);
 
         $temuan = TemuanAudit::findOrFail($this->selectedTemuanId);
@@ -251,6 +263,10 @@ class RegisterTemuanCapaIndex extends Component
         $this->validate([
             'hasil_evaluasi'   => 'required|in:Closed,In Progress',
             'catatan_evaluasi' => 'required|string|min:5',
+        ], [
+            'hasil_evaluasi.required'   => 'Hasil evaluasi status CAPA wajib dipilih.',
+            'catatan_evaluasi.required' => 'Catatan telaah verifikasi auditor wajib diisi.',
+            'catatan_evaluasi.min'      => 'Catatan evaluasi minimal 5 karakter.',
         ]);
 
         $user = auth()->user();

@@ -246,7 +246,7 @@
                         wire:model="nama"
                         required
                         placeholder="Contoh: dr. Pratama, Sp.EM"
-                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full h-9 text-xs rounded-lg border {{ $errors->has('nama') ? 'border-rose-500 dark:border-rose-500 ring-1 ring-rose-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     />
                     @error('nama') <p class="text-[10px] text-rose-500 mt-0.5">{{ $message }}</p> @enderror
                 </div>
@@ -276,7 +276,7 @@
                         wire:model="username"
                         required
                         placeholder="kepalaunit"
-                        class="w-full h-9 text-xs font-mono rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full h-9 text-xs font-mono rounded-lg border {{ $errors->has('username') ? 'border-rose-500 dark:border-rose-500 ring-1 ring-rose-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     />
                     @error('username') <p class="text-[10px] text-rose-500 mt-0.5">{{ $message }}</p> @enderror
                 </div>
@@ -290,7 +290,7 @@
                         wire:model="email"
                         required
                         placeholder="kepalaunit@simlogrs.local"
-                        class="w-full h-9 text-xs font-mono rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full h-9 text-xs font-mono rounded-lg border {{ $errors->has('email') ? 'border-rose-500 dark:border-rose-500 ring-1 ring-rose-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     />
                     @error('email') <p class="text-[10px] text-rose-500 mt-0.5">{{ $message }}</p> @enderror
                 </div>
@@ -306,8 +306,8 @@
                         type="password"
                         wire:model="password"
                         {{ $editingId ? '' : 'required' }}
-                        placeholder="Minimal 6 karakter"
-                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Minimal 8 karakter"
+                        class="w-full h-9 text-xs rounded-lg border {{ $errors->has('password') ? 'border-rose-500 dark:border-rose-500 ring-1 ring-rose-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     />
                     @error('password') <p class="text-[10px] text-rose-500 mt-0.5">{{ $message }}</p> @enderror
                 </div>
@@ -335,7 +335,7 @@
                     <select
                         wire:model="selectedRole"
                         required
-                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full h-9 text-xs rounded-lg border {{ $errors->has('selectedRole') ? 'border-rose-500 dark:border-rose-500 ring-1 ring-rose-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     >
                         @foreach ($daftarRoles as $roleOption)
                             <option value="{{ $roleOption->name }}">{{ ucwords(str_replace('_', ' ', $roleOption->name)) }}</option>
@@ -351,7 +351,7 @@
                     <select
                         wire:model="status"
                         required
-                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full h-9 text-xs rounded-lg border {{ $errors->has('status') ? 'border-rose-500 dark:border-rose-500 ring-1 ring-rose-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     >
                         <option value="AKTIF">AKTIF (Dapat Login)</option>
                         <option value="NONAKTIF">NONAKTIF (Ditolak Masuk)</option>

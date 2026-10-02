@@ -203,9 +203,9 @@
                             rows="2"
                             required
                             placeholder="Contoh: Modul power supply korsleting, kapasitor filter meledak..."
-                            class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            class="w-full text-xs rounded-lg border {{ $errors->has('diagnosa') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         ></textarea>
-                        @error('diagnosa') <p class="text-[10px] text-red-500 mt-0.5">{{ $message }}</p> @enderror
+                        @error('diagnosa') <p class="text-[10px] text-red-500 mt-0.5 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
@@ -217,9 +217,9 @@
                             rows="2"
                             required
                             placeholder="Contoh: Pembersihan debu sirkulasi, penggantian kapasitor baru, pengelasan kabel ground..."
-                            class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            class="w-full text-xs rounded-lg border {{ $errors->has('tindakan') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         ></textarea>
-                        @error('tindakan') <p class="text-[10px] text-red-500 mt-0.5">{{ $message }}</p> @enderror
+                        @error('tindakan') <p class="text-[10px] text-red-500 mt-0.5 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
@@ -252,7 +252,7 @@
                                             <select
                                                 wire:model.live="sparepartItems.{{ $index }}.barang_id"
                                                 required
-                                                class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                class="w-full text-xs rounded-lg border {{ $errors->has("sparepartItems.{$index}.barang_id") ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                             >
                                                 <option value="">-- Pilih Komoditas Suku Cadang --</option>
                                                 @foreach ($daftarSparepart as $sp)
@@ -273,7 +273,7 @@
                                                 @if ($maxStok !== null) max="{{ $maxStok }}" @endif
                                                 required
                                                 placeholder="Jumlah"
-                                                class="w-full text-xs text-right font-mono tabular-nums rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                class="w-full text-xs text-right font-mono tabular-nums rounded-lg border {{ $errors->has("sparepartItems.{$index}.jumlah") ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                             />
                                         </div>
                                         <flux:button

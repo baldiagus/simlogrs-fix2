@@ -57,8 +57,13 @@ class KategoriBarangIndex extends Component
     {
         $this->validate([
             'kode' => 'required|string|max:50|unique:kategori_barang,kode,' . ($this->editingId ?? 'NULL') . ',id',
-            'nama' => 'required|string|max:100',
+            'nama' => 'required|string|min:2|max:100',
             'status' => 'required|in:AKTIF,NONAKTIF',
+        ], [
+            'kode.required' => 'Kode kategori barang wajib diisi.',
+            'kode.unique'   => 'Kode kategori sudah terdaftar.',
+            'nama.required' => 'Nama kategori barang wajib diisi.',
+            'status.required' => 'Status kategori wajib ditentukan.',
         ]);
 
         $data = [

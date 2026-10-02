@@ -60,8 +60,11 @@ class MerekBarangIndex extends Component
     public function save()
     {
         $this->validate([
-            'nama' => 'required|string|max:100',
+            'nama' => 'required|string|min:2|max:100',
             'status' => 'required|in:AKTIF,NONAKTIF',
+        ], [
+            'nama.required' => 'Nama merek dagang wajib diisi.',
+            'status.required' => 'Status merek wajib ditentukan.',
         ]);
 
         if ($this->editingId) {

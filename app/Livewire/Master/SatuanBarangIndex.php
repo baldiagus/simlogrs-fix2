@@ -63,8 +63,13 @@ class SatuanBarangIndex extends Component
     {
         $this->validate([
             'kode' => 'required|string|max:30|unique:satuan_barang,kode,' . ($this->editingId ?? 'NULL') . ',id',
-            'nama' => 'required|string|max:50',
+            'nama' => 'required|string|min:2|max:50',
             'status' => 'required|in:AKTIF,NONAKTIF',
+        ], [
+            'kode.required' => 'Kode satuan barang wajib diisi.',
+            'kode.unique'   => 'Kode satuan sudah terdaftar.',
+            'nama.required' => 'Nama satuan barang wajib diisi.',
+            'status.required' => 'Status satuan wajib ditentukan.',
         ]);
 
         $data = [

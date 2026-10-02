@@ -81,9 +81,16 @@ class GudangIndex extends Component
     {
         $this->validate([
             'kode' => 'required|string|max:50|unique:gudang,kode,' . ($this->editingId ?? 'NULL') . ',id',
-            'nama' => 'required|string|max:150',
+            'nama' => 'required|string|min:3|max:150',
             'jenis' => 'required|in:SENTRAL,TRANSIT,UNIT,DEPO',
             'status' => 'required|in:AKTIF,NONAKTIF',
+        ], [
+            'kode.required' => 'Kode fasilitas gudang wajib diisi.',
+            'kode.unique'   => 'Kode gudang sudah terdaftar.',
+            'nama.required' => 'Nama fasilitas gudang wajib diisi.',
+            'nama.min'      => 'Nama fasilitas gudang minimal 3 karakter.',
+            'jenis.required' => 'Jenis klasifikasi gudang wajib dipilih.',
+            'status.required' => 'Status gudang wajib ditentukan.',
         ]);
 
         if ($this->editingId) {

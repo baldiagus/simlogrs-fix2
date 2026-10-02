@@ -75,13 +75,17 @@
     <button
         type="button"
         @click="if (!{{ $disabled ? 'true' : 'false' }}) { open = !open; if (open) $nextTick(() => $refs.searchInput.focus()); }"
+        @php
+            $isInvalid = $errors->has($model);
+        @endphp
         {{ $attributes->class([
             'w-full flex items-center justify-between text-left text-sm rounded-lg border px-3 py-2 transition-colors shadow-2xs',
             'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100',
-            'border-zinc-300 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500',
+            $isInvalid
+                ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30 focus:border-red-500 focus:ring-red-500/30'
+                : 'border-zinc-300 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500',
             'opacity-60 cursor-not-allowed' => $disabled,
         ]) }}
-    >
         <span class="truncate pr-2" :class="selectedOption ? 'font-medium' : 'text-zinc-400 dark:text-zinc-500 text-xs'">
             <template x-if="selectedOption">
                 <span>
@@ -178,6 +182,11 @@
     </div>
 
     @error($model)
-        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+        <p class="mt-1.5 text-xs text-red-500 dark:text-red-400 flex items-center gap-1 font-medium">
+            <svg class="size-3.5 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                <path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm.75-10.25a.75.75 0 0 0-1.5 0v4.5a.75.75 0 0 0 1.5 0v-4.5Zm-.75 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd"/>
+            </svg>
+            <span>{{ $message }}</span>
+        </p>
     @enderror
 </div>

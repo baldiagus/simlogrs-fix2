@@ -397,12 +397,12 @@
                     </label>
                     <select
                         wire:model="statusAsetBaru"
-                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        class="w-full h-9 text-xs rounded-lg border {{ $errors->has('statusAsetBaru') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
                         <option value="DIGUNAKAN">DIGUNAKAN (Sedang aktif beroperasi dalam pelayanan ruangan)</option>
                         <option value="TERSEDIA">TERSEDIA (Alat idle / cadangan siap pakai & siap dipinjamkan)</option>
                     </select>
-                </div>
+                    @error('statusAsetBaru') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
 
                 {{-- Kondisi Fisik --}}
                 <div>
@@ -411,13 +411,13 @@
                     </label>
                     <select
                         wire:model="kondisiAsetBaru"
-                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        class="w-full h-9 text-xs rounded-lg border {{ $errors->has('kondisiAsetBaru') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
                         <option value="BAIK">BAIK (Berfungsi normal tanpa kendala)</option>
                         <option value="RUSAK_RINGAN">RUSAK RINGAN (Fungsi terbatas / ada bagian aus)</option>
                         <option value="RUSAK_BERAT">RUSAK BERAT (Mati total / tidak dapat digunakan)</option>
                     </select>
-                </div>
+                    @error('kondisiAsetBaru') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
 
                 {{-- Tombol Aksi Modal --}}
                 <div class="flex justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-700">

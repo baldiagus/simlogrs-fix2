@@ -186,6 +186,13 @@ class AsetIndex extends Component
             'nilai_perolehan'   => 'required|numeric|min:0',
             'kondisi'           => 'required|in:BAIK,RUSAK_RINGAN,RUSAK_BERAT',
             'status'            => 'required|in:TERSEDIA,DIGUNAKAN,DIPINJAM,DALAM_MAINTENANCE,DIHAPUSKAN',
+        ], [
+            'barang_id.required'         => 'Komoditas barang tipe aset wajib dipilih.',
+            'lokasi_tipe.required'       => 'Tipe penempatan fisik wajib dipilih.',
+            'tanggal_perolehan.required' => 'Tanggal perolehan unit aset wajib diisi.',
+            'nilai_perolehan.required'   => 'Nilai perolehan wajib diisi.',
+            'kondisi.required'           => 'Kondisi fisik aset wajib ditentukan.',
+            'status.required'            => 'Status aset wajib ditentukan.',
         ]);
 
         // Validasi Lokasi XOR

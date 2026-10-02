@@ -249,23 +249,25 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Kondisi Fisik</label>
-                    <select wire:model="kondisi" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Kondisi Fisik <span class="text-red-500">*</span></label>
+                    <select wire:model="kondisi" required class="w-full text-sm rounded-lg border {{ $errors->has('kondisi') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
                         <option value="BAIK">BAIK (Siap Operasional)</option>
                         <option value="RUSAK_RINGAN">RUSAK RINGAN</option>
                         <option value="RUSAK_BERAT">RUSAK BERAT</option>
                     </select>
+                    @error('kondisi') <p class="mt-1 text-xs text-red-500 flex items-center gap-1"><span class="font-medium">{{ $message }}</span></p> @enderror
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Status Aset</label>
-                    <select wire:model="status" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Status Aset <span class="text-red-500">*</span></label>
+                    <select wire:model="status" required class="w-full text-sm rounded-lg border {{ $errors->has('status') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
                         <option value="TERSEDIA">TERSEDIA</option>
                         <option value="DIGUNAKAN">DIGUNAKAN</option>
                         <option value="DIPINJAM">DIPINJAM</option>
                         <option value="DALAM_MAINTENANCE">DALAM MAINTENANCE</option>
                         <option value="DIHAPUSKAN">DIHAPUSKAN</option>
                     </select>
+                    @error('status') <p class="mt-1 text-xs text-red-500 flex items-center gap-1"><span class="font-medium">{{ $message }}</span></p> @enderror
                 </div>
             </div>
 

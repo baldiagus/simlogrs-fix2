@@ -101,6 +101,9 @@ class StokRuanganIndex extends Component
         $this->validate([
             'statusAsetBaru'  => 'required|in:DIGUNAKAN,TERSEDIA',
             'kondisiAsetBaru' => 'required|in:BAIK,RUSAK_RINGAN,RUSAK_BERAT',
+        ], [
+            'statusAsetBaru.required'  => 'Status aset operasional wajib ditentukan.',
+            'kondisiAsetBaru.required' => 'Kondisi fisik aset wajib dinilai.',
         ]);
 
         if (! $this->selectedAsetId) {

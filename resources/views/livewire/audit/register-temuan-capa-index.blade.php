@@ -249,7 +249,7 @@
                     wire:model="objek_audit"
                     required
                     placeholder="Contoh: Gudang Sentral Logistik / Pengadaan PO-2026-003..."
-                    class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    class="w-full text-xs rounded-lg border {{ $errors->has('objek_audit') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                 />
                 @error('objek_audit') <p class="text-[10px] text-red-500 mt-0.5">{{ $message }}</p> @enderror
             </div>
@@ -262,7 +262,7 @@
                     <select
                         wire:model="tingkat_risiko"
                         required
-                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        class="w-full h-9 text-xs rounded-lg border {{ $errors->has('tingkat_risiko') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     >
                         <option value="Mayor">Mayor (Risiko Kritis / Keuangan)</option>
                         <option value="Moderat">Moderat (Ketidakpatuhan SOP)</option>
@@ -308,7 +308,7 @@
                     required
                     rows="3"
                     placeholder="Uraikan temuan ketidaksesuaian, pasal SOP yang dilanggar, dan dampak operasionalnya..."
-                    class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    class="w-full text-xs rounded-lg border {{ $errors->has('ringkasan') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                 ></textarea>
                 @error('ringkasan') <p class="text-[10px] text-red-500 mt-0.5">{{ $message }}</p> @enderror
             </div>
@@ -349,7 +349,7 @@
                         required
                         rows="2"
                         placeholder="Jelaskan faktor penyebab mendasar (man, method, material, machine)..."
-                        class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        class="w-full text-xs rounded-lg border {{ $errors->has('analisis_penyebab') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     ></textarea>
                     @error('analisis_penyebab') <p class="text-[10px] text-red-500 mt-0.5">{{ $message }}</p> @enderror
                 </div>
@@ -363,7 +363,7 @@
                         required
                         rows="3"
                         placeholder="Uraikan tindakan perbaikan langsung dan pencegahan agar tidak berulang..."
-                        class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        class="w-full text-xs rounded-lg border {{ $errors->has('tindakan_perbaikan') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     ></textarea>
                     @error('tindakan_perbaikan') <p class="text-[10px] text-red-500 mt-0.5">{{ $message }}</p> @enderror
                 </div>
@@ -491,7 +491,7 @@
                     <select
                         wire:model="hasil_evaluasi"
                         required
-                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        class="w-full h-9 text-xs rounded-lg border {{ $errors->has('hasil_evaluasi') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     >
                         <option value="Closed">Closed (Tindakan perbaikan terbukti valid dan tuntas)</option>
                         <option value="In Progress">Kembalikan ke In Progress (Bukti belum memadai / perlu revisi)</option>
@@ -507,7 +507,7 @@
                         required
                         rows="3"
                         placeholder="Berikan catatan penilaian kelaikan tindakan perbaikan atau arahan perbaikan lanjutan..."
-                        class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        class="w-full text-xs rounded-lg border {{ $errors->has('catatan_evaluasi') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     ></textarea>
                     @error('catatan_evaluasi') <p class="text-[10px] text-red-500 mt-0.5">{{ $message }}</p> @enderror
                 </div>

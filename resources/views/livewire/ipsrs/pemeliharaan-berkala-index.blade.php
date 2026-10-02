@@ -227,20 +227,19 @@
                             min="1"
                             max="365"
                             required
-                            class="w-full text-sm font-mono text-center rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            class="w-full text-sm font-mono text-center rounded-lg border {{ $errors->has('interval_nilai') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                         />
                     </div>
                     <div class="w-36">
                         <select
                             wire:model="interval_tipe"
                             required
-                            class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            class="w-full h-9 text-xs rounded-lg border {{ $errors->has('interval_tipe') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-900 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                         >
                             <option value="HARI">Hari</option>
                             <option value="MINGGU">Minggu</option>
                             <option value="BULAN">Bulan</option>
                         </select>
-                    </div>
                     <span class="text-xs text-zinc-500 dark:text-zinc-400">sekali</span>
                 </div>
                 @error('interval_nilai') <p class="text-[10px] text-red-500 mt-0.5">{{ $message }}</p> @enderror

@@ -82,9 +82,16 @@ class UnitIndex extends Component
     {
         $this->validate([
             'kode' => 'required|string|max:50|unique:unit,kode,' . ($this->editingId ?? 'NULL') . ',id',
-            'nama' => 'required|string|max:150',
+            'nama' => 'required|string|min:3|max:150',
             'jenis' => 'required|in:PELAYANAN_MEDIS,PENUNJANG_MEDIS,ADMINISTRASI,OPERASIONAL',
             'status' => 'required|in:AKTIF,NONAKTIF',
+        ], [
+            'kode.required' => 'Kode unit kerja wajib diisi.',
+            'kode.unique'   => 'Kode unit kerja sudah digunakan.',
+            'nama.required' => 'Nama unit / ruangan dinas wajib diisi.',
+            'nama.min'      => 'Nama unit kerja minimal 3 karakter.',
+            'jenis.required' => 'Jenis unit kerja wajib dipilih.',
+            'status.required' => 'Status operasional unit kerja wajib ditentukan.',
         ]);
 
         if ($this->editingId) {

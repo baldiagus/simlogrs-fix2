@@ -32,15 +32,20 @@ class DaftarSpkPerbaikanIndex extends Component
     public ?int $selected_tiket_id = null;
     public ?PermintaanMaintenance $selectedTiketForSpk = null;
 
-    #[Validate('required|exists:pengguna,id')]
+    #[Validate('required|exists:pengguna,id', message: [
+        'required' => 'Teknisi pelaksana perbaikan wajib ditugaskan.',
+    ])]
     public ?int $teknisi_id = null;
 
-    #[Validate('required|date')]
+    #[Validate('required|date', message: [
+        'required' => 'Tanggal penugasan SPK wajib diisi.',
+    ])]
     public string $tanggal_penugasan = '';
 
-    #[Validate('nullable|date|after_or_equal:tanggal_penugasan')]
+    #[Validate('nullable|date|after_or_equal:tanggal_penugasan', message: [
+        'after_or_equal' => 'Target selesai tidak boleh sebelum tanggal penugasan.',
+    ])]
     public ?string $target_selesai = null;
-
     #[Validate('nullable|string')]
     public ?string $instruksi_khusus = null;
 

@@ -117,13 +117,13 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Syarat Pembayaran</label>
-                    <select wire:model="syarat_pembayaran" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Syarat Pembayaran <span class="text-red-500">*</span></label>
+                    <select wire:model="syarat_pembayaran" required class="w-full text-sm rounded-lg border {{ $errors->has('syarat_pembayaran') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
                         <option value="TEMPO_30_HARI">Tempo 30 Hari</option>
                         <option value="TEMPO_60_HARI">Tempo 60 Hari</option>
                         <option value="TUNAI">Tunai</option>
                     </select>
-                </div>
+                    @error('syarat_pembayaran') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

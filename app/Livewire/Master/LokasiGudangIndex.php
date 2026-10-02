@@ -79,8 +79,13 @@ class LokasiGudangIndex extends Component
         $this->validate([
             'gudang_id' => 'required|exists:gudang,id',
             'kode' => 'required|string|max:50',
-            'nama' => 'required|string|max:100',
+            'nama' => 'required|string|min:2|max:100',
             'status' => 'required|in:AKTIF,NONAKTIF',
+        ], [
+            'gudang_id.required' => 'Fasilitas gudang wajib dipilih.',
+            'kode.required'      => 'Kode rak / bin wajib diisi.',
+            'nama.required'      => 'Nama rak penyimpanan wajib diisi.',
+            'status.required'    => 'Status rak wajib ditentukan.',
         ]);
 
         // Cek keunikan kode per gudang

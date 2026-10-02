@@ -23,13 +23,21 @@ class LaporServisIndex extends Component
     public bool $showDetailModal = false;
     public ?PermintaanMaintenance $selectedTiket = null;
 
-    #[Validate('required|exists:aset,id')]
+    #[Validate('required|exists:aset,id', message: [
+        'required' => 'Fasilitas atau unit aset yang rusak wajib dipilih.',
+        'exists'   => 'Aset tidak ditemukan di sistem.',
+    ])]
     public ?int $aset_id = null;
 
-    #[Validate('required|in:RENDAH,SEDANG,TINGGI,CITO')]
+    #[Validate('required|in:RENDAH,SEDANG,TINGGI,CITO', message: [
+        'required' => 'Tingkat prioritas darurat wajib ditentukan.',
+    ])]
     public string $prioritas = 'SEDANG';
 
-    #[Validate('required|string|min:5')]
+    #[Validate('required|string|min:5', message: [
+        'required' => 'Deskripsi keluhan atau kerusakan sarana wajib dijelaskan.',
+        'min'      => 'Deskripsi kerusakan minimal 5 karakter.',
+    ])]
     public string $deskripsi_masalah = '';
 
     #[Validate('nullable|image|mimes:jpg,jpeg,png,webp|max:10240', message: [

@@ -26,24 +26,40 @@ class PemeliharaanBerkalaIndex extends Component
     public ?int $editingId = null;
 
     // Form Jadwal Servis Rutin
-    #[Validate('required|exists:aset,id')]
+    #[Validate('required|exists:aset,id', message: [
+        'required' => 'Fasilitas atau unit aset yang diservis wajib dipilih.',
+        'exists'   => 'Aset tidak ditemukan.',
+    ])]
     public ?int $aset_id = null;
 
-    #[Validate('required|string|min:3|max:150')]
+    #[Validate('required|string|min:3|max:150', message: [
+        'required' => 'Nama kegiatan servis preventif wajib diisi.',
+        'min'      => 'Nama kegiatan servis minimal 3 karakter.',
+    ])]
     public string $jenis_maintenance = '';
 
-    #[Validate('required|integer|min:1|max:365')]
+    #[Validate('required|integer|min:1|max:365', message: [
+        'required' => 'Nilai interval wajib diisi angka 1-365.',
+        'min'      => 'Interval minimal 1.',
+        'max'      => 'Interval maksimal 365.',
+    ])]
     public int $interval_nilai = 1;
 
-    #[Validate('required|in:HARI,MINGGU,BULAN')]
+    #[Validate('required|in:HARI,MINGGU,BULAN', message: [
+        'required' => 'Satuan interval waktu wajib dipilih.',
+    ])]
     public string $interval_tipe = 'BULAN';
 
-    #[Validate('required|exists:pengguna,id')]
+    #[Validate('required|exists:pengguna,id', message: [
+        'required' => 'Teknisi penanggung jawab wajib ditentukan.',
+        'exists'   => 'Teknisi tidak ditemukan di sistem.',
+    ])]
     public ?int $teknisi_id = null;
 
-    #[Validate('required|date')]
+    #[Validate('required|date', message: [
+        'required' => 'Tanggal jadwal berikutnya wajib diisi.',
+    ])]
     public string $tanggal_berikutnya = '';
-
     #[Validate('nullable|string')]
     public ?string $catatan = null;
 

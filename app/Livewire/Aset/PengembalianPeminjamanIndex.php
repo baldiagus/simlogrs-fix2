@@ -132,6 +132,8 @@ class PengembalianPeminjamanIndex extends Component
             'inspeksiRows.*.kondisi_saat_kembali' => 'required|in:BAIK,RUSAK_RINGAN,RUSAK_BERAT',
             'inspeksiRows.*.catatan'              => 'nullable|string|max:500',
             'catatanUmum'                         => 'nullable|string|max:1000',
+        ], [
+            'inspeksiRows.*.kondisi_saat_kembali.required' => 'Kondisi fisik aset saat serah terima kembali wajib dinilai.',
         ]);
 
         $this->askConfirmation(
@@ -169,6 +171,8 @@ class PengembalianPeminjamanIndex extends Component
             'inspeksiRows.*.kondisi_saat_kembali' => 'required|in:BAIK,RUSAK_RINGAN,RUSAK_BERAT',
             'inspeksiRows.*.catatan'              => 'nullable|string|max:500',
             'catatanUmum'                         => 'nullable|string|max:1000',
+        ], [
+            'inspeksiRows.*.kondisi_saat_kembali.required' => 'Kondisi fisik aset saat serah terima kembali wajib dinilai.',
         ]);
 
         $hasDamaged = collect($this->inspeksiRows)->contains(

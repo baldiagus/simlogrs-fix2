@@ -98,6 +98,9 @@ class StockOpnameIndex extends Component
             'gudang_id'      => 'required|exists:gudang,id',
             'tanggal_opname' => 'required|date',
             'catatan'        => 'nullable|string',
+        ], [
+            'gudang_id.required'      => 'Fasilitas gudang yang diopname wajib dipilih.',
+            'tanggal_opname.required' => 'Tanggal pelaksanaan opname fisik wajib diisi.',
         ]);
 
         $user = auth()->user();
@@ -301,6 +304,10 @@ class StockOpnameIndex extends Component
     {
         $this->validate([
             'fileExcel' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ], [
+            'fileExcel.required' => 'Berkas Excel hasil opname fisik wajib diunggah.',
+            'fileExcel.mimes'    => 'Format berkas harus berekstensi .xlsx, .xls, atau .csv.',
+            'fileExcel.max'      => 'Ukuran berkas Excel maksimal 5 MB.',
         ]);
 
         if (! $this->activeOpname) {
