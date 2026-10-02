@@ -124,6 +124,7 @@
                         <option value="TUNAI">Tunai</option>
                     </select>
                     @error('syarat_pembayaran') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
+                </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

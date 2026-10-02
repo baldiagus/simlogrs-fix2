@@ -296,6 +296,7 @@
                                             required
                                             class="w-28 text-right font-mono font-bold text-xs rounded-lg border {{ $errors->has("countRows.{$detId}.jumlah_fisik") ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-2.5 py-1 text-zinc-900 dark:text-zinc-100 focus:ring-1 focus:ring-blue-500"
                                         />
+                                    </td>
                                     <td class="p-2.5">
                                         <input
                                             type="text"

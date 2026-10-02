@@ -101,7 +101,7 @@
                     @endforeach
                 </select>
                 @error('gudang_id') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
-
+            </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <flux:input wire:model="kode" label="Kode Bin / Rak" placeholder="misal: RAK-ATK-01" required uppercase />
                 <flux:input wire:model="nama" label="Nama / Label Rak" placeholder="misal: Rak ATK Utama" required />

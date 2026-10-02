@@ -403,6 +403,7 @@
                         <option value="TERSEDIA">TERSEDIA (Alat idle / cadangan siap pakai & siap dipinjamkan)</option>
                     </select>
                     @error('statusAsetBaru') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
+                </div>
 
                 {{-- Kondisi Fisik --}}
                 <div>
@@ -418,6 +419,7 @@
                         <option value="RUSAK_BERAT">RUSAK BERAT (Mati total / tidak dapat digunakan)</option>
                     </select>
                     @error('kondisiAsetBaru') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
+                </div>
 
                 {{-- Tombol Aksi Modal --}}
                 <div class="flex justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-700">

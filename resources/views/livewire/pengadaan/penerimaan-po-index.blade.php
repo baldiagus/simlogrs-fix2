@@ -179,7 +179,7 @@
                             class="w-full text-sm rounded-lg border {{ $errors->has('nomor_surat_jalan') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
                         />
                         @error('nomor_surat_jalan') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
-
+                    </div>
                     <div>
                         <x-searchable-select
                             model="gudang_id"

@@ -152,8 +152,8 @@
                         <option value="CITO">CITO</option>
                     </select>
                     @error('urgensi') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
+                </div>
             </div>
-
             {{-- Pilihan Pemohon: Unit vs Gudang (Mutually Exclusive) --}}
             <div class="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/60 space-y-3">
                 <div class="flex items-center justify-between pb-2 border-b border-zinc-200/60 dark:border-zinc-700/60">
@@ -231,6 +231,7 @@
                             @endif
                             <input type="number" wire:model="items.{{ $index }}.jumlah" min="1" required class="w-full text-sm rounded-lg border {{ $errors->has("items.{$index}.jumlah") ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 text-right tabular-nums" />
                             @error("items.{$index}.jumlah") <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
+                        </div>
                         <div class="w-10 shrink-0">
                             @if (count($items) > 1)
                                 <flux:button type="button" wire:click="removeItem({{ $index }})" size="xs" variant="ghost" icon="trash" title="Hapus Baris" class="text-red-500 hover:text-red-700" />
