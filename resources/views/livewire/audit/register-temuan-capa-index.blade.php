@@ -284,29 +284,19 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-                        Unit Terperiksa (Opsional)
-                    </label>
-                    <select wire:model="unit_id" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
-                        <option value="">-- Pilih Unit Terperiksa --</option>
-                        @foreach ($daftarUnit as $u)
-                            <option value="{{ $u->id }}">{{ $u->nama }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <x-searchable-select
+                    model="unit_id"
+                    label="Unit Terperiksa (Opsional)"
+                    placeholder="-- Pilih Unit Terperiksa --"
+                    :options="$daftarUnit"
+                />
 
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-                        Gudang Terperiksa (Opsional)
-                    </label>
-                    <select wire:model="gudang_id" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
-                        <option value="">-- Pilih Fasilitas Gudang --</option>
-                        @foreach ($daftarGudang as $g)
-                            <option value="{{ $g->id }}">{{ $g->nama }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <x-searchable-select
+                    model="gudang_id"
+                    label="Gudang Terperiksa (Opsional)"
+                    placeholder="-- Pilih Fasilitas Gudang --"
+                    :options="$daftarGudang"
+                />
             </div>
 
             <div>

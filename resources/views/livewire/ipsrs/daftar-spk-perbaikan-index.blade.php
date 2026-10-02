@@ -302,22 +302,13 @@
                     </div>
                 @endif
 
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Teknisi Pelaksana Ditugaskan <span class="text-red-500">*</span>
-                    </label>
-                    <select
-                        wire:model="teknisi_id"
-                        required
-                        class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                        <option value="">-- Pilih Teknisi IPSRS --</option>
-                        @foreach ($daftarTeknisi as $tek)
-                            <option value="{{ $tek->id }}">{{ $tek->nama }} ({{ $tek->email }})</option>
-                        @endforeach
-                    </select>
-                    @error('teknisi_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                </div>
+                <x-searchable-select
+                    model="teknisi_id"
+                    label="Teknisi Pelaksana Ditugaskan"
+                    placeholder="-- Cari & Pilih Teknisi IPSRS... --"
+                    :options="$daftarTeknisi"
+                    required
+                />
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <flux:field>

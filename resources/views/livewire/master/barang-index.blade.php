@@ -185,49 +185,37 @@
             <flux:input wire:model="nama" label="Nama Lengkap Komoditas" placeholder="misal: Kertas HVS A4 80gr Sinar Dunia" required />
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Kategori Komoditas</label>
-                    <select wire:model="kategori_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                        <option value="">Pilih Kategori...</option>
-                        @foreach ($daftarKategori as $kat)
-                            <option value="{{ $kat->id }}">{{ $kat->nama }}</option>
-                        @endforeach
-                    </select>
-                    @error('kategori_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                </div>
+                <x-searchable-select
+                    model="kategori_id"
+                    label="Kategori Komoditas"
+                    placeholder="Pilih Kategori..."
+                    :options="$daftarKategori"
+                    required
+                />
 
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Satuan Kemasan</label>
-                    <select wire:model="satuan_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                        <option value="">Pilih Satuan...</option>
-                        @foreach ($daftarSatuan as $sat)
-                            <option value="{{ $sat->id }}">{{ $sat->nama }} ({{ $sat->simbol ?? $sat->kode }})</option>
-                        @endforeach
-                    </select>
-                    @error('satuan_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                </div>
+                <x-searchable-select
+                    model="satuan_id"
+                    label="Satuan Kemasan"
+                    placeholder="Pilih Satuan..."
+                    :options="$daftarSatuan"
+                    required
+                />
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Merek / Brand (Opsional)</label>
-                    <select wire:model="merek_id" class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                        <option value="">Tanpa Merek / Generic</option>
-                        @foreach ($daftarMerek as $mrk)
-                            <option value="{{ $mrk->id }}">{{ $mrk->nama }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <x-searchable-select
+                    model="merek_id"
+                    label="Merek / Brand (Opsional)"
+                    placeholder="Tanpa Merek / Generic"
+                    :options="$daftarMerek"
+                />
 
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Pemasok Rekanan Utama (Opsional)</label>
-                    <select wire:model="pemasok_default_id" class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                        <option value="">Pilih Vendor Default...</option>
-                        @foreach ($daftarPemasok as $pms)
-                            <option value="{{ $pms->id }}">{{ $pms->nama }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <x-searchable-select
+                    model="pemasok_default_id"
+                    label="Pemasok Rekanan Utama (Opsional)"
+                    placeholder="Pilih Vendor Default..."
+                    :options="$daftarPemasok"
+                />
             </div>
 
             <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 space-y-3">

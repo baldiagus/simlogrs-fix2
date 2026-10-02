@@ -182,24 +182,13 @@
                 <flux:subheading>Sampaikan keluhan kendala teknis fasilitas atau alat kerja ruangan untuk ditangani tim IPSRS.</flux:subheading>
             </div>
 
-            <div>
-                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                    Pilih Fasilitas / Alat yang Bermasalah <span class="text-red-500">*</span>
-                </label>
-                <select
-                    wire:model="aset_id"
-                    required
-                    class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                    <option value="">-- Pilih Inventaris Aset --</option>
-                    @foreach ($daftarAsetTersedia as $ast)
-                        <option value="{{ $ast->id }}">
-                            [{{ $ast->kode_aset }}] {{ $ast->barang?->nama }} {{ $ast->nomor_seri ? "(SN: {$ast->nomor_seri})" : '' }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('aset_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-            </div>
+            <x-searchable-select
+                model="aset_id"
+                label="Pilih Fasilitas / Alat yang Bermasalah"
+                placeholder="-- Cari Inventaris Aset... --"
+                :options="$daftarAsetTersedia"
+                required
+            />
 
             <div>
                 <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">

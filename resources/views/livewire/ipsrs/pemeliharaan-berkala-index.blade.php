@@ -190,24 +190,13 @@
             </div>
 
             {{-- 1. Pilih Aset --}}
-            <div>
-                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                    Fasilitas / Sarana Aset yang Diservis <span class="text-red-500">*</span>
-                </label>
-                <select
-                    wire:model="aset_id"
-                    required
-                    class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                    <option value="">-- Pilih Inventaris Aset --</option>
-                    @foreach ($daftarAset as $ast)
-                        <option value="{{ $ast->id }}">
-                            [{{ $ast->kode_aset }}] {{ $ast->barang?->nama }} {{ $ast->nomor_seri ? "(SN: {$ast->nomor_seri})" : '' }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('aset_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-            </div>
+            <x-searchable-select
+                model="aset_id"
+                label="Fasilitas / Sarana Aset yang Diservis"
+                placeholder="-- Cari Inventaris Aset... --"
+                :options="$daftarAset"
+                required
+            />
 
             {{-- 2. Nama Kegiatan Servis --}}
             <div>
@@ -260,20 +249,13 @@
             {{-- 4. Teknisi PIC & Tanggal Servis Pertama --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Teknisi Penanggung Jawab (PIC) <span class="text-red-500">*</span>
-                    </label>
-                    <select
-                        wire:model="teknisi_id"
+                    <x-searchable-select
+                        model="teknisi_id"
+                        label="Teknisi Penanggung Jawab (PIC)"
+                        placeholder="-- Cari & Pilih Teknisi IPSRS... --"
+                        :options="$daftarTeknisi"
                         required
-                        class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                        <option value="">-- Pilih Teknisi IPSRS --</option>
-                        @foreach ($daftarTeknisi as $tek)
-                            <option value="{{ $tek->id }}">{{ $tek->nama }}</option>
-                        @endforeach
-                    </select>
-                    @error('teknisi_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    />
                 </div>
 
                 <flux:field>

@@ -186,16 +186,13 @@
                 <flux:subheading>Pencatatan aktiva inventaris, nomor seri, dan lokasi penempatan.</flux:subheading>
             </div>
 
-            <div>
-                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Komoditas Aset</label>
-                <select wire:model="barang_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                    <option value="">Pilih Barang (Tipe Aset)...</option>
-                    @foreach ($daftarBarangAset as $b)
-                        <option value="{{ $b->id }}">{{ $b->nama }} ({{ $b->kode }})</option>
-                    @endforeach
-                </select>
-                @error('barang_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-            </div>
+            <x-searchable-select
+                model="barang_id"
+                label="Komoditas Aset"
+                placeholder="Pilih Barang (Tipe Aset)..."
+                :options="$daftarBarangAset"
+                required
+            />
 
             <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 space-y-3">
                 <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Penempatan Lokasi Fisik (Ruangan ATAU Gudang)</div>
@@ -212,38 +209,30 @@
                 </div>
 
                 @if ($lokasi_tipe === 'RUANGAN')
-                    <div>
-                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Ruangan / Instalasi Dinas</label>
-                        <select wire:model="unit_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                            <option value="">Pilih Ruangan...</option>
-                            @foreach ($daftarUnit as $unit)
-                                <option value="{{ $unit->id }}">{{ $unit->nama }} ({{ $unit->kode }})</option>
-                            @endforeach
-                        </select>
-                        @error('unit_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                    </div>
+                    <x-searchable-select
+                        model="unit_id"
+                        label="Ruangan / Instalasi Dinas"
+                        placeholder="Pilih Ruangan..."
+                        :options="$daftarUnit"
+                        required
+                    />
                 @else
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Gudang Logistik</label>
-                            <select wire:model.live="gudang_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                                <option value="">Pilih Gudang...</option>
-                                @foreach ($daftarGudang as $gudang)
-                                    <option value="{{ $gudang->id }}">{{ $gudang->nama }} ({{ $gudang->kode }})</option>
-                                @endforeach
-                            </select>
-                            @error('gudang_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                        </div>
+                        <x-searchable-select
+                            model="gudang_id"
+                            label="Gudang Logistik"
+                            placeholder="Pilih Gudang..."
+                            :options="$daftarGudang"
+                            live="true"
+                            required
+                        />
 
-                        <div>
-                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Rak Simpan (Opsional)</label>
-                            <select wire:model="lokasi_gudang_id" class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                                <option value="">Tanpa Rak Khusus</option>
-                                @foreach ($daftarRak as $rak)
-                                    <option value="{{ $rak->id }}">{{ $rak->nama }} ({{ $rak->kode }})</option>
-                                @endforeach
-                            </select>
-                        </div>
+                        <x-searchable-select
+                            model="lokasi_gudang_id"
+                            label="Rak Simpan (Opsional)"
+                            placeholder="Tanpa Rak Khusus"
+                            :options="$daftarRak"
+                        />
                     </div>
                 @endif
             </div>
