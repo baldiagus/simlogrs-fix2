@@ -396,28 +396,6 @@
 
         <flux:spacer />
 
-        {{-- Dropdown Ganti Ruang Kerja (Portal Switcher) di sebelah kiri profile --}}
-        @if ($user && $user->can('page_Dashboard'))
-            <flux:dropdown class="mr-3">
-                <flux:button icon:trailing="chevron-down" size="sm" variant="subtle">
-                    Ganti Ruang Kerja
-                </flux:button>
-
-                <flux:menu>
-                    <flux:menu.submenu heading="Pilih Portal (10 Peran)">
-                        <flux:menu.radio.group>
-                            @foreach ($portalMeta as $pKey => $pData)
-                                <a href="/{{ $pKey }}/dashboard" wire:navigate class="block">
-                                    <flux:menu.radio :checked="$portalKey === $pKey">
-                                        {{ $pData['label'] }}
-                                    </flux:menu.radio>
-                                </a>
-                            @endforeach
-                        </flux:menu.radio.group>
-                    </flux:menu.submenu>
-                </flux:menu>
-            </flux:dropdown>
-        @endif
 
         {{-- Dropdown Profile Pengguna di ujung kanan --}}
         <flux:dropdown position="top" align="start">
