@@ -131,18 +131,16 @@
     >
         {{-- Search Input Box --}}
         <div class="p-2 border-b border-zinc-100 dark:border-zinc-700/80 bg-zinc-50/70 dark:bg-zinc-900/40">
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400">
-                    <svg class="size-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
-                        <path fill-rule="evenodd" d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z" clip-rule="evenodd"/>
-                    </svg>
-                </div>
+            <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500 shadow-2xs">
+                <svg class="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z" clip-rule="evenodd"/>
+                </svg>
                 <input
                     x-ref="searchInput"
                     x-model="search"
                     type="text"
                     placeholder="Ketik untuk mencari..."
-                    class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-400"
+                    class="w-full bg-transparent border-0 p-0 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-0 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                 />
             </div>
         </div>
