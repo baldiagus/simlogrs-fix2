@@ -22,6 +22,9 @@ class DatabaseSeeder extends Seeder
             PengadaanDummySeeder::class,
             DistribusiDummySeeder::class,
             PeminjamanAsetDummySeeder::class,
+            IpsrsDummySeeder::class,
+            PersediaanDummySeeder::class,
+            AuditDummySeeder::class,
         ]);
     }
 }
