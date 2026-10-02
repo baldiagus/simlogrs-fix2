@@ -118,15 +118,17 @@
                                 />
 
                                 @if ($opn->status === 'BERJALAN')
-                                    <flux:button
-                                        wire:click="openHitungFisik({{ $opn->id }})"
-                                        size="xs"
-                                        variant="primary"
-                                        icon="clipboard-document-list"
-                                        title="Input Perhitungan Fisik Lapangan"
-                                    >
-                                        Hitung Fisik
-                                    </flux:button>
+                                    @canany(['update_gudang_stok::stok::opname', 'create_gudang_stok::stok::opname', 'page_KepalaGudangDashboard', 'page_Dashboard'])
+                                        <flux:button
+                                            wire:click="openHitungFisik({{ $opn->id }})"
+                                            size="xs"
+                                            variant="primary"
+                                            icon="clipboard-document-list"
+                                            title="Input Perhitungan Fisik Lapangan"
+                                        >
+                                            Hitung Fisik
+                                        </flux:button>
+                                    @endcanany
                                 @endif
                             </div>
                         </flux:table.cell>
