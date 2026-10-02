@@ -19,6 +19,9 @@ class DatabaseSeeder extends Seeder
             PenggunaSeeder::class,
             AnggaranPengadaanSeeder::class,
             MasterDataSeeder::class,
+            PengadaanDummySeeder::class,
+            DistribusiDummySeeder::class,
+            PeminjamanAsetDummySeeder::class,
         ]);
     }
 }
