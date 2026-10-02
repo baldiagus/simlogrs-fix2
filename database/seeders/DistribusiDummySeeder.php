@@ -271,6 +271,37 @@ class DistribusiDummySeeder extends Seeder
                 ],
                 'sppb' => null,
             ],
+            [
+                'kode'        => 'REQ-202609-006',
+                'unit'        => 'LAB',
+                'gudang'      => $gudangSentral,
+                'tgl_req'     => '2026-09-22',
+                'urgensi'     => 'REGULER',
+                'status'      => 'DITOLAK',
+                'catatan'     => 'Permintaan amprah ditolak Karu: Stok lemari ruangan masih mencukupi.',
+                'items'       => [
+                    ['brg' => 'BRG-2026-028', 'qty' => 10],
+                ],
+                'sppb' => null,
+            ],
+            [
+                'kode'        => 'REQ-202609-007',
+                'unit'        => 'FARMASI',
+                'gudang'      => $gudangSentral,
+                'tgl_req'     => '2026-09-18',
+                'urgensi'     => 'REGULER',
+                'status'      => 'SELESAI',
+                'items'       => [
+                    ['brg' => 'BRG-2026-021', 'qty' => 2],
+                ],
+                'sppb' => [
+                    'kode'    => 'SPPB-20260919-0003',
+                    'tgl'     => '2026-09-19',
+                    'status'  => 'BATAL',
+                    'catatan' => 'Dibatalkan karena salah alokasi barang gudang oleh staf admin.',
+                    'rcv'     => null,
+                ],
+            ],
         ];
 
         DB::transaction(function () use ($amprahBatches, $units, $barangs, $adminGudang, $petugasGudang, $stafIgd, $karuIgd) {
@@ -318,7 +349,7 @@ class DistribusiDummySeeder extends Seeder
                 // 2. Jika ada SPPB
                 if (! empty($data['sppb'])) {
                     $sppbData = $data['sppb'];
-                    $sppbStatus = ! empty($sppbData['rcv']) ? 'DITERIMA' : 'DIKIRIM';
+                    $sppbStatus = ! empty($sppbData['rcv']) ? 'DITERIMA' : ($sppbData['status'] ?? 'DIKIRIM');
 
                     $sppb = PengirimanBarang::firstOrCreate(
                         ['kode' => $sppbData['kode']],
@@ -328,7 +359,7 @@ class DistribusiDummySeeder extends Seeder
                             'unit_id'                  => $unitObj->id,
                             'tanggal_kirim'            => $sppbData['tgl'],
                             'status'                   => $sppbStatus,
-                            'catatan'                  => 'SPPB Pengeluaran Logistik Gudang - Ref ' . $permintaan->kode,
+                            'catatan'                  => $sppbData['catatan'] ?? ('SPPB Pengeluaran Logistik Gudang - Ref ' . $permintaan->kode),
                             'dikirim_oleh'             => $petugasGudang->id,
                             'dibuat_pada'              => Carbon::parse($sppbData['tgl'] . ' 10:00:00'),
                         ]
@@ -456,6 +487,34 @@ class DistribusiDummySeeder extends Seeder
                         }
                     }
                 }
+            }
+
+            // Stok Ruangan HABIS (Kuantitas = 0) untuk simulasi filter kondisi HABIS
+            $unitIgdObj = $units->get('IGD');
+            $unitRawatObj = $units->get('RAWAT_1');
+            $brgN95 = $barangs->get('BRG-2026-014');
+            $brgElastis = $barangs->get('BRG-2026-018');
+            $brgPlester = $barangs->get('BRG-2026-019');
+
+            if ($unitIgdObj && $brgN95) {
+                StokRuangan::firstOrCreate(
+                    ['unit_id' => $unitIgdObj->id, 'barang_id' => $brgN95->id],
+                    ['jumlah' => 0, 'stok_minimum' => 10, 'stok_maksimum' => 50]
+                );
+            }
+
+            if ($unitIgdObj && $brgElastis) {
+                StokRuangan::firstOrCreate(
+                    ['unit_id' => $unitIgdObj->id, 'barang_id' => $brgElastis->id],
+                    ['jumlah' => 0, 'stok_minimum' => 5, 'stok_maksimum' => 30]
+                );
+            }
+
+            if ($unitRawatObj && $brgPlester) {
+                StokRuangan::firstOrCreate(
+                    ['unit_id' => $unitRawatObj->id, 'barang_id' => $brgPlester->id],
+                    ['jumlah' => 0, 'stok_minimum' => 5, 'stok_maksimum' => 40]
+                );
             }
         });
     }

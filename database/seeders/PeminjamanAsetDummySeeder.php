@@ -278,6 +278,42 @@ class PeminjamanAsetDummySeeder extends Seeder
                     'catatan'     => 'Roda, rem dan pijakan kaki berfungsi normal.',
                 ],
             ],
+
+            // 13. DITOLAK - Permintaan Ditolak Penyedia
+            [
+                'kode'            => 'PINJ-2026-013',
+                'tipe_penyedia'   => 'RUANGAN',
+                'unit_penyedia'   => $unitIgd->id,
+                'gudang_penyedia' => null,
+                'unit_peminjam'   => $unitRawat1->id,
+                'diajukan_oleh'   => $stafIgd->id,
+                'tgl_pinjam'      => '2026-09-24',
+                'tgl_kembali'     => '2026-10-05',
+                'keperluan'       => 'Peminjaman Brankar IGD untuk cadangan ruang rawat inap.',
+                'status'          => 'DITOLAK',
+                'disetujui_oleh'  => $karuIgd->id,
+                'catatan'         => 'Ditolak: Brankar IGD disiagakan penuh untuk antisipasi lonjakan rujukan IGD.',
+                'aset_kode'       => 'AST-2026-009',
+                'kembali'         => null,
+            ],
+
+            // 14. DIBATALKAN - Permintaan Dibatalkan oleh Pemohon
+            [
+                'kode'            => 'PINJ-2026-014',
+                'tipe_penyedia'   => 'GUDANG',
+                'unit_penyedia'   => null,
+                'gudang_penyedia' => $gudangSentral->id,
+                'unit_peminjam'   => $unitLab->id,
+                'diajukan_oleh'   => $adminLogistik->id,
+                'tgl_pinjam'      => '2026-09-27',
+                'tgl_kembali'     => '2026-10-10',
+                'keperluan'       => 'Peminjaman Lampu Tindakan LED untuk pemeriksaan spesimen lapangan.',
+                'status'          => 'DIBATALKAN',
+                'disetujui_oleh'  => null,
+                'catatan'         => 'Dibatalkan oleh pemohon: Kegiatan sampling lapangan ditunda.',
+                'aset_kode'       => 'AST-2026-040',
+                'kembali'         => null,
+            ],
         ];
 
         DB::transaction(function () use ($pinjamList, $adminLogistik) {

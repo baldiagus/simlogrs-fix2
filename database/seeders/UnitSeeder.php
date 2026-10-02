@@ -21,7 +21,8 @@ class UnitSeeder extends Seeder
             ['kode' => 'LAB', 'nama' => 'Laboratorium Patologi Klinik', 'jenis' => 'PENUNJANG_MEDIS', 'penanggung_jawab' => 'dr. Siregar, Sp.PK', 'lokasi_gedung' => 'Gedung A Lantai 2'],
             ['kode' => 'LOGISTIK', 'nama' => 'Bagian Logistik & Pengadaan', 'jenis' => 'ADMINISTRASI', 'penanggung_jawab' => 'Drs. Hendrawan, M.M.', 'lokasi_gedung' => 'Gedung Administrasi Lantai 2'],
             ['kode' => 'DIREKSI', 'nama' => 'Direktorat & Manajemen Eksekutif', 'jenis' => 'ADMINISTRASI', 'penanggung_jawab' => 'Drs. H. Mulyono, M.Kes', 'lokasi_gedung' => 'Gedung Administrasi Lantai 3'],
-            ['kode' => 'SPI', 'nama' => 'Satuan Pengawas Internal (SPI)', 'jenis' => 'ADMINISTRASI', 'penanggung_jawab' => 'Rina Kartika, S.E., Ak., CA', 'lokasi_gedung' => 'Gedung Administrasi Lantai 2'],
+            ['kode' => 'SPI', 'nama' => 'Satuan Pengawas Internal (SPI)', 'jenis' => 'ADMINISTRASI', 'penanggung_jawab' => 'Rina Kartika, S.E., Ak., CA', 'lokasi_gedung' => 'Gedung Administrasi Lantai 2', 'status' => 'AKTIF'],
+            ['kode' => 'ISOLASI_COVID', 'nama' => 'Unit Pelayanan Isolasi Khusus Pandemi (Nonaktif)', 'jenis' => 'PELAYANAN_MEDIS', 'penanggung_jawab' => '-', 'lokasi_gedung' => 'Gedung Karantina Lama', 'status' => 'NONAKTIF'],
         ];
 
         foreach ($units as $u) {

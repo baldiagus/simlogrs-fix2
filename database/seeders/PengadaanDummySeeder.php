@@ -394,9 +394,100 @@ class PengadaanDummySeeder extends Seeder
                 ],
                 'po' => null, // Disetujui Karu, siap diteruskan ke Pengadaan
             ],
+            [
+                'pr_kode'     => 'PR-2026-114',
+                'unit_kode'   => 'RAWAT_1',
+                'tgl_pr'      => '2026-08-20',
+                'urgensi'     => 'REGULER',
+                'catatan_pr'  => 'Pengajuan televisi dan perangkat hiburan ruang tunggu.',
+                'status_pr'   => 'DITOLAK',
+                'items'       => [
+                    ['kode' => 'BRG-2026-089', 'qty' => 2, 'harga' => 9800000],
+                ],
+                'po' => null,
+            ],
+            [
+                'pr_kode'     => 'PR-2026-115',
+                'unit_kode'   => 'IGD',
+                'tgl_pr'      => '2026-08-10',
+                'urgensi'     => 'MENDESAK',
+                'catatan_pr'  => 'Pengadaan masker bedah cadangan IGD.',
+                'status_pr'   => 'DITERUSKAN_KE_PENGADAAN',
+                'items'       => [
+                    ['kode' => 'BRG-2026-013', 'qty' => 50, 'harga' => 28000],
+                ],
+                'po' => [
+                    'kode'         => 'PO-2026-115',
+                    'vendor'       => 'VND-2026-016',
+                    'tgl_po'       => '2026-08-12',
+                    'est_kirim'    => '2026-08-20',
+                    'syarat'       => 'TEMPO_30_HARI',
+                    'status'       => 'DITERIMA_SEBAGIAN',
+                    'rcv' => [
+                        'kode'      => 'RCV-202608-015',
+                        'tgl_rcv'   => '2026-08-19',
+                        'no_sj'     => 'SJ-OM-2608/PARTIAL-11',
+                        'gudang'    => $gudangSentral,
+                        'status'    => 'SEBAGIAN',
+                        'catatan'   => 'Diterima sebagian (30 box dari total 50 box pesanan, 20 box backorder).',
+                        'batches'   => [
+                            ['brg' => 'BRG-2026-013', 'rak' => 'RAK-B3', 'batch' => 'BATCH-OM-PARTIAL', 'exp' => '2028-08-01', 'qty' => 30],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'pr_kode'     => 'PR-2026-116',
+                'unit_kode'   => 'IPSRS',
+                'tgl_pr'      => '2026-07-10',
+                'urgensi'     => 'REGULER',
+                'catatan_pr'  => 'Pengadaan kapasitor kompresor tipe lama.',
+                'status_pr'   => 'DITERUSKAN_KE_PENGADAAN',
+                'items'       => [
+                    ['kode' => 'BRG-2026-042', 'qty' => 5, 'harga' => 65000],
+                ],
+                'po' => [
+                    'kode'         => 'PO-2026-116',
+                    'vendor'       => 'VND-2026-018',
+                    'tgl_po'       => '2026-07-12',
+                    'est_kirim'    => '2026-07-25',
+                    'syarat'       => 'TEMPO_30_HARI',
+                    'status'       => 'DIBATALKAN',
+                    'rcv'          => null,
+                ],
+            ],
+            [
+                'pr_kode'     => 'PR-2026-117',
+                'unit_kode'   => 'LOGISTIK',
+                'tgl_pr'      => '2026-08-25',
+                'urgensi'     => 'REGULER',
+                'catatan_pr'  => 'Pengadaan cairan pembersih lantai cemara 5L.',
+                'status_pr'   => 'DITERUSKAN_KE_PENGADAAN',
+                'items'       => [
+                    ['kode' => 'BRG-2026-012', 'qty' => 10, 'harga' => 55000],
+                ],
+                'po' => [
+                    'kode'         => 'PO-2026-117',
+                    'vendor'       => 'VND-2026-005',
+                    'tgl_po'       => '2026-08-27',
+                    'est_kirim'    => '2026-09-05',
+                    'syarat'       => 'TEMPO_30_HARI',
+                    'status'       => 'DIKIRIM_VENDOR',
+                    'rcv' => [
+                        'kode'      => 'RCV-202609-099',
+                        'tgl_rcv'   => '2026-09-04',
+                        'no_sj'     => 'SJ-SCH-REJECT-01',
+                        'gudang'    => $gudangSentral,
+                        'status'    => 'DITOLAK',
+                        'batches'   => [
+                            ['brg' => 'BRG-2026-012', 'rak' => 'PAL-D3', 'batch' => 'BATCH-REJ-2609', 'exp' => '2028-08-01', 'qty' => 0],
+                        ],
+                    ],
+                ],
+            ],
         ];
 
-        DB::transaction(function () use ($procurementBatches, $units, $pemasoks, $barangs, $raks, $adminPengadaan, $petugasGudang) {
+        DB::transaction(function () use ($procurementBatches, $units, $pemasoks, $barangs, $raks, $adminPengadaan, $petugasGudang, $gudangSentral) {
             foreach ($procurementBatches as $data) {
                 $unitObj = $units->get($data['unit_kode']);
                 if (! $unitObj) continue;
@@ -494,15 +585,15 @@ class PengadaanDummySeeder extends Seeder
                         $rcvData = $poData['rcv'];
                         $gudangObj = $rcvData['gudang'];
 
-                        $penerimaan = PenerimaanBarang::firstOrCreate(
+                        $penerimaan = PenerimaanBarang::updateOrCreate(
                             ['kode' => $rcvData['kode']],
                             [
                                 'pesanan_pembelian_id' => $po->id,
                                 'gudang_id'            => $gudangObj->id,
                                 'nomor_surat_jalan'    => $rcvData['no_sj'],
                                 'tanggal_terima'       => $rcvData['tgl_rcv'],
-                                'status'               => 'LENGKAP',
-                                'catatan'              => 'Diterima fisik lengkap dalam kondisi baik sesuai surat jalan.',
+                                'status'               => $rcvData['status'] ?? 'LENGKAP',
+                                'catatan'              => $rcvData['catatan'] ?? 'Diterima fisik lengkap dalam kondisi baik sesuai surat jalan.',
                                 'diterima_oleh'        => $petugasGudang->id,
                                 'dibuat_pada'          => Carbon::parse($rcvData['tgl_rcv'] . ' 11:00:00'),
                                 'diperbarui_pada'      => Carbon::parse($rcvData['tgl_rcv'] . ' 11:30:00'),
@@ -576,6 +667,52 @@ class PengadaanDummySeeder extends Seeder
                     }
                 }
             }
+
+            // Batch Khusus untuk Simulasi Monitoring FEFO (HAMPIR_KEDALUWARSA, KEDALUWARSA, HABIS)
+            $brgMasker = $barangs->get('BRG-2026-013') ?? Barang::first();
+            $brgAlkohol = $barangs->get('BRG-2026-020') ?? Barang::first();
+            $brgKasa = $barangs->get('BRG-2026-017') ?? Barang::first();
+            $rakB2 = $raks->get('RAK-B2')?->id;
+            $rakB3 = $raks->get('RAK-B3')?->id;
+
+            StokBatch::firstOrCreate(
+                ['nomor_batch' => 'BATCH-CRIT-FEFO-01', 'barang_id' => $brgMasker->id],
+                [
+                    'gudang_id'           => $gudangSentral->id,
+                    'lokasi_gudang_id'    => $rakB3,
+                    'tanggal_kedaluwarsa' => Carbon::now()->addDays(35)->toDateString(),
+                    'jumlah'              => 15,
+                    'harga_satuan'        => $brgMasker->harga_beli_terakhir,
+                    'status'              => 'HAMPIR_KEDALUWARSA',
+                    'dibuat_pada'         => Carbon::now()->subMonths(6),
+                ]
+            );
+
+            StokBatch::firstOrCreate(
+                ['nomor_batch' => 'BATCH-EXP-FEFO-02', 'barang_id' => $brgAlkohol->id],
+                [
+                    'gudang_id'           => $gudangSentral->id,
+                    'lokasi_gudang_id'    => $rakB2,
+                    'tanggal_kedaluwarsa' => Carbon::now()->subDays(20)->toDateString(),
+                    'jumlah'              => 5,
+                    'harga_satuan'        => $brgAlkohol->harga_beli_terakhir,
+                    'status'              => 'KEDALUWARSA',
+                    'dibuat_pada'         => Carbon::now()->subMonths(12),
+                ]
+            );
+
+            StokBatch::firstOrCreate(
+                ['nomor_batch' => 'BATCH-DEPLETED-03', 'barang_id' => $brgKasa->id],
+                [
+                    'gudang_id'           => $gudangSentral->id,
+                    'lokasi_gudang_id'    => $rakB3,
+                    'tanggal_kedaluwarsa' => Carbon::now()->addYear()->toDateString(),
+                    'jumlah'              => 0,
+                    'harga_satuan'        => $brgKasa->harga_beli_terakhir,
+                    'status'              => 'HABIS',
+                    'dibuat_pada'         => Carbon::now()->subMonths(8),
+                ]
+            );
         });
     }
 }

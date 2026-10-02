@@ -166,11 +166,11 @@ class MasterDataSeeder extends Seeder
             ['kode' => 'VND-2026-027', 'nama' => 'PT Duta Sarana Medika', 'npwp' => '27.890.123.4-278.000', 'alamat' => 'Jl. Diponegoro No. 101', 'kota' => 'Denpasar (Bali)', 'no_telepon' => '0361-223456', 'email' => 'dutamedika@bali.net', 'nama_kontak' => 'I Ketut Suartana', 'status' => 'AKTIF'],
             ['kode' => 'VND-2026-028', 'nama' => 'PT Lion Metal Works Tbk', 'npwp' => '28.901.234.5-289.000', 'alamat' => 'Jl. Raya Bekasi Km. 24, Cakung', 'kota' => 'Jakarta Timur', 'no_telepon' => '021-4600778', 'email' => 'hospital.furniture@lionmetal.co.id', 'nama_kontak' => 'Stefanus Gunawan', 'status' => 'AKTIF'],
             ['kode' => 'VND-2026-029', 'nama' => 'CV Bio Kimia Instrument', 'npwp' => '29.012.345.6-290.000', 'alamat' => 'Jl. Kaliurang Km. 5 No. 14', 'kota' => 'Yogyakarta', 'no_telepon' => '0274-589012', 'email' => 'biokimia@biokimia.com', 'nama_kontak' => 'Dra. Endang Sulistyowati', 'status' => 'AKTIF'],
-            ['kode' => 'VND-2026-030', 'nama' => 'PT Sarana Prima Oksigen', 'npwp' => '30.123.456.7-301.000', 'alamat' => 'Kawasan Industri Pulogadung Blok III', 'kota' => 'Jakarta Timur', 'no_telepon' => '021-4615566', 'email' => 'sales@primaoksigen.com', 'nama_kontak' => 'Agus Prihatin', 'status' => 'AKTIF'],
+            ['kode' => 'VND-2026-030', 'nama' => 'PT Sarana Prima Oksigen (Nonaktif)', 'npwp' => '30.123.456.7-301.000', 'alamat' => 'Kawasan Industri Pulogadung Blok III', 'kota' => 'Jakarta Timur', 'no_telepon' => '021-4615566', 'email' => 'sales@primaoksigen.com', 'nama_kontak' => 'Agus Prihatin', 'status' => 'NONAKTIF'],
         ];
 
         foreach ($pemasokList as $pem) {
-            Pemasok::firstOrCreate(['kode' => $pem['kode']], $pem);
+            Pemasok::updateOrCreate(['kode' => $pem['kode']], $pem);
         }
 
         // 5. 30 Lokasi Rak/Bin/Pallet Gudang
@@ -289,7 +289,7 @@ class MasterDataSeeder extends Seeder
             ['kode' => 'BRG-2026-059', 'nama' => 'Pompa Peristaltik Head Pengganti Infusion Pump Terumo', 'tipe' => 'SPAREPART', 'kat' => 'KAT-SPK', 'sat' => 'SAT-UNT', 'mrk' => 'MRK-TRMO', 'pem' => 'VND-2026-007', 'min' => 2, 'max' => 8, 'reorder' => 3, 'beli' => 1850000, 'est' => 2200000],
             ['kode' => 'BRG-2026-060', 'nama' => 'Saklar Darurat Emergency Push Button Schneider IP65', 'tipe' => 'SPAREPART', 'kat' => 'KAT-ELEC', 'sat' => 'SAT-PCS', 'mrk' => 'MRK-SCHN', 'pem' => 'VND-2026-020', 'min' => 4, 'max' => 16, 'reorder' => 6, 'beli' => 140000, 'est' => 175000],
             ['kode' => 'BRG-2026-061', 'nama' => 'Kran Regulator Tabung Oksigen Medis Brass Kuningan', 'tipe' => 'SPAREPART', 'kat' => 'KAT-GAS', 'sat' => 'SAT-PCS', 'mrk' => null, 'pem' => 'VND-2026-010', 'min' => 5, 'max' => 20, 'reorder' => 8, 'beli' => 420000, 'est' => 500000],
-            ['kode' => 'BRG-2026-062', 'nama' => 'Pembersih Kontak Elektronik Contact Cleaner Spray 400ml', 'tipe' => 'SPAREPART', 'kat' => 'KAT-ELEC', 'sat' => 'SAT-CAN', 'mrk' => null, 'pem' => 'VND-2026-013', 'min' => 8, 'max' => 30, 'reorder' => 12, 'beli' => 65000, 'est' => 85000],
+            ['kode' => 'BRG-2026-062', 'nama' => 'Pembersih Kontak Elektronik Contact Cleaner Spray 400ml', 'tipe' => 'SPAREPART', 'kat' => 'KAT-ELEC', 'sat' => 'SAT-CAN', 'mrk' => null, 'pem' => 'VND-2026-013', 'min' => 8, 'max' => 30, 'reorder' => 12, 'beli' => 65000, 'est' => 85000, 'status' => 'NONAKTIF'],
 
             // C. 30 BARANG ASET MODAL INVENTARIS
             ['kode' => 'BRG-2026-002', 'nama' => 'Printer Multifungsi Epson EcoTank L3110 / L3210', 'tipe' => 'ASET', 'kat' => 'KAT-ELK', 'sat' => 'SAT-UNT', 'mrk' => 'MRK-EPSN', 'pem' => 'VND-2026-013', 'min' => 2, 'max' => 10, 'reorder' => 3, 'beli' => 2300000, 'est' => 2800000],
@@ -320,7 +320,7 @@ class MasterDataSeeder extends Seeder
             ['kode' => 'BRG-2026-087', 'nama' => 'Bedside Cabinet Pasien Meja Samping Laci Stainless', 'tipe' => 'ASET', 'kat' => 'KAT-FUR', 'sat' => 'SAT-UNT', 'mrk' => 'MRK-LION', 'pem' => 'VND-2026-028', 'min' => 5, 'max' => 30, 'reorder' => 10, 'beli' => 1750000, 'est' => 2200000],
             ['kode' => 'BRG-2026-088', 'nama' => 'Trolley Obat Emergency Tindakan Resusitasi Kunci Segel', 'tipe' => 'ASET', 'kat' => 'KAT-FUR', 'sat' => 'SAT-UNT', 'mrk' => 'MRK-LION', 'pem' => 'VND-2026-028', 'min' => 2, 'max' => 8, 'reorder' => 3, 'beli' => 8900000, 'est' => 10500000],
             ['kode' => 'BRG-2026-089', 'nama' => 'Komputer PC Desktop Core i5 SIMRS Rekam Medis Elektronik', 'tipe' => 'ASET', 'kat' => 'KAT-ELK', 'sat' => 'SAT-SET', 'mrk' => 'MRK-HP', 'pem' => 'VND-2026-013', 'min' => 3, 'max' => 15, 'reorder' => 5, 'beli' => 9800000, 'est' => 11500000],
-            ['kode' => 'BRG-2026-090', 'nama' => 'UPS Online Sinewave 2000VA / 1800W Perangkat Server Medis', 'tipe' => 'ASET', 'kat' => 'KAT-ELEC', 'sat' => 'SAT-UNT', 'mrk' => 'MRK-SCHN', 'pem' => 'VND-2026-020', 'min' => 2, 'max' => 8, 'reorder' => 3, 'beli' => 8500000, 'est' => 9900000],
+            ['kode' => 'BRG-2026-090', 'nama' => 'UPS Online Sinewave 2000VA / 1800W Perangkat Server Medis', 'tipe' => 'ASET', 'kat' => 'KAT-ELEC', 'sat' => 'SAT-UNT', 'mrk' => 'MRK-SCHN', 'pem' => 'VND-2026-020', 'min' => 2, 'max' => 8, 'reorder' => 3, 'beli' => 8500000, 'est' => 9900000, 'status' => 'NONAKTIF'],
             ['kode' => 'BRG-2026-091', 'nama' => 'Alat Pemadam Api Ringan (APAR) Powder ABC 6 Kg Yamato', 'tipe' => 'ASET', 'kat' => 'KAT-K3', 'sat' => 'SAT-TBG', 'mrk' => null, 'pem' => 'VND-2026-003', 'min' => 5, 'max' => 30, 'reorder' => 10, 'beli' => 750000, 'est' => 950000],
         ];
 
@@ -330,7 +330,7 @@ class MasterDataSeeder extends Seeder
             $mrkId = isset($b['mrk']) ? ($mrks->get($b['mrk'])?->id ?? null) : null;
             $pemId = isset($b['pem']) ? ($pems->get($b['pem'])?->id ?? null) : null;
 
-            Barang::firstOrCreate(
+            Barang::updateOrCreate(
                 ['kode' => $b['kode']],
                 [
                     'nama'                => $b['nama'],
@@ -344,7 +344,7 @@ class MasterDataSeeder extends Seeder
                     'titik_pesan'         => $b['reorder'],
                     'harga_beli_terakhir' => $b['beli'],
                     'harga_estimasi'      => $b['est'],
-                    'status'              => 'AKTIF',
+                    'status'              => $b['status'] ?? 'AKTIF',
                 ]
             );
         }
@@ -415,9 +415,10 @@ class MasterDataSeeder extends Seeder
             ['kode' => 'AST-2026-035', 'seri' => 'POOL-MON-01',     'brg' => 'BRG-2026-066', 'unit' => null,         'gudang' => $gudangId,'rak' => 'POOL-ASET3','tgl' => '2026-03-01', 'nilai' => 35000000, 'kondisi' => 'BAIK', 'status' => 'TERSEDIA'],
             ['kode' => 'AST-2026-036', 'seri' => 'POOL-SUCT-01',    'brg' => 'BRG-2026-071', 'unit' => null,         'gudang' => $gudangId,'rak' => 'POOL-ASET2','tgl' => '2026-03-05', 'nilai' => 4200000,  'kondisi' => 'BAIK', 'status' => 'TERSEDIA'],
             ['kode' => 'AST-2026-037', 'seri' => 'POOL-KR-01',      'brg' => 'BRG-2026-073', 'unit' => null,         'gudang' => $gudangId,'rak' => 'POOL-ASET1','tgl' => '2026-03-10', 'nilai' => 1450000,  'kondisi' => 'BAIK', 'status' => 'TERSEDIA'],
-            ['kode' => 'AST-2026-038', 'seri' => 'POOL-TNS-01',     'brg' => 'BRG-2026-085', 'unit' => null,         'gudang' => $gudangId,'rak' => 'POOL-ASET3','tgl' => '2026-03-15', 'nilai' => 4500000,  'kondisi' => 'BAIK', 'status' => 'TERSEDIA'],
-            ['kode' => 'AST-2026-039', 'seri' => 'POOL-NEB-01',     'brg' => 'BRG-2026-083', 'unit' => null,         'gudang' => $gudangId,'rak' => 'POOL-ASET2','tgl' => '2026-03-20', 'nilai' => 1250000,  'kondisi' => 'BAIK', 'status' => 'TERSEDIA'],
+            ['kode' => 'AST-2026-038', 'seri' => 'POOL-TNS-01',     'brg' => 'BRG-2026-085', 'unit' => null,         'gudang' => $gudangId,'rak' => 'POOL-ASET3','tgl' => '2026-03-15', 'nilai' => 4500000,  'kondisi' => 'RUSAK_RINGAN', 'status' => 'DALAM_MAINTENANCE'],
+            ['kode' => 'AST-2026-039', 'seri' => 'POOL-NEB-01',     'brg' => 'BRG-2026-083', 'unit' => null,         'gudang' => $gudangId,'rak' => 'POOL-ASET2','tgl' => '2026-03-20', 'nilai' => 1250000,  'kondisi' => 'RUSAK_RINGAN', 'status' => 'DALAM_MAINTENANCE'],
             ['kode' => 'AST-2026-040', 'seri' => 'POOL-LAMP-01',    'brg' => 'BRG-2026-072', 'unit' => null,         'gudang' => $gudangId,'rak' => 'POOL-ASET1','tgl' => '2026-03-25', 'nilai' => 7800000,  'kondisi' => 'BAIK', 'status' => 'TERSEDIA'],
+            ['kode' => 'AST-2026-041', 'seri' => 'OLD-PC-01',       'brg' => 'BRG-2026-089', 'unit' => null,         'gudang' => $gudangId,'rak' => 'POOL-ASET1','tgl' => '2019-01-10', 'nilai' => 8500000,  'kondisi' => 'RUSAK_BERAT', 'status' => 'DIHAPUSKAN'],
         ];
 
         $raks = LokasiGudang::all()->keyBy('kode');
@@ -428,7 +429,7 @@ class MasterDataSeeder extends Seeder
 
             $rakId = isset($ast['rak']) ? ($raks->get($ast['rak'])?->id ?? null) : null;
 
-            Aset::firstOrCreate(
+            Aset::updateOrCreate(
                 ['kode_aset' => $ast['kode']],
                 [
                     'nomor_seri'        => $ast['seri'],

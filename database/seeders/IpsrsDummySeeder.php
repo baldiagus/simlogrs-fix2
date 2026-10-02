@@ -281,6 +281,65 @@ class IpsrsDummySeeder extends Seeder
                 'tgl_lapor'   => '2026-10-02 09:10:00',
                 'spk'         => null,
             ],
+
+            // Tiket 11: DIBATALKAN & Prioritas RENDAH (Engsel lemari berderit)
+            [
+                'kode'        => 'MNT-202609-004',
+                'aset_kode'   => 'AST-2026-020', // KR-RWT-01
+                'unit_kode'   => 'RAWAT_1',
+                'prioritas'   => 'RENDAH',
+                'status'      => 'DIBATALKAN',
+                'keluhan'     => 'Engsel pintu meja samping berderit ringan. Dibatalkan karena sudah dilumasi mandiri oleh perawat ruangan.',
+                'tgl_lapor'   => '2026-09-15 14:00:00',
+                'spk'         => null,
+            ],
+
+            // Tiket 12: SPK DIBATALKAN
+            [
+                'kode'        => 'MNT-202608-003',
+                'aset_kode'   => 'AST-2026-021', // TNS-RWT-01
+                'unit_kode'   => 'RAWAT_1',
+                'prioritas'   => 'SEDANG',
+                'status'      => 'DITUGASKAN',
+                'keluhan'     => 'Kabel manset tensimeter bocor halus.',
+                'tgl_lapor'   => '2026-08-20 11:30:00',
+                'spk' => [
+                    'kode'        => 'SPK-202608-004',
+                    'tgl_spk'     => '2026-08-21',
+                    'target'      => '2026-08-22',
+                    'status'      => 'DIBATALKAN',
+                    'instruksi'   => 'SPK dibatalkan: Unit tensimeter diganti unit baru dari pengadaan logistik.',
+                    'log'         => null,
+                ],
+            ],
+
+            // Tiket 13: Lembar Kerja GAGAL (IC Rusak Parah)
+            [
+                'kode'        => 'MNT-202607-002',
+                'aset_kode'   => 'AST-2026-004', // PRINTER-AUD-1
+                'unit_kode'   => 'SPI',
+                'prioritas'   => 'SEDANG',
+                'status'      => 'SELESAI',
+                'keluhan'     => 'Mainboard printer korsleting dan tercium bau hangus terbakar.',
+                'tgl_lapor'   => '2026-07-28 09:00:00',
+                'spk' => [
+                    'kode'        => 'SPK-202607-003',
+                    'tgl_spk'     => '2026-07-28',
+                    'target'      => '2026-07-29',
+                    'status'      => 'SELESAI',
+                    'instruksi'   => 'Pemeriksaan rangkaian power supply dan modul logic board.',
+                    'log' => [
+                        'tgl_kerja' => '2026-07-29 11:00:00',
+                        'mulai'     => '11:00',
+                        'selesai'   => '12:30',
+                        'diagnosa'  => 'IC power management terbakar parah, jalur tembaga PCB hangus total.',
+                        'tindakan'  => 'Uji ukur tegangan komponen, perbaikan tidak memungkinkan secara ekonomis.',
+                        'hasil'     => 'GAGAL',
+                        'catatan'   => 'Perbaikan gagal. Rekomendasi teknisi: penghapusan aset / usulan penggantian printer baru.',
+                        'parts'     => [],
+                    ],
+                ],
+            ],
         ];
 
         DB::transaction(function () use ($maintenanceTickets, $units, $asets, $barangs, $batches, $karuIpsrs, $teknisiAgus, $pelaporIgd, $pelaporKaru) {
@@ -479,6 +538,19 @@ class IpsrsDummySeeder extends Seeder
                 'tgl_next'   => '2026-10-08',
                 'catatan'    => 'Penting untuk menjaga stabilitas reagen darah dan vaksin.',
             ],
+            [
+                'kode'       => 'PRV-2026-009',
+                'aset_kode'  => 'AST-2026-030', // AC-IPSRS-01
+                'teknisi_id' => $teknisiAgus->id,
+                'jenis'      => 'Overhaul Kompresor dan Uji Tekanan Sistem Pendingin Lama',
+                'interval_n' => 6,
+                'interval_t' => 'BULAN',
+                'frekuensi'  => 'SEMESTER',
+                'tgl_lalu'   => '2026-03-10',
+                'tgl_next'   => '2026-11-10',
+                'catatan'    => 'Jadwal servis sementara dinonaktifkan karena ruangan sedang dalam renovasi plafon.',
+                'status'     => 'NONAKTIF',
+            ],
         ];
 
         DB::transaction(function () use ($preventiveSchedules, $asets, $karuIpsrs) {
@@ -498,7 +570,7 @@ class IpsrsDummySeeder extends Seeder
                         'tanggal_terakhir'  => $p['tgl_lalu'],
                         'tanggal_berikutnya' => $p['tgl_next'],
                         'catatan'           => $p['catatan'],
-                        'status'            => 'AKTIF',
+                        'status'            => $p['status'] ?? 'AKTIF',
                         'dibuat_oleh'       => $karuIpsrs->id,
                     ]
                 );

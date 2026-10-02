@@ -300,6 +300,70 @@ class PersediaanDummySeeder extends Seeder
                     ]
                 );
             }
+
+            // Sesi 5: Stock Opname DRAFT (Rencana Opname Gudang B3)
+            $opname5 = StokOpname::firstOrCreate(
+                ['kode' => 'OPN-202610-002'],
+                [
+                    'gudang_id'      => $gudangB3->id,
+                    'tanggal_opname' => '2026-10-05',
+                    'status'         => 'DRAFT',
+                    'catatan'        => 'Draft rencana jadwal perhitungan fisik bahan kimia B3 dan klorin IPAL.',
+                    'dibuat_oleh'    => $petugasGudang->id,
+                    'disetujui_oleh' => null,
+                    'dibuat_pada'    => Carbon::parse('2026-10-02 09:30:00'),
+                ]
+            );
+
+            // Sesi 6: Stock Opname DITOLAK
+            $opname6 = StokOpname::firstOrCreate(
+                ['kode' => 'OPN-202608-002'],
+                [
+                    'gudang_id'      => $gudangSentral->id,
+                    'tanggal_opname' => '2026-08-28',
+                    'status'         => 'DITOLAK',
+                    'catatan'        => 'Ditolak: Lembar hitung fisik belum ditandatangani saksi tim independen.',
+                    'dibuat_oleh'    => $petugasGudang->id,
+                    'disetujui_oleh' => $kepalaGudang->id,
+                    'dibuat_pada'    => Carbon::parse('2026-08-28 10:00:00'),
+                    'diperbarui_pada'=> Carbon::parse('2026-08-28 16:30:00'),
+                ]
+            );
+
+            // Penyesuaian Stok DITOLAK
+            $adjRejected = PenyesuaianStok::firstOrCreate(
+                ['kode' => 'ADJ-202608-002'],
+                [
+                    'stok_opname_id'     => $opname6->id,
+                    'gudang_id'          => $gudangSentral->id,
+                    'tanggal_penyesuaian'=> '2026-08-29',
+                    'alasan'             => 'Koreksi manual selisih tanpa verifikasi fisik ulang.',
+                    'status'             => 'DITOLAK',
+                    'diajukan_oleh'      => $petugasGudang->id,
+                    'disetujui_oleh'     => $kepalaGudang->id,
+                    'dibuat_pada'        => Carbon::parse('2026-08-29 09:00:00'),
+                    'diperbarui_pada'    => Carbon::parse('2026-08-29 11:00:00'),
+                ]
+            );
+
+            $firstBatch = $batches->first();
+            if ($firstBatch) {
+                PenyesuaianStokDetail::firstOrCreate(
+                    [
+                        'penyesuaian_stok_id' => $adjRejected->id,
+                        'barang_id'           => $firstBatch->barang_id,
+                        'stok_batch_id'       => $firstBatch->id,
+                    ],
+                    [
+                        'jumlah_penyesuaian' => 2,
+                        'jenis_penyesuaian'  => 'KURANG',
+                        'harga_satuan'       => $firstBatch->harga_satuan,
+                        'subtotal_nilai'     => $firstBatch->harga_satuan * 2,
+                        'catatan'            => 'Ditolak: wajib investigasi lapangan oleh SPI terlebih dahulu.',
+                        'dibuat_pada'        => Carbon::parse('2026-08-29 09:15:00'),
+                    ]
+                );
+            }
         });
     }
 }
