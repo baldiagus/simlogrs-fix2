@@ -50,6 +50,7 @@ use App\Livewire\Persediaan\OtorisasiPenyesuaianIndex;
 use App\Livewire\Audit\AuditTrailIndex;
 use App\Livewire\Audit\AuditKepatuhanPengadaanIndex;
 use App\Livewire\Audit\RegisterTemuanCapaIndex;
+use App\Livewire\Audit\PemeriksaanSelisihOpnameIndex;
 use App\Livewire\System\SchedulerNotifikasiIndex;
 use App\Http\Controllers\SpkPrintController;
 
@@ -146,6 +147,7 @@ foreach ($portals as $portalKey => $dashboardClass) {
             // Tata Kelola Audit Internal, SPI & CAPA (Grup 8)
             Route::get('/audit-trail', AuditTrailIndex::class)->name('audit-trail');
             Route::get('/kepatuhan-pengadaan', AuditKepatuhanPengadaanIndex::class)->name('kepatuhan-pengadaan');
+            Route::get('/selisih-opname', PemeriksaanSelisihOpnameIndex::class)->name('selisih-opname');
             Route::get('/temuan-capa', RegisterTemuanCapaIndex::class)->name('temuan-capa');
         });
 }
