@@ -119,7 +119,7 @@
     </flux:card>
 
     {{-- Modal Form Tambah Amprah --}}
-    <flux:modal name="modal-permintaan-form" wire:model="showModal" class="md:w-[58rem] max-w-[95vw]">
+    <flux:modal name="modal-permintaan-form" wire:model="showModal" class="md:w-[52rem] max-w-[92vw]">
         <form wire:submit="save" class="space-y-4">
             <div>
                 <flux:heading size="lg">Pengajuan Amprah Ruangan</flux:heading>
