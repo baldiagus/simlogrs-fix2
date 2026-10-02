@@ -119,8 +119,8 @@
     </flux:card>
 
     {{-- Modal Form Tambah Amprah --}}
-    <flux:modal name="modal-permintaan-form" wire:model="showModal" class="md:w-[58rem] max-w-[95vw] md:min-h-[42rem]">
-        <form wire:submit="save" class="space-y-4 pb-2">
+    <flux:modal name="modal-permintaan-form" wire:model="showModal" class="md:w-[58rem] max-w-[95vw]">
+        <form wire:submit="save" class="space-y-4">
             <div>
                 <flux:heading size="lg">Pengajuan Amprah Ruangan</flux:heading>
                 <flux:subheading>Kebutuhan operasional ruangan ke gudang logistik sentral.</flux:subheading>
@@ -223,7 +223,7 @@
                 </div>
 
                 {{-- Daftar Baris Barang (Matriks 1x3 per baris) --}}
-                <div class="space-y-3 max-h-[58vh] min-h-[22rem] pb-44 overflow-y-auto pr-1">
+                <div class="space-y-3 pb-48">
                     @foreach ($items as $index => $row)
                         <div wire:key="amprah-item-{{ $index }}" class="p-3.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs">
                             <div class="w-full grid grid-cols-12 gap-4 items-start">
