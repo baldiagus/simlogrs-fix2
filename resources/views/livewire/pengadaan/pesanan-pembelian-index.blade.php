@@ -107,14 +107,13 @@
                 <flux:input wire:model="kode" label="Kode PO (Otomatis)" disabled readonly class="font-mono bg-zinc-100 dark:bg-zinc-800/80 cursor-not-allowed font-semibold" />
 
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Vendor / Pemasok</label>
-                    <select wire:model="pemasok_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                        <option value="">Pilih Vendor...</option>
-                        @foreach ($daftarPemasok as $pms)
-                            <option value="{{ $pms->id }}">{{ $pms->nama }}</option>
-                        @endforeach
-                    </select>
-                    @error('pemasok_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    <x-searchable-select
+                        model="pemasok_id"
+                        label="Vendor / Pemasok"
+                        placeholder="Pilih Vendor..."
+                        :options="$daftarPemasok"
+                        required
+                    />
                 </div>
 
                 <div>

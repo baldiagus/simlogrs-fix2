@@ -182,20 +182,14 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                            Gudang Simpan <span class="text-red-500">*</span>
-                        </label>
-                        <select
-                            wire:model.live="gudang_id"
+                        <x-searchable-select
+                            model="gudang_id"
+                            label="Gudang Simpan"
+                            placeholder="Pilih Fasilitas Gudang..."
+                            :options="$daftarGudang"
+                            live="true"
                             required
-                            class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
-                        >
-                            <option value="">Pilih Fasilitas Gudang...</option>
-                            @foreach ($daftarGudang as $g)
-                                <option value="{{ $g->id }}">{{ $g->nama }}</option>
-                            @endforeach
-                        </select>
-                        @error('gudang_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                        />
                     </div>
                 </div>
 
@@ -311,20 +305,14 @@
                                                 />
                                             </div>
 
-                                            <div class="col-span-2 flex flex-col">
-                                                <label class="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mb-1">
-                                                    Rak Simpan <span class="text-red-500">*</span>
-                                                </label>
-                                                <select
-                                                    wire:model="itemRows.{{ $idx }}.lokasi_gudang_id"
-                                                    class="w-full text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
-                                                >
-                                                    <option value="">Pilih Rak Simpan...</option>
-                                                    @foreach ($daftarLokasiGudang as $lok)
-                                                        <option value="{{ $lok->id }}">{{ $lok->nama ?? $lok->kode }}</option>
-                                                    @endforeach
-                                                </select>
-                                                @error("itemRows.{$idx}.lokasi_gudang_id") <span class="text-red-500 text-[10px] mt-0.5 leading-tight">{{ $message }}</span> @enderror
+                                            <div class="col-span-2">
+                                                <x-searchable-select
+                                                    model="itemRows.{{ $idx }}.lokasi_gudang_id"
+                                                    label="Rak Simpan"
+                                                    placeholder="Pilih Rak..."
+                                                    :options="$daftarLokasiGudang"
+                                                    required
+                                                />
                                             </div>
                                         </div>
                                     </div>

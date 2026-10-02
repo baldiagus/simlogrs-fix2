@@ -172,58 +172,32 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {{-- Dropdown 1: Unit Pemohon --}}
                     <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                                Unit / Ruangan Pemohon
-                            </label>
-                            @if ($unit_id)
-                                <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                                    Aktif Terpilih
-                                </span>
-                            @endif
-                        </div>
-                        <select
-                            wire:model.live="unit_id"
-                            @disabled(!empty($gudang_id))
-                            class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 disabled:bg-zinc-100 disabled:dark:bg-zinc-800/40 disabled:text-zinc-400 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        >
-                            <option value="">-- Pilih Unit Ruangan --</option>
-                            @foreach ($daftarUnit as $unit)
-                                <option value="{{ $unit->id }}">{{ $unit->nama }}</option>
-                            @endforeach
-                        </select>
+                        <x-searchable-select
+                            model="unit_id"
+                            label="Unit / Ruangan Pemohon"
+                            placeholder="-- Pilih Unit Ruangan --"
+                            :options="$daftarUnit"
+                            :disabled="!empty($gudang_id)"
+                            live="true"
+                        />
                         @if ($gudang_id)
                             <p class="text-[10px] text-zinc-400 mt-1 italic">Nonaktif karena Gudang Pemohon telah dipilih.</p>
                         @endif
-                        @error('unit_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     {{-- Dropdown 2: Gudang Pemohon --}}
                     <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                                Gudang Pemohon
-                            </label>
-                            @if ($gudang_id)
-                                <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800">
-                                    Aktif Terpilih
-                                </span>
-                            @endif
-                        </div>
-                        <select
-                            wire:model.live="gudang_id"
-                            @disabled(!empty($unit_id))
-                            class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 disabled:bg-zinc-100 disabled:dark:bg-zinc-800/40 disabled:text-zinc-400 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        >
-                            <option value="">-- Pilih Gudang Logistik --</option>
-                            @foreach ($daftarGudang as $gudang)
-                                <option value="{{ $gudang->id }}">{{ $gudang->nama }}</option>
-                            @endforeach
-                        </select>
+                        <x-searchable-select
+                            model="gudang_id"
+                            label="Gudang Pemohon"
+                            placeholder="-- Pilih Gudang Logistik --"
+                            :options="$daftarGudang"
+                            :disabled="!empty($unit_id)"
+                            live="true"
+                        />
                         @if ($unit_id)
                             <p class="text-[10px] text-zinc-400 mt-1 italic">Nonaktif karena Unit Pemohon telah dipilih.</p>
                         @endif
-                        @error('gudang_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
             </div>
@@ -243,12 +217,12 @@
                             @if ($loop->first)
                                 <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Barang</label>
                             @endif
-                            <select wire:model="items.{{ $index }}.barang_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                                <option value="">Pilih Barang...</option>
-                                @foreach ($daftarBarang as $brg)
-                                    <option value="{{ $brg->id }}">{{ $brg->kode }} - {{ $brg->nama }}</option>
-                                @endforeach
-                            </select>
+                            <x-searchable-select
+                                model="items.{{ $index }}.barang_id"
+                                placeholder="Pilih Barang..."
+                                :options="$daftarBarang"
+                                required
+                            />
                             @error("items.{$index}.barang_id") <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div class="w-28">

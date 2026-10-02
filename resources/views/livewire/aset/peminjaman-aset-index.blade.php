@@ -380,22 +380,14 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                            Aset / Komoditas yang Ingin Dipinjam <span class="text-red-500">*</span>
-                        </label>
-                        <select
-                            wire:model.live="selected_barang_id"
+                        <x-searchable-select
+                            model="selected_barang_id"
+                            label="Aset / Komoditas yang Ingin Dipinjam"
+                            placeholder="-- Cari Aset Inventaris Tersedia... --"
+                            :options="$daftarBarangAsetTersedia->map(fn($b) => ['id' => $b->id, 'nama' => $b->nama, 'sub' => 'Tersedia: ' . $b->aset_count . ' ' . ($b->satuan?->simbol ?? 'Unit')])"
+                            live="true"
                             required
-                            class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        >
-                            <option value="">-- Pilih Aset Inventaris Tersedia --</option>
-                            @foreach ($daftarBarangAsetTersedia as $brg)
-                                <option value="{{ $brg->id }}">
-                                    {{ $brg->nama }} (Tersedia: {{ $brg->aset_count }} {{ $brg->satuan?->simbol ?? 'Unit' }} di RS)
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('selected_barang_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                        />
 
                         @if ($selected_barang_id)
                             <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1.5">

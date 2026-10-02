@@ -143,16 +143,13 @@
 
                 @if ($isGlobalAdmin || ! auth()->user()?->unit_id)
                     <div>
-                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                            Unit Pemohon <span class="text-red-500">*</span>
-                        </label>
-                        <select wire:model="unit_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            <option value="">Pilih Unit Ruangan...</option>
-                            @foreach ($daftarUnit as $unit)
-                                <option value="{{ $unit->id }}">{{ $unit->nama }}</option>
-                            @endforeach
-                        </select>
-                        @error('unit_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                        <x-searchable-select
+                            model="unit_id"
+                            label="Unit Pemohon"
+                            placeholder="Pilih Unit Ruangan..."
+                            :options="$daftarUnit"
+                            required
+                        />
                     </div>
                 @else
                     <div>
@@ -168,16 +165,14 @@
                 @endif
 
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Gudang Tujuan <span class="text-red-500">*</span>
-                    </label>
-                    <select wire:model.live="gudang_id" required class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="">Pilih Gudang...</option>
-                        @foreach ($daftarGudang as $gdg)
-                            <option value="{{ $gdg->id }}">{{ $gdg->nama }}</option>
-                        @endforeach
-                    </select>
-                    @error('gudang_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    <x-searchable-select
+                        model="gudang_id"
+                        label="Gudang Tujuan"
+                        placeholder="Pilih Gudang..."
+                        :options="$daftarGudang"
+                        live="true"
+                        required
+                    />
                 </div>
             </div>
 
@@ -234,23 +229,14 @@
                             <div class="w-full grid grid-cols-12 gap-4 items-start">
                                 {{-- Kolom 1 (1x3): Barang & Informasi Stok Gudang (col-span-5) --}}
                                 <div class="col-span-5 w-full min-w-0">
-                                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                                        Komoditas Barang <span class="text-red-500">*</span>
-                                    </label>
-                                    <select
-                                        wire:model.live="items.{{ $index }}.barang_id"
+                                    <x-searchable-select
+                                        model="items.{{ $index }}.barang_id"
+                                        label="Komoditas Barang"
+                                        placeholder="Pilih Komoditas Barang..."
+                                        :options="$daftarBarang"
+                                        live="true"
                                         required
-                                        class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                    >
-                                        <option value="">Pilih Komoditas Barang...</option>
-                                        @foreach ($daftarBarang as $brg)
-                                            @php $stok = (int) ($stokGudangMap[$brg->id] ?? 0); @endphp
-                                            <option value="{{ $brg->id }}" {{ $stok <= 0 ? 'class=text-zinc-400' : '' }}>
-                                                {{ $brg->kode }} - {{ $brg->nama }} (Stok: {{ number_format($stok, 0, ',', '.') }} {{ $brg->satuan?->simbol ?? 'Unit' }}){{ $stok <= 0 ? ' [STOK KOSONG]' : '' }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-
+                                    />
                                     {{-- Informasi Stok Gudang Real-Time --}}
                                     @if (!empty($items[$index]['barang_id']))
                                         @php
