@@ -140,23 +140,26 @@
                 Dashboard
             </flux:sidebar.item>
 
-            @can('view_any_user::pengguna')
-                <flux:sidebar.item icon="users" href="/super-admin/pengguna" wire:navigate :current="request()->is('*/pengguna')">
-                    Akun Pengguna
-                </flux:sidebar.item>
-            @endcan
+            {{-- Modul Manajemen Sistem & RBAC (Eksklusif Portal Super Administrator) --}}
+            @if ($portalKey === 'super-admin')
+                @can('view_any_user::pengguna')
+                    <flux:sidebar.item icon="users" href="/super-admin/pengguna" wire:navigate :current="request()->is('*/pengguna')">
+                        Akun Pengguna
+                    </flux:sidebar.item>
+                @endcan
 
-            @can('view_any_user::role')
-                <flux:sidebar.item icon="shield-check" href="/super-admin/roles" wire:navigate :current="request()->is('*/roles')">
-                    Peran & Hak Akses
-                </flux:sidebar.item>
-            @endcan
+                @can('view_any_user::role')
+                    <flux:sidebar.item icon="shield-check" href="/super-admin/roles" wire:navigate :current="request()->is('*/roles')">
+                        Peran & Hak Akses
+                    </flux:sidebar.item>
+                @endcan
 
-            @can('page_SchedulerNotifikasiIndex')
-                <flux:sidebar.item icon="clock" href="/{{ $portalKey }}/scheduler" wire:navigate :current="request()->is('*/scheduler')">
-                    Task Scheduler
-                </flux:sidebar.item>
-            @endcan
+                @can('page_SchedulerNotifikasiIndex')
+                    <flux:sidebar.item icon="clock" href="/super-admin/scheduler" wire:navigate :current="request()->is('*/scheduler')">
+                        Task Scheduler
+                    </flux:sidebar.item>
+                @endcan
+            @endif
 
             @can('view_any_master::barang')
                 <flux:sidebar.group expandable :expanded="$isMasterActive" heading="Master & Logistik" class="grid">
