@@ -249,34 +249,27 @@
                     </table>
                 </div>
 
-                {{-- Footer Modal & Tombol Pengesahan --}}
-                <div class="flex items-center justify-between pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">
-                        Tutup
-                    </flux:button>
-
-                    @if ($selectedPenyesuaian->status === 'MENUNGGU')
-                        @can('update_gudang_stok::otorisasi::penyesuaian')
-                            <div class="flex items-center gap-2">
-                                <flux:button
-                                    wire:click="confirmReject({{ $selectedPenyesuaian->id }})"
-                                    variant="danger"
-                                    icon="x-circle"
-                                >
-                                    Tolak Penyesuaian
-                                </flux:button>
-                                <flux:button
-                                    wire:click="confirmApprove({{ $selectedPenyesuaian->id }})"
-                                    variant="primary"
-                                    class="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                    icon="check-circle"
-                                >
-                                    Sahkan Penyesuaian Stok
-                                </flux:button>
-                            </div>
-                        @endcan
-                    @endif
-                </div>
+                @if ($selectedPenyesuaian->status === 'MENUNGGU')
+                    @can('update_gudang_stok::otorisasi::penyesuaian')
+                        <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                            <flux:button
+                                wire:click="confirmReject({{ $selectedPenyesuaian->id }})"
+                                variant="danger"
+                                icon="x-circle"
+                            >
+                                Tolak Penyesuaian
+                            </flux:button>
+                            <flux:button
+                                wire:click="confirmApprove({{ $selectedPenyesuaian->id }})"
+                                variant="primary"
+                                class="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                icon="check-circle"
+                            >
+                                Sahkan Penyesuaian Stok
+                            </flux:button>
+                        </div>
+                    @endcan
+                @endif
             </div>
         @endif
     </flux:modal>

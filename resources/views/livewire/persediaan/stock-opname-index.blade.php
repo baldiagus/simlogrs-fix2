@@ -185,10 +185,7 @@
                 ></textarea>
             </div>
 
-            <div class="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                <flux:button type="button" variant="ghost" wire:click="$set('showInisiasiModal', false)">
-                    Batal
-                </flux:button>
+            <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="inisiasiOpname">Buka Siklus Opname</span>
                     <span wire:loading wire:target="inisiasiOpname">Menyiapkan Batch...</span>
@@ -323,10 +320,7 @@
                     </table>
                 </div>
 
-                <div class="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showCountModal', false)">
-                        Tutup
-                    </flux:button>
+                <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
                     <flux:button type="button" variant="primary" wire:click="saveHitungFisik" wire:loading.attr="disabled">
                         <span wire:loading.remove wire:target="saveHitungFisik">Simpan Hasil Hitung Fisik</span>
                         <span wire:loading wire:target="saveHitungFisik">Merekonsiliasi...</span>
@@ -358,8 +352,7 @@
                     </div>
                 </div>
 
-                <div class="flex justify-center gap-2 pt-2">
-                    <flux:button variant="ghost" wire:click="$set('showQrModal', false)">Tutup</flux:button>
+                <div class="flex justify-center pt-2">
                     <flux:button variant="primary" icon="printer" onclick="window.print()">Cetak Label</flux:button>
                 </div>
             </div>
@@ -429,11 +422,6 @@
                     </table>
                 </div>
 
-                <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">
-                        Tutup
-                    </flux:button>
-                </div>
             </div>
         @endif
     </flux:modal>
