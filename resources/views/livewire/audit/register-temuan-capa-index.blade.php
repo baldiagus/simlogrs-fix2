@@ -313,10 +313,7 @@
                 @error('ringkasan') <p class="text-[10px] text-red-500 mt-0.5">{{ $message }}</p> @enderror
             </div>
 
-            <div class="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                <flux:button type="button" variant="ghost" wire:click="$set('showCreateModal', false)">
-                    Batal
-                </flux:button>
+            <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="saveCreate">Daftarkan Temuan</span>
                     <span wire:loading wire:target="saveCreate">Menyimpan...</span>
@@ -377,7 +374,7 @@
                         wire:model="fileBuktiList"
                         multiple
                         accept=".pdf,.jpg,.jpeg,.png,.webp,.xlsx,.docx"
-                        class="w-full text-xs text-zinc-600 dark:text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        class="w-full text-xs text-zinc-600 dark:text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-zinc-100 hover:file:bg-zinc-200 dark:file:bg-zinc-800 dark:hover:file:bg-zinc-700"
                     />
 
                     {{-- Berkas Sementara yang Baru Dipilih --}}
@@ -413,10 +410,7 @@
                     @endif
                 </div>
 
-                <div class="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showTindakLanjutModal', false)">
-                        Batal
-                    </flux:button>
+                <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
                     <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
                         <span wire:loading.remove wire:target="saveTindakLanjut">Kirim Tindak Lanjut ke SPI</span>
                         <span wire:loading wire:target="saveTindakLanjut">Mengirim Berkas...</span>
@@ -512,10 +506,7 @@
                     @error('catatan_evaluasi') <p class="text-[10px] text-red-500 mt-0.5">{{ $message }}</p> @enderror
                 </div>
 
-                <div class="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showEvaluasiModal', false)">
-                        Tutup
-                    </flux:button>
+                <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
                     <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
                         <span wire:loading.remove wire:target="saveEvaluasiClosing">Simpan Keputusan Evaluasi</span>
                         <span wire:loading wire:target="saveEvaluasiClosing">Memproses...</span>

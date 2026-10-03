@@ -270,9 +270,6 @@
                     </table>
                 </div>
 
-                <div class="flex justify-end pt-2">
-                    <flux:button variant="ghost" wire:click="$set('showDetailModal', false)">Tutup</flux:button>
-                </div>
             </div>
         @endif
     </flux:modal>
@@ -333,10 +330,7 @@
                     required
                 />
 
-                <div class="flex justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-700">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showCapaModal', false)">
-                        Batal
-                    </flux:button>
+                <div class="flex justify-end pt-3 border-t border-zinc-200 dark:border-zinc-700">
                     <flux:button type="submit" variant="primary" icon="check" wire:loading.attr="disabled">
                         <span wire:loading.remove wire:target="saveCapa">Daftarkan ke CAPA</span>
                         <span wire:loading wire:target="saveCapa">Memproses...</span>

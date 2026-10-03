@@ -228,10 +228,7 @@
                     @error('ringkasan') <p class="text-[10px] text-red-500 mt-0.5">{{ $message }}</p> @enderror
                 </div>
 
-                <div class="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showCapaModal', false)">
-                        Batal
-                    </flux:button>
+                <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
                     <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
                         <span wire:loading.remove wire:target="saveCapa">Terbitkan Temuan ke CAPA</span>
                         <span wire:loading wire:target="saveCapa">Menerbitkan...</span>
