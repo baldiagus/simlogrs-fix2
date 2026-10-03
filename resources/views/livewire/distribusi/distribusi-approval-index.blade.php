@@ -216,10 +216,7 @@
                     <div class="text-xs text-zinc-500 dark:text-zinc-400 italic">
                         * Jumlah disetujui tidak boleh melebihi jumlah permintaan maupun saldo stok fisik gudang yang tersedia.
                     </div>
-                    <div class="flex items-center gap-2">
-                        <flux:button type="button" variant="ghost" wire:click="$set('showReviewModal', false)">
-                            Batal
-                        </flux:button>
+                    <div>
                         <flux:button type="button" variant="primary" wire:click="confirmApproveGudang" class="bg-blue-600 hover:bg-blue-700 text-white">
                             Setujui Distribusi
                         </flux:button>
@@ -328,11 +325,6 @@
                     </table>
                 </div>
 
-                <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">
-                        Tutup
-                    </flux:button>
-                </div>
             </div>
         @endif
     </flux:modal>

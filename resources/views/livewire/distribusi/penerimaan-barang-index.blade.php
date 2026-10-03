@@ -258,17 +258,12 @@
                     </div>
                 </div>
 
-                {{-- Tombol Aksi Modal --}}
-                <div class="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">
-                        Tutup
-                    </flux:button>
+                @php
+                    $canConfirmThisModal = $isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $selectedSppb->unit_id);
+                @endphp
 
-                    @php
-                        $canConfirmThisModal = $isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $selectedSppb->unit_id);
-                    @endphp
-
-                    @if ($selectedSppb->status === 'DIKIRIM' && $canConfirmThisModal)
+                @if ($selectedSppb->status === 'DIKIRIM' && $canConfirmThisModal)
+                    <div class="flex items-center justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
                         <flux:button
                             wire:click="confirmTerima({{ $selectedSppb->id }})"
                             variant="primary"
@@ -278,8 +273,8 @@
                         >
                             Konfirmasi Terima Barang
                         </flux:button>
-                    @endif
-                </div>
+                    </div>
+                @endif
             </div>
         @endif
     </flux:modal>

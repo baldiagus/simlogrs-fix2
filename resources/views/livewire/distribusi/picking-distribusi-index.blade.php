@@ -275,11 +275,6 @@
                     </table>
                 </div>
 
-                <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="closeDetailModal">
-                        Tutup
-                    </flux:button>
-                </div>
             </div>
         @endif
     </flux:modal>

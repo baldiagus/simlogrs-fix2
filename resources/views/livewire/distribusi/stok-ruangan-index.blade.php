@@ -422,10 +422,7 @@
                 </div>
 
                 {{-- Tombol Aksi Modal --}}
-                <div class="flex justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-700">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showUbahStatusAsetModal', false)">
-                        Batal
-                    </flux:button>
+                <div class="flex justify-end pt-3 border-t border-zinc-200 dark:border-zinc-700">
                     <flux:button type="submit" variant="primary" icon="check" wire:loading.attr="disabled">
                         <span wire:loading.remove wire:target="simpanStatusAset">Simpan Perubahan</span>
                         <span wire:loading wire:target="simpanStatusAset">Menyimpan...</span>
@@ -490,10 +487,7 @@
                 </div>
 
                 {{-- Tombol Aksi Modal --}}
-                <div class="flex justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-700">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showPakaiModal', false)">
-                        Batal
-                    </flux:button>
+                <div class="flex justify-end pt-3 border-t border-zinc-200 dark:border-zinc-700">
                     <flux:button type="submit" variant="primary" icon="check" wire:loading.attr="disabled">
                         <span wire:loading.remove wire:target="simpanPemakaian">Simpan Pemakaian</span>
                         <span wire:loading wire:target="simpanPemakaian">Memproses...</span>

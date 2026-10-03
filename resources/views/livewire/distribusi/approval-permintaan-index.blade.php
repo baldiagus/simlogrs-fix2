@@ -228,37 +228,30 @@
                     </div>
                 </div>
 
-                {{-- Footer Modal --}}
-                <div class="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">
-                        Tutup
-                    </flux:button>
+                @php
+                    $canApproveSelected = $isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $selectedPermintaan->unit_id);
+                @endphp
 
-                    @php
-                        $canApproveSelected = $isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $selectedPermintaan->unit_id);
-                    @endphp
-
-                    @if ($selectedPermintaan->status === 'DIAJUKAN' && $canApproveSelected)
-                        <div class="flex items-center gap-2">
-                            <flux:button
-                                wire:click="confirmRejectKaru({{ $selectedPermintaan->id }})"
-                                variant="danger"
-                                icon="x-circle"
-                                wire:loading.attr="disabled"
-                            >
-                                Tolak Amprah
-                            </flux:button>
-                            <flux:button
-                                wire:click="confirmApproveKaru({{ $selectedPermintaan->id }})"
-                                variant="primary"
-                                icon="check-circle"
-                                wire:loading.attr="disabled"
-                            >
-                                Setujui Amprah
-                            </flux:button>
-                        </div>
-                    @endif
-                </div>
+                @if ($selectedPermintaan->status === 'DIAJUKAN' && $canApproveSelected)
+                    <div class="flex items-center justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                        <flux:button
+                            wire:click="confirmRejectKaru({{ $selectedPermintaan->id }})"
+                            variant="danger"
+                            icon="x-circle"
+                            wire:loading.attr="disabled"
+                        >
+                            Tolak Amprah
+                        </flux:button>
+                        <flux:button
+                            wire:click="confirmApproveKaru({{ $selectedPermintaan->id }})"
+                            variant="primary"
+                            icon="check-circle"
+                            wire:loading.attr="disabled"
+                        >
+                            Setujui Amprah
+                        </flux:button>
+                    </div>
+                @endif
             </div>
         @endif
     </flux:modal>
