@@ -98,9 +98,15 @@
 
                         {{-- Total Histori Servis --}}
                         <flux:table.cell class="text-center">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold {{ $aset->permintaan_maintenance_count > 0 ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400' }}">
-                                {{ $aset->permintaan_maintenance_count }} kali
-                            </span>
+                            @if ($aset->permintaan_maintenance_count > 0)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                                    {{ $aset->permintaan_maintenance_count }} kali
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                    0 kali
+                                </span>
+                            @endif
                         </flux:table.cell>
 
                         {{-- Aksi: Buka Buku Riwayat --}}
@@ -232,11 +238,6 @@
                     @endforelse
                 </div>
 
-                <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">
-                        Tutup
-                    </flux:button>
-                </div>
             </div>
         @endif
     </flux:modal>

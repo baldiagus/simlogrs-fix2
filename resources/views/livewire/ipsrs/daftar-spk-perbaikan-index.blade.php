@@ -337,10 +337,7 @@
                     @error('instruksi_khusus') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
 
-                <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showSpkModal', false)">
-                        Batal
-                    </flux:button>
+                <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
                     <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
                         <span wire:loading.remove wire:target="saveSpk">Terbitkan SPK</span>
                         <span wire:loading wire:target="saveSpk">Menerbitkan...</span>
@@ -440,11 +437,7 @@
                     </div>
                 @endif
 
-                <div class="flex items-center justify-between pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">
-                        Tutup
-                    </flux:button>
-
+                <div class="flex items-center justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
                     <flux:button
                         as="a"
                         href="/{{ request()->segment(1) ?? 'teknisi' }}/spk/{{ $selectedSpk->id }}/cetak-pdf"

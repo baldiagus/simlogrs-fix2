@@ -347,10 +347,7 @@
                     </div>
                 </div>
 
-                <div class="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">
-                        Batal
-                    </flux:button>
+                <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
                     <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
                         <span wire:loading.remove wire:target="saveLembarKerja">Simpan Lembar Kerja & Potong Sparepart</span>
                         <span wire:loading wire:target="saveLembarKerja">Memproses Stok...</span>
@@ -463,11 +460,6 @@
                     @endforelse
                 </div>
 
-                <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">
-                        Tutup
-                    </flux:button>
-                </div>
             </div>
         @endif
     </flux:modal>
