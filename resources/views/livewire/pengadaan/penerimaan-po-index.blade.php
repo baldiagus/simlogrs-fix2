@@ -304,9 +304,8 @@
                                                 />
                                             </div>
 
-                                            <div class="col-span-2">
+                                            <div class="col-span-2" wire:key="rak-select-wrapper-{{ $gudang_id ?? 'empty' }}-{{ $idx }}">
                                                 <x-searchable-select
-                                                    :wire:key="'rak-select-' . ($gudang_id ?? 'empty') . '-' . $idx"
                                                     model="itemRows.{{ $idx }}.lokasi_gudang_id"
                                                     label="Rak Simpan"
                                                     placeholder="Pilih Rak..."

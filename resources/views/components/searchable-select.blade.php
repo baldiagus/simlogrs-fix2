@@ -151,7 +151,7 @@
         </div>
 
         {{-- Options Scroll Area --}}
-        <div class="max-h-56 overflow-y-auto p-1 text-xs" wire:ignore>
+        <div class="max-h-56 overflow-y-auto p-1 text-xs">
             <template x-for="item in filteredOptions" :key="item.value">
                 <div
                     @click="select(item.value)"
