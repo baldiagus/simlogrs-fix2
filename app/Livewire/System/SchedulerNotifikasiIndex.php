@@ -60,7 +60,6 @@ class SchedulerNotifikasiIndex extends Component
 
     public function triggerAlertOverdue(): void
     {
-        $this->isProcessing = true;
         abort_unless(
             auth()->user()?->can('create_system::scheduler') ||
             auth()->user()?->hasRole('super_admin'),
@@ -68,6 +67,7 @@ class SchedulerNotifikasiIndex extends Component
             'Akses ditolak: Hanya Super Admin yang berwenang mengeksekusi task scheduler.'
         );
 
+        $this->isProcessing = true;
         try {
             Artisan::call('simlog:alert-overdue-loans');
             $output = trim(Artisan::output());
@@ -81,8 +81,6 @@ class SchedulerNotifikasiIndex extends Component
 
     public function triggerGeneratePreventive(): void
     {
-        $this->isProcessing = true;
-        try {
         abort_unless(
             auth()->user()?->can('create_system::scheduler') ||
             auth()->user()?->hasRole('super_admin'),
@@ -90,6 +88,8 @@ class SchedulerNotifikasiIndex extends Component
             'Akses ditolak: Hanya Super Admin yang berwenang mengeksekusi task scheduler.'
         );
 
+        $this->isProcessing = true;
+        try {
             Artisan::call('simlog:generate-preventive-maintenance');
             $output = trim(Artisan::output());
             $this->toast("Task Generate Preventive Maintenance berhasil dijalankan: {$output}", 'success');
