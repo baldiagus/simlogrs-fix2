@@ -243,4 +243,16 @@ class PagePermissionRegistry
 
         return $state;
     }
+
+    /**
+     * Mengambil daftar izin non-matriks (kustom) yang dimiliki peran di database,
+     * yaitu izin yang tidak termasuk dalam daftar yang dikelola oleh PagePermissionRegistry.
+     */
+    public static function getNonMatrixPermissions(Role $role): array
+    {
+        $managedPermissions = static::getAllPermissions();
+        $rolePermissions = $role->permissions()->pluck('name')->toArray();
+
+        return array_values(array_diff($rolePermissions, $managedPermissions));
+    }
 }

@@ -271,22 +271,26 @@ class RoleManager extends Component
             $this->state['delete']['user::pengguna']   = true;
         }
 
-        $permissions = PagePermissionRegistry::toPermissions($this->state);
+        $matrixPermissions = PagePermissionRegistry::toPermissions($this->state);
+
+        // Pertahankan izin non-matriks (kustom) yang sudah melekat pada peran di database
+        $nonMatrixPermissions = PagePermissionRegistry::getNonMatrixPermissions($role);
+        $finalPermissions = array_values(array_unique(array_merge($matrixPermissions, $nonMatrixPermissions)));
 
         // Pastikan semua permissions terdaftar di Spatie DB
-        $existing = Permission::whereIn('name', $permissions)->pluck('name')->toArray();
-        $missing = array_diff($permissions, $existing);
+        $existing = Permission::whereIn('name', $finalPermissions)->pluck('name')->toArray();
+        $missing = array_diff($finalPermissions, $existing);
         foreach ($missing as $newPerm) {
             Permission::findOrCreate($newPerm, 'web');
         }
         $oldPermissions = $role->permissions()->pluck('name')->sort()->values()->toArray();
 
-        $role->syncPermissions($permissions);
+        $role->syncPermissions($finalPermissions);
 
         // Reset cache permission Spatie
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $newPermissions = collect($permissions)->sort()->values()->toArray();
+        $newPermissions = collect($finalPermissions)->sort()->values()->toArray();
         $addedPermissions = array_values(array_diff($newPermissions, $oldPermissions));
         $removedPermissions = array_values(array_diff($oldPermissions, $newPermissions));
 
