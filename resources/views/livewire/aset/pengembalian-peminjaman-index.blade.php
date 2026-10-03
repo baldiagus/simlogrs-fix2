@@ -327,10 +327,7 @@
                 </div>
 
                 {{-- Tombol Batal & Submit --}}
-                <div class="flex items-center justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="closePengembalianModal">
-                        Batal
-                    </flux:button>
+                <div class="flex items-center justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
                     <flux:button
                         type="button"
                         variant="primary"
@@ -444,11 +441,6 @@
                     </div>
                 </div>
 
-                <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="closeDetailPengembalianModal">
-                        Tutup
-                    </flux:button>
-                </div>
             </div>
         @endif
     </flux:modal>

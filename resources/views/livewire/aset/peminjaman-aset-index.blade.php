@@ -493,10 +493,7 @@
                     </flux:field>
                 </div>
 
-                <div class="flex justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-700">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showPinjamModal', false)">
-                        Batal
-                    </flux:button>
+                <div class="flex justify-end pt-3 border-t border-zinc-200 dark:border-zinc-700">
                     <flux:button type="submit" variant="primary" icon="check" wire:loading.attr="disabled">
                         <span wire:loading.remove wire:target="savePinjam">Kirim Pengajuan</span>
                         <span wire:loading wire:target="savePinjam">Memproses...</span>
@@ -531,10 +528,7 @@
                     <flux:error name="alasan_perpanjang" />
                 </flux:field>
 
-                <div class="flex justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-700">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showPerpanjangModal', false)">
-                        Batal
-                    </flux:button>
+                <div class="flex justify-end pt-3 border-t border-zinc-200 dark:border-zinc-700">
                     <flux:button type="submit" variant="primary" icon="check">
                         Simpan Perpanjangan
                     </flux:button>
@@ -570,8 +564,7 @@
                     </div>
                 </div>
 
-                <div class="flex justify-center gap-2 pt-2">
-                    <flux:button variant="ghost" wire:click="$set('showQrModal', false)">Tutup</flux:button>
+                <div class="flex justify-center pt-2">
                     <flux:button variant="primary" icon="printer" onclick="window.print()">Cetak Stiker</flux:button>
                 </div>
             </div>
@@ -703,18 +696,14 @@
                     </div>
                 @endif
 
-                <div class="flex items-center justify-between pt-3 border-t border-zinc-200 dark:border-zinc-700">
-                    <flux:button variant="ghost" wire:click="$set('showDetailModal', false)">
-                        Tutup
-                    </flux:button>
+                @php
+                    $canSerahTerimaModal = $isGlobalAdmin ||
+                        ($selectedPinjam->tipe_penyedia === 'RUANGAN' && (int) $userUnitId === (int) $selectedPinjam->unit_penyedia_id) ||
+                        ($selectedPinjam->tipe_penyedia === 'GUDANG' && (int) $userGudangId === (int) $selectedPinjam->gudang_penyedia_id);
+                @endphp
 
-                    @php
-                        $canSerahTerimaModal = $isGlobalAdmin ||
-                            ($selectedPinjam->tipe_penyedia === 'RUANGAN' && (int) $userUnitId === (int) $selectedPinjam->unit_penyedia_id) ||
-                            ($selectedPinjam->tipe_penyedia === 'GUDANG' && (int) $userGudangId === (int) $selectedPinjam->gudang_penyedia_id);
-                    @endphp
-
-                    @if ($selectedPinjam->status === 'DISETUJUI' && $canSerahTerimaModal)
+                @if ($selectedPinjam->status === 'DISETUJUI' && $canSerahTerimaModal)
+                    <div class="flex items-center justify-end pt-3 border-t border-zinc-200 dark:border-zinc-700">
                         <flux:button
                             wire:click="confirmSerahTerima({{ $selectedPinjam->id }})"
                             variant="primary"
@@ -723,8 +712,8 @@
                         >
                             Serah Terima Fisik
                         </flux:button>
-                    @endif
-                </div>
+                    </div>
+                @endif
             </div>
         @endif
     </flux:modal>

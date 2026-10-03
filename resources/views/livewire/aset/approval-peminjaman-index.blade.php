@@ -336,53 +336,46 @@
                     </div>
                 </div>
 
-                {{-- Footer modal --}}
-                <div class="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="closeDetail">
-                        Tutup
-                    </flux:button>
+                @php
+                    $user = auth()->user();
+                    $canManageSelected = $isGlobalAdmin ||
+                        ($selectedPinjam->tipe_penyedia === 'RUANGAN' && (int) $user?->unit_id === (int) $selectedPinjam->unit_penyedia_id) ||
+                        ($selectedPinjam->tipe_penyedia === 'GUDANG' && (int) $user?->gudang_id === (int) $selectedPinjam->gudang_penyedia_id);
+                @endphp
 
-                    @php
-                        $user = auth()->user();
-                        $canManageSelected = $isGlobalAdmin ||
-                            ($selectedPinjam->tipe_penyedia === 'RUANGAN' && (int) $user?->unit_id === (int) $selectedPinjam->unit_penyedia_id) ||
-                            ($selectedPinjam->tipe_penyedia === 'GUDANG' && (int) $user?->gudang_id === (int) $selectedPinjam->gudang_penyedia_id);
-                    @endphp
-
-                    @if ($canManageSelected)
-                        <div class="flex items-center gap-2">
-                            @if ($selectedPinjam->status === 'DIAJUKAN')
-                                <flux:button
-                                    wire:click="confirmReject({{ $selectedPinjam->id }})"
-                                    variant="danger"
-                                    icon="x-circle"
-                                    wire:loading.attr="disabled"
-                                >
-                                    Tolak Permintaan
-                                </flux:button>
-                                <flux:button
-                                    wire:click="confirmApprove({{ $selectedPinjam->id }})"
-                                    variant="primary"
-                                    icon="check-circle"
-                                    class="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                    wire:loading.attr="disabled"
-                                >
-                                    Setujui Permintaan
-                                </flux:button>
-                            @elseif ($selectedPinjam->status === 'DISETUJUI')
-                                <flux:button
-                                    wire:click="confirmSerahTerima({{ $selectedPinjam->id }})"
-                                    variant="primary"
-                                    icon="arrow-right-start-on-rectangle"
-                                    class="bg-blue-600 hover:bg-blue-700 text-white"
-                                    wire:loading.attr="disabled"
-                                >
-                                    Serah Terima Fisik
-                                </flux:button>
-                            @endif
-                        </div>
-                    @endif
-                </div>
+                @if ($canManageSelected)
+                    <div class="flex items-center justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                        @if ($selectedPinjam->status === 'DIAJUKAN')
+                            <flux:button
+                                wire:click="confirmReject({{ $selectedPinjam->id }})"
+                                variant="danger"
+                                icon="x-circle"
+                                wire:loading.attr="disabled"
+                            >
+                                Tolak Permintaan
+                            </flux:button>
+                            <flux:button
+                                wire:click="confirmApprove({{ $selectedPinjam->id }})"
+                                variant="primary"
+                                icon="check-circle"
+                                class="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                wire:loading.attr="disabled"
+                            >
+                                Setujui Permintaan
+                            </flux:button>
+                        @elseif ($selectedPinjam->status === 'DISETUJUI')
+                            <flux:button
+                                wire:click="confirmSerahTerima({{ $selectedPinjam->id }})"
+                                variant="primary"
+                                icon="arrow-right-start-on-rectangle"
+                                class="bg-blue-600 hover:bg-blue-700 text-white"
+                                wire:loading.attr="disabled"
+                            >
+                                Serah Terima Fisik
+                            </flux:button>
+                        @endif
+                    </div>
+                @endif
             </div>
         @endif
     </flux:modal>
