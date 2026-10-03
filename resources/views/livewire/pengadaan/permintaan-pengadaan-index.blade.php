@@ -243,8 +243,7 @@
                 @error('items') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
             </div>
 
-            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">Batal</flux:button>
+            <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="save">Ajukan Permintaan</span>
                     <span wire:loading wire:target="save">Menyimpan...</span>
@@ -338,9 +337,6 @@
                     </table>
                 </div>
 
-                <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">Tutup</flux:button>
-                </div>
             </div>
         @endif
     </flux:modal>
@@ -365,10 +361,7 @@
                 />
             </div>
 
-            <div class="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                <flux:button type="button" variant="ghost" wire:click="$set('showRejectPengadaanModal', false)">
-                    Batal
-                </flux:button>
+            <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button type="submit" variant="danger" wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="submitRejectPengadaan">Tolak Permintaan</span>
                     <span wire:loading wire:target="submitRejectPengadaan">Memproses...</span>

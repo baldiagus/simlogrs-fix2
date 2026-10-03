@@ -416,13 +416,10 @@
                 >
                     Tolak Kiriman Vendor
                 </flux:button>
-                <div class="flex items-center justify-end gap-2">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">Batal</flux:button>
-                    <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
-                        <span wire:loading.remove wire:target="savePenerimaan">Simpan Penerimaan</span>
-                        <span wire:loading wire:target="savePenerimaan">Menyimpan...</span>
-                    </flux:button>
-                </div>
+                <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="savePenerimaan">Simpan Penerimaan</span>
+                    <span wire:loading wire:target="savePenerimaan">Menyimpan...</span>
+                </flux:button>
             </div>
         </form>
     </flux:modal>
@@ -482,8 +479,7 @@
                 </div>
             </div>
 
-            <div class="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                <flux:button type="button" variant="ghost" wire:click="cancelReject">Batal</flux:button>
+            <div class="flex justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button type="submit" variant="danger" wire:loading.attr="disabled" x-on:click="$flux.modal('modal-reject-kiriman').close()">
                     <span wire:loading.remove wire:target="executeTolakKiriman">Konfirmasi Tolak Kiriman</span>
                     <span wire:loading wire:target="executeTolakKiriman">Memproses...</span>
@@ -594,10 +590,9 @@
                     </div>
                 @endif
 
-                <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showDetailPoModal', false)">Tutup</flux:button>
-                    @can('create_gudang_stok::penerimaan::po')
-                        @if (in_array($selectedPo->status, ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN']))
+                @can('create_gudang_stok::penerimaan::po')
+                    @if (in_array($selectedPo->status, ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN']))
+                        <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
                             <flux:button
                                 type="button"
                                 variant="primary"
@@ -607,9 +602,9 @@
                             >
                                 Terima PO Ini
                             </flux:button>
-                        @endif
-                    @endcan
-                </div>
+                        </div>
+                    @endif
+                @endcan
             </div>
         @endif
     </flux:modal>
@@ -691,9 +686,6 @@
                     </table>
                 </div>
 
-                <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                    <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">Tutup</flux:button>
-                </div>
             </div>
         @endif
     </flux:modal>
