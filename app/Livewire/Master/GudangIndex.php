@@ -8,6 +8,7 @@ use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\User;
 use App\Models\Gudang;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
@@ -39,7 +40,7 @@ class GudangIndex extends Component
     public ?string $penanggung_jawab = null;
 
     #[Validate('nullable|exists:pengguna,id')]
-    public string $kepala_gudang_id = '';
+    public ?int $kepala_gudang_id = null;
 
     #[Validate('nullable|string|max:100')]
     public ?string $lokasi_gedung = null;
@@ -54,7 +55,7 @@ class GudangIndex extends Component
         $this->reset(['editingId', 'kode', 'nama', 'jenis', 'penanggung_jawab', 'lokasi_gedung', 'status', 'kepala_gudang_id']);
         $this->jenis = 'SENTRAL';
         $this->status = 'AKTIF';
-        $this->kepala_gudang_id = '';
+        $this->kepala_gudang_id = null;
         $this->showModal = true;
     }
 
@@ -71,7 +72,7 @@ class GudangIndex extends Component
         $matchedId = $gudang->kepala_gudang_id
             ?: ($gudang->penanggung_jawab ? User::where('nama', $gudang->penanggung_jawab)->value('id') : null)
             ?: User::where('gudang_id', $gudang->id)->whereHas('roles', fn ($q) => $q->where('name', 'kepala_gudang'))->value('id');
-        $this->kepala_gudang_id = $matchedId ? (string) $matchedId : '';
+        $this->kepala_gudang_id = $matchedId ? (int) $matchedId : null;
         $this->lokasi_gedung = $gudang->lokasi_gedung;
         $this->status = $gudang->status;
         $this->showModal = true;
@@ -96,8 +97,8 @@ class GudangIndex extends Component
         if ($this->editingId) {
             abort_unless(auth()->user()?->can('update_master::gudang'), 403);
             $gudang = Gudang::findOrFail($this->editingId);
-            $kepalaId = $this->kepala_gudang_id !== '' ? (int) $this->kepala_gudang_id : null;
-            $namaKepala = $kepalaId ? User::where('id', $kepalaId)->value('nama') : $this->penanggung_jawab;
+            $kepalaId = $this->kepala_gudang_id ? (int) $this->kepala_gudang_id : null;
+            $namaKepala = $kepalaId ? User::where('id', $kepalaId)->value('nama') : null;
             $gudang->update([
                 'kode' => strtoupper($this->kode),
                 'nama' => $this->nama,
@@ -110,8 +111,8 @@ class GudangIndex extends Component
             $this->toast("Gudang '{$gudang->nama}' berhasil diperbarui.", 'success');
         } else {
             abort_unless(auth()->user()?->can('create_master::gudang'), 403);
-            $kepalaId = $this->kepala_gudang_id !== '' ? (int) $this->kepala_gudang_id : null;
-            $namaKepala = $kepalaId ? User::where('id', $kepalaId)->value('nama') : $this->penanggung_jawab;
+            $kepalaId = $this->kepala_gudang_id ? (int) $this->kepala_gudang_id : null;
+            $namaKepala = $kepalaId ? User::where('id', $kepalaId)->value('nama') : null;
             Gudang::create([
                 'kode' => strtoupper($this->kode),
                 'nama' => $this->nama,
@@ -123,6 +124,9 @@ class GudangIndex extends Component
             ]);
             $this->toast("Gudang baru berhasil ditambahkan.", 'success');
         }
+
+        Cache::forget('dropdown_gudang_aktif');
+        Cache::forget('dropdown_gudang_aktif_audit');
 
         $this->showModal = false;
     }
@@ -150,6 +154,8 @@ class GudangIndex extends Component
         $newStatus = $gudang->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
         $gudang->update(['status' => $newStatus]);
 
+        Cache::forget('dropdown_gudang_aktif');
+        Cache::forget('dropdown_gudang_aktif_audit');
         $this->toast("Status gudang '{$gudang->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
@@ -187,6 +193,8 @@ class GudangIndex extends Component
         $namaGudang = $gudang->nama;
         $gudang->delete();
 
+        Cache::forget('dropdown_gudang_aktif');
+        Cache::forget('dropdown_gudang_aktif_audit');
         $this->toast("Fasilitas gudang '{$namaGudang}' berhasil dihapus.", 'success');
     }
 

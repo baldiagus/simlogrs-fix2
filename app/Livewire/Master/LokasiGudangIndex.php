@@ -188,7 +188,7 @@ class LokasiGudangIndex extends Component
     {
         abort_unless(auth()->user()?->can('view_any_master::lokasi::gudang') || auth()->user()?->can('view_master::lokasi::gudang'), 403);
 
-        $daftarGudang = Gudang::where('status', 'AKTIF')->get();
+        $daftarGudang = Gudang::where('status', 'AKTIF')->orderBy('nama')->get(['id', 'nama', 'kode']);
 
         $items = LokasiGudang::with('gudang')
             ->when($this->filterGudangId, fn ($q) => $q->where('gudang_id', $this->filterGudangId))

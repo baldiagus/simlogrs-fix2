@@ -8,6 +8,7 @@ use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\User;
 use App\Models\Unit;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
@@ -34,7 +35,7 @@ class UnitIndex extends Component
     public ?string $penanggung_jawab = null;
 
     #[Validate('nullable|exists:pengguna,id')]
-    public string $kepala_unit_id = '';
+    public ?int $kepala_unit_id = null;
 
     #[Validate('nullable|string|max:100')]
     public ?string $lokasi_gedung = null;
@@ -55,7 +56,7 @@ class UnitIndex extends Component
         $this->reset(['editingId', 'kode', 'nama', 'jenis', 'penanggung_jawab', 'lokasi_gedung', 'status', 'kepala_unit_id']);
         $this->jenis = 'PELAYANAN_MEDIS';
         $this->status = 'AKTIF';
-        $this->kepala_unit_id = '';
+        $this->kepala_unit_id = null;
         $this->showModal = true;
     }
 
@@ -72,7 +73,7 @@ class UnitIndex extends Component
         $matchedId = $unit->kepala_unit_id
             ?: ($unit->penanggung_jawab ? User::where('nama', $unit->penanggung_jawab)->value('id') : null)
             ?: User::where('unit_id', $unit->id)->whereHas('roles', fn ($q) => $q->whereIn('name', ['kepala_unit', 'manajemen', 'auditor', 'kepala_teknisi']))->value('id');
-        $this->kepala_unit_id = $matchedId ? (string) $matchedId : '';
+        $this->kepala_unit_id = $matchedId ? (int) $matchedId : null;
         $this->lokasi_gedung = $unit->lokasi_gedung;
         $this->status = $unit->status;
         $this->showModal = true;
@@ -97,8 +98,8 @@ class UnitIndex extends Component
         if ($this->editingId) {
             abort_unless(auth()->user()?->can('update_master::unit'), 403);
             $unit = Unit::findOrFail($this->editingId);
-            $kepalaId = $this->kepala_unit_id !== '' ? (int) $this->kepala_unit_id : null;
-            $namaKepala = $kepalaId ? User::where('id', $kepalaId)->value('nama') : $this->penanggung_jawab;
+            $kepalaId = $this->kepala_unit_id ? (int) $this->kepala_unit_id : null;
+            $namaKepala = $kepalaId ? User::where('id', $kepalaId)->value('nama') : null;
             $unit->update([
                 'kode' => strtoupper($this->kode),
                 'nama' => $this->nama,
@@ -111,8 +112,8 @@ class UnitIndex extends Component
             $this->toast("Unit '{$unit->nama}' berhasil diperbarui.", 'success');
         } else {
             abort_unless(auth()->user()?->can('create_master::unit'), 403);
-            $kepalaId = $this->kepala_unit_id !== '' ? (int) $this->kepala_unit_id : null;
-            $namaKepala = $kepalaId ? User::where('id', $kepalaId)->value('nama') : $this->penanggung_jawab;
+            $kepalaId = $this->kepala_unit_id ? (int) $this->kepala_unit_id : null;
+            $namaKepala = $kepalaId ? User::where('id', $kepalaId)->value('nama') : null;
             Unit::create([
                 'kode' => strtoupper($this->kode),
                 'nama' => $this->nama,
@@ -124,6 +125,8 @@ class UnitIndex extends Component
             ]);
             $this->toast("Unit baru berhasil ditambahkan.", 'success');
         }
+
+        Cache::forget('dropdown_unit_aktif');
 
         $this->showModal = false;
     }
@@ -151,6 +154,7 @@ class UnitIndex extends Component
         $newStatus = $unit->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
         $unit->update(['status' => $newStatus]);
 
+        Cache::forget('dropdown_unit_aktif');
         $this->toast("Status unit '{$unit->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
@@ -188,6 +192,7 @@ class UnitIndex extends Component
         $namaUnit = $unit->nama;
         $unit->delete();
 
+        Cache::forget('dropdown_unit_aktif');
         $this->toast("Unit kerja '{$namaUnit}' berhasil dihapus.", 'success');
     }
 

@@ -217,7 +217,8 @@ class BarangIndex extends Component
             ]);
             $this->toast("Barang '{$this->nama}' ({$kodeFinal}) berhasil didaftarkan.", 'success');
         }
-
+        Cache::forget('dropdown_barang_aktif');
+        Cache::forget('dropdown_barang_aset_aktif');
         $this->showModal = false;
     }
     public function confirmToggleStatus(int $id): void
@@ -243,7 +244,8 @@ class BarangIndex extends Component
         $barang = Barang::findOrFail($id);
         $newStatus = $barang->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
         $barang->update(['status' => $newStatus]);
-
+        Cache::forget('dropdown_barang_aktif');
+        Cache::forget('dropdown_barang_aset_aktif');
         $this->toast("Status barang '{$barang->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
@@ -281,7 +283,8 @@ class BarangIndex extends Component
 
         $namaBarang = $barang->nama;
         $barang->delete();
-
+        Cache::forget('dropdown_barang_aktif');
+        Cache::forget('dropdown_barang_aset_aktif');
         $this->toast("Komoditas '{$namaBarang}' berhasil dihapus.", 'success');
     }
 

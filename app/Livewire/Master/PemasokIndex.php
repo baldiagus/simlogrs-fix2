@@ -8,6 +8,7 @@ use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\Pemasok;
 use App\Support\Generator\CodeGenerator;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
@@ -120,6 +121,7 @@ class PemasokIndex extends Component
             Pemasok::create($data);
             $this->toast("Pemasok '{$this->nama}' ({$data['kode']}) berhasil ditambahkan.", 'success');
         }
+        Cache::forget('dropdown_pemasok_aktif');
         $this->showModal = false;
     }
     public function confirmToggleStatus(int $id): void
@@ -145,7 +147,7 @@ class PemasokIndex extends Component
         $pemasok = Pemasok::findOrFail($id);
         $newStatus = $pemasok->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
         $pemasok->update(['status' => $newStatus]);
-
+        Cache::forget('dropdown_pemasok_aktif');
         $this->toast("Status pemasok '{$pemasok->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
@@ -179,7 +181,7 @@ class PemasokIndex extends Component
 
         $namaPemasok = $pemasok->nama;
         $pemasok->delete();
-
+        Cache::forget('dropdown_pemasok_aktif');
         $this->toast("Pemasok '{$namaPemasok}' berhasil dihapus.", 'success');
     }
 

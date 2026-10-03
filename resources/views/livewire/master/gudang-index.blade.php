@@ -98,13 +98,13 @@
 
             <flux:input wire:model="nama" label="Nama Fasilitas Gudang" placeholder="misal: Gudang Sentral Logistik Non-Medis" required />
             <div>
-                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Penanggung Jawab / Kepala Gudang</label>
-                <select wire:model="kepala_gudang_id" class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                    <option value="">— Belum Ditentukan —</option>
-                    @foreach ($daftarPengguna as $pgn)
-                        <option value="{{ $pgn->id }}">{{ $pgn->nama }} ({{ $pgn->nip ?? 'Tanpa NIP' }})</option>
-                    @endforeach
-                </select>
+                <x-searchable-select
+                    model="kepala_gudang_id"
+                    label="Penanggung Jawab / Kepala Gudang"
+                    placeholder="-- Cari Nama Pegawai atau NIP... --"
+                    :options="$daftarPengguna"
+                    :nullable="true"
+                />
             </div>
             <flux:input wire:model="lokasi_gedung" label="Lokasi Gedung / Lantai" placeholder="misal: Gedung Logistik Lantai 1" />
 

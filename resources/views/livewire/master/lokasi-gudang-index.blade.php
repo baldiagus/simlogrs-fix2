@@ -96,14 +96,14 @@
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Gudang Logistik <span class="text-red-500">*</span></label>
-                <select wire:model="gudang_id" required class="w-full text-sm rounded-lg border {{ $errors->has('gudang_id') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                    <option value="">Pilih Gudang...</option>
-                    @foreach ($daftarGudang as $gudang)
-                        <option value="{{ $gudang->id }}">{{ $gudang->nama }} ({{ $gudang->kode }})</option>
-                    @endforeach
-                </select>
-                @error('gudang_id') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
+                <x-searchable-select
+                    model="gudang_id"
+                    label="Gudang Logistik"
+                    placeholder="-- Ketik untuk mencari nama atau kode gudang... --"
+                    :options="$daftarGudang"
+                    :required="true"
+                    :nullable="false"
+                />
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <flux:input wire:model="kode" label="Kode Bin / Rak" placeholder="misal: RAK-ATK-01" required uppercase />
