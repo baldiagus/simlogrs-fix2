@@ -42,18 +42,61 @@ class RoleManager extends Component
         $this->state = PagePermissionRegistry::fromRole($role);
     }
 
+    public function canManageSelectedRole(): bool
+    {
+        if (! $this->selectedRoleId) {
+            return false;
+        }
+
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        // Super admin memiliki wewenang penuh mengelola semua peran
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        // Non-super-admin wajib memiliki wewenang update_user::role
+        if (! $user->can('update_user::role')) {
+            return false;
+        }
+
+        $role = Role::find($this->selectedRoleId);
+        if (! $role) {
+            return false;
+        }
+
+        // Non-super-admin dilarang mengubah wewenang peran super_admin
+        if ($role->name === 'super_admin') {
+            return false;
+        }
+
+        // Non-super-admin dilarang mengubah peran yang aktif melekat pada dirinya sendiri (anti self-promotion)
+        if ($user->hasRole($role->name)) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * Hook reaktif Livewire: Ketika 'Lihat Data' dimatikan via wire:model,
      * otomatis matikan Tambah, Ubah, dan Hapus pada modul tersebut.
      */
     public function updated($property, $value): void
     {
+        if (! $this->canManageSelectedRole()) {
+            return;
+        }
+
         if (str_starts_with($property, 'state.view_any.')) {
             $entityKey = substr($property, 15);
 
-            // Anti self-lockout khusus super_admin pada user::role
+            // Anti self-lockout khusus super_admin pada user::role dan user::pengguna
             $role = Role::find($this->selectedRoleId);
-            if ($role && $role->name === 'super_admin' && $entityKey === 'user::role') {
+            if ($role && $role->name === 'super_admin' && in_array($entityKey, ['user::role', 'user::pengguna'])) {
                 $this->state['view_any'][$entityKey] = true;
                 return;
             }
@@ -69,8 +112,12 @@ class RoleManager extends Component
 
     public function toggleViewAny(string $entityKey)
     {
+        if (! $this->canManageSelectedRole()) {
+            return;
+        }
+
         $role = Role::find($this->selectedRoleId);
-        if ($role && $role->name === 'super_admin' && $entityKey === 'user::role') {
+        if ($role && $role->name === 'super_admin' && in_array($entityKey, ['user::role', 'user::pengguna'])) {
             return; // Anti self-lockout
         }
 
@@ -85,11 +132,14 @@ class RoleManager extends Component
         }
     }
 
+
     /**
      * Quick Action per Domain: Aktifkan semua aksi (Lihat, Tambah, Ubah, Hapus).
      */
     public function selectAllDomain(string $domainKey)
     {
+        abort_unless($this->canManageSelectedRole(), 403, 'Anda tidak diizinkan mengubah wewenang peran ini.');
+
         $domains = PagePermissionRegistry::getDomains();
         if (! isset($domains[$domainKey])) return;
 
@@ -97,7 +147,7 @@ class RoleManager extends Component
         $isSuperAdmin = $role && $role->name === 'super_admin';
 
         foreach ($domains[$domainKey]['modules'] as $modKey => $mod) {
-            if ($isSuperAdmin && $modKey === 'user::role') continue;
+            if ($isSuperAdmin && in_array($modKey, ['user::role', 'user::pengguna'])) continue;
 
             if ($domainKey === 'dashboard_portal') {
                 $this->state['dashboards'][$mod['permission']] = true;
@@ -116,6 +166,8 @@ class RoleManager extends Component
      */
     public function selectViewOnlyDomain(string $domainKey)
     {
+        abort_unless($this->canManageSelectedRole(), 403, 'Anda tidak diizinkan mengubah wewenang peran ini.');
+
         $domains = PagePermissionRegistry::getDomains();
         if (! isset($domains[$domainKey])) return;
 
@@ -123,7 +175,7 @@ class RoleManager extends Component
         $isSuperAdmin = $role && $role->name === 'super_admin';
 
         foreach ($domains[$domainKey]['modules'] as $modKey => $mod) {
-            if ($isSuperAdmin && $modKey === 'user::role') continue;
+            if ($isSuperAdmin && in_array($modKey, ['user::role', 'user::pengguna'])) continue;
 
             if ($domainKey === 'dashboard_portal') {
                 $this->state['dashboards'][$mod['permission']] = true;
@@ -142,6 +194,8 @@ class RoleManager extends Component
      */
     public function confirmClearDomain(string $domainKey): void
     {
+        abort_unless($this->canManageSelectedRole(), 403, 'Anda tidak diizinkan mengubah wewenang peran ini.');
+
         $domains = PagePermissionRegistry::getDomains();
         $domainLabel = $domains[$domainKey]['label'] ?? $domainKey;
         $role = Role::find($this->selectedRoleId);
@@ -158,6 +212,8 @@ class RoleManager extends Component
 
     public function clearDomain(string $domainKey)
     {
+        abort_unless($this->canManageSelectedRole(), 403, 'Anda tidak diizinkan mengubah wewenang peran ini.');
+
         $domains = PagePermissionRegistry::getDomains();
         if (! isset($domains[$domainKey])) return;
 
@@ -165,7 +221,7 @@ class RoleManager extends Component
         $isSuperAdmin = $role && $role->name === 'super_admin';
 
         foreach ($domains[$domainKey]['modules'] as $modKey => $mod) {
-            if ($isSuperAdmin && $modKey === 'user::role') continue;
+            if ($isSuperAdmin && in_array($modKey, ['user::role', 'user::pengguna'])) continue;
 
             if ($domainKey === 'dashboard_portal') {
                 $this->state['dashboards'][$mod['permission']] = false;
@@ -181,17 +237,37 @@ class RoleManager extends Component
 
     public function save()
     {
-        abort_unless(auth()->user()?->can('update_user::role'), 403, 'Anda tidak memiliki hak akses mengubah wewenang peran.');
+        abort_unless(
+            auth()->user()?->can('update_user::role') || auth()->user()?->hasRole('super_admin'),
+            403,
+            'Anda tidak memiliki hak akses mengubah wewenang peran.'
+        );
 
         $role = Role::findOrFail($this->selectedRoleId);
 
-        // Anti self-lockout check untuk super_admin
+        // Batasi mutasi peran super_admin hanya untuk pemegang peran super_admin
+        if ($role->name === 'super_admin' && ! auth()->user()?->hasRole('super_admin')) {
+            abort(403, 'Wewenang peran super_admin hanya dapat diubah oleh pengguna dengan peran super_admin.');
+        }
+
+        // Larang pengguna non-super-admin mengubah wewenang peran yang sedang aktif pada dirinya sendiri (Anti Self-Promotion)
+        if (! auth()->user()?->hasRole('super_admin') && auth()->user()?->hasRole($role->name)) {
+            abort(403, 'Anda dilarang mengubah wewenang dari peran yang sedang aktif melekat pada akun Anda sendiri.');
+        }
+
+        // Anti self-lockout check untuk super_admin (Dashboard, user::role, dan user::pengguna)
         if ($role->name === 'super_admin') {
             $this->state['dashboards']['page_Dashboard'] = true;
+
             $this->state['view_any']['user::role'] = true;
             $this->state['create']['user::role']   = true;
             $this->state['update']['user::role']   = true;
             $this->state['delete']['user::role']   = true;
+
+            $this->state['view_any']['user::pengguna'] = true;
+            $this->state['create']['user::pengguna']   = true;
+            $this->state['update']['user::pengguna']   = true;
+            $this->state['delete']['user::pengguna']   = true;
         }
 
         $permissions = PagePermissionRegistry::toPermissions($this->state);
@@ -224,6 +300,7 @@ class RoleManager extends Component
             'selectedRole' => $selectedRole,
             'selectedRoleId' => $this->selectedRoleId,
             'domains' => $domains,
+            'canManage' => $this->canManageSelectedRole(),
         ])->layout('layouts.portal', ['portal' => 'super-admin']);
     }
 }

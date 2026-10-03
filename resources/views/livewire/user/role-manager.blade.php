@@ -7,10 +7,16 @@
         </div>
 
         @if ($selectedRole)
-            <flux:button wire:click="save" variant="primary" icon="check" wire:loading.attr="disabled">
-                <span wire:loading.remove wire:target="save">Simpan Perubahan Wewenang</span>
-                <span wire:loading wire:target="save">Menyimpan...</span>
-            </flux:button>
+            @if ($canManage)
+                <flux:button wire:click="save" variant="primary" icon="check" wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="save">Simpan Perubahan Wewenang</span>
+                    <span wire:loading wire:target="save">Menyimpan...</span>
+                </flux:button>
+            @else
+                <flux:badge color="zinc" icon="lock-closed" size="sm">
+                    Mode Hanya-Baca (Wewenang Terkunci)
+                </flux:badge>
+            @endif
         @endif
     </div>
 
@@ -50,9 +56,17 @@
                             </div>
                         </div>
 
-                        @if ($selectedRole->name === 'super_admin')
+                        @if ($selectedRole->name === 'super_admin' && auth()->user()?->hasRole('super_admin'))
                             <flux:badge color="amber" icon="lock-closed">
-                                Anti Self-Lockout Aktif (Role Manager Terkunci Penuh)
+                                Anti Self-Lockout Aktif (Role & Pengguna Terkunci Penuh)
+                            </flux:badge>
+                        @elseif ($selectedRole->name === 'super_admin' && ! auth()->user()?->hasRole('super_admin'))
+                            <flux:badge color="red" icon="shield-exclamation">
+                                Terkunci (Hanya Super Admin)
+                            </flux:badge>
+                        @elseif (! auth()->user()?->hasRole('super_admin') && auth()->user()?->hasRole($selectedRole->name))
+                            <flux:badge color="amber" icon="lock-closed">
+                                Anti Self-Promotion (Peran Aktif Anda)
                             </flux:badge>
                         @endif
                     </div>
@@ -74,10 +88,12 @@
                                 <flux:heading size="sm">Akses Dashboard Portal</flux:heading>
                                 <flux:text size="xs">Hak akses masuk ke masing-masing portal dari 10 ruang kerja peran.</flux:text>
                             </div>
-                            <div class="flex gap-2">
-                                <flux:button size="xs" variant="ghost" wire:click="selectAllDomain('dashboard_portal')">Pilih Semua</flux:button>
-                                <flux:button size="xs" variant="ghost" wire:click="confirmClearDomain('dashboard_portal')">Kosongkan</flux:button>
-                            </div>
+                            @if ($canManage)
+                                <div class="flex gap-2">
+                                    <flux:button size="xs" variant="ghost" wire:click="selectAllDomain('dashboard_portal')">Pilih Semua</flux:button>
+                                    <flux:button size="xs" variant="ghost" wire:click="confirmClearDomain('dashboard_portal')">Kosongkan</flux:button>
+                                </div>
+                            @endif
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -92,8 +108,7 @@
                                         wire:key="role-{{ $selectedRole->id }}-dashchk-{{ $permName }}"
                                         :label="$mod['label']"
                                         :description="$permName"
-                                        :disabled="$isSuperAdminLocked"
-                                    />
+                                        :disabled="! $canManage || $isSuperAdminLocked"
                                 </div>
                             @endforeach
                         </div>
@@ -113,11 +128,13 @@
                                         <flux:heading size="sm">{{ $domain['label'] }}</flux:heading>
                                         <flux:text size="xs">{{ $domain['deskripsi'] }}</flux:text>
                                     </div>
-                                    <div class="flex items-center gap-1.5">
-                                        <flux:button size="xs" variant="ghost" wire:click="selectAllDomain('{{ $domainKey }}')">Semua Akses</flux:button>
-                                        <flux:button size="xs" variant="ghost" wire:click="selectViewOnlyDomain('{{ $domainKey }}')">Lihat Saja</flux:button>
-                                        <flux:button size="xs" variant="ghost" wire:click="confirmClearDomain('{{ $domainKey }}')">Kosongkan</flux:button>
-                                    </div>
+                                    @if ($canManage)
+                                        <div class="flex items-center gap-1.5">
+                                            <flux:button size="xs" variant="ghost" wire:click="selectAllDomain('{{ $domainKey }}')">Semua Akses</flux:button>
+                                            <flux:button size="xs" variant="ghost" wire:click="selectViewOnlyDomain('{{ $domainKey }}')">Lihat Saja</flux:button>
+                                            <flux:button size="xs" variant="ghost" wire:click="confirmClearDomain('{{ $domainKey }}')">Kosongkan</flux:button>
+                                        </div>
+                                    @endif
                                 </div>
 
                                 {{-- Tabel 4 Kolom --}}
@@ -136,7 +153,7 @@
                                             @foreach ($domain['modules'] as $modKey => $mod)
                                                 @php
                                                     $entityKey = $mod['entity'];
-                                                    $isSuperAdminLocked = ($selectedRole->name === 'super_admin' && $modKey === 'user::role');
+                                                    $isSuperAdminLocked = ($selectedRole->name === 'super_admin' && in_array($modKey, ['user::role', 'user::pengguna']));
                                                     $hasViewAccess = ! empty($state['view_any'][$entityKey]);
                                                 @endphp
                                                 <tr wire:key="role-{{ $selectedRole->id }}-mod-{{ $entityKey }}" class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30 transition-colors {{ $isSuperAdminLocked ? 'bg-amber-50/20 dark:bg-amber-950/10' : '' }}">
@@ -155,9 +172,8 @@
                                                             <flux:checkbox
                                                                 wire:model.live="state.view_any.{{ $entityKey }}"
                                                                 wire:key="role-{{ $selectedRole->id }}-va-{{ $entityKey }}"
-                                                                :disabled="$isSuperAdminLocked"
+                                                                :disabled="! $canManage || $isSuperAdminLocked"
                                                             />
-                                                        </div>
                                                     </td>
 
                                                     {{-- 2. Tambah Data --}}
@@ -166,9 +182,8 @@
                                                             <flux:checkbox
                                                                 wire:model="state.create.{{ $entityKey }}"
                                                                 wire:key="role-{{ $selectedRole->id }}-c-{{ $entityKey }}"
-                                                                :disabled="$isSuperAdminLocked || ! $hasViewAccess"
+                                                                :disabled="! $canManage || $isSuperAdminLocked || ! $hasViewAccess"
                                                             />
-                                                        </div>
                                                     </td>
 
                                                     {{-- 3. Ubah Data --}}
@@ -177,9 +192,8 @@
                                                             <flux:checkbox
                                                                 wire:model="state.update.{{ $entityKey }}"
                                                                 wire:key="role-{{ $selectedRole->id }}-u-{{ $entityKey }}"
-                                                                :disabled="$isSuperAdminLocked || ! $hasViewAccess"
+                                                                :disabled="! $canManage || $isSuperAdminLocked || ! $hasViewAccess"
                                                             />
-                                                        </div>
                                                     </td>
 
                                                     {{-- 4. Hapus Data --}}
@@ -188,9 +202,8 @@
                                                             <flux:checkbox
                                                                 wire:model="state.delete.{{ $entityKey }}"
                                                                 wire:key="role-{{ $selectedRole->id }}-d-{{ $entityKey }}"
-                                                                :disabled="$isSuperAdminLocked || ! $hasViewAccess"
+                                                                :disabled="! $canManage || $isSuperAdminLocked || ! $hasViewAccess"
                                                             />
-                                                        </div>
                                                     </td>
                                                 </tr>
                                             @endforeach
