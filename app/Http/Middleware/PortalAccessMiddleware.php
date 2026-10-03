@@ -40,6 +40,11 @@ class PortalAccessMiddleware
             ]);
         }
 
+        // 2. Wajib mengganti password sementara jika flag wajib_ganti_password aktif
+        if ($user->wajib_ganti_password) {
+            return redirect()->route('password.ganti-wajib')->with('warning', 'Demi keamanan, Anda wajib mengganti kata sandi sementara sebelum mengakses portal sistem.');
+        }
+
         // 2. Ambil permission yang dibutuhkan untuk portal ini
         $requiredPermission = $this->portalPermissionMap[$portal] ?? null;
 

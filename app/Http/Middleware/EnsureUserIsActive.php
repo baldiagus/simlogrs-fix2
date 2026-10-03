@@ -29,6 +29,17 @@ class EnsureUserIsActive
             ], 403);
         }
 
+        if ($user && $user->wajib_ganti_password && ! $request->is('*/auth/ganti-password') && ! $request->is('*/auth/logout')) {
+            return response()->json([
+                'sukses'               => false,
+                'pesan'                => 'Anda diwajibkan mengganti kata sandi sementara sebelum dapat mengakses API operasional.',
+                'wajib_ganti_password' => true,
+                'meta'                 => [
+                    'versi_api' => 'v1.0',
+                ],
+            ], 403);
+        }
+
         return $next($request);
     }
 }

@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class AuthController extends ApiController
 {
@@ -90,6 +92,52 @@ class AuthController extends ApiController
     }
 
     /**
+     * Pergantian kata sandi wajib (force password change) untuk klien mobile.
+     */
+    public function gantiPasswordWajib(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'password_saat_ini'          => 'required|string',
+            'password_baru'              => ['required', 'string', 'confirmed', Password::min(8)->letters()->numbers()],
+            'password_baru_confirmation' => 'required|string',
+        ], [
+            'password_saat_ini.required'          => 'Kata sandi saat ini wajib diisi.',
+            'password_baru.required'              => 'Kata sandi baru wajib diisi.',
+            'password_baru.min'                   => 'Kata sandi baru minimal 8 karakter.',
+            'password_baru.confirmed'             => 'Konfirmasi kata sandi baru tidak cocok.',
+            'password_baru_confirmation.required' => 'Ulangi kata sandi baru.',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->jsonError('Validasi data gagal.', 422, $validator->errors());
+        }
+
+        if (! Hash::check($request->input('password_saat_ini'), $user->password)) {
+            return $this->jsonError('Kata sandi saat ini tidak valid.', 422, [
+                'password_saat_ini' => ['Kata sandi saat ini tidak cocok.'],
+            ]);
+        }
+
+        if (Hash::check($request->input('password_baru'), $user->password)) {
+            return $this->jsonError('Kata sandi baru tidak boleh sama dengan kata sandi sementara saat ini.', 422, [
+                'password_baru' => ['Kata sandi baru tidak boleh sama dengan kata sandi saat ini.'],
+            ]);
+        }
+
+        $user->update([
+            'password'             => Hash::make($request->input('password_baru')),
+            'wajib_ganti_password' => false,
+        ]);
+
+        return $this->jsonSuccess([
+            'user'                 => $this->formatUserData($user),
+            'wajib_ganti_password' => false,
+        ], 'Kata sandi Anda berhasil diperbarui.');
+    }
+
+    /**
      * Format seragam data pengguna untuk klien mobile.
      */
     protected function formatUserData($user): array
@@ -104,6 +152,7 @@ class AuthController extends ApiController
             'email'    => $user->email,
             'no_telepon' => $user->no_telepon,
             'status'   => $user->status,
+            'wajib_ganti_password' => (bool) $user->wajib_ganti_password,
             'unit'     => $user->unit ? [
                 'id'   => $user->unit->id,
                 'kode' => $user->unit->kode,

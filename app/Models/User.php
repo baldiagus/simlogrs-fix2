@@ -38,6 +38,7 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'wajib_ganti_password' => 'boolean',
             'terakhir_login' => 'datetime',
             'dibuat_pada' => 'datetime',
             'diperbarui_pada' => 'datetime',

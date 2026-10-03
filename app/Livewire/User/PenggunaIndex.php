@@ -32,6 +32,10 @@ class PenggunaIndex extends Component
     public bool $showModal = false;
     public ?int $editingId = null;
 
+    // Modal Kredensial Sementara (One-Time Display)
+    public bool $showResetSuccessModal = false;
+    public array $tempPasswordData = [];
+
     public string $nama = '';
     public string $nip = '';
     public string $username = '';
@@ -251,11 +255,18 @@ class PenggunaIndex extends Component
             $this->toast('Akun dengan peran super_admin hanya dapat dikelola oleh sesama super_admin.', 'danger');
             return;
         }
+
+        // Cegah self-reset melalui modul admin
+        if (auth()->id() === $user->id) {
+            $this->toast('Untuk mengganti kata sandi akun Anda sendiri, silakan gunakan menu Pengaturan Akun.', 'warning');
+            return;
+        }
+
         $this->askConfirmation(
             target: $user->id,
             action: 'executeResetPassword',
             title: 'Reset Kata Sandi Pegawai',
-            description: "Reset kata sandi akun {$user->nama} ({$user->username}) ke kata sandi acak sementara?",
+            description: "Reset kata sandi akun {$user->nama} ({$user->username})? Pegawai akan diwajibkan mengganti kata sandi saat login berikutnya.",
             buttonText: 'Ya, Reset Sandi',
             variant: 'primary'
         );
@@ -275,12 +286,35 @@ class PenggunaIndex extends Component
         if ($user->hasRole('super_admin') && ! auth()->user()?->hasRole('super_admin')) {
             abort(403, 'Akun dengan peran super_admin hanya dapat dikelola oleh pengguna dengan peran super_admin.');
         }
+
+        if (auth()->id() === $user->id) {
+            $this->toast('Operasi dibatalkan: Anda tidak dapat mereset sandi akun Anda sendiri melalui modul ini.', 'warning');
+            return;
+        }
+
         $tempPassword = Str::password(10, true, true, false);
         $user->update([
-            'password' => Hash::make($tempPassword),
+            'password'             => Hash::make($tempPassword),
+            'wajib_ganti_password' => true,
         ]);
 
-        $this->toast("Kata sandi {$user->nama} berhasil direset ke sandi sementara: {$tempPassword}", 'success');
+        // Revoke seluruh token / sesi mobile lama
+        $user->tokens()->delete();
+
+        // JANGAN tampilkan sandi di Toast! Simpan ke modal aman satu kali tampil
+        $this->tempPasswordData = [
+            'nama'         => $user->nama,
+            'username'     => $user->username,
+            'email'        => $user->email,
+            'tempPassword' => $tempPassword,
+        ];
+        $this->showResetSuccessModal = true;
+    }
+
+    public function closeResetSuccessModal(): void
+    {
+        $this->reset('tempPasswordData');
+        $this->showResetSuccessModal = false;
     }
 
     public function confirmToggleStatus(int $id): void

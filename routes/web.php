@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Auth\LoginGateway;
+use App\Livewire\Auth\GantiPasswordWajib;
 use App\Livewire\Dashboard\SuperAdminDashboard;
 use App\Livewire\Dashboard\AdminLogistikDashboard;
 use App\Livewire\Dashboard\KepalaGudangDashboard;
@@ -67,6 +68,10 @@ Route::post('/logout', function () {
     request()->session()->regenerateToken();
     return redirect()->route('login');
 })->name('logout');
+
+Route::get('/auth/ganti-password', GantiPasswordWajib::class)
+    ->name('password.ganti-wajib')
+    ->middleware('auth');
 
 // Peta 10 Portal Independen & Dashboard Masing-Masing
 $portals = [

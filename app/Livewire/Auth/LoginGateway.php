@@ -58,7 +58,12 @@ class LoginGateway extends Component
             'ip_terakhir'    => request()->ip(),
         ]);
 
-        // 5. Penyaluran Otomatis ke Portal Spesifik Peran (Dynamic Redirect)
+        // 5. Cek Flag Wajib Ganti Password
+        if ($user->wajib_ganti_password) {
+            return redirect()->route('password.ganti-wajib');
+        }
+
+        // 6. Penyaluran Otomatis ke Portal Spesifik Peran (Dynamic Redirect)
         return redirect()->intended($this->resolvePortalUrl($user));
     }
 

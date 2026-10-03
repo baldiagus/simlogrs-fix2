@@ -34,6 +34,7 @@ Route::prefix('v1')->group(function () {
         // 3. Endpoint Terproteksi Sanctum dengan Rate Limiter
         Route::middleware(['auth:sanctum', 'api.active', 'throttle:60,1'])->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::post('/auth/ganti-password', [AuthController::class, 'gantiPasswordWajib']);
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::get('/dashboard/summary', [DashboardApiController::class, 'summary']);
         // 4. Persetujuan Cepat Pejabat / Karu
