@@ -181,30 +181,40 @@
                                 @endif
                             </td>
                             <td class="py-2.5 px-3 text-center">
+                                @php
+                                    $isTargetSuperAdmin = $userItem->hasRole('super_admin');
+                                    $canManageUser = auth()->user()?->hasRole('super_admin') || ! $isTargetSuperAdmin;
+                                @endphp
                                 <div class="flex items-center justify-center gap-1">
                                     @can('update_user::pengguna')
-                                        <flux:button
-                                            wire:click="openEdit({{ $userItem->id }})"
-                                            size="xs"
-                                            variant="ghost"
-                                            icon="pencil-square"
-                                            title="Ubah Data & Peran Pegawai"
-                                        />
-                                        <flux:button
-                                            wire:click="confirmResetPassword({{ $userItem->id }})"
-                                            size="xs"
-                                            variant="ghost"
-                                            icon="key"
-                                            title="Reset Kata Sandi ke Default"
-                                        />
-                                        <flux:button
-                                            wire:click="confirmToggleStatus({{ $userItem->id }})"
-                                            size="xs"
-                                            variant="ghost"
-                                            icon="{{ $userItem->status === 'AKTIF' ? 'lock-closed' : 'lock-open' }}"
-                                            title="{{ $userItem->status === 'AKTIF' ? 'Nonaktifkan Akun' : 'Aktifkan Akun' }}"
-                                            class="{{ $userItem->status === 'AKTIF' ? 'text-amber-600' : 'text-emerald-600' }}"
-                                        />
+                                        @if ($canManageUser)
+                                            <flux:button
+                                                wire:click="openEdit({{ $userItem->id }})"
+                                                size="xs"
+                                                variant="ghost"
+                                                icon="pencil-square"
+                                                title="Ubah Data & Peran Pegawai"
+                                            />
+                                            <flux:button
+                                                wire:click="confirmResetPassword({{ $userItem->id }})"
+                                                size="xs"
+                                                variant="ghost"
+                                                icon="key"
+                                                title="Reset Kata Sandi ke Default"
+                                            />
+                                            <flux:button
+                                                wire:click="confirmToggleStatus({{ $userItem->id }})"
+                                                size="xs"
+                                                variant="ghost"
+                                                icon="{{ $userItem->status === 'AKTIF' ? 'lock-closed' : 'lock-open' }}"
+                                                title="{{ $userItem->status === 'AKTIF' ? 'Nonaktifkan Akun' : 'Aktifkan Akun' }}"
+                                                class="{{ $userItem->status === 'AKTIF' ? 'text-amber-600' : 'text-emerald-600' }}"
+                                            />
+                                        @else
+                                            <flux:badge size="xs" color="amber" icon="lock-closed">
+                                                Terkunci
+                                            </flux:badge>
+                                        @endif
                                     @endcan
                                 </div>
                             </td>
@@ -337,7 +347,7 @@
                         required
                         class="w-full h-9 text-xs rounded-lg border {{ $errors->has('selectedRole') ? 'border-rose-500 dark:border-rose-500 ring-1 ring-rose-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     >
-                        @foreach ($daftarRoles as $roleOption)
+                        @foreach ($assignableRoles as $roleOption)
                             <option value="{{ $roleOption->name }}">{{ ucwords(str_replace('_', ' ', $roleOption->name)) }}</option>
                         @endforeach
                     </select>

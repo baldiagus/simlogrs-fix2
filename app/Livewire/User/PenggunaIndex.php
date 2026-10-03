@@ -117,6 +117,11 @@ class PenggunaIndex extends Component
         );
 
         $user = User::with(['roles', 'unit', 'gudang'])->findOrFail($id);
+
+        if ($user->hasRole('super_admin') && ! auth()->user()?->hasRole('super_admin')) {
+            abort(403, 'Akun dengan peran super_admin hanya dapat dikelola oleh pengguna dengan peran super_admin.');
+        }
+
         $this->editingId = $user->id;
         $this->nama = $user->nama ?? '';
         $this->nip = $user->nip ?? '';
@@ -189,6 +194,10 @@ class PenggunaIndex extends Component
 
         $this->validate($rules, $messages);
 
+        if ($this->selectedRole === 'super_admin' && ! auth()->user()?->hasRole('super_admin')) {
+            abort(403, 'Hanya pengguna dengan peran super_admin yang dapat menetapkan peran super_admin.');
+        }
+
         $payload = [
             'nama'       => $this->nama,
             'nip'        => $this->nip ?: null,
@@ -207,6 +216,10 @@ class PenggunaIndex extends Component
         if ($this->editingId) {
             $user = User::findOrFail($this->editingId);
 
+            if ($user->hasRole('super_admin') && ! auth()->user()?->hasRole('super_admin')) {
+                abort(403, 'Akun dengan peran super_admin hanya dapat dikelola oleh pengguna dengan peran super_admin.');
+            }
+
             // Proteksi anti self-deactivation
             if (auth()->id() === $user->id && $this->status === 'NONAKTIF') {
                 $this->toast('Anda tidak dapat menonaktifkan akun Anda sendiri yang sedang aktif.', 'danger');
@@ -214,6 +227,11 @@ class PenggunaIndex extends Component
             }
 
             $user->update($payload);
+
+            if ($this->status === 'NONAKTIF') {
+                $user->tokens()->delete();
+            }
+
             $user->syncRoles([$this->selectedRole, 'panel_user']);
             $this->toast("Data pegawai {$user->nama} berhasil diperbarui.", 'success');
         } else {
@@ -228,6 +246,11 @@ class PenggunaIndex extends Component
     public function confirmResetPassword(int $id): void
     {
         $user = User::findOrFail($id);
+
+        if ($user->hasRole('super_admin') && ! auth()->user()?->hasRole('super_admin')) {
+            $this->toast('Akun dengan peran super_admin hanya dapat dikelola oleh sesama super_admin.', 'danger');
+            return;
+        }
         $this->askConfirmation(
             target: $user->id,
             action: 'executeResetPassword',
@@ -248,6 +271,10 @@ class PenggunaIndex extends Component
         );
 
         $user = User::findOrFail($id);
+
+        if ($user->hasRole('super_admin') && ! auth()->user()?->hasRole('super_admin')) {
+            abort(403, 'Akun dengan peran super_admin hanya dapat dikelola oleh pengguna dengan peran super_admin.');
+        }
         $tempPassword = Str::password(10, true, true, false);
         $user->update([
             'password' => Hash::make($tempPassword),
@@ -264,6 +291,11 @@ class PenggunaIndex extends Component
         }
 
         $user = User::findOrFail($id);
+
+        if ($user->hasRole('super_admin') && ! auth()->user()?->hasRole('super_admin')) {
+            $this->toast('Akun dengan peran super_admin hanya dapat dikelola oleh sesama super_admin.', 'danger');
+            return;
+        }
         $targetStatus = $user->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
         $labelAksi = $targetStatus === 'AKTIF' ? 'Mengaktifkan kembali' : 'Menonaktifkan (Blokir)';
 
@@ -288,6 +320,10 @@ class PenggunaIndex extends Component
 
         $user = User::findOrFail($id);
 
+        if ($user->hasRole('super_admin') && ! auth()->user()?->hasRole('super_admin')) {
+            abort(403, 'Akun dengan peran super_admin hanya dapat dikelola oleh pengguna dengan peran super_admin.');
+        }
+
         if (auth()->id() === $user->id) {
             $this->toast('Operasi dibatalkan: Akun aktif diri sendiri.', 'danger');
             return;
@@ -295,6 +331,10 @@ class PenggunaIndex extends Component
 
         $newStatus = $user->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
         $user->update(['status' => $newStatus]);
+
+        if ($newStatus === 'NONAKTIF') {
+            $user->tokens()->delete();
+        }
 
         $this->toast("Status akun {$user->nama} diubah menjadi {$newStatus}.", 'info');
     }
@@ -332,6 +372,10 @@ class PenggunaIndex extends Component
         $daftarUnit = Unit::where('status', 'AKTIF')->orderBy('nama')->get();
         $daftarGudang = Gudang::where('status', 'AKTIF')->orderBy('nama')->get();
         $daftarRoles = Role::whereNotIn('name', ['panel_user'])->orderBy('name')->get();
+        $assignableRoles = Role::whereNotIn('name', ['panel_user'])
+            ->when(! auth()->user()?->hasRole('super_admin'), fn ($q) => $q->where('name', '!=', 'super_admin'))
+            ->orderBy('name')
+            ->get();
 
         $totalPengguna = User::count();
         $penggunaAktif = User::where('status', 'AKTIF')->count();
@@ -342,6 +386,7 @@ class PenggunaIndex extends Component
             'daftarUnit'       => $daftarUnit,
             'daftarGudang'     => $daftarGudang,
             'daftarRoles'      => $daftarRoles,
+            'assignableRoles'  => $assignableRoles,
             'totalPengguna'    => $totalPengguna,
             'penggunaAktif'    => $penggunaAktif,
             'penggunaNonaktif' => $penggunaNonaktif,

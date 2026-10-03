@@ -25,6 +25,15 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    protected static function booted(): void
+    {
+        static::updated(function (User $user) {
+            if ($user->wasChanged('status') && $user->status === 'NONAKTIF') {
+                $user->tokens()->delete();
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [
