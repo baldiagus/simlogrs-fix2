@@ -210,11 +210,13 @@
                 </flux:sidebar.group>
             @endcan
 
-            @can('view_any_pengadaan::permintaan::pengadaan')
+            @if ($user->can('view_any_pengadaan::permintaan::pengadaan') || $user->can('view_any_pengadaan::pesanan::pembelian') || $user->can('view_any_pengadaan::tracking::po') || $user->can('view_any_gudang_stok::penerimaan::po') || $user->can('view_any_pengadaan::realisasi::anggaran') || $user->can('view_any_pengadaan::master::rekanan'))
                 <flux:sidebar.group expandable :expanded="$isPengadaanActive" heading="Pengadaan" class="grid">
-                    <flux:sidebar.item icon="document-text" href="/{{ $portalKey }}/permintaan-pengadaan" wire:navigate :current="request()->is('*/permintaan-pengadaan')">
-                        Permintaan (PR)
-                    </flux:sidebar.item>
+                    @can('view_any_pengadaan::permintaan::pengadaan')
+                        <flux:sidebar.item icon="document-text" href="/{{ $portalKey }}/permintaan-pengadaan" wire:navigate :current="request()->is('*/permintaan-pengadaan')">
+                            Permintaan (PR)
+                        </flux:sidebar.item>
+                    @endcan
                     @can('view_any_pengadaan::pesanan::pembelian')
                         <flux:sidebar.item icon="clipboard-document-list" href="/{{ $portalKey }}/pesanan-pembelian" wire:navigate :current="request()->is('*/pesanan-pembelian')">
                             Pesanan (PO)
@@ -241,7 +243,7 @@
                         </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
-            @endcan
+            @endif
 
             @if ($user->can('view_any_layanan_unit::permintaan::barang') || $user->can('view_any_layanan_unit::approval::karu') || $user->can('view_any_layanan_unit::penerimaan::barang') || $user->can('view_any_layanan_unit::stok::ruangan') || $user->can('view_any_gudang_stok::distribusi::approval') || $user->can('view_any_gudang_stok::picking::distribusi'))
                 <flux:sidebar.group expandable :expanded="$isDistribusiActive" heading="Distribusi & Amprah" class="grid">
