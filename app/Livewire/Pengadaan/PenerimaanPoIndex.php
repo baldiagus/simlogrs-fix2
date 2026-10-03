@@ -41,6 +41,8 @@ class PenerimaanPoIndex extends Component
         $this->activeTab = in_array($tab, ['tracking', 'riwayat'], true) ? $tab : 'tracking';
         $this->filterStatus = '';
         $this->search = '';
+        $this->sortBy = '';
+        $this->sortDirection = 'desc';
         $this->resetPage();
     }
     // Form fields
@@ -287,6 +289,10 @@ class PenerimaanPoIndex extends Component
         $countRiwayat  = PenerimaanBarang::count();
 
         if ($this->activeTab === 'tracking') {
+            $poSortColumns = ['kode', 'tanggal_po', 'total_biaya', 'status'];
+            $sortColumn = in_array($this->sortBy, $poSortColumns, true) ? $this->sortBy : 'tanggal_po';
+            $sortDirection = in_array(strtolower($this->sortDirection), ['asc', 'desc'], true) ? strtolower($this->sortDirection) : 'desc';
+
             $items = PesananPembelian::with(['pemasok', 'detail.barang'])
                 ->whereIn('status', ['DITERBITKAN', 'DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])
                 ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
@@ -296,9 +302,13 @@ class PenerimaanPoIndex extends Component
                             ->orWhereHas('pemasok', fn ($p) => $p->where('nama', 'ilike', "%{$this->search}%"));
                     });
                 })
-                ->orderBy($this->sortBy === 'id' ? 'tanggal_po' : $this->sortBy, $this->sortDirection === 'asc' ? 'asc' : 'desc')
+                ->orderBy($sortColumn, $sortDirection)
                 ->paginate($this->perPage);
         } else {
+            $rcvSortColumns = ['kode', 'tanggal_terima', 'status', 'nomor_surat_jalan'];
+            $sortColumn = in_array($this->sortBy, $rcvSortColumns, true) ? $this->sortBy : 'tanggal_terima';
+            $sortDirection = in_array(strtolower($this->sortDirection), ['asc', 'desc'], true) ? strtolower($this->sortDirection) : 'desc';
+
             $items = PenerimaanBarang::with(['pesananPembelian', 'gudang', 'penerima'])
                 ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
                 ->when($this->search, function ($q) {
@@ -308,7 +318,7 @@ class PenerimaanPoIndex extends Component
                             ->orWhereHas('pesananPembelian', fn ($r) => $r->where('kode', 'ilike', "%{$this->search}%"));
                     });
                 })
-                ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
+                ->orderBy($sortColumn, $sortDirection)
                 ->paginate($this->perPage);
         }
 
