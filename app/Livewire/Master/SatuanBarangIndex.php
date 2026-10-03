@@ -119,6 +119,37 @@ class SatuanBarangIndex extends Component
         $this->toast("Status satuan '{$sat->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    public function confirmDelete(int $id): void
+    {
+        $sat = SatuanBarang::findOrFail($id);
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'delete',
+            title: 'Konfirmasi Hapus Satuan',
+            description: "Apakah Anda yakin ingin menghapus satuan kemasan '{$sat->nama}' ({$sat->kode})? Tindakan ini tidak dapat dibatalkan.",
+            buttonText: 'Ya, Hapus Data',
+            variant: 'danger'
+        );
+    }
+
+    public function delete(int $id)
+    {
+        abort_unless(auth()->user()?->can('delete_master::satuan::barang') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus satuan barang.');
+
+        $sat = SatuanBarang::findOrFail($id);
+
+        if ($sat->barang()->exists()) {
+            $this->toast("Satuan '{$sat->nama}' tidak dapat dihapus karena masih digunakan oleh data barang. Silakan nonaktifkan status satuan.", 'danger');
+            return;
+        }
+
+        $namaSat = $sat->nama;
+        $sat->delete();
+
+        $this->toast("Satuan '{$namaSat}' berhasil dihapus.", 'success');
+    }
+
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_master::satuan::barang') || auth()->user()?->can('view_master::satuan::barang'), 403);

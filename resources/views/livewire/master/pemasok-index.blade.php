@@ -62,6 +62,9 @@
                                     <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
                                     <flux:button wire:click="confirmToggleStatus({{ $item->id }})" size="xs" variant="ghost" icon="arrow-path" title="Ubah Status" />
                                 @endcan
+                                @can('delete_master::pemasok')
+                                    <flux:button wire:click="confirmDelete({{ $item->id }})" size="xs" variant="ghost" icon="trash" class="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40" title="Hapus Data" />
+                                @endcan
                             </div>
                         </flux:table.cell>
                     </flux:table.row>

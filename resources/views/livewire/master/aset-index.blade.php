@@ -165,6 +165,11 @@
                                 @if ($canEditThisAset)
                                     <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
                                 @endif
+                                @can('delete_master::aset')
+                                    @if ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || ($user->unit_id && (int) $user->unit_id === (int) $item->unit_id)))
+                                        <flux:button wire:click="confirmDelete({{ $item->id }})" size="xs" variant="ghost" icon="trash" class="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40" title="Hapus Data" />
+                                    @endif
+                                @endcan
                             </div>
                         </flux:table.cell>
                     </flux:table.row>
@@ -560,4 +565,11 @@
             </div>
         @endif
     </flux:modal>
+
+    <x-confirm-modal
+        :title="$confirmTitle"
+        :description="$confirmDescription"
+        :confirmText="$confirmButtonText"
+        :variant="$confirmButtonVariant"
+    />
 </div>

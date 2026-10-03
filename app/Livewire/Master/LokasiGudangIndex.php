@@ -149,6 +149,41 @@ class LokasiGudangIndex extends Component
         $this->toast("Status rak '{$lokasi->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    public function confirmDelete(int $id): void
+    {
+        $lokasi = LokasiGudang::findOrFail($id);
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'delete',
+            title: 'Konfirmasi Hapus Rak / Bin',
+            description: "Apakah Anda yakin ingin menghapus rak '{$lokasi->nama}' ({$lokasi->kode})? Tindakan ini tidak dapat dibatalkan.",
+            buttonText: 'Ya, Hapus Data',
+            variant: 'danger'
+        );
+    }
+
+    public function delete(int $id)
+    {
+        abort_unless(auth()->user()?->can('delete_master::lokasi::gudang') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus rak gudang.');
+
+        $lokasi = LokasiGudang::findOrFail($id);
+
+        $hasDependencies = \App\Models\StokBatch::where('lokasi_gudang_id', $id)->exists()
+            || \App\Models\PenerimaanBarangDetail::where('lokasi_gudang_id', $id)->exists()
+            || \App\Models\Aset::where('lokasi_gudang_id', $id)->exists();
+
+        if ($hasDependencies) {
+            $this->toast("Rak '{$lokasi->nama}' tidak dapat dihapus karena masih memuat stok fisik atau riwayat penerimaan barang. Silakan nonaktifkan status rak.", 'danger');
+            return;
+        }
+
+        $namaRak = $lokasi->nama;
+        $lokasi->delete();
+
+        $this->toast("Rak '{$namaRak}' berhasil dihapus.", 'success');
+    }
+
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_master::lokasi::gudang') || auth()->user()?->can('view_master::lokasi::gudang'), 403);

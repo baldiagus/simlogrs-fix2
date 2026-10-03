@@ -149,6 +149,40 @@ class PemasokIndex extends Component
         $this->toast("Status pemasok '{$pemasok->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    public function confirmDelete(int $id): void
+    {
+        $pemasok = Pemasok::findOrFail($id);
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'delete',
+            title: 'Konfirmasi Hapus Pemasok',
+            description: "Apakah Anda yakin ingin menghapus rekanan pemasok '{$pemasok->nama}' ({$pemasok->kode})? Tindakan ini tidak dapat dibatalkan.",
+            buttonText: 'Ya, Hapus Data',
+            variant: 'danger'
+        );
+    }
+
+    public function delete(int $id)
+    {
+        abort_unless(auth()->user()?->can('delete_master::pemasok') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus data pemasok.');
+
+        $pemasok = Pemasok::findOrFail($id);
+
+        $hasDependencies = \App\Models\PesananPembelian::where('pemasok_id', $id)->exists()
+            || \App\Models\Barang::where('pemasok_default_id', $id)->exists();
+
+        if ($hasDependencies) {
+            $this->toast("Pemasok '{$pemasok->nama}' tidak dapat dihapus karena masih digunakan dalam riwayat pesanan/katalog barang. Silakan nonaktifkan status pemasok.", 'danger');
+            return;
+        }
+
+        $namaPemasok = $pemasok->nama;
+        $pemasok->delete();
+
+        $this->toast("Pemasok '{$namaPemasok}' berhasil dihapus.", 'success');
+    }
+
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_master::pemasok') || auth()->user()?->can('view_master::pemasok'), 403);

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Master;
 
+use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
@@ -19,7 +20,7 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AsetIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
 
     public bool $showModal = false;
     public bool $showQrModal = false;
@@ -304,6 +305,41 @@ class AsetIndex extends Component
             ->withCount('permintaanMaintenance')
             ->findOrFail($id);
         $this->showSirkulasiModal = true;
+    }
+
+    public function confirmDelete(int $id): void
+    {
+        $aset = Aset::with('barang')->findOrFail($id);
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'delete',
+            title: 'Konfirmasi Hapus Register Aset',
+            description: "Apakah Anda yakin ingin menghapus aset '{$aset->kode_aset}' ({$aset->barang?->nama})? Tindakan ini tidak dapat dibatalkan.",
+            buttonText: 'Ya, Hapus Data',
+            variant: 'danger'
+        );
+    }
+
+    public function delete(int $id)
+    {
+        abort_unless(auth()->user()?->can('delete_master::aset') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus register aset.');
+
+        $aset = Aset::findOrFail($id);
+
+        $hasDependencies = $aset->peminjamanDetail()->exists()
+            || $aset->permintaanMaintenance()->exists()
+            || $aset->status === 'DIPINJAM';
+
+        if ($hasDependencies) {
+            $this->toast("Aset '{$aset->kode_aset}' tidak dapat dihapus karena memiliki riwayat sirkulasi/pemeliharaan atau sedang aktif dipinjam. Silakan ubah status menjadi DIHAPUSKAN.", 'danger');
+            return;
+        }
+
+        $kodeAset = $aset->kode_aset;
+        $aset->delete();
+
+        $this->toast("Register aset '{$kodeAset}' berhasil dihapus.", 'success');
     }
 
     public function render()

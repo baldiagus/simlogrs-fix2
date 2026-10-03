@@ -484,6 +484,100 @@ class PenggunaIndex extends Component
         $this->toast("Status akun {$user->nama} diubah menjadi {$newStatus}.", 'info');
     }
 
+    public function confirmDelete(int $id): void
+    {
+        $user = User::findOrFail($id);
+
+        if (auth()->id() === $user->id) {
+            $this->toast('Operasi dibatalkan: Anda tidak dapat menghapus akun Anda sendiri.', 'danger');
+            return;
+        }
+
+        if ($user->hasRole('super_admin') && ! auth()->user()?->hasRole('super_admin')) {
+            $this->toast('Akun dengan peran super_admin hanya dapat dikelola oleh sesama super_admin.', 'danger');
+            return;
+        }
+
+        $this->askConfirmation(
+            target: $user->id,
+            action: 'delete',
+            title: 'Konfirmasi Hapus Akun Pegawai',
+            description: "Apakah Anda yakin ingin menghapus akun pegawai {$user->nama} ({$user->username}) secara permanen? Tindakan ini tidak dapat dibatalkan.",
+            buttonText: 'Ya, Hapus Akun',
+            variant: 'danger'
+        );
+    }
+
+    public function delete(int $id): void
+    {
+        abort_unless(
+            auth()->user()?->can('delete_user::pengguna') ||
+            auth()->user()?->hasRole('super_admin'),
+            403,
+            'Anda tidak memiliki wewenang menghapus akun pengguna.'
+        );
+
+        $user = User::findOrFail($id);
+
+        if (auth()->id() === $user->id) {
+            $this->toast('Operasi dibatalkan: Anda tidak dapat menghapus akun Anda sendiri.', 'danger');
+            return;
+        }
+
+        if ($user->hasRole('super_admin') && ! auth()->user()?->hasRole('super_admin')) {
+            abort(403, 'Akun dengan peran super_admin hanya dapat dikelola oleh pengguna dengan peran super_admin.');
+        }
+
+        // Cek ketergantungan relasi operasional
+        $hasDependencies = \App\Models\PermintaanPengadaan::where('diajukan_oleh', $id)->orWhere('disetujui_oleh', $id)->exists()
+            || \App\Models\PesananPembelian::where('dibuat_oleh', $id)->exists()
+            || \App\Models\PenerimaanBarang::where('diterima_oleh', $id)->exists()
+            || \App\Models\PermintaanDistribusi::where('diajukan_oleh', $id)->orWhere('disetujui_oleh', $id)->exists()
+            || \App\Models\PengirimanBarang::where('dikirim_oleh', $id)->exists()
+            || \App\Models\PenerimaanDistribusi::where('diterima_oleh', $id)->exists()
+            || \App\Models\PermintaanPeminjaman::where('diajukan_oleh', $id)->orWhere('disetujui_oleh', $id)->exists()
+            || \App\Models\PengembalianPeminjaman::where('diperiksa_oleh', $id)->exists()
+            || \App\Models\PermintaanMaintenance::where('dilaporkan_oleh', $id)->exists()
+            || \App\Models\PenugasanMaintenance::where('teknisi_id', $id)->orWhere('ditugaskan_oleh', $id)->exists()
+            || \App\Models\LogMaintenance::where('dikerjakan_oleh', $id)->orWhere('dicatat_oleh', $id)->exists()
+            || \App\Models\StokOpname::where('dibuat_oleh', $id)->orWhere('disetujui_oleh', $id)->exists()
+            || \App\Models\PenyesuaianStok::where('diajukan_oleh', $id)->orWhere('disetujui_oleh', $id)->exists();
+
+        if ($hasDependencies) {
+            $this->toast("Akun {$user->nama} tidak dapat dihapus karena memiliki rekam jejak transaksi kedinasan. Silakan nonaktifkan akun sebagai gantinya.", 'danger');
+            return;
+        }
+
+        $namaUser = $user->nama;
+        $userData = [
+            'id'       => $user->id,
+            'nama'     => $user->nama,
+            'username' => $user->username,
+            'email'    => $user->email,
+            'roles'    => $user->getRoleNames()->toArray(),
+        ];
+
+        // Revoke token sebelum delete
+        $user->tokens()->delete();
+
+        LogAudit::create([
+            'pengguna_id'     => auth()->id(),
+            'peran_id'        => auth()->user()?->roles?->first()?->id,
+            'referensi_jenis' => 'User',
+            'referensi_id'    => $user->id,
+            'aksi'            => 'HAPUS',
+            'data_sebelum'    => $userData,
+            'data_sesudah'    => null,
+            'ip_address'      => request()->ip(),
+            'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
+            'dibuat_pada'     => now(),
+        ]);
+
+        $user->delete();
+
+        $this->toast("Akun pegawai {$namaUser} berhasil dihapus.", 'success');
+    }
+
     public function render()
     {
         abort_unless(

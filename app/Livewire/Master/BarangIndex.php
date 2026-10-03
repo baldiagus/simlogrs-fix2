@@ -247,6 +247,44 @@ class BarangIndex extends Component
         $this->toast("Status barang '{$barang->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    public function confirmDelete(int $id): void
+    {
+        $barang = Barang::findOrFail($id);
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'delete',
+            title: 'Konfirmasi Hapus Barang',
+            description: "Apakah Anda yakin ingin menghapus komoditas '{$barang->nama}' ({$barang->kode})? Tindakan ini tidak dapat dibatalkan.",
+            buttonText: 'Ya, Hapus Data',
+            variant: 'danger'
+        );
+    }
+
+    public function delete(int $id)
+    {
+        abort_unless(auth()->user()?->can('delete_master::barang') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus data barang.');
+
+        $barang = Barang::findOrFail($id);
+
+        $hasDependencies = $barang->stokBatch()->exists()
+            || $barang->aset()->exists()
+            || $barang->stokRuangan()->exists()
+            || \App\Models\PesananPembelianDetail::where('barang_id', $id)->exists()
+            || \App\Models\PermintaanPengadaanDetail::where('barang_id', $id)->exists()
+            || \App\Models\PermintaanDistribusiDetail::where('barang_id', $id)->exists();
+
+        if ($hasDependencies) {
+            $this->toast("Komoditas '{$barang->nama}' tidak dapat dihapus karena masih digunakan dalam riwayat transaksi/stok. Silakan nonaktifkan status barang.", 'danger');
+            return;
+        }
+
+        $namaBarang = $barang->nama;
+        $barang->delete();
+
+        $this->toast("Komoditas '{$namaBarang}' berhasil dihapus.", 'success');
+    }
+
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_master::barang') || auth()->user()?->can('view_master::barang'), 403);

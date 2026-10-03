@@ -153,6 +153,43 @@ class GudangIndex extends Component
         $this->toast("Status gudang '{$gudang->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    public function confirmDelete(int $id): void
+    {
+        $gudang = Gudang::findOrFail($id);
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'delete',
+            title: 'Konfirmasi Hapus Gudang',
+            description: "Apakah Anda yakin ingin menghapus fasilitas gudang '{$gudang->nama}' ({$gudang->kode})? Tindakan ini tidak dapat dibatalkan.",
+            buttonText: 'Ya, Hapus Data',
+            variant: 'danger'
+        );
+    }
+
+    public function delete(int $id)
+    {
+        abort_unless(auth()->user()?->can('delete_master::gudang') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus fasilitas gudang.');
+
+        $gudang = Gudang::findOrFail($id);
+
+        $hasDependencies = $gudang->lokasiGudang()->exists()
+            || \App\Models\StokBatch::where('gudang_id', $id)->exists()
+            || \App\Models\PenerimaanBarang::where('gudang_id', $id)->exists()
+            || \App\Models\PermintaanDistribusi::where('gudang_id', $id)->exists()
+            || \App\Models\User::where('gudang_id', $id)->exists();
+
+        if ($hasDependencies) {
+            $this->toast("Fasilitas gudang '{$gudang->nama}' tidak dapat dihapus karena masih memiliki rak, stok fisik, atau petugas penugasan. Silakan nonaktifkan status gudang.", 'danger');
+            return;
+        }
+
+        $namaGudang = $gudang->nama;
+        $gudang->delete();
+
+        $this->toast("Fasilitas gudang '{$namaGudang}' berhasil dihapus.", 'success');
+    }
+
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_master::gudang') || auth()->user()?->can('view_master::gudang'), 403);

@@ -114,6 +114,37 @@ class MerekBarangIndex extends Component
         $this->toast("Status merek '{$merek->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    public function confirmDelete(int $id): void
+    {
+        $merek = MerekBarang::findOrFail($id);
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'delete',
+            title: 'Konfirmasi Hapus Merek',
+            description: "Apakah Anda yakin ingin menghapus merek '{$merek->nama}' ({$merek->kode})? Tindakan ini tidak dapat dibatalkan.",
+            buttonText: 'Ya, Hapus Data',
+            variant: 'danger'
+        );
+    }
+
+    public function delete(int $id)
+    {
+        abort_unless(auth()->user()?->can('delete_master::merek::barang') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus merek barang.');
+
+        $merek = MerekBarang::findOrFail($id);
+
+        if ($merek->barang()->exists()) {
+            $this->toast("Merek '{$merek->nama}' tidak dapat dihapus karena masih digunakan oleh data barang. Silakan nonaktifkan status merek.", 'danger');
+            return;
+        }
+
+        $namaMerek = $merek->nama;
+        $merek->delete();
+
+        $this->toast("Merek '{$namaMerek}' berhasil dihapus.", 'success');
+    }
+
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_master::merek::barang') || auth()->user()?->can('view_master::merek::barang'), 403);

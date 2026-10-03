@@ -210,6 +210,18 @@
                                                 title="{{ $userItem->status === 'AKTIF' ? 'Nonaktifkan Akun' : 'Aktifkan Akun' }}"
                                                 class="{{ $userItem->status === 'AKTIF' ? 'text-amber-600' : 'text-emerald-600' }}"
                                             />
+                                            @can('delete_user::pengguna')
+                                                @if (auth()->id() !== $userItem->id)
+                                                    <flux:button
+                                                        wire:click="confirmDelete({{ $userItem->id }})"
+                                                        size="xs"
+                                                        variant="ghost"
+                                                        icon="trash"
+                                                        class="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                                                        title="Hapus Akun Pegawai"
+                                                    />
+                                                @endif
+                                            @endcan
                                         @else
                                             <flux:badge size="xs" color="amber" icon="lock-closed">
                                                 Terkunci

@@ -113,6 +113,37 @@ class KategoriBarangIndex extends Component
         $this->toast("Status kategori '{$kat->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    public function confirmDelete(int $id): void
+    {
+        $kat = KategoriBarang::findOrFail($id);
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'delete',
+            title: 'Konfirmasi Hapus Kategori',
+            description: "Apakah Anda yakin ingin menghapus kategori '{$kat->nama}' ({$kat->kode})? Tindakan ini tidak dapat dibatalkan.",
+            buttonText: 'Ya, Hapus Data',
+            variant: 'danger'
+        );
+    }
+
+    public function delete(int $id)
+    {
+        abort_unless(auth()->user()?->can('delete_master::kategori::barang') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus kategori barang.');
+
+        $kat = KategoriBarang::findOrFail($id);
+
+        if ($kat->barang()->exists()) {
+            $this->toast("Kategori '{$kat->nama}' tidak dapat dihapus karena masih digunakan oleh data barang. Silakan nonaktifkan status kategori.", 'danger');
+            return;
+        }
+
+        $namaKat = $kat->nama;
+        $kat->delete();
+
+        $this->toast("Kategori '{$namaKat}' berhasil dihapus.", 'success');
+    }
+
     public function showDetail(int $id): void
     {
         $this->selectedItem = KategoriBarang::withCount('barang')->findOrFail($id);

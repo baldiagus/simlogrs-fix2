@@ -154,6 +154,43 @@ class UnitIndex extends Component
         $this->toast("Status unit '{$unit->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    public function confirmDelete(int $id): void
+    {
+        $unit = Unit::findOrFail($id);
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'delete',
+            title: 'Konfirmasi Hapus Unit Kerja',
+            description: "Apakah Anda yakin ingin menghapus unit ruangan '{$unit->nama}' ({$unit->kode})? Tindakan ini tidak dapat dibatalkan.",
+            buttonText: 'Ya, Hapus Data',
+            variant: 'danger'
+        );
+    }
+
+    public function delete(int $id)
+    {
+        abort_unless(auth()->user()?->can('delete_master::unit') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus unit kerja.');
+
+        $unit = Unit::findOrFail($id);
+
+        $hasDependencies = \App\Models\User::where('unit_id', $id)->exists()
+            || \App\Models\StokRuangan::where('unit_id', $id)->exists()
+            || \App\Models\PermintaanDistribusi::where('unit_id', $id)->exists()
+            || \App\Models\PermintaanPengadaan::where('unit_id', $id)->exists()
+            || \App\Models\Aset::where('unit_id', $id)->exists();
+
+        if ($hasDependencies) {
+            $this->toast("Unit '{$unit->nama}' tidak dapat dihapus karena masih memiliki riwayat transaksi, pegawai, atau aset terkait. Silakan nonaktifkan status unit.", 'danger');
+            return;
+        }
+
+        $namaUnit = $unit->nama;
+        $unit->delete();
+
+        $this->toast("Unit kerja '{$namaUnit}' berhasil dihapus.", 'success');
+    }
+
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_master::unit') || auth()->user()?->can('view_master::unit'), 403);
