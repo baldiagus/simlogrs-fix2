@@ -23,14 +23,26 @@ class PenerimaanPoIndex extends Component
 {
     use HasTableFilters, HasToast, HasPortalLayout;
 
+    #[Url(history: true)]
+    public string $activeTab = 'tracking'; // 'tracking' | 'riwayat'
+
     public bool $showModal = false;
     public bool $showDetailModal = false;
+    public bool $showDetailPoModal = false;
 
     public ?object $selectedPenerimaan = null;
+    public ?PesananPembelian $selectedPo = null;
 
     #[Url(history: true)]
     public string $filterStatus = '';
 
+    public function switchTab(string $tab): void
+    {
+        $this->activeTab = in_array($tab, ['tracking', 'riwayat'], true) ? $tab : 'tracking';
+        $this->filterStatus = '';
+        $this->search = '';
+        $this->resetPage();
+    }
     // Form fields
     public ?int $poId = null;
     public ?object $po = null;
@@ -258,21 +270,47 @@ class PenerimaanPoIndex extends Component
         $this->showDetailModal = true;
     }
 
+    public function showDetailPo(int $id): void
+    {
+        abort_unless(auth()->user()?->can('view_any_gudang_stok::penerimaan::po') || auth()->user()?->can('view_gudang_stok::penerimaan::po') || auth()->user()?->can('create_gudang_stok::penerimaan::po'), 403);
+
+        $this->selectedPo = PesananPembelian::with(['pemasok', 'detail.barang', 'permintaanPengadaan', 'pembuat', 'penerimaanBarang'])
+            ->findOrFail($id);
+        $this->showDetailPoModal = true;
+    }
+
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_gudang_stok::penerimaan::po') || auth()->user()?->can('view_gudang_stok::penerimaan::po'), 403);
 
-        $items = PenerimaanBarang::with(['pesananPembelian', 'gudang', 'penerima'])
-            ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
-            ->when($this->search, function ($q) {
-                $q->where(function ($sub) {
-                    $sub->where('kode', 'ilike', "%{$this->search}%")
-                        ->orWhere('nomor_surat_jalan', 'ilike', "%{$this->search}%")
-                        ->orWhereHas('pesananPembelian', fn ($r) => $r->where('kode', 'ilike', "%{$this->search}%"));
-                });
-            })
-            ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
-            ->paginate($this->perPage);
+        $countTracking = PesananPembelian::whereIn('status', ['DITERBITKAN', 'DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])->count();
+        $countRiwayat  = PenerimaanBarang::count();
+
+        if ($this->activeTab === 'tracking') {
+            $items = PesananPembelian::with(['pemasok', 'detail.barang'])
+                ->whereIn('status', ['DITERBITKAN', 'DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])
+                ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
+                ->when($this->search, function ($q) {
+                    $q->where(function ($sub) {
+                        $sub->where('kode', 'ilike', "%{$this->search}%")
+                            ->orWhereHas('pemasok', fn ($p) => $p->where('nama', 'ilike', "%{$this->search}%"));
+                    });
+                })
+                ->orderBy($this->sortBy === 'id' ? 'tanggal_po' : $this->sortBy, $this->sortDirection === 'asc' ? 'asc' : 'desc')
+                ->paginate($this->perPage);
+        } else {
+            $items = PenerimaanBarang::with(['pesananPembelian', 'gudang', 'penerima'])
+                ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
+                ->when($this->search, function ($q) {
+                    $q->where(function ($sub) {
+                        $sub->where('kode', 'ilike', "%{$this->search}%")
+                            ->orWhere('nomor_surat_jalan', 'ilike', "%{$this->search}%")
+                            ->orWhereHas('pesananPembelian', fn ($r) => $r->where('kode', 'ilike', "%{$this->search}%"));
+                    });
+                })
+                ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
+                ->paginate($this->perPage);
+        }
 
         $daftarGudang = Gudang::where('status', 'AKTIF')->orderBy('nama')->get();
         $daftarLokasiGudang = $this->gudang_id
@@ -281,6 +319,8 @@ class PenerimaanPoIndex extends Component
 
         return view('livewire.pengadaan.penerimaan-po-index', [
             'items'              => $items,
+            'countTracking'      => $countTracking,
+            'countRiwayat'       => $countRiwayat,
             'daftarGudang'       => $daftarGudang,
             'daftarLokasiGudang' => $daftarLokasiGudang,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Penerimaan Barang (Inbound)']);

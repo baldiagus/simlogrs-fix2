@@ -26,7 +26,6 @@ use App\Livewire\Master\BarangIndex;
 use App\Livewire\Master\AsetIndex;
 use App\Livewire\Pengadaan\PermintaanPengadaanIndex;
 use App\Livewire\Pengadaan\PesananPembelianIndex;
-use App\Livewire\Pengadaan\TrackingPoIndex;
 use App\Livewire\Pengadaan\PenerimaanPoIndex;
 use App\Livewire\Pengadaan\RealisasiAnggaranIndex;
 use App\Livewire\Pengadaan\MasterRekananIndex;
@@ -118,7 +117,7 @@ foreach ($portals as $portalKey => $dashboardClass) {
             // Siklus Pengadaan Logistik (Grup 4)
             Route::get('/permintaan-pengadaan', PermintaanPengadaanIndex::class)->name('permintaan-pengadaan');
             Route::get('/pesanan-pembelian', PesananPembelianIndex::class)->name('pesanan-pembelian');
-            Route::get('/tracking-po', TrackingPoIndex::class)->name('tracking-po');
+            Route::get('/tracking-po', fn () => redirect('/' . request()->segment(1) . '/penerimaan-po'));
             Route::get('/penerimaan-po', PenerimaanPoIndex::class)->name('penerimaan-po');
             Route::get('/realisasi-anggaran', RealisasiAnggaranIndex::class)->name('realisasi-anggaran');
             Route::get('/master-rekanan', MasterRekananIndex::class)->name('master-rekanan');

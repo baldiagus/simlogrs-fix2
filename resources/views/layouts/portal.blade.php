@@ -73,7 +73,6 @@
         $isPengadaanActive = request()->is(
             '*/permintaan-pengadaan*',
             '*/pesanan-pembelian*',
-            '*/tracking-po*',
             '*/penerimaan-po*',
             '*/realisasi-anggaran*',
             '*/master-rekanan*'
@@ -220,11 +219,6 @@
                     @can('view_any_pengadaan::pesanan::pembelian')
                         <flux:sidebar.item icon="clipboard-document-list" href="/{{ $portalKey }}/pesanan-pembelian" wire:navigate :current="request()->is('*/pesanan-pembelian')">
                             Pesanan (PO)
-                        </flux:sidebar.item>
-                    @endcan
-                    @can('view_any_pengadaan::tracking::po')
-                        <flux:sidebar.item icon="truck" href="/{{ $portalKey }}/tracking-po" wire:navigate :current="request()->is('*/tracking-po')">
-                            Tracking Vendor
                         </flux:sidebar.item>
                     @endcan
                     @can('view_any_gudang_stok::penerimaan::po')

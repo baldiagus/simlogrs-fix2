@@ -83,7 +83,6 @@ class PagePermissionRegistry
                 'modules' => [
                     'pengadaan::permintaan::pengadaan' => ['label' => 'Permintaan Pengadaan (PR)', 'entity' => 'pengadaan::permintaan::pengadaan', 'page' => 'page_PermintaanPengadaanIndex'],
                     'pengadaan::pesanan::pembelian' => ['label' => 'Pesanan Pembelian (PO)', 'entity' => 'pengadaan::pesanan::pembelian', 'page' => 'page_PesananPembelianIndex'],
-                    'pengadaan::tracking::po' => ['label' => 'Pelacakan Pengiriman PO Vendor', 'entity' => 'pengadaan::tracking::po', 'page' => 'page_TrackingPoIndex'],
                     'pengadaan::master::rekanan' => ['label' => 'Evaluasi Kinerja Vendor', 'entity' => 'pengadaan::master::rekanan', 'page' => 'page_MasterRekananIndex'],
                     'pengadaan::realisasi::anggaran' => ['label' => 'Pagu & Realisasi Anggaran Pengadaan', 'entity' => 'pengadaan::realisasi::anggaran', 'page' => 'page_RealisasiAnggaranIndex'],
                 ],
