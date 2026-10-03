@@ -18,7 +18,20 @@ class User extends Authenticatable
     const CREATED_AT = 'dibuat_pada';
     const UPDATED_AT = 'diperbarui_pada';
 
-    protected $guarded = ['id'];
+    protected $fillable = [
+        'unit_id',
+        'gudang_id',
+        'nama',
+        'nip',
+        'username',
+        'email',
+        'password',
+        'no_telepon',
+        'status',
+        'wajib_ganti_password',
+        'terakhir_login',
+        'ip_terakhir',
+    ];
 
     protected $hidden = [
         'password',

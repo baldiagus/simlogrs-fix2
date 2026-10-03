@@ -62,12 +62,14 @@ class AuthController extends ApiController
         ]);
 
         $deviceName = $request->input('device_name', $request->userAgent() ?? 'MobileApp');
-        $token = $user->createToken($deviceName)->plainTextToken;
+        $abilities = $this->resolveTokenAbilities($user);
+        $token = $user->createToken($deviceName, $abilities)->plainTextToken;
 
         return $this->jsonSuccess([
-            'token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $this->formatUserData($user),
+            'token'           => $token,
+            'token_type'      => 'Bearer',
+            'token_abilities' => $abilities,
+            'user'            => $this->formatUserData($user),
         ], 'Autentikasi mobile berhasil.');
     }
 
@@ -81,6 +83,36 @@ class AuthController extends ApiController
         return $this->jsonSuccess(null, 'Berhasil keluar dari sesi mobile.');
     }
 
+
+    /**
+     * Memetakan peran pengguna ke dalam scope token abilities Sanctum yang terukur.
+     */
+    protected function resolveTokenAbilities($user): array
+    {
+        $abilities = ['mobile:access'];
+
+        $roleAbilityMap = [
+            'super_admin'    => ['role:super_admin', 'gudang:operator', 'unit:operator', 'teknisi:operator', 'pengadaan:operator', 'audit:operator'],
+            'admin_logistik' => ['role:admin_logistik', 'gudang:operator', 'distribusi:operator'],
+            'kepala_gudang'  => ['role:kepala_gudang', 'gudang:operator'],
+            'petugas_gudang' => ['role:petugas_gudang', 'gudang:operator'],
+            'kepala_unit'    => ['role:kepala_unit', 'unit:operator'],
+            'petugas_unit'   => ['role:petugas_unit', 'unit:operator'],
+            'kepala_teknisi' => ['role:kepala_teknisi', 'teknisi:operator'],
+            'teknisi'        => ['role:teknisi', 'teknisi:operator'],
+            'pengadaan'      => ['role:pengadaan', 'pengadaan:operator'],
+            'manajemen'      => ['role:manajemen', 'manajemen:viewer'],
+            'auditor'        => ['role:auditor', 'audit:viewer'],
+        ];
+
+        foreach ($user->getRoleNames() as $roleName) {
+            if (isset($roleAbilityMap[$roleName])) {
+                $abilities = array_merge($abilities, $roleAbilityMap[$roleName]);
+            }
+        }
+
+        return array_values(array_unique($abilities));
+    }
     /**
      * Mengambil Profil dan Wewenang Pengguna Aktif.
      */
