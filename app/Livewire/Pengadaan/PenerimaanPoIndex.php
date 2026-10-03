@@ -44,6 +44,13 @@ class PenerimaanPoIndex extends Component
         $this->resetPage();
     }
 
+    public function updatedGudangId(): void
+    {
+        foreach ($this->itemRows as $idx => $row) {
+            $this->itemRows[$idx]['lokasi_gudang_id'] = null;
+        }
+    }
+
     public function terima(int $poId): void
     {
         abort_unless(auth()->user()?->can('create_gudang_stok::penerimaan::po'), 403);

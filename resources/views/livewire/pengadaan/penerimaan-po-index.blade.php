@@ -145,7 +145,7 @@
     </flux:modal>
 
     {{-- Modal Form Penerimaan --}}
-    <flux:modal wire:model="showModal" class="w-full max-w-5xl">
+    <flux:modal wire:model="showModal" class="w-full max-w-5xl" style="max-height: 88vh; overflow-y: auto;">
         <form wire:submit="savePenerimaan" class="space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div>
@@ -217,7 +217,7 @@
                         </div>
                     </div>
 
-                    <div class="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+                    <div class="space-y-3 pb-48">
                         @foreach ($itemRows as $idx => $row)
                             <div wire:key="inbound-item-card-{{ $idx }}" class="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
                                 {{-- Baris 1: Ringkasan Pesanan (PO) --}}
@@ -306,6 +306,7 @@
 
                                             <div class="col-span-2">
                                                 <x-searchable-select
+                                                    :wire:key="'rak-select-' . ($gudang_id ?? 'empty') . '-' . $idx"
                                                     model="itemRows.{{ $idx }}.lokasi_gudang_id"
                                                     label="Rak Simpan"
                                                     placeholder="Pilih Rak..."
