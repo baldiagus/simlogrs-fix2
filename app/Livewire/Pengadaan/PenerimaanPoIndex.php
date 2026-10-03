@@ -29,7 +29,8 @@ class PenerimaanPoIndex extends Component
     public bool $showModal = false;
     public bool $showDetailModal = false;
     public bool $showDetailPoModal = false;
-
+    public bool $showRejectModal = false;
+    public string $alasan_penolakan = '';
     public ?object $selectedPenerimaan = null;
     public ?PesananPembelian $selectedPo = null;
 
@@ -263,6 +264,92 @@ class PenerimaanPoIndex extends Component
         $this->toast("Penerimaan barang {$this->kode} berhasil disimpan.", 'success');
     }
 
+    public function openRejectModal(): void
+    {
+        abort_unless(auth()->user()?->can('create_gudang_stok::penerimaan::po'), 403);
+
+        $this->validate([
+            'nomor_surat_jalan' => 'required|string|min:3|max:100',
+            'gudang_id'         => ['required', Rule::exists('gudang', 'id')->where('status', 'AKTIF')],
+        ], [
+            'nomor_surat_jalan.required' => 'Nomor surat jalan vendor wajib diisi sebelum menolak kiriman.',
+            'nomor_surat_jalan.min'      => 'Nomor surat jalan minimal 3 karakter.',
+            'gudang_id.required'         => 'Gudang penerima logistik wajib dipilih.',
+        ]);
+
+        $this->alasan_penolakan = '';
+        $this->showModal = false;
+        $this->showRejectModal = true;
+    }
+
+    public function cancelReject(): void
+    {
+        $this->showRejectModal = false;
+        $this->showModal = true;
+    }
+
+    public function executeTolakKiriman(): void
+    {
+        abort_unless(auth()->user()?->can('create_gudang_stok::penerimaan::po'), 403);
+
+        $this->validate([
+            'nomor_surat_jalan' => 'required|string|min:3|max:100',
+            'gudang_id'         => ['required', Rule::exists('gudang', 'id')->where('status', 'AKTIF')],
+            'alasan_penolakan'  => 'required|string|min:5|max:1000',
+        ], [
+            'nomor_surat_jalan.required' => 'Nomor surat jalan vendor wajib diisi.',
+            'gudang_id.required'         => 'Gudang penerima logistik wajib dipilih.',
+            'alasan_penolakan.required'  => 'Alasan penolakan barang wajib dijelaskan.',
+            'alasan_penolakan.min'       => 'Alasan penolakan minimal 5 karakter.',
+        ]);
+
+        $rcvKode = CodeGenerator::generate('RCV', PenerimaanBarang::class, 'kode', 'Ym', 3);
+
+        DB::transaction(function () use ($rcvKode) {
+            $po = PesananPembelian::findOrFail($this->poId);
+
+            // Buat dokumen penerimaan berstatus DITOLAK
+            $penerimaan = PenerimaanBarang::create([
+                'kode'                 => $rcvKode,
+                'pesanan_pembelian_id' => $this->poId,
+                'gudang_id'            => $this->gudang_id,
+                'nomor_surat_jalan'    => $this->nomor_surat_jalan,
+                'tanggal_terima'       => now()->toDateString(),
+                'status'               => 'DITOLAK',
+                'catatan'              => '[DITOLAK PETUGAS GUDANG]: ' . trim($this->alasan_penolakan),
+                'diterima_oleh'        => auth()->id(),
+            ]);
+
+            $defaultRackId = LokasiGudang::where('gudang_id', $this->gudang_id)->where('status', 'AKTIF')->value('id')
+                ?: LokasiGudang::where('status', 'AKTIF')->value('id');
+
+            // Catat detail komoditas yang ditolak (kuantitas diterima = 0)
+            foreach ($this->itemRows as $row) {
+                PenerimaanBarangDetail::create([
+                    'penerimaan_barang_id' => $penerimaan->id,
+                    'barang_id'            => $row['barang_id'],
+                    'lokasi_gudang_id'     => ! empty($row['lokasi_gudang_id']) ? $row['lokasi_gudang_id'] : $defaultRackId,
+                    'nomor_batch'          => 'REJECTED',
+                    'tanggal_kedaluwarsa'  => null,
+                    'jumlah_diterima'      => 0,
+                    'jumlah_rusak'         => (int) ($row['sisa'] ?? $row['jumlah_dipesan']),
+                    'harga_satuan'         => $row['harga_satuan'],
+                ]);
+            }
+
+            // PO status tetap dipertahankan pada status aktifnya (DIKIRIM_VENDOR atau DITERIMA_SEBAGIAN)
+            // agar vendor tetap berkewajiban mengirimkan barang pengganti
+        });
+
+        $poKode = $this->po?->kode ?? 'PO';
+        $this->showRejectModal = false;
+        $this->showModal = false;
+        $this->activeTab = 'riwayat';
+        $this->filterStatus = '';
+        $this->search = '';
+        $this->resetPage();
+        $this->toast("Kiriman fisik {$poKode} berhasil ditolak. Berita acara penolakan diterbitkan dengan nomor {$rcvKode}.", 'info');
+    }
     public function showDetail(int $id): void
     {
         abort_unless(auth()->user()?->can('view_any_gudang_stok::penerimaan::po') || auth()->user()?->can('view_gudang_stok::penerimaan::po'), 403);
