@@ -15,6 +15,7 @@ use App\Models\PesananPembelian;
 use App\Models\StokBatch;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -64,7 +65,10 @@ class PenerimaanPoIndex extends Component
         $this->kode = CodeGenerator::generate('RCV', PenerimaanBarang::class, 'kode', 'Ym', 3);
         $this->nomor_surat_jalan = '';
         $this->catatan = '';
-        $this->gudang_id = auth()->user()->gudang_id;
+        $userGudangId = auth()->user()->gudang_id;
+        $this->gudang_id = ($userGudangId && Gudang::where('id', $userGudangId)->where('status', 'AKTIF')->exists())
+            ? $userGudangId
+            : Gudang::where('status', 'AKTIF')->value('id');
 
         $this->itemRows = $po->detail->map(fn ($d) => [
             'po_detail_id'       => $d->id,
@@ -90,7 +94,7 @@ class PenerimaanPoIndex extends Component
 
         $this->validate([
             'nomor_surat_jalan' => 'required|string|min:3|max:100',
-            'gudang_id'         => 'required|exists:gudang,id',
+            'gudang_id'         => ['required', Rule::exists('gudang', 'id')->where('status', 'AKTIF')],
             'catatan'           => 'nullable|string|max:1000',
             'itemRows'          => 'required|array|min:1',
         ], [
@@ -124,10 +128,11 @@ class PenerimaanPoIndex extends Component
                 } else {
                     $isRackValid = LokasiGudang::where('id', $row['lokasi_gudang_id'])
                         ->where('gudang_id', $this->gudang_id)
+                        ->where('status', 'AKTIF')
                         ->exists();
 
                     if (! $isRackValid) {
-                        $customErrors["itemRows.{$idx}.lokasi_gudang_id"] = "Rak yang dipilih bukan bagian dari fasilitas gudang penerima ini.";
+                        $customErrors["itemRows.{$idx}.lokasi_gudang_id"] = "Rak yang dipilih bukan bagian dari fasilitas gudang penerima ini atau sedang nonaktif.";
                     }
                 }
             }
@@ -270,9 +275,9 @@ class PenerimaanPoIndex extends Component
             ->paginate($this->perPage);
 
         $daftarPo = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])->get();
-        $daftarGudang = Gudang::all();
+        $daftarGudang = Gudang::where('status', 'AKTIF')->orderBy('nama')->get();
         $daftarLokasiGudang = $this->gudang_id
-            ? LokasiGudang::where('gudang_id', $this->gudang_id)->get()
+            ? LokasiGudang::where('gudang_id', $this->gudang_id)->where('status', 'AKTIF')->orderBy('nama')->get()
             : collect();
 
         return view('livewire.pengadaan.penerimaan-po-index', [

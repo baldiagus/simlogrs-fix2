@@ -68,8 +68,22 @@ class LaporServisIndex extends Component
         $this->validate();
 
         $user = auth()->user();
-        $aset = Aset::findOrFail($this->aset_id);
+        $aset = Aset::with(['barang', 'unit', 'gudang'])->findOrFail($this->aset_id);
 
+        if (! $aset->barang || $aset->barang->status !== 'AKTIF') {
+            $this->addError('aset_id', 'Komoditas aset yang dipilih sudah berstatus nonaktif.');
+            return;
+        }
+
+        if ($aset->unit && $aset->unit->status !== 'AKTIF') {
+            $this->addError('aset_id', 'Unit ruangan penempatan aset sudah berstatus nonaktif.');
+            return;
+        }
+
+        if ($aset->gudang && $aset->gudang->status !== 'AKTIF') {
+            $this->addError('aset_id', 'Fasilitas gudang penempatan aset sudah berstatus nonaktif.');
+            return;
+        }
         $kode = CodeGenerator::generateMnt();
 
         $fotoPath = null;
@@ -193,7 +207,15 @@ class LaporServisIndex extends Component
 
         // Aset yang dapat dipilih untuk dilaporkan: aset di unit bersangkutan (atau semua aset jika tanpa unit)
         $daftarAsetTersedia = Aset::with('barang')
-            ->when($userUnitId, fn ($q) => $q->where('unit_id', $userUnitId))
+            ->whereHas('barang', fn ($b) => $b->where('status', 'AKTIF'))
+            ->when($userUnitId, fn ($q) => $q->where('unit_id', $userUnitId), fn ($q) => $q->where(function ($sub) {
+                $sub->whereNull('unit_id')
+                    ->orWhereHas('unit', fn ($u) => $u->where('status', 'AKTIF'));
+            }))
+            ->where(function ($sub) {
+                $sub->whereNull('gudang_id')
+                    ->orWhereHas('gudang', fn ($g) => $g->where('status', 'AKTIF'));
+            })
             ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN', 'DIPINJAM'])
             ->orderBy('kode_aset')
             ->get();

@@ -106,6 +106,27 @@ class PemeliharaanBerkalaIndex extends Component
     {
         $this->validate();
 
+        $aset = Aset::with(['barang', 'unit', 'gudang'])->findOrFail($this->aset_id);
+
+        if (! $aset->barang || $aset->barang->status !== 'AKTIF') {
+            $this->addError('aset_id', 'Komoditas aset yang dipilih sudah berstatus nonaktif.');
+            return;
+        }
+
+        if ($aset->unit && $aset->unit->status !== 'AKTIF') {
+            $this->addError('aset_id', 'Unit ruangan penempatan aset sudah berstatus nonaktif.');
+            return;
+        }
+
+        if ($aset->gudang && $aset->gudang->status !== 'AKTIF') {
+            $this->addError('aset_id', 'Fasilitas gudang penempatan aset sudah berstatus nonaktif.');
+            return;
+        }
+
+        if ($this->teknisi_id && ! User::where('id', $this->teknisi_id)->where('status', 'AKTIF')->exists()) {
+            $this->addError('teknisi_id', 'Teknisi yang dipilih sudah berstatus nonaktif.');
+            return;
+        }
         $user = auth()->user();
 
         if ($this->editingId) {
@@ -267,10 +288,16 @@ class PemeliharaanBerkalaIndex extends Component
 
         // Daftar Aset yang aktif
         $daftarAset = Aset::with('barang')
+            ->whereHas('barang', fn ($b) => $b->where('status', 'AKTIF'))
             ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+            ->where(function ($q) {
+                $q->whereNull('unit_id')->orWhereHas('unit', fn ($u) => $u->where('status', 'AKTIF'));
+            })
+            ->where(function ($q) {
+                $q->whereNull('gudang_id')->orWhereHas('gudang', fn ($g) => $g->where('status', 'AKTIF'));
+            })
             ->orderBy('kode_aset')
             ->get();
-
         // Daftar Teknisi Aktif (murni peran teknisi)
         $daftarTeknisi = User::where('status', 'AKTIF')
             ->whereHas('roles', fn ($r) => $r->where('name', 'teknisi'))

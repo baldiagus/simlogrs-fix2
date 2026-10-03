@@ -15,6 +15,7 @@ use App\Models\Unit;
 use App\Support\Generator\CodeGenerator;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -248,21 +249,34 @@ class PeminjamanAsetIndex extends Component
 
     public function getDaftarBarangAsetTersedia()
     {
-        return Barang::whereHas('aset', function ($q) {
-            $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK')
-                ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
-                    $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
-                });
-        })
-        ->withCount(['aset' => function ($q) {
-            $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK')
-                ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
-                    $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
-                });
-        }])
-        ->with('satuan')
-        ->orderBy('nama')
-        ->get();
+        return Barang::where('status', 'AKTIF')
+            ->whereHas('aset', function ($q) {
+                $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK')
+                    ->where(function ($loc) {
+                        $loc->whereNull('unit_id')->orWhereHas('unit', fn ($u) => $u->where('status', 'AKTIF'));
+                    })
+                    ->where(function ($loc) {
+                        $loc->whereNull('gudang_id')->orWhereHas('gudang', fn ($g) => $g->where('status', 'AKTIF'));
+                    })
+                    ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
+                        $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                    });
+            })
+            ->withCount(['aset' => function ($q) {
+                $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK')
+                    ->where(function ($loc) {
+                        $loc->whereNull('unit_id')->orWhereHas('unit', fn ($u) => $u->where('status', 'AKTIF'));
+                    })
+                    ->where(function ($loc) {
+                        $loc->whereNull('gudang_id')->orWhereHas('gudang', fn ($g) => $g->where('status', 'AKTIF'));
+                    })
+                    ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
+                        $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                    });
+            }])
+            ->with('satuan')
+            ->orderBy('nama')
+            ->get();
     }
 
     public function getPenyediaAsetList(): array
@@ -277,6 +291,12 @@ class PeminjamanAsetIndex extends Component
         $assets = Aset::where('barang_id', $this->selected_barang_id)
             ->where('status', 'TERSEDIA')
             ->where('kondisi', 'BAIK')
+            ->where(function ($loc) {
+                $loc->whereNull('unit_id')->orWhereHas('unit', fn ($u) => $u->where('status', 'AKTIF'));
+            })
+            ->where(function ($loc) {
+                $loc->whereNull('gudang_id')->orWhereHas('gudang', fn ($g) => $g->where('status', 'AKTIF'));
+            })
             ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
                 $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
             })
@@ -288,7 +308,7 @@ class PeminjamanAsetIndex extends Component
         $units = $assets->whereNotNull('unit_id')->groupBy('unit_id');
         foreach ($units as $unitId => $group) {
             $unit = $group->first()->unit;
-            if (! $unit) continue;
+            if (! $unit || $unit->status !== 'AKTIF') continue;
 
             $isOwnUnit = $userUnitId && (int) $userUnitId === (int) $unitId;
 
@@ -309,7 +329,7 @@ class PeminjamanAsetIndex extends Component
         $gudangs = $assets->whereNotNull('gudang_id')->groupBy('gudang_id');
         foreach ($gudangs as $gudangId => $group) {
             $gudang = $group->first()->gudang;
-            if (! $gudang) continue;
+            if (! $gudang || $gudang->status !== 'AKTIF') continue;
 
             $providers[] = [
                 'key'        => "GUDANG_{$gudangId}",
@@ -381,7 +401,7 @@ class PeminjamanAsetIndex extends Component
         }
 
         $rules = [
-            'selected_barang_id'      => 'required|exists:barang,id',
+            'selected_barang_id'      => ['required', Rule::exists('barang', 'id')->where('status', 'AKTIF')],
             'selected_penyedia_key'   => 'required|string',
             'selected_aset_id'        => 'required|exists:aset,id',
             'tanggal_pinjam'          => 'required|date',
@@ -404,12 +424,15 @@ class PeminjamanAsetIndex extends Component
 
         $query = Aset::where('id', $this->selected_aset_id)
             ->where('status', 'TERSEDIA')
-            ->where('kondisi', 'BAIK');
+            ->where('kondisi', 'BAIK')
+            ->whereHas('barang', fn ($b) => $b->where('status', 'AKTIF'));
 
         if ($this->tipe_penyedia === 'RUANGAN') {
-            $query->where('unit_id', $this->unit_penyedia_id);
+            $query->where('unit_id', $this->unit_penyedia_id)
+                ->whereHas('unit', fn ($u) => $u->where('status', 'AKTIF'));
         } else {
-            $query->where('gudang_id', $this->gudang_penyedia_id);
+            $query->where('gudang_id', $this->gudang_penyedia_id)
+                ->whereHas('gudang', fn ($g) => $g->where('status', 'AKTIF'));
         }
 
         $aset = $query->first();
