@@ -8,6 +8,7 @@ use App\Support\Rbac\PagePermissionRegistry;
 use Livewire\Component;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use App\Models\LogAudit;
 
 class RoleManager extends Component
 {
@@ -278,12 +279,39 @@ class RoleManager extends Component
         foreach ($missing as $newPerm) {
             Permission::findOrCreate($newPerm, 'web');
         }
+        $oldPermissions = $role->permissions()->pluck('name')->sort()->values()->toArray();
 
         $role->syncPermissions($permissions);
 
         // Reset cache permission Spatie
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 
+        $newPermissions = collect($permissions)->sort()->values()->toArray();
+        $addedPermissions = array_values(array_diff($newPermissions, $oldPermissions));
+        $removedPermissions = array_values(array_diff($oldPermissions, $newPermissions));
+
+        LogAudit::create([
+            'pengguna_id'     => auth()->id(),
+            'peran_id'        => auth()->user()?->roles?->first()?->id,
+            'referensi_jenis' => 'Role',
+            'referensi_id'    => $role->id,
+            'aksi'            => 'RBAC_MUTATION',
+            'data_sebelum'    => [
+                'role_name'        => $role->name,
+                'permission_count' => count($oldPermissions),
+                'permissions'      => $oldPermissions,
+            ],
+            'data_sesudah'    => [
+                'role_name'        => $role->name,
+                'permission_count' => count($newPermissions),
+                'permissions'      => $newPermissions,
+                'added'            => $addedPermissions,
+                'removed'          => $removedPermissions,
+            ],
+            'ip_address'      => request()->ip(),
+            'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
+            'dibuat_pada'     => now(),
+        ]);
         $this->toast("Wewenang untuk peran '{$role->name}' berhasil diperbarui.", 'success');
     }
 

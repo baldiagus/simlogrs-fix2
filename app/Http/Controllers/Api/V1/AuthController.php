@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use App\Models\LogAudit;
 
 class AuthController extends ApiController
 {
@@ -129,6 +130,27 @@ class AuthController extends ApiController
         $user->update([
             'password'             => Hash::make($request->input('password_baru')),
             'wajib_ganti_password' => false,
+        ]);
+
+        LogAudit::create([
+            'pengguna_id'     => $user->id,
+            'peran_id'        => $user->roles?->first()?->id,
+            'referensi_jenis' => 'User',
+            'referensi_id'    => $user->id,
+            'aksi'            => 'GANTI_PASSWORD',
+            'data_sebelum'    => [
+                'user_id'              => $user->id,
+                'username'             => $user->username,
+                'wajib_ganti_password' => true,
+            ],
+            'data_sesudah'    => [
+                'user_id'              => $user->id,
+                'username'             => $user->username,
+                'wajib_ganti_password' => false,
+            ],
+            'ip_address'      => $request->ip(),
+            'device'          => substr($request->userAgent() ?? 'MobileApp', 0, 255),
+            'dibuat_pada'     => now(),
         ]);
 
         return $this->jsonSuccess([

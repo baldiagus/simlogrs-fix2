@@ -9,6 +9,7 @@ use App\Livewire\Concerns\HasToast;
 use App\Models\Gudang;
 use App\Models\Unit;
 use App\Models\User;
+use App\Models\LogAudit;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -230,6 +231,18 @@ class PenggunaIndex extends Component
                 return;
             }
 
+            $oldData = [
+                'nama'       => $user->nama,
+                'nip'        => $user->nip,
+                'username'   => $user->username,
+                'email'      => $user->email,
+                'no_telepon' => $user->no_telepon,
+                'unit_id'    => $user->unit_id,
+                'gudang_id'  => $user->gudang_id,
+                'status'     => $user->status,
+                'roles'      => $user->getRoleNames()->toArray(),
+            ];
+
             $user->update($payload);
 
             if ($this->status === 'NONAKTIF') {
@@ -237,10 +250,60 @@ class PenggunaIndex extends Component
             }
 
             $user->syncRoles([$this->selectedRole, 'panel_user']);
+
+            $newData = [
+                'nama'       => $user->nama,
+                'nip'        => $user->nip,
+                'username'   => $user->username,
+                'email'      => $user->email,
+                'no_telepon' => $user->no_telepon,
+                'unit_id'    => $user->unit_id,
+                'gudang_id'  => $user->gudang_id,
+                'status'     => $user->status,
+                'roles'      => [$this->selectedRole, 'panel_user'],
+            ];
+
+            LogAudit::create([
+                'pengguna_id'     => auth()->id(),
+                'peran_id'        => auth()->user()?->roles?->first()?->id,
+                'referensi_jenis' => 'User',
+                'referensi_id'    => $user->id,
+                'aksi'            => ($oldData['roles'] !== $newData['roles']) ? 'RBAC_MUTATION' : 'UBAH',
+                'data_sebelum'    => $oldData,
+                'data_sesudah'    => $newData,
+                'ip_address'      => request()->ip(),
+                'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
+                'dibuat_pada'     => now(),
+            ]);
+
             $this->toast("Data pegawai {$user->nama} berhasil diperbarui.", 'success');
         } else {
             $user = User::create($payload);
             $user->assignRole([$this->selectedRole, 'panel_user']);
+
+            LogAudit::create([
+                'pengguna_id'     => auth()->id(),
+                'peran_id'        => auth()->user()?->roles?->first()?->id,
+                'referensi_jenis' => 'User',
+                'referensi_id'    => $user->id,
+                'aksi'            => 'TAMBAH',
+                'data_sebelum'    => null,
+                'data_sesudah'    => [
+                    'nama'       => $user->nama,
+                    'nip'        => $user->nip,
+                    'username'   => $user->username,
+                    'email'      => $user->email,
+                    'no_telepon' => $user->no_telepon,
+                    'unit_id'    => $user->unit_id,
+                    'gudang_id'  => $user->gudang_id,
+                    'status'     => $user->status,
+                    'roles'      => [$this->selectedRole, 'panel_user'],
+                ],
+                'ip_address'      => request()->ip(),
+                'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
+                'dibuat_pada'     => now(),
+            ]);
+
             $this->toast("Akun pegawai {$user->nama} berhasil dibuat.", 'success');
         }
 
@@ -300,6 +363,30 @@ class PenggunaIndex extends Component
 
         // Revoke seluruh token / sesi mobile lama
         $user->tokens()->delete();
+
+        LogAudit::create([
+            'pengguna_id'     => auth()->id(),
+            'peran_id'        => auth()->user()?->roles?->first()?->id,
+            'referensi_jenis' => 'User',
+            'referensi_id'    => $user->id,
+            'aksi'            => 'RESET_PASSWORD',
+            'data_sebelum'    => [
+                'user_id'              => $user->id,
+                'username'             => $user->username,
+                'nama'                 => $user->nama,
+                'wajib_ganti_password' => (bool) $user->wajib_ganti_password,
+            ],
+            'data_sesudah'    => [
+                'user_id'              => $user->id,
+                'username'             => $user->username,
+                'nama'                 => $user->nama,
+                'wajib_ganti_password' => true,
+                'direset_oleh'         => auth()->user()?->username,
+            ],
+            'ip_address'      => request()->ip(),
+            'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
+            'dibuat_pada'     => now(),
+        ]);
 
         // JANGAN tampilkan sandi di Toast! Simpan ke modal aman satu kali tampil
         $this->tempPasswordData = [
@@ -363,12 +450,36 @@ class PenggunaIndex extends Component
             return;
         }
 
+        $oldStatus = $user->status;
         $newStatus = $user->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
         $user->update(['status' => $newStatus]);
 
         if ($newStatus === 'NONAKTIF') {
             $user->tokens()->delete();
         }
+
+        LogAudit::create([
+            'pengguna_id'     => auth()->id(),
+            'peran_id'        => auth()->user()?->roles?->first()?->id,
+            'referensi_jenis' => 'User',
+            'referensi_id'    => $user->id,
+            'aksi'            => 'STATUS_MUTATION',
+            'data_sebelum'    => [
+                'user_id'  => $user->id,
+                'username' => $user->username,
+                'nama'     => $user->nama,
+                'status'   => $oldStatus,
+            ],
+            'data_sesudah'    => [
+                'user_id'  => $user->id,
+                'username' => $user->username,
+                'nama'     => $user->nama,
+                'status'   => $newStatus,
+            ],
+            'ip_address'      => request()->ip(),
+            'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
+            'dibuat_pada'     => now(),
+        ]);
 
         $this->toast("Status akun {$user->nama} diubah menjadi {$newStatus}.", 'info');
     }

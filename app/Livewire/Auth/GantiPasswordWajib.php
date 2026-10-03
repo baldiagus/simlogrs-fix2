@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auth;
 
+use App\Models\LogAudit;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
@@ -65,6 +66,27 @@ class GantiPasswordWajib extends Component
 
         // Revoke seluruh token / sesi mobile lama agar klien login ulang dengan kredensial baru
         $user->tokens()->delete();
+
+        LogAudit::create([
+            'pengguna_id'     => $user->id,
+            'peran_id'        => $user->roles?->first()?->id,
+            'referensi_jenis' => 'User',
+            'referensi_id'    => $user->id,
+            'aksi'            => 'GANTI_PASSWORD',
+            'data_sebelum'    => [
+                'user_id'              => $user->id,
+                'username'             => $user->username,
+                'wajib_ganti_password' => true,
+            ],
+            'data_sesudah'    => [
+                'user_id'              => $user->id,
+                'username'             => $user->username,
+                'wajib_ganti_password' => false,
+            ],
+            'ip_address'      => request()->ip(),
+            'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
+            'dibuat_pada'     => now(),
+        ]);
 
         session()->flash('success', 'Kata sandi Anda berhasil diperbarui. Selamat datang di SIMLOG RS.');
 

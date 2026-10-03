@@ -34,7 +34,10 @@
                     <option value="APPROVE">APPROVE</option>
                     <option value="REJECT">REJECT</option>
                     <option value="ADJUSTMENT">ADJUSTMENT</option>
-                </select>
+                    <option value="RBAC_MUTATION">RBAC_MUTATION (Wewenang / Peran)</option>
+                    <option value="RESET_PASSWORD">RESET_PASSWORD</option>
+                    <option value="STATUS_MUTATION">STATUS_MUTATION (Status Akun)</option>
+                    <option value="GANTI_PASSWORD">GANTI_PASSWORD</option>
             </div>
 
             <div>
@@ -92,13 +95,17 @@
                 @forelse ($items as $item)
                     @php
                         $aksiColor = match($item->aksi) {
-                            'TAMBAH'     => 'emerald',
-                            'UBAH'       => 'blue',
-                            'HAPUS'      => 'rose',
-                            'APPROVE'    => 'emerald',
-                            'REJECT'     => 'rose',
-                            'ADJUSTMENT' => 'amber',
-                            default      => 'zinc',
+                            'TAMBAH'          => 'emerald',
+                            'UBAH'            => 'blue',
+                            'HAPUS'           => 'rose',
+                            'APPROVE'         => 'emerald',
+                            'REJECT'          => 'rose',
+                            'ADJUSTMENT'      => 'amber',
+                            'RBAC_MUTATION'   => 'indigo',
+                            'RESET_PASSWORD'  => 'amber',
+                            'STATUS_MUTATION' => 'orange',
+                            'GANTI_PASSWORD'  => 'emerald',
+                            default           => 'zinc',
                         };
                     @endphp
                     <flux:table.row :key="$item->id">
@@ -181,13 +188,17 @@
                     </div>
                     @php
                         $mColor = match($selectedLog->aksi) {
-                            'TAMBAH'     => 'emerald',
-                            'UBAH'       => 'blue',
-                            'HAPUS'      => 'rose',
-                            'APPROVE'    => 'emerald',
-                            'REJECT'     => 'rose',
-                            'ADJUSTMENT' => 'amber',
-                            default      => 'zinc',
+                            'TAMBAH'          => 'emerald',
+                            'UBAH'            => 'blue',
+                            'HAPUS'           => 'rose',
+                            'APPROVE'         => 'emerald',
+                            'REJECT'          => 'rose',
+                            'ADJUSTMENT'      => 'amber',
+                            'RBAC_MUTATION'   => 'indigo',
+                            'RESET_PASSWORD'  => 'amber',
+                            'STATUS_MUTATION' => 'orange',
+                            'GANTI_PASSWORD'  => 'emerald',
+                            default           => 'zinc',
                         };
                     @endphp
                     <flux:badge size="sm" :color="$mColor">{{ $selectedLog->aksi }}</flux:badge>
