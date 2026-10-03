@@ -109,6 +109,7 @@
                                         :label="$mod['label']"
                                         :description="$permName"
                                         :disabled="! $canManage || $isSuperAdminLocked"
+                                    />
                                 </div>
                             @endforeach
                         </div>
@@ -174,6 +175,7 @@
                                                                 wire:key="role-{{ $selectedRole->id }}-va-{{ $entityKey }}"
                                                                 :disabled="! $canManage || $isSuperAdminLocked"
                                                             />
+                                                        </div>
                                                     </td>
 
                                                     {{-- 2. Tambah Data --}}
@@ -184,6 +186,7 @@
                                                                 wire:key="role-{{ $selectedRole->id }}-c-{{ $entityKey }}"
                                                                 :disabled="! $canManage || $isSuperAdminLocked || ! $hasViewAccess"
                                                             />
+                                                        </div>
                                                     </td>
 
                                                     {{-- 3. Ubah Data --}}
@@ -194,6 +197,7 @@
                                                                 wire:key="role-{{ $selectedRole->id }}-u-{{ $entityKey }}"
                                                                 :disabled="! $canManage || $isSuperAdminLocked || ! $hasViewAccess"
                                                             />
+                                                        </div>
                                                     </td>
 
                                                     {{-- 4. Hapus Data --}}
@@ -204,8 +208,8 @@
                                                                 wire:key="role-{{ $selectedRole->id }}-d-{{ $entityKey }}"
                                                                 :disabled="! $canManage || $isSuperAdminLocked || ! $hasViewAccess"
                                                             />
+                                                        </div>
                                                     </td>
-                                                </tr>
                                             @endforeach
                                         </tbody>
                                     </table>
