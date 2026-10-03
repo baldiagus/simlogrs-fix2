@@ -219,9 +219,9 @@
 
                     <div class="space-y-3 pb-48">
                         @foreach ($itemRows as $idx => $row)
-                            <div wire:key="inbound-item-card-{{ $idx }}" class="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
+                            <div wire:key="inbound-item-card-{{ $idx }}" class="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm relative" style="overflow: visible; z-index: {{ 30 - $idx }};">
                                 {{-- Baris 1: Ringkasan Pesanan (PO) --}}
-                                <div class="px-3 py-2.5 bg-zinc-50/80 dark:bg-zinc-800/40 border-b border-zinc-200/80 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div class="px-3 py-2.5 bg-zinc-50/80 dark:bg-zinc-800/40 border-b border-zinc-200/80 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-t-xl">
                                     <div class="flex items-center gap-2.5">
                                         <div class="size-5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 flex items-center justify-center text-[10px] font-bold shrink-0">
                                             {{ $idx + 1 }}
