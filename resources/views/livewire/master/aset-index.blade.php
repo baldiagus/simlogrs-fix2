@@ -276,8 +276,7 @@
                 </div>
             </div>
 
-            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">Batal</flux:button>
+            <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="save">Simpan Aset</span>
                     <span wire:loading wire:target="save">Menyimpan...</span>
@@ -313,8 +312,7 @@
                     </div>
                 </div>
 
-                <div class="flex justify-center gap-2 pt-2">
-                    <flux:button variant="ghost" wire:click="$set('showQrModal', false)">Tutup</flux:button>
+                <div class="flex justify-center pt-2">
                     <flux:button variant="primary" icon="printer" onclick="window.print()">Cetak Stiker</flux:button>
                 </div>
             </div>
@@ -442,9 +440,6 @@
                         </div>
                     @endif
                 </div>
-                <div class="flex justify-end pt-2">
-                    <flux:button variant="ghost" wire:click="$set('showDetailModal', false)">Tutup</flux:button>
-                </div>
             </div>
         @endif
     </flux:modal>
@@ -559,9 +554,6 @@
                     </div>
                 </div>
 
-                <div class="flex justify-end pt-3 border-t border-zinc-200 dark:border-zinc-800">
-                    <flux:button variant="ghost" wire:click="$set('showSirkulasiModal', false)">Tutup</flux:button>
-                </div>
             </div>
         @endif
     </flux:modal>

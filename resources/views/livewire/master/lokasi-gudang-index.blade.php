@@ -125,8 +125,7 @@
                 @error('status') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
             </div>
 
-            <div class="flex justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">Batal</flux:button>
+            <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="save">Simpan</span>
                     <span wire:loading wire:target="save">Menyimpan...</span>
