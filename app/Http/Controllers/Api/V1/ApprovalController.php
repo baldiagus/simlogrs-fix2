@@ -162,6 +162,21 @@ class ApprovalController extends ApiController
 
         $aksi = $request->input('aksi');
 
+        // Validasi Kepemilikan Unit / Fasilitas (Anti Cross-Unit IDOR/BOLA)
+        if (! $user->hasRole(['super_admin', 'admin_logistik'])) {
+            if ($user->hasRole('kepala_unit')) {
+                if ((int) $user->unit_id !== (int) $pr->unit_id) {
+                    return $this->jsonError('Anda hanya berhak mengesahkan atau menolak permintaan pengadaan dari unit ruangan Anda sendiri.', 403);
+                }
+            }
+
+            if ($user->hasRole('kepala_gudang')) {
+                if ((int) $user->gudang_id !== (int) $pr->gudang_id) {
+                    return $this->jsonError('Anda hanya berhak mengesahkan atau menolak permintaan pengadaan dari fasilitas gudang Anda sendiri.', 403);
+                }
+            }
+        }
+
         if ($aksi === 'serahkan' || $aksi === 'teruskan') {
             if ($pr->status !== 'DISETUJUI' && $pr->status !== PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN) {
                 return $this->jsonError("Hanya PR berstatus DISETUJUI / DITERUSKAN yang dapat diserahkan ke bagian pengadaan (saat ini: {$pr->status}).", 422);
@@ -201,6 +216,10 @@ class ApprovalController extends ApiController
         }
 
         // Tolak
+        if (! $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik']) && $pr->status !== PermintaanPengadaan::STATUS_DIAJUKAN) {
+            return $this->jsonError("Hanya PR berstatus DIAJUKAN yang dapat ditolak pada tingkat ruangan/unit (saat ini: {$pr->status}).", 422);
+        }
+
         $catatanTolak = $request->input('catatan') ?? $pr->catatan;
         if ($user->hasRole('pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik'])) {
             $catatanTolak = '[Ditolak Pengadaan]: ' . ($request->input('catatan') ?? 'Tidak memenuhi kriteria belanja/katalog');
