@@ -114,6 +114,14 @@ class PenerimaanPoIndex extends Component
                 }
                 if (empty($row['lokasi_gudang_id'])) {
                     $customErrors["itemRows.{$idx}.lokasi_gudang_id"] = "Lokasi rak simpan wajib dipilih.";
+                } else {
+                    $isRackValid = LokasiGudang::where('id', $row['lokasi_gudang_id'])
+                        ->where('gudang_id', $this->gudang_id)
+                        ->exists();
+
+                    if (! $isRackValid) {
+                        $customErrors["itemRows.{$idx}.lokasi_gudang_id"] = "Rak yang dipilih bukan bagian dari fasilitas gudang penerima ini.";
+                    }
                 }
             }
         }

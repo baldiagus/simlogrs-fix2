@@ -468,10 +468,37 @@ class GudangApiController extends ApiController
         if (! in_array($po->status, ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])) {
             return $this->jsonError("PO {$po->kode} belum dikirim oleh vendor atau tidak dalam status dapat diterima (saat ini: {$po->status}).", 422);
         }
-        $firstRackId = $request->input('items')[0]['lokasi_gudang_id'] ?? null;
-        $gudangId = $user->gudang_id ?? ($firstRackId ? \App\Models\LokasiGudang::where('id', $firstRackId)->value('gudang_id') : null) ?? \App\Models\Gudang::where('status', 'AKTIF')->value('id');
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
+        $gudangId = $user->gudang_id;
+
+        if (! $gudangId) {
+            if ($isGlobalAdmin) {
+                $firstRackId = $request->input('items')[0]['lokasi_gudang_id'] ?? null;
+                $gudangId = $request->input('gudang_id')
+                    ?? ($firstRackId ? \App\Models\LokasiGudang::where('id', $firstRackId)->value('gudang_id') : null)
+                    ?? \App\Models\Gudang::where('status', 'AKTIF')->value('id');
+            } else {
+                return $this->jsonError('Akun Anda belum memiliki penugasan fasilitas gudang penerima resmi.', 403);
+            }
+        }
+
         if (! $gudangId) {
             return $this->jsonError('Fasilitas gudang penerima tidak valid atau belum ditentukan.', 422);
+        }
+
+        // M-04: Validasi bahwa setiap lokasi_gudang_id (rak) benar-benar berada di dalam $gudangId
+        $itemRackIds = collect($request->input('items'))->pluck('lokasi_gudang_id')->filter()->unique()->toArray();
+        $invalidRacks = \App\Models\LokasiGudang::whereIn('id', $itemRackIds)
+            ->where('gudang_id', '!=', $gudangId)
+            ->with('gudang:id,nama')
+            ->get();
+
+        if ($invalidRacks->isNotEmpty()) {
+            $daftarRakInvalid = $invalidRacks->map(fn ($r) => "{$r->kode} ({$r->nama}) di {$r->gudang?->nama}")->implode(', ');
+
+            return $this->jsonError("Alokasi rak tidak valid: Rak [{$daftarRakInvalid}] bukan bagian dari fasilitas gudang penerima yang ditugaskan.", 422, [
+                'lokasi_gudang_id' => ['Rak penyimpanan fisik wajib berada di dalam fasilitas gudang penerima yang sama.'],
+            ]);
         }
         $hasReceived = false;
         foreach ($request->input('items') as $row) {
