@@ -61,6 +61,7 @@
             this.search = '';
         }
     }"
+    x-effect="options = {{ Js::from($normalizedOptions) }}"
     class="relative w-full"
     @click.outside="open = false; search = ''"
     @keydown.escape.window="open = false; search = ''"
@@ -150,7 +151,7 @@
         </div>
 
         {{-- Options Scroll Area --}}
-        <div class="max-h-56 overflow-y-auto p-1 text-xs">
+        <div class="max-h-56 overflow-y-auto p-1 text-xs" wire:ignore>
             <template x-for="item in filteredOptions" :key="item.value">
                 <div
                     @click="select(item.value)"
