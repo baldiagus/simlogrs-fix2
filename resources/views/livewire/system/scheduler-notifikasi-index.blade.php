@@ -63,15 +63,14 @@
 
             <div class="pt-3 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button
-                    wire:click="triggerSweepExpired"
-                    wire:confirm="Jalankan pemindaian kedaluwarsa sekarang? Seluruh batch persediaan di gudang yang telah melewati tanggal kedaluwarsa akan langsung dikunci statusnya menjadi KEDALUWARSA (dilarang alokasi FEFO)."
+                    wire:click="confirmSweepExpired"
                     variant="filled"
                     size="sm"
                     icon="arrow-path"
                     class="w-full justify-center text-xs font-semibold"
                     wire:loading.attr="disabled"
                 >
-                    <span wire:loading.remove wire:target="triggerSweepExpired">Jalankan Sweep Kedaluwarsa</span>
+                    <span wire:loading.remove wire:target="triggerSweepExpired,confirmSweepExpired">Jalankan Sweep Kedaluwarsa</span>
                     <span wire:loading wire:target="triggerSweepExpired">Menjalankan...</span>
                 </flux:button>
             </div>
@@ -123,15 +122,14 @@
 
             <div class="pt-3 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button
-                    wire:click="triggerAlertOverdue"
-                    wire:confirm="Jalankan pemeriksaan keterlambatan peminjaman aset sekarang? Notifikasi peringatan akan langsung diterbitkan kepada staf peminjam dan kepala unit penanggung jawab."
+                    wire:click="confirmAlertOverdue"
                     variant="filled"
                     size="sm"
                     icon="bell-alert"
                     class="w-full justify-center text-xs font-semibold"
                     wire:loading.attr="disabled"
                 >
-                    <span wire:loading.remove wire:target="triggerAlertOverdue">Jalankan Cek Overdue</span>
+                    <span wire:loading.remove wire:target="triggerAlertOverdue,confirmAlertOverdue">Jalankan Cek Overdue</span>
                     <span wire:loading wire:target="triggerAlertOverdue">Memeriksa...</span>
                 </flux:button>
             </div>
@@ -179,15 +177,14 @@
 
             <div class="pt-3 border-t border-zinc-100 dark:border-zinc-800">
                 <flux:button
-                    wire:click="triggerGeneratePreventive"
-                    wire:confirm="Jalankan penerbitan tiket servis preventif sekarang? Jadwal pemeliharaan berkala aktif yang telah jatuh tempo akan langsung dibuatkan tiket SPK resmi."
+                    wire:click="confirmGeneratePreventive"
                     variant="filled"
                     size="sm"
                     icon="wrench"
                     class="w-full justify-center text-xs font-semibold"
                     wire:loading.attr="disabled"
                 >
-                    <span wire:loading.remove wire:target="triggerGeneratePreventive">Generate Tiket Preventif</span>
+                    <span wire:loading.remove wire:target="triggerGeneratePreventive,confirmGeneratePreventive">Generate Tiket Preventif</span>
                     <span wire:loading wire:target="triggerGeneratePreventive">Menerbitkan...</span>
                 </flux:button>
             </div>
@@ -253,4 +250,12 @@
             </table>
         </div>
     </flux:card>
+
+    {{-- Modal Konfirmasi Aksi Scheduler --}}
+    <x-confirm-modal
+        :title="$confirmTitle"
+        :description="$confirmDescription"
+        :confirmText="$confirmButtonText"
+        :variant="$confirmButtonVariant"
+    />
 </div>

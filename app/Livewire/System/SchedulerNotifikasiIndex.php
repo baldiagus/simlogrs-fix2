@@ -2,6 +2,7 @@
 
 namespace App\Livewire\System;
 
+use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasToast;
 use App\Models\Notifikasi;
@@ -11,7 +12,7 @@ use Livewire\Component;
 
 class SchedulerNotifikasiIndex extends Component
 {
-    use HasPortalLayout, HasToast;
+    use HasPortalLayout, HasToast, HasConfirmationModal;
 
     public bool $isProcessing = false;
 
@@ -34,6 +35,41 @@ class SchedulerNotifikasiIndex extends Component
             auth()->user()?->can('page_SuperAdminDashboard'),
             403,
             'Akses ditolak: Anda tidak memiliki wewenang mengelola Task Scheduler.'
+        );
+    }
+    public function confirmSweepExpired(): void
+    {
+        $this->askConfirmation(
+            target: null,
+            action: 'triggerSweepExpired',
+            title: 'Konfirmasi Sweep Kedaluwarsa',
+            description: 'Jalankan pemindaian kedaluwarsa sekarang? Seluruh batch persediaan di gudang yang telah melewati tanggal kedaluwarsa akan langsung dikunci statusnya menjadi KEDALUWARSA (dilarang alokasi FEFO).',
+            buttonText: 'Ya, Jalankan Sweep',
+            variant: 'primary'
+        );
+    }
+
+    public function confirmAlertOverdue(): void
+    {
+        $this->askConfirmation(
+            target: null,
+            action: 'triggerAlertOverdue',
+            title: 'Konfirmasi Cek Overdue Pinjaman',
+            description: 'Jalankan pemeriksaan keterlambatan peminjaman aset sekarang? Notifikasi lonceng internal akan langsung diterbitkan kepada staf peminjam dan kepala unit penanggung jawab.',
+            buttonText: 'Ya, Jalankan Cek',
+            variant: 'primary'
+        );
+    }
+
+    public function confirmGeneratePreventive(): void
+    {
+        $this->askConfirmation(
+            target: null,
+            action: 'triggerGeneratePreventive',
+            title: 'Konfirmasi Generate Preventif',
+            description: 'Jalankan penerbitan tiket servis preventif sekarang? Jadwal pemeliharaan berkala aktif yang telah jatuh tempo akan langsung dibuatkan tiket SPK resmi.',
+            buttonText: 'Ya, Generate Tiket',
+            variant: 'primary'
         );
     }
 
