@@ -8,7 +8,7 @@ use Spatie\Permission\Models\Permission;
 class PagePermissionRegistry
 {
     /**
-     * Definisi 7 domain fungsional dan 58 modul sistem.
+     * Definisi 8 domain fungsional dan 58 modul sistem.
      */
     public static function getDomains(): array
     {
@@ -102,20 +102,27 @@ class PagePermissionRegistry
                 ],
             ],
 
-            'audit_manajemen' => [
-                'label' => 'Tata Kelola, Audit & Diagnostik Sistem',
-                'deskripsi' => 'Pengawasan SPI, forensik log, CAPA, dan manajemen sistem',
+            'audit_spi' => [
+                'label' => 'Audit Internal & Pengawasan (SPI)',
+                'deskripsi' => 'Pengawasan kepatuhan, forensik log, selisih opname, dan CAPA',
                 'modules' => [
-                    'audit_manajemen::audit::trail' => ['label' => 'Forensik Digital Audit Trail', 'entity' => 'audit_manajemen::audit::trail', 'page' => 'page_AuditTrailIndex'],
-                    'audit_manajemen::selisih::opname' => ['label' => 'Pemeriksaan Selisih Opname', 'entity' => 'audit_manajemen::selisih::opname', 'page' => 'page_PemeriksaanSelisihOpnameIndex'],
+                    'audit_manajemen::audit::trail'        => ['label' => 'Forensik Digital Audit Trail', 'entity' => 'audit_manajemen::audit::trail', 'page' => 'page_AuditTrailIndex'],
+                    'audit_manajemen::selisih::opname'      => ['label' => 'Pemeriksaan Selisih Opname', 'entity' => 'audit_manajemen::selisih::opname', 'page' => 'page_PemeriksaanSelisihOpnameIndex'],
                     'audit_manajemen::kepatuhan::pengadaan' => ['label' => 'Audit Kepatuhan PO vs PR', 'entity' => 'audit_manajemen::kepatuhan::pengadaan', 'page' => 'page_AuditKepatuhanPengadaanIndex'],
-                    'audit_manajemen::mutasi::distribusi' => ['label' => 'Audit Mutasi SPPB vs RCV', 'entity' => 'audit_manajemen::mutasi::distribusi', 'page' => 'page_AuditMutasiDistribusiIndex'],
-                    'audit_manajemen::temuan::capa' => ['label' => 'Register Temuan Audit & CAPA', 'entity' => 'audit_manajemen::temuan::capa', 'page' => 'page_RegisterTemuanCapaIndex'],
-                    'user::pengguna' => ['label' => 'Manajemen Akun Pengguna', 'entity' => 'user::pengguna', 'page' => 'page_PenggunaIndex'],
-                    'user::role' => ['label' => 'Manajemen Peran & Hak Akses (RBAC)', 'entity' => 'user::role', 'page' => 'page_RoleManager'],
+                    'audit_manajemen::mutasi::distribusi'   => ['label' => 'Audit Mutasi SPPB vs RCV', 'entity' => 'audit_manajemen::mutasi::distribusi', 'page' => 'page_AuditMutasiDistribusiIndex'],
+                    'audit_manajemen::temuan::capa'         => ['label' => 'Register Temuan Audit & CAPA', 'entity' => 'audit_manajemen::temuan::capa', 'page' => 'page_RegisterTemuanCapaIndex'],
+                ],
+            ],
+
+            'system_admin' => [
+                'label' => 'Tata Kelola Sistem & Konfigurasi (IT)',
+                'deskripsi' => 'Manajemen akun pengguna, matriks peran RBAC, parameter, dan cron task',
+                'modules' => [
+                    'user::pengguna'     => ['label' => 'Manajemen Akun Pengguna', 'entity' => 'user::pengguna', 'page' => 'page_PenggunaIndex'],
+                    'user::role'         => ['label' => 'Manajemen Peran & Hak Akses (RBAC)', 'entity' => 'user::role', 'page' => 'page_RoleManager'],
                     'system::pengaturan' => ['label' => 'Parameter Sistem & Konfigurasi', 'entity' => 'system::pengaturan', 'page' => 'page_PengaturanSistemIndex'],
-                    'system::kesehatan' => ['label' => 'Diagnostik Kesehatan Sistem', 'entity' => 'system::kesehatan', 'page' => 'page_KesehatanSistemIndex'],
-                    'system::scheduler' => ['label' => 'Pengendali Task Scheduler & Cron', 'entity' => 'system::scheduler', 'page' => 'page_SchedulerNotifikasiIndex'],
+                    'system::kesehatan'  => ['label' => 'Diagnostik Kesehatan Sistem', 'entity' => 'system::kesehatan', 'page' => 'page_KesehatanSistemIndex'],
+                    'system::scheduler'  => ['label' => 'Pengendali Task Scheduler & Cron', 'entity' => 'system::scheduler', 'page' => 'page_SchedulerNotifikasiIndex'],
                 ],
             ],
         ];
