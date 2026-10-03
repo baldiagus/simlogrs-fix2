@@ -219,6 +219,10 @@ class ApprovalController extends ApiController
         if (! $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik']) && $pr->status !== PermintaanPengadaan::STATUS_DIAJUKAN) {
             return $this->jsonError("Hanya PR berstatus DIAJUKAN yang dapat ditolak pada tingkat ruangan/unit (saat ini: {$pr->status}).", 422);
         }
+        if ($user->hasRole('pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik']) && $pr->status !== PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN) {
+            return $this->jsonError("Bagian Pengadaan hanya berhak menolak PR yang telah diteruskan ke pengadaan (saat ini: {$pr->status}).", 422);
+        }
+
 
         $catatanTolak = $request->input('catatan') ?? $pr->catatan;
         if ($user->hasRole('pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik'])) {

@@ -805,10 +805,10 @@ class AsetApiController extends ApiController
 
         $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
         if (! $isGlobalAdmin) {
-            if ($pinjam->tipe_penyedia === 'RUANGAN' && (int) $user->unit_id !== (int) $pinjam->unit_penyedia_id) {
+            if ($pinjam->tipe_penyedia === 'RUANGAN' && (! $user->unit_id || (int) $user->unit_id !== (int) $pinjam->unit_penyedia_id)) {
                 return $this->jsonError('Anda tidak memiliki wewenang menyerahkan aset dari ruangan penyedia ini.', 403);
             }
-            if ($pinjam->tipe_penyedia === 'GUDANG' && (int) $user->gudang_id !== (int) $pinjam->gudang_penyedia_id) {
+            if ($pinjam->tipe_penyedia === 'GUDANG' && (! $user->gudang_id || (int) $user->gudang_id !== (int) $pinjam->gudang_penyedia_id)) {
                 return $this->jsonError('Anda tidak memiliki wewenang menyerahkan aset dari gudang penyedia ini.', 403);
             }
         }
@@ -817,9 +817,15 @@ class AsetApiController extends ApiController
             $service->serahTerimaFisik($pinjam, $user);
 
             return $this->jsonSuccess([
-                'kode'   => $pinjam->kode,
-                'status' => 'DIPINJAM',
-            ], "Serah terima fisik berhasil. Aset resmi berstatus DIPINJAM oleh {$pinjam->unitPeminjam?->nama}.");
+                'kode'            => $pinjam->kode,
+                'status'          => 'DIPINJAM',
+                'diserahkan_oleh' => [
+                    'id'       => $user->id,
+                    'nama'     => $user->nama,
+                    'nip'      => $user->nip,
+                    'username' => $user->username,
+                ],
+            ], "Serah terima fisik berhasil dicatat oleh {$user->nama}. Aset resmi berstatus DIPINJAM oleh {$pinjam->unitPeminjam?->nama}.");
         } catch (Exception $e) {
             return $this->jsonError($e->getMessage(), 422);
         }

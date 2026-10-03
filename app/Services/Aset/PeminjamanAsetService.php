@@ -26,11 +26,14 @@ class PeminjamanAsetService
             throw new Exception("Permintaan {$pinjam->kode} belum disetujui atau sudah diproses.");
         }
 
-        DB::transaction(function () use ($pinjam) {
-            $pinjam->update([
-                'status' => 'DIPINJAM',
-            ]);
+        DB::transaction(function () use ($pinjam, $actor) {
+            $catatanHandover = '[Serah Terima Fisik ' . now()->format('d/m/Y H:i') . " WIB]: Diserahkan oleh {$actor->nama} (NIP: " . ($actor->nip ?: '-') . ", User: {$actor->username})";
+            $catatanBaru = trim(($pinjam->catatan ? $pinjam->catatan . "\n" : '') . $catatanHandover);
 
+            $pinjam->update([
+                'status'  => 'DIPINJAM',
+                'catatan' => $catatanBaru,
+            ]);
             foreach ($pinjam->detail as $detail) {
                 // Kunci aset dengan pessimistic locking
                 $aset = Aset::where('id', $detail->aset_id)->lockForUpdate()->first();
@@ -53,6 +56,12 @@ class PeminjamanAsetService
                     'unit_id'          => $pinjam->unit_id,
                     'gudang_id'        => null,
                     'lokasi_gudang_id' => null,
+                ]);
+
+                // Catat jejak staf pelaksana pada detail peminjaman
+                $logDetail = '[Diserahkan oleh: ' . $actor->nama . ' (' . $actor->username . ')]';
+                $detail->update([
+                    'catatan' => trim(($detail->catatan ? $detail->catatan . ' ' : '') . $logDetail),
                 ]);
             }
         });
