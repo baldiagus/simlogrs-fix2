@@ -8,11 +8,9 @@
             </div>
 
             @can('create_gudang_stok::penerimaan::po')
-                <flux:modal.trigger name="modal-pilih-po">
-                    <flux:button variant="primary" icon="plus" wire:loading.attr="disabled">
-                        Terima PO
-                    </flux:button>
-                </flux:modal.trigger>
+                <flux:button href="{{ '/' . $this->getPortalName() . '/tracking-po' }}" wire:navigate variant="primary" icon="inbox-arrow-down">
+                    Penerimaan di Tracking PO
+                </flux:button>
             @endcan
         </div>
 
@@ -111,38 +109,6 @@
         <x-table-pagination :paginator="$items" />
     </flux:card>
 
-    {{-- Modal Pilih PO --}}
-    <flux:modal name="modal-pilih-po" class="md:w-[36rem]">
-        <div class="space-y-4">
-            <div>
-                <flux:heading size="lg">Pilih PO untuk Diterima</flux:heading>
-                <flux:subheading>Pilih Purchase Order yang barangnya akan diterima.</flux:subheading>
-            </div>
-
-            @if ($daftarPo->isEmpty())
-                <div class="py-8 text-center text-sm text-zinc-500">
-                    Tidak ada PO dengan status DIKIRIM VENDOR atau DITERIMA SEBAGIAN.
-                </div>
-            @else
-                <div class="space-y-2">
-                    @foreach ($daftarPo as $poItem)
-                        <button
-                            type="button"
-                            wire:click="terima({{ $poItem->id }})"
-                            x-on:click="$flux.modal('modal-pilih-po').close()"
-                            class="w-full flex items-center justify-between p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors text-left"
-                        >
-                            <div>
-                                <div class="font-mono font-semibold text-sm">{{ $poItem->kode }}</div>
-                                <div class="text-xs text-zinc-500">{{ $poItem->pemasok?->nama ?? '-' }} &bull; {{ $poItem->tanggal_po?->format('d/m/Y') }}</div>
-                            </div>
-                            <x-status-badge :status="$poItem->status" />
-                        </button>
-                    @endforeach
-                </div>
-            @endif
-        </div>
-    </flux:modal>
 
     {{-- Modal Form Penerimaan --}}
     <flux:modal wire:model="showModal" class="w-full max-w-5xl" style="max-height: 88vh; overflow-y: auto;">

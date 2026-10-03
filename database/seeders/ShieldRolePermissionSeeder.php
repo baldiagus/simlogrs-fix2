@@ -81,6 +81,8 @@ class ShieldRolePermissionSeeder extends Seeder
             '%_gudang_stok::%',
             '%_layanan_unit::%',
             '%_pengadaan::permintaan::pengadaan%',
+            'view_any_pengadaan::tracking::po',
+            'view_pengadaan::tracking::po',
         ]);
 
         // 6. Role: kepala_gudang
@@ -95,6 +97,8 @@ class ShieldRolePermissionSeeder extends Seeder
             'view_any_layanan_unit::peminjaman::aset%',
             'view_layanan_unit::peminjaman::aset%',
             '%_pengadaan::permintaan::pengadaan%',
+            'view_any_pengadaan::tracking::po',
+            'view_pengadaan::tracking::po',
         ]);
 
         // 7. Role: petugas_gudang
@@ -111,8 +115,9 @@ class ShieldRolePermissionSeeder extends Seeder
             'view_gudang_stok::buku::mutasi',
             'view_any_master::%',
             'view_master::%',
+            'view_any_pengadaan::tracking::po',
+            'view_pengadaan::tracking::po',
         ]);
-
         // 8. Role: pengadaan
         $givePermissions('pengadaan', [
             'page_PengadaanDashboard',

@@ -274,7 +274,6 @@ class PenerimaanPoIndex extends Component
             ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
-        $daftarPo = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])->get();
         $daftarGudang = Gudang::where('status', 'AKTIF')->orderBy('nama')->get();
         $daftarLokasiGudang = $this->gudang_id
             ? LokasiGudang::where('gudang_id', $this->gudang_id)->where('status', 'AKTIF')->orderBy('nama')->get()
@@ -282,7 +281,6 @@ class PenerimaanPoIndex extends Component
 
         return view('livewire.pengadaan.penerimaan-po-index', [
             'items'              => $items,
-            'daftarPo'           => $daftarPo,
             'daftarGudang'       => $daftarGudang,
             'daftarLokasiGudang' => $daftarLokasiGudang,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Penerimaan Barang (Inbound)']);
