@@ -858,14 +858,18 @@ class AsetApiController extends ApiController
             return $this->jsonError("Peminjaman {$pinjam->kode} tidak dalam status aktif dipinjam (saat ini: {$pinjam->status}).", 422);
         }
 
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('manajemen');
-        $isPenyedia = ($pinjam->tipe_penyedia === 'RUANGAN' && (int) $user->unit_id === (int) $pinjam->unit_penyedia_id)
-            || ($pinjam->tipe_penyedia === 'GUDANG' && (int) $user->gudang_id === (int) $pinjam->gudang_penyedia_id);
-        $isPeminjam = ((int) $user->unit_id === (int) $pinjam->unit_id)
-            || ((int) $user->id === (int) $pinjam->diajukan_oleh);
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
+        $isPenyedia = ($pinjam->tipe_penyedia === 'RUANGAN' && $user->unit_id && (int) $user->unit_id === (int) $pinjam->unit_penyedia_id)
+            || ($pinjam->tipe_penyedia === 'GUDANG' && $user->gudang_id && (int) $user->gudang_id === (int) $pinjam->gudang_penyedia_id);
 
-        if (! $isGlobalAdmin && ! $isPenyedia && ! $isPeminjam) {
-            return $this->jsonError('Anda tidak memiliki wewenang untuk memproses pengembalian peminjaman aset ini.', 403);
+        if (! $isGlobalAdmin && ! $isPenyedia) {
+            $isPeminjam = ((int) $user->unit_id === (int) $pinjam->unit_id)
+                || ((int) $user->id === (int) $pinjam->diajukan_oleh);
+            if ($isPeminjam) {
+                return $this->jsonError('Peminjam tidak berwenang melakukan inspeksi fisik pengembalian aset. Pemeriksaan fisik wajib dilakukan oleh unit penyedia pemilik aset untuk menghindari konflik kepentingan.', 403);
+            }
+
+            return $this->jsonError('Hanya ruangan atau fasilitas gudang penyedia pemilik aset yang berhak memproses inspeksi dan pengembalian fisik aset.', 403);
         }
         $inspeksi = $request->input('inspeksi');
         foreach ($inspeksi as &$row) {

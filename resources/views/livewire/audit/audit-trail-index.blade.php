@@ -38,6 +38,7 @@
                     <option value="RESET_PASSWORD">RESET_PASSWORD</option>
                     <option value="STATUS_MUTATION">STATUS_MUTATION (Status Akun)</option>
                     <option value="GANTI_PASSWORD">GANTI_PASSWORD</option>
+                </select>
             </div>
 
             <div>
