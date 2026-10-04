@@ -88,6 +88,14 @@ class BarangIndex extends Component
     {
         $this->resetPage();
     }
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->filterTipe = '';
+        $this->filterKategoriId = null;
+        $this->filterStatus = '';
+        $this->resetPage();
+    }
 
     public function showDetail(int $id): void
     {

@@ -47,31 +47,44 @@
         </div>
 
         {{-- Toolbar Filter & Pencarian GIN Trigram --}}
-        <div class="flex flex-wrap items-center gap-3">
-            <div class="w-full sm:w-80">
-                <flux:input
-                    wire:model.live.debounce.300ms="search"
-                    placeholder="Cari nama barang atau kode..."
-                    icon="magnifying-glass"
-                    clearable
-                />
-            </div>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-3 flex-1">
+                <div class="w-full sm:w-80">
+                    <flux:input
+                        wire:model.live.debounce.300ms="search"
+                        placeholder="Cari nama barang atau kode..."
+                        icon="magnifying-glass"
+                        clearable
+                    />
+                </div>
 
-            <div class="w-full sm:w-56">
-                <select wire:model.live="filterKategoriId" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
-                    <option value="">Semua Kategori</option>
-                    @foreach ($daftarKategori as $kat)
-                        <option value="{{ $kat->id }}">{{ $kat->nama }}</option>
-                    @endforeach
-                </select>
-            </div>
+                <div class="w-full sm:w-56">
+                    <select wire:model.live="filterKategoriId" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
+                        <option value="">Semua Kategori</option>
+                        @foreach ($daftarKategori as $kat)
+                            <option value="{{ $kat->id }}">{{ $kat->nama }}</option>
+                        @endforeach
+                    </select>
+                </div>
 
-            <div class="w-full sm:w-36">
-                <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
-                    <option value="">Semua Status</option>
-                    <option value="AKTIF">AKTIF</option>
-                    <option value="NONAKTIF">NONAKTIF</option>
-                </select>
+                <div class="w-full sm:w-36">
+                    <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
+                        <option value="">Semua Status</option>
+                        <option value="AKTIF">AKTIF</option>
+                        <option value="NONAKTIF">NONAKTIF</option>
+                    </select>
+                </div>
+
+                @if ($search || $filterKategoriId || $filterStatus || $filterTipe)
+                    <flux:button
+                        wire:click="resetFilters"
+                        size="sm"
+                        variant="subtle"
+                        icon="x-mark"
+                    >
+                        Reset Filter
+                    </flux:button>
+                @endif
             </div>
         </div>
 
@@ -79,73 +92,91 @@
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
                 <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-28">Kode</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'nama'" :direction="$sortDirection" wire:click="sort('nama')">Nama Komoditas</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'tipe'" :direction="$sortDirection" wire:click="sort('tipe')">Tipe</flux:table.column>
-                <flux:table.column>Kategori & Satuan</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'titik_pesan'" :direction="$sortDirection" wire:click="sort('titik_pesan')" class="text-right">Titik Pesan (ROP)</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'harga_beli_terakhir'" :direction="$sortDirection" wire:click="sort('harga_beli_terakhir')" class="text-right">Harga Beli Terakhir</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'nama'" :direction="$sortDirection" wire:click="sort('nama')" class="w-72">Nama Komoditas</flux:table.column>
+                <flux:table.column class="w-44">Kategori</flux:table.column>
+                <flux:table.column class="w-20">Satuan</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'titik_pesan'" :direction="$sortDirection" wire:click="sort('titik_pesan')" class="text-right w-24">Titik Pesan</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'harga_beli_terakhir'" :direction="$sortDirection" wire:click="sort('harga_beli_terakhir')" class="text-right w-32">Harga Terakhir</flux:table.column>
                 <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-24">Status</flux:table.column>
-                <flux:table.column class="text-right w-28">Aksi</flux:table.column>
+                <flux:table.column class="text-right w-16">Aksi</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
                 @forelse ($items as $item)
                     <flux:table.row :key="$item->id">
-                        <flux:table.cell class="font-mono font-semibold text-xs">{{ $item->kode }}</flux:table.cell>
-                        <flux:table.cell>
-                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->nama }}</div>
+                        <flux:table.cell class="font-mono font-semibold text-xs text-zinc-900 dark:text-zinc-100">{{ $item->kode }}</flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
+                            <button
+                                type="button"
+                                wire:click="showDetail({{ $item->id }})"
+                                class="text-left font-medium text-xs text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2"
+                                title="Klik untuk melihat detail lengkap"
+                            >
+                                {{ $item->nama }}
+                            </button>
                             @if ($item->merek)
-                                <div class="text-[11px] text-zinc-500 dark:text-zinc-400">Merek: {{ $item->merek->nama }}</div>
+                                <div class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">Merek: {{ $item->merek->nama }}</div>
                             @endif
                         </flux:table.cell>
-                        <flux:table.cell>
-                            @php
-                            $tipeColor = match($item->tipe) {
-                                'HABIS_PAKAI' => 'blue',
-                                'ASET' => 'indigo',
-                                'SPAREPART' => 'violet',
-                                default => 'zinc',
-                            };
-                            @endphp
-                            <flux:badge size="sm" :color="$tipeColor">
-                                {{ str_replace('_', ' ', $item->tipe) }}
-                            </flux:badge>
+                        <flux:table.cell style="white-space: normal;">
+                            <div class="text-xs text-zinc-800 dark:text-zinc-200">{{ $item->kategori?->nama ?? '-' }}</div>
+                            @if (! $filterTipe)
+                                @php
+                                $tipeColor = match($item->tipe) {
+                                    'HABIS_PAKAI' => 'blue',
+                                    'ASET' => 'indigo',
+                                    'SPAREPART' => 'violet',
+                                    default => 'zinc',
+                                };
+                                @endphp
+                                <div class="mt-0.5">
+                                    <flux:badge size="xs" :color="$tipeColor">
+                                        {{ str_replace('_', ' ', $item->tipe) }}
+                                    </flux:badge>
+                                </div>
+                            @endif
                         </flux:table.cell>
-                        <flux:table.cell>
-                            <div class="text-xs font-medium text-zinc-800 dark:text-zinc-200">{{ $item->kategori?->nama ?? '-' }}</div>
-                            <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">Satuan: {{ $item->satuan?->nama ?? '-' }} ({{ $item->satuan?->simbol ?? $item->satuan?->kode ?? '-' }})</div>
+                        <flux:table.cell class="w-20">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                                {{ $item->satuan?->simbol ?? $item->satuan?->nama ?? '-' }}
+                            </span>
                         </flux:table.cell>
-                        <flux:table.cell class="text-right font-mono text-xs tabular-nums">
+                        <flux:table.cell class="text-right font-mono text-xs tabular-nums w-24">
                             @if($item->titik_pesan > 0)
                                 <span class="font-semibold text-amber-600 dark:text-amber-400">{{ number_format($item->titik_pesan, 0, ',', '.') }}</span>
                             @else
                                 <span class="text-zinc-400 dark:text-zinc-500 italic font-sans">-</span>
                             @endif
-                            <div class="text-[10px] text-zinc-500 dark:text-zinc-400">
-                                Min: {{ $item->stok_minimum > 0 ? number_format($item->stok_minimum, 0, ',', '.') : '-' }}
-                                | Max: {{ $item->stok_maksimum > 0 ? number_format($item->stok_maksimum, 0, ',', '.') : '-' }}
-                            </div>
                         </flux:table.cell>
-                        <flux:table.cell class="text-right font-mono text-xs tabular-nums">
+                        <flux:table.cell class="text-right font-mono text-xs tabular-nums w-32">
                             <x-rupiah :value="$item->harga_beli_terakhir" class="font-semibold text-zinc-900 dark:text-zinc-100" />
-                            @if ($item->harga_estimasi > 0 && $item->harga_estimasi != $item->harga_beli_terakhir)
-                                <div class="text-[10px] text-zinc-500 dark:text-zinc-400">Est: Rp {{ number_format($item->harga_estimasi, 0, ',', '.') }}</div>
-                            @endif
                         </flux:table.cell>
-                        <flux:table.cell class="text-center">
+                        <flux:table.cell class="text-center w-24">
                             <x-status-badge :status="$item->status" />
                         </flux:table.cell>
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail" />
-                                @can('update_master::barang')
-                                    <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
-                                    <flux:button wire:click="confirmToggleStatus({{ $item->id }})" size="xs" variant="ghost" icon="arrow-path" title="Ubah Status" />
-                                @endcan
-                                @can('delete_master::barang')
-                                    <flux:button wire:click="confirmDelete({{ $item->id }})" size="xs" variant="ghost" icon="trash" class="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40" title="Hapus Data" />
-                                @endcan
-                            </div>
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-40">
+                                    <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
+                                        Detail Komoditas
+                                    </flux:menu.item>
+                                    @can('update_master::barang')
+                                        <flux:menu.item wire:click="edit({{ $item->id }})" icon="pencil-square">
+                                            Ubah Data
+                                        </flux:menu.item>
+                                        <flux:menu.item wire:click="confirmToggleStatus({{ $item->id }})" icon="arrow-path">
+                                            {{ $item->status === 'AKTIF' ? 'Nonaktifkan' : 'Aktifkan' }}
+                                        </flux:menu.item>
+                                    @endcan
+                                    @can('delete_master::barang')
+                                        <flux:menu.separator />
+                                        <flux:menu.item wire:click="confirmDelete({{ $item->id }})" icon="trash" variant="danger">
+                                            Hapus Data
+                                        </flux:menu.item>
+                                    @endcan
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
