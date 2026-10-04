@@ -8,6 +8,8 @@ use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\PermintaanPeminjaman;
 use App\Services\Aset\PeminjamanAsetService;
+use App\Models\Aset;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -35,12 +37,12 @@ class ApprovalPeminjamanIndex extends Component
         abort_unless(
             $user && (
                 $user->can('page_ApprovalPeminjamanIndex') ||
-                $user->can('layanan_unit::approval::karu') ||
+                $user->can('update_layanan_unit::approval::peminjaman') ||
+                $user->can('view_any_layanan_unit::approval::peminjaman') ||
+                $user->can('update_layanan_unit::approval::karu') ||
                 $user->can('view_any_layanan_unit::approval::karu') ||
-                $user->can('view_layanan_unit::approval::karu') ||
-                $user->can('layanan_unit::peminjaman::aset') ||
-                $user->can('view_layanan_unit::peminjaman::aset') ||
                 $user->can('view_any_layanan_unit::peminjaman::aset') ||
+                $user->can('update_layanan_unit::peminjaman::aset') ||
                 $user->can('page_Dashboard') ||
                 $user->can('page_AdminLogistikDashboard') ||
                 $user->can('page_SuperAdminDashboard')
@@ -198,32 +200,40 @@ class ApprovalPeminjamanIndex extends Component
      */
     public function approve(int $id): void
     {
-        $pinjam = PermintaanPeminjaman::findOrFail($id);
-        $this->authorizeAction($pinjam);
+        $user = auth()->user();
 
-        if ($pinjam->status !== 'DIAJUKAN') {
-            $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat disetujui.', 'danger');
-            return;
-        }
+        DB::transaction(function () use ($id, $user) {
+            $pinjam = PermintaanPeminjaman::lockForUpdate()->with('detail')->findOrFail($id);
+            $this->authorizeAction($pinjam);
 
-        // Kunci integritas: periksa apakah ada aset di permohonan ini yang sudah disetujui/dipinjam pada transaksi lain
-        $asetIds = $pinjam->detail->pluck('aset_id')->filter();
-        $konflik = PermintaanPeminjaman::whereIn('status', ['DISETUJUI', 'DIPINJAM'])
-            ->where('id', '!=', $pinjam->id)
-            ->whereHas('detail', fn ($d) => $d->whereIn('aset_id', $asetIds))
-            ->first();
+            if ($pinjam->status !== 'DIAJUKAN') {
+                $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat disetujui.', 'danger');
+                return;
+            }
 
-        if ($konflik) {
-            $this->toast("Aset pada permohonan ini telah disetujui atau sedang aktif dipinjam pada transaksi {$konflik->kode}.", 'danger');
-            return;
-        }
+            // Kunci integritas: periksa apakah ada aset di permohonan ini yang sudah disetujui/dipinjam pada transaksi lain
+            $asetIds = $pinjam->detail->pluck('aset_id')->filter();
 
-        $pinjam->update([
-            'status'         => 'DISETUJUI',
-            'disetujui_oleh' => auth()->id(),
-        ]);
+            // Kunci baris aset fisik untuk mencegah race condition / double approval
+            Aset::whereIn('id', $asetIds)->lockForUpdate()->get();
 
-        $this->toast("Permintaan pinjam {$pinjam->kode} telah disetujui, siap serah terima fisik.", 'success');
+            $konflik = PermintaanPeminjaman::whereIn('status', ['DISETUJUI', 'DIPINJAM'])
+                ->where('id', '!=', $pinjam->id)
+                ->whereHas('detail', fn ($d) => $d->whereIn('aset_id', $asetIds))
+                ->first();
+
+            if ($konflik) {
+                $this->toast("Aset pada permohonan ini telah disetujui atau sedang aktif dipinjam pada transaksi {$konflik->kode}.", 'danger');
+                return;
+            }
+
+            $pinjam->update([
+                'status'         => 'DISETUJUI',
+                'disetujui_oleh' => $user?->id,
+            ]);
+
+            $this->toast("Permintaan pinjam {$pinjam->kode} telah disetujui, siap serah terima fisik.", 'success');
+        });
     }
 
     /**

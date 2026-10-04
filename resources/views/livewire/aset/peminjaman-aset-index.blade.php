@@ -205,7 +205,11 @@
                                         <flux:menu.item wire:click="openDetail({{ $item->id }})" icon="eye">
                                             Detail Pinjam
                                         </flux:menu.item>
-
+                                        @php
+                                            $canSerahTerima = $isGlobalAdmin ||
+                                                ($item->tipe_penyedia === 'RUANGAN' && (int) $userUnitId === (int) $item->unit_penyedia_id) ||
+                                                ($item->tipe_penyedia === 'GUDANG' && (int) $userGudangId === (int) $item->gudang_penyedia_id);
+                                        @endphp
                                         @if ($item->status === 'DISETUJUI' && $canSerahTerima)
                                             <flux:menu.item wire:click="confirmSerahTerima({{ $item->id }})" icon="arrow-right-start-on-rectangle">
                                                 Serah Terima

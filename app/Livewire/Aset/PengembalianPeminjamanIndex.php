@@ -280,7 +280,11 @@ class PengembalianPeminjamanIndex extends Component
         $this->checkAccess();
 
         $user = auth()->user();
-
+        $isGlobalAdmin = (bool) ($user && (
+            $user->can('page_Dashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_SuperAdminDashboard')
+        ));
         // Kueri peminjaman aktif berstatus DIPINJAM
         $activeLoansQuery = PermintaanPeminjaman::query()
             ->with([
@@ -352,6 +356,7 @@ class PengembalianPeminjamanIndex extends Component
             'pageTitle'           => $this->pageTitle,
             'sortBy'              => $this->sortBy,
             'sortDirection'       => $this->sortDirection,
+            'isGlobalAdmin'       => $isGlobalAdmin,
         ])->layout('layouts.portal', [
             'portal' => $this->getPortalName(),
             'title'  => $this->pageTitle,

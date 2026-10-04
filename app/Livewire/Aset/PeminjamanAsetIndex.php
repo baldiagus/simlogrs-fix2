@@ -231,6 +231,9 @@ class PeminjamanAsetIndex extends Component
                 ->where('unit_id', $id)
                 ->where('status', 'TERSEDIA')
                 ->where('kondisi', 'BAIK')
+                ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
+                    $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                })
                 ->first();
             $this->selected_aset_id = $aset?->id;
         } else {
@@ -242,11 +245,13 @@ class PeminjamanAsetIndex extends Component
                 ->where('gudang_id', $id)
                 ->where('status', 'TERSEDIA')
                 ->where('kondisi', 'BAIK')
+                ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
+                    $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                })
                 ->first();
             $this->selected_aset_id = $aset?->id;
         }
     }
-
     public function getDaftarBarangAsetTersedia()
     {
         return Barang::where('status', 'AKTIF')
@@ -532,6 +537,17 @@ class PeminjamanAsetIndex extends Component
         ]);
 
         $pinjam = PermintaanPeminjaman::findOrFail($this->perpanjangId);
+        $user = auth()->user();
+        $isGlobalAdmin = $user && (
+            $user->can('page_Dashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_SuperAdminDashboard') ||
+            $user->can('manage_all')
+        );
+
+        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $pinjam->unit_id) {
+            abort(403, 'Anda tidak berwenang memperpanjang permohonan peminjaman dari unit lain.');
+        }
 
         if ($this->tanggal_kembali_baru <= $pinjam->tanggal_pinjam->toDateString()) {
             $this->addError('tanggal_kembali_baru', 'Tanggal kembali baru harus lebih lambat dari tanggal pinjam.');
@@ -580,6 +596,18 @@ class PeminjamanAsetIndex extends Component
         if ($pinjam->status !== 'DIAJUKAN') {
             $this->toast('Hanya peminjaman berstatus DIAJUKAN yang dapat dibatalkan.', 'error');
             return;
+        }
+
+        $user = auth()->user();
+        $isGlobalAdmin = $user && (
+            $user->can('page_Dashboard') ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_SuperAdminDashboard') ||
+            $user->can('manage_all')
+        );
+
+        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $pinjam->unit_id) {
+            abort(403, 'Anda tidak berwenang membatalkan permohonan peminjaman dari unit lain.');
         }
 
         $pinjam->update([

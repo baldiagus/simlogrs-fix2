@@ -121,11 +121,17 @@ class PeminjamanAsetService
                 ];
 
                 if ($pinjam->tipe_penyedia === 'GUDANG') {
-                    $updateData['unit_id']   = null;
-                    $updateData['gudang_id'] = $pinjam->gudang_penyedia_id;
+                    $defaultRackId = \App\Models\LokasiGudang::where('gudang_id', $pinjam->gudang_penyedia_id)
+                        ->where('status', 'AKTIF')
+                        ->value('id');
+
+                    $updateData['unit_id']          = null;
+                    $updateData['gudang_id']        = $pinjam->gudang_penyedia_id;
+                    $updateData['lokasi_gudang_id'] = $defaultRackId;
                 } else {
-                    $updateData['unit_id']   = $pinjam->unit_penyedia_id;
-                    $updateData['gudang_id'] = null;
+                    $updateData['unit_id']          = $pinjam->unit_penyedia_id;
+                    $updateData['gudang_id']        = null;
+                    $updateData['lokasi_gudang_id'] = null;
                 }
 
                 $aset->update($updateData);
@@ -134,7 +140,7 @@ class PeminjamanAsetService
                     $prioritas = $kondisi === 'RUSAK_BERAT' ? 'CITO' : 'SEDANG';
                     $kodeMnt = CodeGenerator::generate('MNT', PermintaanMaintenance::class, 'kode', 'Ym', 3);
 
-                    $ownerUnitId = $pinjam->tipe_penyedia === 'RUANGAN' ? $pinjam->unit_penyedia_id : $pinjam->unit_id;
+                    $ownerUnitId = $pinjam->tipe_penyedia === 'RUANGAN' ? $pinjam->unit_penyedia_id : null;
                     PermintaanMaintenance::create([
                         'kode'                              => $kodeMnt,
                         'aset_id'                           => $aset->id,

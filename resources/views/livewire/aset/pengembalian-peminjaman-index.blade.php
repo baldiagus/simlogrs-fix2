@@ -89,16 +89,29 @@
                         </flux:table.cell>
 
                         {{-- Tombol Aksi: Proses Pengembalian --}}
+                        @php
+                            $user = auth()->user();
+                            $isProvider = $isGlobalAdmin ||
+                                ($pinjam->tipe_penyedia === 'RUANGAN' && (int) $user?->unit_id === (int) $pinjam->unit_penyedia_id) ||
+                                ($pinjam->tipe_penyedia === 'GUDANG' && (int) $user?->gudang_id === (int) $pinjam->gudang_penyedia_id);
+                        @endphp
+                        {{-- Tombol Aksi: Proses Pengembalian --}}
                         <flux:table.cell class="text-right">
-                            <flux:button
-                                size="sm"
-                                class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold shadow-xs inline-flex items-center gap-1.5"
-                                wire:click="openPengembalianModal({{ $pinjam->id }})"
-                                wire:loading.attr="disabled"
-                            >
-                                <flux:icon name="arrow-uturn-left" class="size-3.5" />
-                                <span>Proses Pengembalian</span>
-                            </flux:button>
+                            @if ($isProvider)
+                                <flux:button
+                                    size="sm"
+                                    class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold shadow-xs inline-flex items-center gap-1.5"
+                                    wire:click="openPengembalianModal({{ $pinjam->id }})"
+                                    wire:loading.attr="disabled"
+                                >
+                                    <flux:icon name="arrow-uturn-left" class="size-3.5" />
+                                    <span>Proses Pengembalian</span>
+                                </flux:button>
+                            @else
+                                <span class="text-[11px] text-zinc-500 italic">
+                                    Serahkan ke Penyedia
+                                </span>
+                            @endif
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
