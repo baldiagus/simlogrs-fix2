@@ -92,6 +92,7 @@
                 <flux:table.column class="w-40">Periode Pinjam</flux:table.column>
                 <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-28">Status</flux:table.column>
                 <flux:table.column class="text-right w-16">Aksi</flux:table.column>
+            </flux:table.columns>
 
             <flux:table.rows>
                 @forelse ($daftarPermintaan as $item)

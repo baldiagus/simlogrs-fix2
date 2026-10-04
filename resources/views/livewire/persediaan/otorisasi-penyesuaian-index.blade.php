@@ -51,6 +51,7 @@
                 <flux:table.column class="w-48">Alasan / Justifikasi</flux:table.column>
                 <flux:table.column class="text-center w-28">Status</flux:table.column>
                 <flux:table.column class="text-right w-16">Aksi</flux:table.column>
+            </flux:table.columns>
 
             <flux:table.rows>
                 @forelse ($items as $adj)
