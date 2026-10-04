@@ -172,14 +172,18 @@ class PenerimaanPoIndex extends Component
                     continue;
                 }
 
+                $netReceived = max(0, (int) ($row['jumlah_diterima'] ?? 0) - (int) ($row['jumlah_rusak'] ?? 0));
                 $poDetail = $po->detail->firstWhere('id', $row['po_detail_id']);
-                if ($poDetail) {
-                    $poDetail->increment('jumlah_diterima', $row['jumlah_diterima']);
+                if ($poDetail && $netReceived > 0) {
+                    $poDetail->increment('jumlah_diterima', $netReceived);
                 }
+                $verifiedPrice = $poDetail && (float) $poDetail->harga_satuan > 0
+                    ? (float) $poDetail->harga_satuan
+                    : (float) ($row['harga_satuan'] ?? 0);
 
-                if ((float) $row['harga_satuan'] > 0) {
+                if ($verifiedPrice > 0) {
                     Barang::where('id', $row['barang_id'])->update([
-                        'harga_beli_terakhir' => $row['harga_satuan'],
+                        'harga_beli_terakhir' => $verifiedPrice,
                     ]);
                 }
             }
@@ -211,6 +215,11 @@ class PenerimaanPoIndex extends Component
 
                 $netReceived = $row['jumlah_diterima'] - $row['jumlah_rusak'];
 
+                $poDetail = $po->detail->firstWhere('id', $row['po_detail_id']);
+                $verifiedPrice = $poDetail && (float) $poDetail->harga_satuan > 0
+                    ? (float) $poDetail->harga_satuan
+                    : (float) ($row['harga_satuan'] ?? 0);
+
                 PenerimaanBarangDetail::create([
                     'penerimaan_barang_id' => $penerimaan->id,
                     'barang_id'            => $row['barang_id'],
@@ -219,7 +228,7 @@ class PenerimaanPoIndex extends Component
                     'tanggal_kedaluwarsa'  => $row['tanggal_kedaluwarsa'] ?: null,
                     'jumlah_diterima'      => $row['jumlah_diterima'],
                     'jumlah_rusak'         => $row['jumlah_rusak'],
-                    'harga_satuan'         => $row['harga_satuan'],
+                    'harga_satuan'         => $verifiedPrice,
                 ]);
 
                 if ($netReceived > 0) {
@@ -230,7 +239,7 @@ class PenerimaanPoIndex extends Component
                         'nomor_batch'         => $row['nomor_batch'],
                         'tanggal_kedaluwarsa' => $row['tanggal_kedaluwarsa'] ?: null,
                         'jumlah'              => $netReceived,
-                        'harga_satuan'        => $row['harga_satuan'],
+                        'harga_satuan'        => $verifiedPrice,
                         'status'              => 'AKTIF',
                     ]);
 

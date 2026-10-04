@@ -164,21 +164,21 @@ class PermintaanPengadaanIndex extends Component
         }
 
         // Pengguna dengan akses admin global dapat mengotorisasi seluruh PR
-        if ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard')) {
+        if ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik'])) {
             return true;
         }
 
-        // Kepala Ruangan / Unit hanya boleh otorisasi unit miliknya
-        if ($user->unit_id && $item->unit_id && (int) $user->unit_id !== (int) $item->unit_id) {
-            return false;
+        // Kepala Ruangan / Unit hanya boleh otorisasi jika unit_id cocok
+        if ($item->unit_id) {
+            return (int) $user->unit_id === (int) $item->unit_id;
         }
 
-        // Kepala Gudang hanya boleh otorisasi gudang miliknya jika PR diajukan untuk gudang
-        if ($user->gudang_id && $item->gudang_id && (int) $user->gudang_id !== (int) $item->gudang_id) {
-            return false;
+        // Kepala Gudang hanya boleh otorisasi jika gudang_id cocok
+        if ($item->gudang_id) {
+            return (int) $user->gudang_id === (int) $item->gudang_id;
         }
 
-        return true;
+        return false;
     }
 
     public function confirmApprove(int $id): void
@@ -292,6 +292,14 @@ class PermintaanPengadaanIndex extends Component
 
         if ($pr->status !== PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN) {
             $this->toast('Hanya PR berstatus DITERUSKAN KE PENGADAAN yang dapat ditolak oleh bagian pengadaan.', 'danger');
+            return;
+        }
+
+        $hasPo = \App\Models\PesananPembelian::where('permintaan_pengadaan_id', $id)
+            ->where('status', '!=', 'DIBATALKAN')
+            ->exists();
+        if ($hasPo) {
+            $this->toast('PR ini sudah diproses ke Pesanan Pembelian (PO) aktif dan tidak dapat ditolak.', 'danger');
             return;
         }
 

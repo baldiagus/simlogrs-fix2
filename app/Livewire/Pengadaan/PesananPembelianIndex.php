@@ -62,6 +62,18 @@ class PesananPembelianIndex extends Component
 
         $pr = PermintaanPengadaan::with('detail.barang')->findOrFail($prId);
 
+        if ($pr->status !== PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN) {
+            $this->toast("Hanya PR berstatus DITERUSKAN KE PENGADAAN yang dapat dikonversi (saat ini: {$pr->status}).", 'danger');
+            return;
+        }
+
+        $alreadyHasPo = PesananPembelian::where('permintaan_pengadaan_id', $prId)
+            ->where('status', '!=', 'DIBATALKAN')
+            ->exists();
+        if ($alreadyHasPo) {
+            $this->toast('Permintaan Pengadaan ini sudah memiliki PO aktif.', 'danger');
+            return;
+        }
         $this->reset(['pemasok_id', 'estimasi_tanggal_kirim', 'catatan', 'itemRows']);
         $this->prId = $pr->id;
         $this->syarat_pembayaran = 'TEMPO_30_HARI';
@@ -97,6 +109,15 @@ class PesananPembelianIndex extends Component
     public function savePo(): void
     {
         abort_unless(auth()->user()?->can('create_pengadaan::pesanan::pembelian'), 403);
+        if ($this->prId) {
+            $alreadyHasPo = PesananPembelian::where('permintaan_pengadaan_id', $this->prId)
+                ->where('status', '!=', 'DIBATALKAN')
+                ->exists();
+            if ($alreadyHasPo) {
+                $this->toast('Permintaan Pengadaan ini sudah pernah diterbitkan menjadi Pesanan Pembelian (PO).', 'danger');
+                return;
+            }
+        }
 
         $this->validate([
             'pemasok_id'            => 'required|exists:pemasok,id',
@@ -104,16 +125,20 @@ class PesananPembelianIndex extends Component
             'syarat_pembayaran'     => 'required|in:TEMPO_30_HARI,TEMPO_60_HARI,TUNAI',
             'catatan'               => 'nullable|string|max:1000',
             'itemRows'              => 'required|array|min:1',
+            'itemRows.*.barang_id'  => 'required|exists:barang,id',
+            'itemRows.*.jumlah'     => 'required|integer|min:1',
             'itemRows.*.harga_satuan' => 'required|numeric|min:0',
         ], [
             'pemasok_id.required'        => 'Pemasok / vendor rekanan wajib dipilih.',
             'syarat_pembayaran.required' => 'Syarat termin pembayaran wajib ditentukan.',
+            'itemRows.*.jumlah.required' => 'Kuantitas barang wajib diisi.',
+            'itemRows.*.jumlah.min'      => 'Kuantitas barang minimal 1 unit.',
             'itemRows.*.harga_satuan.required' => 'Harga satuan barang wajib diisi.',
             'itemRows.*.harga_satuan.min'      => 'Harga satuan tidak boleh bernilai negatif.',
         ]);
 
         DB::transaction(function () {
-            $totalBiaya = collect($this->itemRows)->sum('subtotal');
+            $totalBiaya = collect($this->itemRows)->sum(fn ($r) => (int) $r['jumlah'] * (float) $r['harga_satuan']);
 
             $po = PesananPembelian::create([
                 'kode'                    => $this->kode ?: CodeGenerator::generatePo(),
@@ -135,6 +160,12 @@ class PesananPembelianIndex extends Component
                     'jumlah_dipesan'       => $row['jumlah'],
                     'harga_satuan'         => $row['harga_satuan'],
                     'subtotal'             => $row['subtotal'],
+                ]);
+            }
+
+            if ($this->prId) {
+                PermintaanPengadaan::where('id', $this->prId)->update([
+                    'status' => PermintaanPengadaan::STATUS_DIPROSES,
                 ]);
             }
         });

@@ -60,8 +60,8 @@ class MasterRekananIndex extends Component
 
     public function render()
     {
-        $query = Pemasok::withCount('pesananPembelian')
-            ->withSum('pesananPembelian', 'total_biaya');
+        $query = Pemasok::withCount(['pesananPembelian' => fn ($q) => $q->where('status', '!=', 'DIBATALKAN')])
+            ->withSum(['pesananPembelian' => fn ($q) => $q->where('status', '!=', 'DIBATALKAN')], 'total_biaya');
 
         if (! empty($this->search)) {
             $query->where(function ($q) {

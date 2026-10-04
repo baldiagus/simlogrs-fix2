@@ -30,8 +30,9 @@
                     <option value="">Semua Status</option>
                     <option value="{{ \App\Models\PermintaanPengadaan::STATUS_DIAJUKAN }}">{{ \App\Models\PermintaanPengadaan::STATUS_DIAJUKAN }}</option>
                     <option value="{{ \App\Models\PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN }}">DITERUSKAN KE PENGADAAN</option>
+                    <option value="{{ \App\Models\PermintaanPengadaan::STATUS_DIPROSES }}">DIPROSES (PO)</option>
+                    <option value="{{ \App\Models\PermintaanPengadaan::STATUS_SELESAI }}">SELESAI</option>
                     <option value="{{ \App\Models\PermintaanPengadaan::STATUS_DITOLAK }}">{{ \App\Models\PermintaanPengadaan::STATUS_DITOLAK }}</option>
-                </select>
             </div>
 
             <div class="w-full sm:w-40">
