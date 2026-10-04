@@ -63,12 +63,12 @@
         @if ($activeTab === 'siap-picking')
             <flux:table bleed container:class="mt-4">
                 <flux:table.columns sticky>
-                    <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-36">Kode Amprah</flux:table.column>
-                    <flux:table.column>Unit</flux:table.column>
-                    <flux:table.column sortable :sorted="$sortBy === 'tanggal_permintaan'" :direction="$sortDirection" wire:click="sort('tanggal_permintaan')">Tanggal</flux:table.column>
-                    <flux:table.column sortable :sorted="$sortBy === 'urgensi'" :direction="$sortDirection" wire:click="sort('urgensi')">Urgensi</flux:table.column>
-                    <flux:table.column>Item</flux:table.column>
-                    <flux:table.column class="text-right w-44">Aksi</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-32">Kode Amprah</flux:table.column>
+                    <flux:table.column class="w-48">Unit</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'tanggal_permintaan'" :direction="$sortDirection" wire:click="sort('tanggal_permintaan')" class="w-28">Tanggal</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'urgensi'" :direction="$sortDirection" wire:click="sort('urgensi')" class="text-center w-24">Urgensi</flux:table.column>
+                    <flux:table.column class="w-56">Item</flux:table.column>
+                    <flux:table.column class="text-right w-36">Aksi</flux:table.column>
                 </flux:table.columns>
 
                 <flux:table.rows>
@@ -78,8 +78,8 @@
                                 {{ $item->kode }}
                             </flux:table.cell>
 
-                            <flux:table.cell>
-                                <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->unit?->nama ?? '-' }}</div>
+                            <flux:table.cell style="white-space: normal;">
+                                <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">{{ $item->unit?->nama ?? '-' }}</div>
                                 <div class="text-[11px] text-zinc-500 dark:text-zinc-400">Gudang: {{ $item->gudang?->nama ?? '-' }}</div>
                             </flux:table.cell>
 
@@ -91,10 +91,10 @@
                                 <x-urgency-badge :urgency="$item->urgensi" />
                             </flux:table.cell>
 
-                            <flux:table.cell>
+                            <flux:table.cell style="white-space: normal;">
                                 <div class="text-xs">
                                     <span class="font-semibold text-zinc-800 dark:text-zinc-200">{{ $item->detail_count ?? $item->detail->count() }} item</span>
-                                    <div class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate max-w-xs">
+                                    <div class="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-1" title="{{ $item->detail->map(fn ($d) => ($d->barang?->nama ?? 'Barang') . ' (' . ($d->jumlah_disetujui ?: $d->jumlah) . ' ' . ($d->barang?->satuan?->simbol ?? $d->barang?->satuan?->nama ?? 'unit') . ')')->implode(', ') }}">
                                         {{ $item->detail->map(fn ($d) => ($d->barang?->nama ?? 'Barang') . ' (' . ($d->jumlah_disetujui ?: $d->jumlah) . ' ' . ($d->barang?->satuan?->simbol ?? $d->barang?->satuan?->nama ?? 'unit') . ')')->implode(', ') }}
                                     </div>
                                 </div>

@@ -56,12 +56,12 @@
         @if ($activeTab === 'antrean')
             <flux:table bleed container:class="mt-4">
                 <flux:table.columns sticky>
-                    <flux:table.column class="w-36">No. Tiket</flux:table.column>
-                    <flux:table.column>Sarana / Alat Rusak</flux:table.column>
-                    <flux:table.column>Unit Pelapor</flux:table.column>
-                    <flux:table.column class="text-center w-28">Urgensi</flux:table.column>
-                    <flux:table.column>Keluhan Ruangan</flux:table.column>
-                    <flux:table.column class="text-right w-40">Aksi</flux:table.column>
+                    <flux:table.column class="w-32">No. Tiket</flux:table.column>
+                    <flux:table.column class="w-56">Sarana / Alat Rusak</flux:table.column>
+                    <flux:table.column class="w-40">Unit Pelapor</flux:table.column>
+                    <flux:table.column class="text-center w-24">Urgensi</flux:table.column>
+                    <flux:table.column class="w-56">Keluhan Ruangan</flux:table.column>
+                    <flux:table.column class="text-right w-36">Aksi</flux:table.column>
                 </flux:table.columns>
 
                 <flux:table.rows>
@@ -83,8 +83,7 @@
                                 </div>
                             </flux:table.cell>
 
-                            {{-- Sarana / Alat --}}
-                            <flux:table.cell>
+                            <flux:table.cell style="white-space: normal;">
                                 <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">
                                     {{ $tiket->aset?->barang?->nama ?? '-' }}
                                 </div>
@@ -97,7 +96,7 @@
                             </flux:table.cell>
 
                             {{-- Unit Pelapor --}}
-                            <flux:table.cell>
+                            <flux:table.cell style="white-space: normal;">
                                 <div class="text-xs font-medium text-zinc-800 dark:text-zinc-200">
                                     {{ $tiket->unit?->nama ?? '-' }}
                                 </div>
@@ -148,13 +147,13 @@
             {{-- TAB 2: Daftar SPK Terbit & Riwayat --}}
             <flux:table bleed container:class="mt-4">
                 <flux:table.columns sticky>
-                    <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-36">No. SPK</flux:table.column>
-                    <flux:table.column>Ref Tiket & Alat</flux:table.column>
-                    <flux:table.column>Teknisi Pelaksana</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-32">No. SPK</flux:table.column>
+                    <flux:table.column class="w-56">Ref Tiket & Alat</flux:table.column>
+                    <flux:table.column class="w-36">Teknisi</flux:table.column>
                     <flux:table.column sortable :sorted="$sortBy === 'tanggal_penugasan'" :direction="$sortDirection" wire:click="sort('tanggal_penugasan')" class="w-28">Tgl Tugas</flux:table.column>
                     <flux:table.column class="w-28">Target</flux:table.column>
-                    <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-32">Status</flux:table.column>
-                    <flux:table.column class="text-right w-44">Aksi</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-28">Status</flux:table.column>
+                    <flux:table.column class="text-right w-36">Aksi</flux:table.column>
                 </flux:table.columns>
 
                 <flux:table.rows>
@@ -169,14 +168,13 @@
                             </flux:table.cell>
 
                             {{-- Ref Tiket & Alat --}}
-                            <flux:table.cell>
+                            <flux:table.cell style="white-space: normal;">
                                 <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">
                                     {{ $spk->permintaanMaintenance?->aset?->barang?->nama ?? '-' }}
                                 </div>
                                 <div class="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 mt-0.5">
                                     Ref: {{ $spk->permintaanMaintenance?->kode ?? '-' }} &bull; {{ $spk->permintaanMaintenance?->unit?->nama ?? '-' }}
                                 </div>
-                                @if ($spk->permintaanMaintenance?->foto_kerusakan)
                                     <div class="mt-1 flex items-center gap-1.5">
                                         <a href="{{ asset('storage/' . $spk->permintaanMaintenance->foto_kerusakan) }}" target="_blank" class="block rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden hover:opacity-80">
                                             <img src="{{ asset('storage/' . $spk->permintaanMaintenance->foto_kerusakan) }}" alt="Foto" class="h-6 w-6 object-cover" />

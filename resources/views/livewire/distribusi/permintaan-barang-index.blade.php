@@ -44,36 +44,43 @@
                     <option value="CITO">CITO (Darurat)</option>
                 </select>
             </div>
+            @if ($search || $filterStatus || $filterUrgensi)
+                <flux:button
+                    wire:click="resetFilters"
+                    size="sm"
+                    variant="subtle"
+                    icon="x-mark"
+                >
+                    Reset Filter
+                </flux:button>
+            @endif
         </div>
 
         {{-- Tabel Permintaan Amprah --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
                 <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-36">Kode Amprah</flux:table.column>
-                <flux:table.column>Unit Pemohon</flux:table.column>
-                <flux:table.column>Gudang Tujuan</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'tanggal_permintaan'" :direction="$sortDirection" wire:click="sort('tanggal_permintaan')">Tanggal</flux:table.column>
-                <flux:table.column>Urgensi</flux:table.column>
-                <flux:table.column class="text-center">Jml Item</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-40">Status</flux:table.column>
-                <flux:table.column class="text-right w-28">Aksi</flux:table.column>
+                <flux:table.column class="w-64">Unit Pemohon & Tujuan</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'tanggal_permintaan'" :direction="$sortDirection" wire:click="sort('tanggal_permintaan')" class="w-28">Tanggal</flux:table.column>
+                <flux:table.column class="w-28 text-center">Urgensi</flux:table.column>
+                <flux:table.column class="text-center w-24">Jml Item</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-36">Status</flux:table.column>
+                <flux:table.column class="text-right w-16">Aksi</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
                 @forelse ($daftarPermintaan as $item)
                     <flux:table.row :key="$item->id">
                         <flux:table.cell class="font-mono font-semibold text-xs text-zinc-900 dark:text-zinc-100">
-                            {{ $item->kode }}
+                            <button type="button" wire:click="showDetail({{ $item->id }})" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                {{ $item->kode }}
+                            </button>
                         </flux:table.cell>
 
-                        <flux:table.cell>
-                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->unit?->nama ?? '-' }}</div>
+                        <flux:table.cell style="white-space: normal;">
+                            <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">{{ $item->unit?->nama ?? '-' }}</div>
+                            <div class="text-[11px] text-zinc-500 dark:text-zinc-400">Tujuan: {{ $item->gudang?->nama ?? '-' }}</div>
                         </flux:table.cell>
-
-                        <flux:table.cell>
-                            <div class="text-xs text-zinc-700 dark:text-zinc-300">{{ $item->gudang?->nama ?? '-' }}</div>
-                        </flux:table.cell>
-
                         <flux:table.cell class="text-xs tabular-nums text-zinc-600 dark:text-zinc-400">
                             {{ $item->tanggal_permintaan?->format('d/m/Y') }}
                         </flux:table.cell>
@@ -90,26 +97,25 @@
                             <x-status-badge :status="$item->status" />
                         </flux:table.cell>
 
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail" />
-
-                                @if ($item->status === 'DIAJUKAN' && ($isGlobalAdmin || (int) $userUnitId === (int) $item->unit_id))
-                                    <flux:button
-                                        wire:click="confirmBatal({{ $item->id }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="x-mark"
-                                        title="Batalkan Permintaan"
-                                        class="text-rose-600 hover:text-rose-700"
-                                        wire:loading.attr="disabled"
-                                    />
-                                @endif
-                            </div>
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
+                                        Detail Amprah
+                                    </flux:menu.item>
+                                    @if ($item->status === 'DIAJUKAN' && ($isGlobalAdmin || (int) $userUnitId === (int) $item->unit_id))
+                                        <flux:menu.separator />
+                                        <flux:menu.item wire:click="confirmBatal({{ $item->id }})" icon="x-mark" variant="danger">
+                                            Batalkan Permintaan
+                                        </flux:menu.item>
+                                    @endif
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada data permintaan amprah ruangan." cols="8" />
+                    <x-empty-state message="Belum ada data permintaan amprah ruangan." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>

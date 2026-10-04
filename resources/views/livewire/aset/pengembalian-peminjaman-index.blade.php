@@ -24,13 +24,13 @@
         {{-- Tabel Transaksi Peminjaman Aktif --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
-                <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-36">Kode PINJ</flux:table.column>
-                <flux:table.column>Peminjam</flux:table.column>
-                <flux:table.column>Penyedia</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-32">Kode PINJ</flux:table.column>
+                <flux:table.column class="w-44">Peminjam</flux:table.column>
+                <flux:table.column class="w-44">Penyedia</flux:table.column>
                 <flux:table.column sortable :sorted="$sortBy === 'tanggal_pinjam'" :direction="$sortDirection" wire:click="sort('tanggal_pinjam')" class="w-28">Tgl Pinjam</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'tanggal_kembali_rencana'" :direction="$sortDirection" wire:click="sort('tanggal_kembali_rencana')" class="w-36">Batas Kembali</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'tanggal_kembali_rencana'" :direction="$sortDirection" wire:click="sort('tanggal_kembali_rencana')" class="w-32">Batas Kembali</flux:table.column>
                 <flux:table.column class="text-center w-24">Jml Aset</flux:table.column>
-                <flux:table.column class="text-right w-44">Aksi</flux:table.column>
+                <flux:table.column class="text-right w-40">Aksi</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
@@ -48,13 +48,13 @@
                         </flux:table.cell>
 
                         {{-- Unit Peminjam --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             <div class="font-medium text-zinc-900 dark:text-zinc-100 text-xs">{{ $pinjam->unitPeminjam?->nama ?? '-' }}</div>
-                            <div class="text-xs text-zinc-500 dark:text-zinc-400">Pengaju: {{ $pinjam->pengaju?->nama ?? '-' }}</div>
+                            <div class="text-[11px] text-zinc-500 dark:text-zinc-400">Pengaju: {{ $pinjam->pengaju?->nama ?? '-' }}</div>
                         </flux:table.cell>
 
                         {{-- Unit / Gudang Penyedia --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             @if ($pinjam->tipe_penyedia === 'GUDANG')
                                 <div class="text-xs font-medium text-zinc-800 dark:text-zinc-200">{{ $pinjam->gudangPenyedia?->nama ?? '-' }}</div>
                                 <span class="text-[10px] text-zinc-500 font-medium">(Gudang Sentral)</span>
@@ -120,14 +120,14 @@
 
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
-                <flux:table.column class="w-36">Kode RTN</flux:table.column>
-                <flux:table.column class="w-36">Ref PINJ</flux:table.column>
+                <flux:table.column class="w-32">Kode RTN</flux:table.column>
+                <flux:table.column class="w-28">Ref PINJ</flux:table.column>
                 <flux:table.column class="w-28">Tgl Aktual</flux:table.column>
-                <flux:table.column>Unit Peminjam</flux:table.column>
-                <flux:table.column>Diperiksa Oleh</flux:table.column>
-                <flux:table.column class="text-center w-36">Hasil Fisik</flux:table.column>
+                <flux:table.column class="w-44">Unit Peminjam</flux:table.column>
+                <flux:table.column class="w-36">Diperiksa Oleh</flux:table.column>
+                <flux:table.column class="text-center w-32">Hasil Fisik</flux:table.column>
                 <flux:table.column>Catatan</flux:table.column>
-                <flux:table.column class="text-right w-20">Aksi</flux:table.column>
+                <flux:table.column class="text-right w-16">Aksi</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
@@ -153,12 +153,12 @@
                         </flux:table.cell>
 
                         {{-- Unit Peminjam --}}
-                        <flux:table.cell class="text-xs font-medium text-zinc-800 dark:text-zinc-200">
+                        <flux:table.cell class="text-xs font-medium text-zinc-800 dark:text-zinc-200" style="white-space: normal;">
                             {{ $kembali->permintaanPeminjaman?->unitPeminjam?->nama ?? '-' }}
                         </flux:table.cell>
 
                         {{-- Diperiksa Oleh --}}
-                        <flux:table.cell class="text-xs text-zinc-600 dark:text-zinc-400">
+                        <flux:table.cell class="text-xs text-zinc-600 dark:text-zinc-400" style="white-space: normal;">
                             {{ $kembali->pemeriksa?->nama ?? '-' }}
                         </flux:table.cell>
 

@@ -43,15 +43,14 @@
         {{-- Tabel Penyesuaian Stok --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
-                <flux:table.column class="w-36">Kode Penyesuaian</flux:table.column>
-                <flux:table.column>Fasilitas Gudang</flux:table.column>
-                <flux:table.column>Ref Stock Opname</flux:table.column>
+                <flux:table.column class="w-32">Kode Penyesuaian</flux:table.column>
+                <flux:table.column class="w-44">Fasilitas Gudang</flux:table.column>
+                <flux:table.column class="w-36">Ref Stock Opname</flux:table.column>
                 <flux:table.column class="w-28">Tanggal</flux:table.column>
-                <flux:table.column class="text-center w-28">Item Selisih</flux:table.column>
-                <flux:table.column>Alasan / Justifikasi</flux:table.column>
-                <flux:table.column class="text-center w-32">Status</flux:table.column>
-                <flux:table.column class="text-right w-44">Aksi</flux:table.column>
-            </flux:table.columns>
+                <flux:table.column class="text-center w-24">Item Selisih</flux:table.column>
+                <flux:table.column class="w-48">Alasan / Justifikasi</flux:table.column>
+                <flux:table.column class="text-center w-28">Status</flux:table.column>
+                <flux:table.column class="text-right w-16">Aksi</flux:table.column>
 
             <flux:table.rows>
                 @forelse ($items as $adj)
@@ -65,7 +64,7 @@
                         </flux:table.cell>
 
                         {{-- Gudang --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">
                                 {{ $adj->gudang?->nama ?? '-' }}
                             </div>
@@ -98,15 +97,10 @@
                         </flux:table.cell>
 
                         {{-- Alasan --}}
-                        <flux:table.cell>
-                            <div class="text-xs text-zinc-700 dark:text-zinc-300 max-w-xs truncate">
+                        <flux:table.cell style="white-space: normal;">
+                            <div class="text-xs text-zinc-700 dark:text-zinc-300 line-clamp-2" title="{{ $adj->alasan }}">
                                 {{ $adj->alasan }}
                             </div>
-                            @if ($adj->penyetuju)
-                                <div class="text-[10px] text-zinc-500 mt-0.5">
-                                    Diproses: {{ $adj->penyetuju->nama }}
-                                </div>
-                            @endif
                         </flux:table.cell>
 
                         {{-- Status --}}
@@ -115,38 +109,25 @@
                         </flux:table.cell>
 
                         {{-- Aksi --}}
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button
-                                    wire:click="showDetail({{ $adj->id }})"
-                                    size="xs"
-                                    variant="ghost"
-                                    icon="eye"
-                                    title="Lihat Rincian Selisih"
-                                />
-
-                                @if ($adj->status === 'MENUNGGU')
-                                    @can('update_gudang_stok::otorisasi::penyesuaian')
-                                        <flux:button
-                                            wire:click="confirmApprove({{ $adj->id }})"
-                                            size="xs"
-                                            variant="primary"
-                                            icon="check-circle"
-                                            class="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                            title="Sahkan Penyesuaian Saldo"
-                                        >
-                                            Sahkan
-                                        </flux:button>
-                                        <flux:button
-                                            wire:click="confirmReject({{ $adj->id }})"
-                                            size="xs"
-                                            variant="danger"
-                                            icon="x-circle"
-                                            title="Tolak Penyesuaian"
-                                        />
-                                    @endcan
-                                @endif
-                            </div>
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="showDetail({{ $adj->id }})" icon="eye">
+                                        Rincian Selisih
+                                    </flux:menu.item>
+                                    @if ($adj->status === 'MENUNGGU')
+                                        @can('update_gudang_stok::otorisasi::penyesuaian')
+                                            <flux:menu.item wire:click="confirmApprove({{ $adj->id }})" icon="check-circle" class="text-emerald-600 dark:text-emerald-400">
+                                                Sahkan Penyesuaian
+                                            </flux:menu.item>
+                                            <flux:menu.item wire:click="confirmReject({{ $adj->id }})" icon="x-circle" variant="danger">
+                                                Tolak Penyesuaian
+                                            </flux:menu.item>
+                                        @endcan
+                                    @endif
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

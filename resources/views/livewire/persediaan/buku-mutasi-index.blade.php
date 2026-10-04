@@ -77,14 +77,14 @@
         {{-- Tabel Mutasi Stok --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
-                <flux:table.column class="w-36">Waktu Mutasi</flux:table.column>
-                <flux:table.column>Komoditas & Batch</flux:table.column>
-                <flux:table.column>Gudang & Rak</flux:table.column>
-                <flux:table.column class="text-center w-28">Jenis</flux:table.column>
+                <flux:table.column class="w-28">Waktu</flux:table.column>
+                <flux:table.column class="w-52">Komoditas & Batch</flux:table.column>
+                <flux:table.column class="w-36">Gudang & Rak</flux:table.column>
+                <flux:table.column class="text-center w-24">Jenis</flux:table.column>
                 <flux:table.column class="text-right w-24">Jumlah</flux:table.column>
-                <flux:table.column class="text-right w-36">Saldo (Lama &rarr; Baru)</flux:table.column>
-                <flux:table.column>Keterangan & Referensi</flux:table.column>
-                <flux:table.column class="text-right w-20">Aksi</flux:table.column>
+                <flux:table.column class="text-right w-32">Saldo Akhir</flux:table.column>
+                <flux:table.column class="w-40" style="width: 160px; max-width: 160px;">Keterangan & Ref</flux:table.column>
+                <flux:table.column class="text-right w-16">Aksi</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
@@ -106,8 +106,8 @@
                         </flux:table.cell>
 
                         {{-- Komoditas & Batch --}}
-                        <flux:table.cell>
-                            <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">
+                        <flux:table.cell style="white-space: normal;">
+                            <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100 line-clamp-2">
                                 {{ $item->barang?->nama ?? '-' }}
                             </div>
                             <div class="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -116,7 +116,7 @@
                         </flux:table.cell>
 
                         {{-- Gudang & Rak --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             <div class="text-xs font-medium text-zinc-800 dark:text-zinc-200">
                                 {{ $item->gudang?->nama ?? '-' }}
                             </div>
@@ -148,8 +148,8 @@
                         </flux:table.cell>
 
                         {{-- Keterangan & Referensi --}}
-                        <flux:table.cell>
-                            <div class="text-xs text-zinc-800 dark:text-zinc-200 max-w-xs truncate">
+                        <flux:table.cell style="white-space: normal; width: 160px; max-width: 160px;">
+                            <div class="text-xs text-zinc-800 dark:text-zinc-200 truncate max-w-[170px]" title="{{ $item->keterangan }}">
                                 {{ $item->keterangan ?: '-' }}
                             </div>
                             <div class="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 mt-0.5">

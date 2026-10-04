@@ -97,13 +97,13 @@
         {{-- Tabel Temuan --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
-                <flux:table.column class="w-36">Kode Temuan</flux:table.column>
-                <flux:table.column>Objek Pemeriksaan</flux:table.column>
-                <flux:table.column>Ringkasan Ketidaksesuaian</flux:table.column>
-                <flux:table.column class="text-center w-28">Risiko</flux:table.column>
-                <flux:table.column class="w-32">Jatuh Tempo</flux:table.column>
-                <flux:table.column class="text-center w-32">Status CAPA</flux:table.column>
-                <flux:table.column class="text-right w-44">Aksi</flux:table.column>
+                <flux:table.column class="w-32">Kode Temuan</flux:table.column>
+                <flux:table.column class="w-44">Objek Pemeriksaan</flux:table.column>
+                <flux:table.column class="w-64">Ringkasan Ketidaksesuaian</flux:table.column>
+                <flux:table.column class="text-center w-24">Risiko</flux:table.column>
+                <flux:table.column class="w-28">Jatuh Tempo</flux:table.column>
+                <flux:table.column class="text-center w-28">Status CAPA</flux:table.column>
+                <flux:table.column class="text-right w-36">Aksi</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
@@ -133,7 +133,7 @@
                         </flux:table.cell>
 
                         {{-- Objek Audit --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">
                                 {{ $item->objek_audit }}
                             </div>
@@ -143,8 +143,8 @@
                         </flux:table.cell>
 
                         {{-- Ringkasan --}}
-                        <flux:table.cell>
-                            <div class="text-xs text-zinc-700 dark:text-zinc-300 max-w-xs line-clamp-2" title="{{ $item->ringkasan }}">
+                        <flux:table.cell style="white-space: normal;">
+                            <div class="text-xs text-zinc-700 dark:text-zinc-300 line-clamp-2" title="{{ $item->ringkasan }}">
                                 {{ $item->ringkasan }}
                             </div>
                             @if (!empty($item->bukti_perbaikan) && is_array($item->bukti_perbaikan) && count($item->bukti_perbaikan) > 0)

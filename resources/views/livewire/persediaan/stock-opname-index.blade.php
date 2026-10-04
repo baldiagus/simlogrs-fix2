@@ -50,13 +50,13 @@
         {{-- Tabel Sesi Stock Opname --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
-                <flux:table.column class="w-36">Kode Opname</flux:table.column>
-                <flux:table.column>Fasilitas Gudang</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'tanggal_opname'" :direction="$sortDirection" wire:click="sort('tanggal_opname')" class="w-32">Tanggal</flux:table.column>
-                <flux:table.column class="text-center w-28">Item Batch</flux:table.column>
-                <flux:table.column>Pembuat Sesi</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-36">Status</flux:table.column>
-                <flux:table.column class="text-right w-44">Aksi</flux:table.column>
+                <flux:table.column class="w-32">Kode Opname</flux:table.column>
+                <flux:table.column class="w-48">Fasilitas Gudang</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'tanggal_opname'" :direction="$sortDirection" wire:click="sort('tanggal_opname')" class="w-28">Tanggal</flux:table.column>
+                <flux:table.column class="text-center w-24">Item Batch</flux:table.column>
+                <flux:table.column class="w-36">Pembuat Sesi</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-28">Status</flux:table.column>
+                <flux:table.column class="text-right w-36">Aksi</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
@@ -68,7 +68,7 @@
                         </flux:table.cell>
 
                         {{-- Fasilitas Gudang --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">
                                 {{ $opn->gudang?->nama ?? '-' }}
                             </div>
@@ -90,7 +90,7 @@
                         </flux:table.cell>
 
                         {{-- Pembuat --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             <div class="text-xs text-zinc-800 dark:text-zinc-200">
                                 {{ $opn->pembuat?->nama ?? '-' }}
                             </div>

@@ -92,6 +92,16 @@ class AsetIndex extends Component
     {
         $this->resetPage();
     }
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->filterLokasi = '';
+        $this->filterStatus = '';
+        $this->filterKondisi = '';
+        $this->filterUnitId = null;
+        $this->filterGudangId = null;
+        $this->resetPage();
+    }
 
     public function updatedLokasiTipe(): void
     {

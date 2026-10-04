@@ -49,13 +49,12 @@
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
                 <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-32">Kode Jadwal</flux:table.column>
-                <flux:table.column>Sarana / Fasilitas</flux:table.column>
-                <flux:table.column>Kegiatan Servis</flux:table.column>
-                <flux:table.column>Siklus Rutin</flux:table.column>
-                <flux:table.column>Teknisi PIC</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'tanggal_berikutnya'" :direction="$sortDirection" wire:click="sort('tanggal_berikutnya')" class="w-36">Jatuh Tempo</flux:table.column>
+                <flux:table.column class="w-64">Sarana & Kegiatan Servis</flux:table.column>
+                <flux:table.column class="w-28">Siklus Rutin</flux:table.column>
+                <flux:table.column class="w-36">Teknisi PIC</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'tanggal_berikutnya'" :direction="$sortDirection" wire:click="sort('tanggal_berikutnya')" class="w-32">Jatuh Tempo</flux:table.column>
                 <flux:table.column class="text-center w-24">Status</flux:table.column>
-                <flux:table.column class="text-right w-44">Aksi</flux:table.column>
+                <flux:table.column class="text-right w-16">Aksi</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
@@ -70,29 +69,16 @@
                             {{ $item->kode }}
                         </flux:table.cell>
 
-                        {{-- Sarana / Fasilitas --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">
                                 {{ $item->aset?->barang?->nama ?? '-' }}
                             </div>
-                            <div class="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 mt-0.5">
-                                Kode: {{ $item->aset?->kode_aset ?? '-' }}
-                                @if ($item->aset?->unit)
-                                    &bull; Ruangan: {{ $item->aset->unit->nama }}
-                                @endif
-                            </div>
-                        </flux:table.cell>
-
-                        {{-- Kegiatan Servis --}}
-                        <flux:table.cell>
-                            <div class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                            <div class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mt-0.5">
                                 {{ $item->jenis_maintenance }}
                             </div>
-                            @if ($item->catatan)
-                                <div class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 line-clamp-1">
-                                    {{ $item->catatan }}
-                                </div>
-                            @endif
+                            <div class="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 mt-0.5">
+                                Kode: {{ $item->aset?->kode_aset ?? '-' }} &bull; {{ $item->aset?->unit?->nama ?? 'Sentral' }}
+                            </div>
                         </flux:table.cell>
 
                         {{-- Siklus Rutin --}}
@@ -103,12 +89,9 @@
                         </flux:table.cell>
 
                         {{-- Teknisi PIC --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             <div class="text-xs font-medium text-zinc-800 dark:text-zinc-200">
                                 {{ $item->teknisi?->nama ?? 'Belum Ditunjuk' }}
-                            </div>
-                            <div class="text-[10px] text-zinc-500 dark:text-zinc-400">
-                                Teknisi Penanggung Jawab
                             </div>
                         </flux:table.cell>
 
@@ -136,44 +119,31 @@
                         </flux:table.cell>
 
                         {{-- Aksi --}}
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                @if ($item->status === 'AKTIF')
-                                    @can('create_pemeliharaan::spk::perbaikan')
-                                        <flux:button
-                                            wire:click="confirmEksekusi({{ $item->id }})"
-                                            size="xs"
-                                            variant="primary"
-                                            icon="bolt"
-                                            title="Eksekusi Servis Sekarang (Terbitkan SPK)"
-                                        >
-                                            Eksekusi
-                                        </flux:button>
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    @if ($item->status === 'AKTIF')
+                                        @can('create_pemeliharaan::spk::perbaikan')
+                                            <flux:menu.item wire:click="confirmEksekusi({{ $item->id }})" icon="bolt">
+                                                Eksekusi SPK
+                                            </flux:menu.item>
+                                        @endcan
+                                    @endif
+                                    @can('update_pemeliharaan::pemeliharaan::berkala')
+                                        <flux:menu.item wire:click="edit({{ $item->id }})" icon="pencil-square">
+                                            Ubah Jadwal
+                                        </flux:menu.item>
+                                        <flux:menu.item wire:click="confirmToggleStatus({{ $item->id }})" icon="arrow-path">
+                                            {{ $item->status === 'AKTIF' ? 'Nonaktifkan' : 'Aktifkan' }}
+                                        </flux:menu.item>
                                     @endcan
-                                @endif
-
-                                @can('update_pemeliharaan::pemeliharaan::berkala')
-                                    <flux:button
-                                        wire:click="edit({{ $item->id }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="pencil-square"
-                                        title="Ubah Jadwal"
-                                    />
-
-                                    <flux:button
-                                        wire:click="confirmToggleStatus({{ $item->id }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="arrow-path"
-                                        title="Ubah Status Aktif/Nonaktif"
-                                    />
-                                @endcan
-                            </div>
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada jadwal pemeliharaan preventif yang terdaftar." cols="8" />
+                    <x-empty-state message="Belum ada jadwal pemeliharaan preventif yang terdaftar." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>

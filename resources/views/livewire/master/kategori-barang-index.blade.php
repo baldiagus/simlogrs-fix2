@@ -28,32 +28,50 @@
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
                 <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-28">Kode</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'nama'" :direction="$sortDirection" wire:click="sort('nama')">Nama Kategori</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'nama'" :direction="$sortDirection" wire:click="sort('nama')" class="w-64">Nama Kategori</flux:table.column>
                 <flux:table.column>Deskripsi</flux:table.column>
                 <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-24">Status</flux:table.column>
-                <flux:table.column class="text-right w-28">Aksi</flux:table.column>
+                <flux:table.column class="text-right w-16">Aksi</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
                 @forelse ($items as $item)
                     <flux:table.row :key="$item->id">
                         <flux:table.cell class="font-mono font-semibold text-xs">{{ $item->kode }}</flux:table.cell>
-                        <flux:table.cell class="font-medium">{{ $item->nama }}</flux:table.cell>
-                        <flux:table.cell class="text-zinc-500">{{ $item->deskripsi ?? '-' }}</flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
+                            <button type="button" wire:click="showDetail({{ $item->id }})" class="text-left font-medium text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2">
+                                {{ $item->nama }}
+                            </button>
+                        </flux:table.cell>
+                        <flux:table.cell class="text-zinc-500 text-xs" style="white-space: normal;">
+                            <div class="line-clamp-2" title="{{ $item->deskripsi }}">{{ $item->deskripsi ?? '-' }}</div>
+                        </flux:table.cell>
                         <flux:table.cell class="text-center">
                             <x-status-badge :status="$item->status" />
                         </flux:table.cell>
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail" />
-                                @can('update_master::kategori::barang')
-                                    <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
-                                    <flux:button wire:click="confirmToggleStatus({{ $item->id }})" size="xs" variant="ghost" icon="arrow-path" title="Ubah Status" />
-                                @endcan
-                                @can('delete_master::kategori::barang')
-                                    <flux:button wire:click="confirmDelete({{ $item->id }})" size="xs" variant="ghost" icon="trash" class="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40" title="Hapus Data" />
-                                @endcan
-                            </div>
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-40">
+                                    <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
+                                        Detail Kategori
+                                    </flux:menu.item>
+                                    @can('update_master::kategori::barang')
+                                        <flux:menu.item wire:click="edit({{ $item->id }})" icon="pencil-square">
+                                            Ubah Data
+                                        </flux:menu.item>
+                                        <flux:menu.item wire:click="confirmToggleStatus({{ $item->id }})" icon="arrow-path">
+                                            {{ $item->status === 'AKTIF' ? 'Nonaktifkan' : 'Aktifkan' }}
+                                        </flux:menu.item>
+                                    @endcan
+                                    @can('delete_master::kategori::barang')
+                                        <flux:menu.separator />
+                                        <flux:menu.item wire:click="confirmDelete({{ $item->id }})" icon="trash" variant="danger">
+                                            Hapus Data
+                                        </flux:menu.item>
+                                    @endcan
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

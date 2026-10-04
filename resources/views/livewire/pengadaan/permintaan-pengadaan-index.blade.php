@@ -42,26 +42,38 @@
                     <option value="CITO">CITO</option>
                 </select>
             </div>
+            @if ($search || $filterStatus || $filterUrgensi)
+                <flux:button
+                    wire:click="resetFilters"
+                    size="sm"
+                    variant="subtle"
+                    icon="x-mark"
+                >
+                    Reset Filter
+                </flux:button>
+            @endif
         </div>
 
         {{-- Tabel --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
                 <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-36">Kode PR</flux:table.column>
-                <flux:table.column>Pemohon (Unit / Gudang)</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'tanggal_permintaan'" :direction="$sortDirection" wire:click="sort('tanggal_permintaan')">Tanggal</flux:table.column>
-                <flux:table.column>Urgensi</flux:table.column>
-                <flux:table.column class="text-center">Jumlah Item</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-40">Status</flux:table.column>
-                <flux:table.column class="text-right w-36">Aksi</flux:table.column>
+                <flux:table.column class="w-56">Pemohon (Unit / Gudang)</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'tanggal_permintaan'" :direction="$sortDirection" wire:click="sort('tanggal_permintaan')" class="w-28">Tanggal</flux:table.column>
+                <flux:table.column class="w-28 text-center">Urgensi</flux:table.column>
+                <flux:table.column class="text-center w-24">Jumlah Item</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-36">Status</flux:table.column>
+                <flux:table.column class="text-right w-16">Aksi</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
                 @forelse ($daftarPr as $item)
                     <flux:table.row :key="$item->id">
-                        <flux:table.cell class="font-mono font-semibold text-xs">{{ $item->kode }}</flux:table.cell>
-                        <flux:table.cell>
-                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->nama_pemohon }}</div>
+                        <flux:table.cell class="font-mono font-semibold text-xs text-zinc-900 dark:text-zinc-100">{{ $item->kode }}</flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
+                            <button type="button" wire:click="showDetail({{ $item->id }})" class="text-left font-medium text-xs text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2">
+                                {{ $item->nama_pemohon }}
+                            </button>
                             <div class="text-[10px] text-zinc-400 mt-0.5 font-mono flex items-center gap-1">
                                 @if ($item->unit_id)
                                     <span class="text-emerald-600 dark:text-emerald-400 font-semibold">[Unit]</span>
@@ -79,48 +91,53 @@
                         <flux:table.cell class="text-center">
                             <x-status-badge :status="$item->status" />
                         </flux:table.cell>
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail" />
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-48">
+                                    <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
+                                        Lihat Detail PR
+                                    </flux:menu.item>
 
-                                @php
-                                    $canApproveThis = $isGlobalApprover 
-                                        || ($userUnitId && $item->unit_id && (int) $userUnitId === (int) $item->unit_id)
-                                        || ($userGudangId && $item->gudang_id && (int) $userGudangId === (int) $item->gudang_id);
-                                @endphp
+                                    @php
+                                        $canApproveThis = $isGlobalApprover 
+                                            || ($userUnitId && $item->unit_id && (int) $userUnitId === (int) $item->unit_id)
+                                            || ($userGudangId && $item->gudang_id && (int) $userGudangId === (int) $item->gudang_id);
+                                    @endphp
 
-                                {{-- MEJA 1: Otorisasi Kepala Ruangan / Unit / Gudang (Khusus status DIAJUKAN) --}}
-                                @can('update_pengadaan::permintaan::pengadaan')
-                                    @if ($item->status === \App\Models\PermintaanPengadaan::STATUS_DIAJUKAN && $canApproveThis)
-                                        <flux:button wire:click="confirmApprove({{ $item->id }})" size="xs" variant="ghost" icon="check-circle" title="Setujui (Karu)" class="text-emerald-600 hover:text-emerald-700" wire:loading.attr="disabled" />
-                                        <flux:button wire:click="confirmReject({{ $item->id }})" size="xs" variant="ghost" icon="x-circle" title="Tolak (Karu)" class="text-rose-600 hover:text-rose-700" wire:loading.attr="disabled" />
-                                    @endif
-                                @endcan
+                                    {{-- MEJA 1: Otorisasi Kepala Ruangan / Unit / Gudang (Khusus status DIAJUKAN) --}}
+                                    @can('update_pengadaan::permintaan::pengadaan')
+                                        @if ($item->status === \App\Models\PermintaanPengadaan::STATUS_DIAJUKAN && $canApproveThis)
+                                            <flux:menu.item wire:click="confirmApprove({{ $item->id }})" icon="check-circle" class="text-emerald-600 dark:text-emerald-400">
+                                                Setujui (Karu)
+                                            </flux:menu.item>
+                                            <flux:menu.item wire:click="confirmReject({{ $item->id }})" icon="x-circle" variant="danger">
+                                                Tolak (Karu)
+                                            </flux:menu.item>
+                                        @endif
+                                    @endcan
 
-                                {{-- MEJA 2: Meja Bagian Pengadaan (Khusus status DITERUSKAN_KE_PENGADAAN) --}}
-                                @can('create_pengadaan::pesanan::pembelian')
-                                    @if ($item->status === \App\Models\PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN)
-                                        <flux:button
-                                            as="a"
-                                            href="/{{ request()->segment(1) ?? 'pengadaan' }}/pesanan-pembelian?konversi_pr={{ $item->id }}"
-                                            size="xs"
-                                            variant="primary"
-                                            icon="shopping-cart"
-                                            title="Setujui & Terbitkan PO"
-                                        >
-                                            Terbitkan PO
-                                        </flux:button>
-                                        <flux:button
-                                            wire:click="openRejectPengadaan({{ $item->id }})"
-                                            size="xs"
-                                            variant="danger"
-                                            icon="x-circle"
-                                            title="Tolak di Meja Pengadaan"
-                                            wire:loading.attr="disabled"
-                                        />
-                                    @endif
-                                @endcan
-                            </div>
+                                    {{-- MEJA 2: Meja Bagian Pengadaan (Khusus status DITERUSKAN_KE_PENGADAAN) --}}
+                                    @can('create_pengadaan::pesanan::pembelian')
+                                        @if ($item->status === \App\Models\PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN)
+                                            <flux:menu.item
+                                                as="a"
+                                                href="/{{ request()->segment(1) ?? 'pengadaan' }}/pesanan-pembelian?konversi_pr={{ $item->id }}"
+                                                icon="shopping-cart"
+                                            >
+                                                Terbitkan PO
+                                            </flux:menu.item>
+                                            <flux:menu.item
+                                                wire:click="openRejectPengadaan({{ $item->id }})"
+                                                icon="x-circle"
+                                                variant="danger"
+                                            >
+                                                Tolak di Pengadaan
+                                            </flux:menu.item>
+                                        @endif
+                                    @endcan
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

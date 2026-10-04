@@ -128,14 +128,13 @@
         @if ($activeTab === 'aktif')
             <flux:table bleed container:class="mt-4">
                 <flux:table.columns sticky>
-                    <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-36">Kode PINJ</flux:table.column>
-                    <flux:table.column>Penyedia</flux:table.column>
-                    <flux:table.column>Unit Peminjam</flux:table.column>
-                    <flux:table.column sortable :sorted="$sortBy === 'tanggal_pinjam'" :direction="$sortDirection" wire:click="sort('tanggal_pinjam')">Tgl Pinjam</flux:table.column>
-                    <flux:table.column sortable :sorted="$sortBy === 'tanggal_kembali_rencana'" :direction="$sortDirection" wire:click="sort('tanggal_kembali_rencana')">Rencana Kembali</flux:table.column>
-                    <flux:table.column>Aset Dipinjam</flux:table.column>
-                    <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-32">Status</flux:table.column>
-                    <flux:table.column class="text-right w-44">Aksi</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-32">Kode PINJ</flux:table.column>
+                    <flux:table.column class="w-36">Penyedia</flux:table.column>
+                    <flux:table.column class="w-36">Unit Peminjam</flux:table.column>
+                    <flux:table.column class="w-44">Periode Pinjam</flux:table.column>
+                    <flux:table.column class="w-48">Aset Dipinjam</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-28">Status</flux:table.column>
+                    <flux:table.column class="text-right w-16">Aksi</flux:table.column>
                 </flux:table.columns>
 
                 <flux:table.rows>
@@ -150,7 +149,7 @@
                             </flux:table.cell>
 
                             {{-- Penyedia --}}
-                            <flux:table.cell>
+                            <flux:table.cell style="white-space: normal;">
                                 @if ($item->tipe_penyedia === 'RUANGAN')
                                     <div class="flex items-center gap-1.5">
                                         <flux:badge size="xs" color="cyan">RUANGAN</flux:badge>
@@ -165,29 +164,22 @@
                             </flux:table.cell>
 
                             {{-- Unit Peminjam --}}
-                            <flux:table.cell class="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                                {{ $item->unitPeminjam?->nama ?? '-' }}
+                            <flux:table.cell style="white-space: normal;">
+                                <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                                    {{ $item->unitPeminjam?->nama ?? '-' }}
+                                </span>
                             </flux:table.cell>
 
-                            {{-- Tgl Pinjam --}}
+                            {{-- Periode Pinjam (Gabungan Tgl Pinjam & Rencana Kembali) --}}
                             <flux:table.cell class="text-xs tabular-nums text-zinc-600 dark:text-zinc-400">
-                                {{ $item->tanggal_pinjam?->format('d/m/Y') ?? '-' }}
-                            </flux:table.cell>
-
-                            {{-- Rencana Kembali --}}
-                            <flux:table.cell>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-xs tabular-nums font-medium {{ $isOverdue ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-zinc-600 dark:text-zinc-400' }}">
-                                        {{ $item->tanggal_kembali_rencana?->format('d/m/Y') ?? '-' }}
-                                    </span>
-                                    @if ($isOverdue)
-                                        <flux:badge size="xs" color="rose" class="font-bold">OVERDUE</flux:badge>
-                                    @endif
-                                </div>
+                                <div>{{ $item->tanggal_pinjam?->format('d/m/Y') }} &rarr; <span class="{{ $isOverdue ? 'font-bold text-rose-600 dark:text-rose-400' : '' }}">{{ $item->tanggal_kembali_rencana?->format('d/m/Y') }}</span></div>
+                                @if ($isOverdue)
+                                    <div class="mt-0.5"><flux:badge size="xs" color="rose">OVERDUE</flux:badge></div>
+                                @endif
                             </flux:table.cell>
 
                             {{-- Aset Dipinjam --}}
-                            <flux:table.cell>
+                            <flux:table.cell style="white-space: normal;">
                                 @forelse ($item->detail as $detail)
                                     <div class="text-xs font-medium text-zinc-900 dark:text-zinc-100">
                                         {{ $detail->aset?->barang?->nama ?? 'Aset #' . $detail->aset_id }}
@@ -206,65 +198,42 @@
                             </flux:table.cell>
 
                             {{-- Aksi --}}
-                            <flux:table.cell class="text-right">
-                                <div class="flex items-center justify-end gap-1.5">
-                                    <flux:button
-                                        wire:click="openDetail({{ $item->id }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="eye"
-                                        title="Lihat Detail"
-                                    />
-                                    @php
-                                        $canSerahTerima = $isGlobalAdmin ||
-                                            ($item->tipe_penyedia === 'RUANGAN' && (int) $userUnitId === (int) $item->unit_penyedia_id) ||
-                                            ($item->tipe_penyedia === 'GUDANG' && (int) $userGudangId === (int) $item->gudang_penyedia_id);
-                                    @endphp
+                            <flux:table.cell class="text-right w-16">
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                    <flux:menu class="min-w-44">
+                                        <flux:menu.item wire:click="openDetail({{ $item->id }})" icon="eye">
+                                            Detail Pinjam
+                                        </flux:menu.item>
 
-                                    @if ($item->status === 'DISETUJUI' && $canSerahTerima)
-                                        <flux:button
-                                            wire:click="confirmSerahTerima({{ $item->id }})"
-                                            size="xs"
-                                            variant="primary"
-                                            icon="arrow-right-start-on-rectangle"
-                                            title="Serah Terima Fisik Aset"
-                                            wire:loading.attr="disabled"
-                                        >
-                                            Serah Terima
-                                        </flux:button>
-                                    @endif
+                                        @if ($item->status === 'DISETUJUI' && $canSerahTerima)
+                                            <flux:menu.item wire:click="confirmSerahTerima({{ $item->id }})" icon="arrow-right-start-on-rectangle">
+                                                Serah Terima
+                                            </flux:menu.item>
+                                        @endif
 
-                                    @if (in_array($item->status, ['DIPINJAM'], true))
-                                        @can('update_layanan_unit::peminjaman::aset')
-                                            <flux:button
-                                                wire:click="openPerpanjang({{ $item->id }})"
-                                                size="xs"
-                                                variant="ghost"
-                                                icon="calendar-days"
-                                                title="Perpanjang Peminjaman"
-                                            >
-                                                Perpanjang
-                                            </flux:button>
-                                        @endcan
-                                    @endif
+                                        @if (in_array($item->status, ['DIPINJAM'], true))
+                                            @can('update_layanan_unit::peminjaman::aset')
+                                                <flux:menu.item wire:click="openPerpanjang({{ $item->id }})" icon="calendar-days">
+                                                    Perpanjang
+                                                </flux:menu.item>
+                                            @endcan
+                                        @endif
 
-                                    @if ($item->status === 'DIAJUKAN')
-                                        @can('create_layanan_unit::peminjaman::aset')
-                                            <flux:button
-                                                wire:click="confirmBatal({{ $item->id }})"
-                                                size="xs"
-                                                variant="ghost"
-                                                icon="x-mark"
-                                                class="text-rose-600 hover:text-rose-700 dark:text-rose-400"
-                                                title="Batalkan Pengajuan"
-                                            />
-                                        @endcan
-                                    @endif
-                                </div>
+                                        @if ($item->status === 'DIAJUKAN')
+                                            @can('create_layanan_unit::peminjaman::aset')
+                                                <flux:menu.separator />
+                                                <flux:menu.item wire:click="confirmBatal({{ $item->id }})" icon="x-mark" variant="danger">
+                                                    Batalkan Pengajuan
+                                                </flux:menu.item>
+                                            @endcan
+                                        @endif
+                                    </flux:menu>
+                                </flux:dropdown>
                             </flux:table.cell>
                         </flux:table.row>
                     @empty
-                        <x-empty-state message="Belum ada transaksi peminjaman aset yang terdaftar." cols="8" />
+                        <x-empty-state message="Belum ada transaksi peminjaman aset yang terdaftar." cols="7" />
                     @endforelse
                 </flux:table.rows>
             </flux:table>
@@ -274,12 +243,12 @@
             {{-- Tampilan Tab 2: Katalog Aset Tersedia --}}
             <flux:table bleed container:class="mt-4">
                 <flux:table.columns sticky>
-                    <flux:table.column sortable :sorted="$sortBy === 'kode_aset'" :direction="$sortDirection" wire:click="sort('kode_aset')" class="w-36">Kode Register</flux:table.column>
-                    <flux:table.column>Komoditas & Nomor Seri</flux:table.column>
-                    <flux:table.column>Lokasi Penyedia</flux:table.column>
+                    <flux:table.column sortable :sorted="$sortBy === 'kode_aset'" :direction="$sortDirection" wire:click="sort('kode_aset')" class="w-32">Kode Register</flux:table.column>
+                    <flux:table.column class="w-64">Komoditas & Nomor Seri</flux:table.column>
+                    <flux:table.column class="w-56">Lokasi Penyedia</flux:table.column>
                     <flux:table.column class="text-center w-24">Kondisi</flux:table.column>
-                    <flux:table.column class="text-center w-28">Status</flux:table.column>
-                    <flux:table.column class="text-right w-44">Aksi</flux:table.column>
+                    <flux:table.column class="text-center w-24">Status</flux:table.column>
+                    <flux:table.column class="text-right w-36">Aksi</flux:table.column>
                 </flux:table.columns>
 
                 <flux:table.rows>
@@ -291,7 +260,7 @@
                             </flux:table.cell>
 
                             {{-- Komoditas & Seri --}}
-                            <flux:table.cell>
+                            <flux:table.cell style="white-space: normal;">
                                 <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $aset->barang?->nama ?? '-' }}</div>
                                 @if ($aset->nomor_seri)
                                     <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">SN: {{ $aset->nomor_seri }}</div>
@@ -299,7 +268,7 @@
                             </flux:table.cell>
 
                             {{-- Lokasi Penyedia --}}
-                            <flux:table.cell>
+                            <flux:table.cell style="white-space: normal;">
                                 @if ($aset->unit_id)
                                     <div class="flex items-center gap-1.5">
                                         <flux:badge size="xs" color="cyan">RUANGAN</flux:badge>

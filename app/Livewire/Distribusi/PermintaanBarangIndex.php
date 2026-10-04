@@ -27,6 +27,13 @@ class PermintaanBarangIndex extends Component
 
     #[Url(history: true)]
     public string $filterUrgensi = '';
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->filterStatus = '';
+        $this->filterUrgensi = '';
+        $this->resetPage();
+    }
 
     public bool $showModal = false;
     public bool $showDetailModal = false;

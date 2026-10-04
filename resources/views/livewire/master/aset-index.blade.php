@@ -69,18 +69,28 @@
                     <option value="RUSAK_BERAT">RUSAK BERAT</option>
                 </select>
             </div>
+            @if ($search || $filterLokasi || $filterStatus || $filterKondisi || $filterUnitId || $filterGudangId)
+                <flux:button
+                    wire:click="resetFilters"
+                    size="sm"
+                    variant="subtle"
+                    icon="x-mark"
+                >
+                    Reset Filter
+                </flux:button>
+            @endif
         </div>
 
         {{-- Tabel Bleed dalam Card --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
                 <flux:table.column sortable :sorted="$sortBy === 'kode_aset'" :direction="$sortDirection" wire:click="sort('kode_aset')" class="w-32">Kode Register</flux:table.column>
-                <flux:table.column>Nama Komoditas & Seri</flux:table.column>
-                <flux:table.column>Penempatan Lokasi</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'kondisi'" :direction="$sortDirection" wire:click="sort('kondisi')" class="text-center">Kondisi</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'nilai_perolehan'" :direction="$sortDirection" wire:click="sort('nilai_perolehan')" class="text-right">Nilai Perolehan</flux:table.column>
+                <flux:table.column class="w-64">Nama Komoditas & Seri</flux:table.column>
+                <flux:table.column class="w-48">Penempatan Lokasi</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'kondisi'" :direction="$sortDirection" wire:click="sort('kondisi')" class="text-center w-28">Kondisi</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'nilai_perolehan'" :direction="$sortDirection" wire:click="sort('nilai_perolehan')" class="text-right w-36">Nilai Perolehan</flux:table.column>
                 <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-24">Status</flux:table.column>
-                <flux:table.column class="text-right w-28">Aksi</flux:table.column>
+                <flux:table.column class="text-right w-16">Aksi</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
@@ -92,15 +102,22 @@
                         </flux:table.cell>
 
                         {{-- Nama Barang & Nomor Seri --}}
-                        <flux:table.cell>
-                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $item->barang?->nama ?? '-' }}</div>
+                        <flux:table.cell style="white-space: normal;">
+                            <button
+                                type="button"
+                                wire:click="showDetail({{ $item->id }})"
+                                class="text-left font-medium text-xs text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2"
+                                title="Lihat Detail Aset"
+                            >
+                                {{ $item->barang?->nama ?? '-' }}
+                            </button>
                             @if ($item->nomor_seri)
-                                <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">SN: {{ $item->nomor_seri }}</div>
+                                <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">SN: {{ $item->nomor_seri }}</div>
                             @endif
                         </flux:table.cell>
 
                         {{-- Lokasi Penempatan (XOR Ruangan atau Gudang) --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             @if ($item->unit_id)
                                 <div class="flex items-center gap-1.5">
                                     <span class="size-1.5 rounded-full bg-cyan-500"></span>
@@ -148,29 +165,39 @@
                         </flux:table.cell>
 
                         {{-- Aksi --}}
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail Aset" />
-                                <flux:button wire:click="showQr({{ $item->id }})" size="xs" variant="ghost" icon="qr-code" title="Cetak Stiker QR Code" />
-
-                                @php
-                                    $user = auth()->user();
-                                    $canEditThisAset = $user && $user->can('update_master::aset') && (
-                                        $user->hasRole(['super_admin', 'admin_logistik']) ||
-                                        $user->can('page_AdminLogistikDashboard') ||
-                                        ($user->unit_id && (int) $user->unit_id === (int) $item->unit_id)
-                                    );
-                                @endphp
-
-                                @if ($canEditThisAset)
-                                    <flux:button wire:click="edit({{ $item->id }})" size="xs" variant="ghost" icon="pencil-square" title="Ubah Data" />
-                                @endif
-                                @can('delete_master::aset')
-                                    @if ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || ($user->unit_id && (int) $user->unit_id === (int) $item->unit_id)))
-                                        <flux:button wire:click="confirmDelete({{ $item->id }})" size="xs" variant="ghost" icon="trash" class="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40" title="Hapus Data" />
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
+                                        Detail Aset
+                                    </flux:menu.item>
+                                    <flux:menu.item wire:click="showQr({{ $item->id }})" icon="qr-code">
+                                        Cetak Stiker QR
+                                    </flux:menu.item>
+                                    @php
+                                        $user = auth()->user();
+                                        $canEditThisAset = $user && $user->can('update_master::aset') && (
+                                            $user->hasRole(['super_admin', 'admin_logistik']) ||
+                                            $user->can('page_AdminLogistikDashboard') ||
+                                            ($user->unit_id && (int) $user->unit_id === (int) $item->unit_id)
+                                        );
+                                    @endphp
+                                    @if ($canEditThisAset)
+                                        <flux:menu.item wire:click="edit({{ $item->id }})" icon="pencil-square">
+                                            Ubah Data
+                                        </flux:menu.item>
                                     @endif
-                                @endcan
-                            </div>
+                                    @can('delete_master::aset')
+                                        @if ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || ($user->unit_id && (int) $user->unit_id === (int) $item->unit_id)))
+                                            <flux:menu.separator />
+                                            <flux:menu.item wire:click="confirmDelete({{ $item->id }})" icon="trash" variant="danger">
+                                                Hapus Data
+                                            </flux:menu.item>
+                                        @endif
+                                    @endcan
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

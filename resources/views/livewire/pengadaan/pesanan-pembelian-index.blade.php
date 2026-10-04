@@ -44,6 +44,16 @@
                     <option value="DIBATALKAN">DIBATALKAN</option>
                 </select>
             </div>
+            @if ($search || $filterStatus)
+                <flux:button
+                    wire:click="resetFilters"
+                    size="sm"
+                    variant="subtle"
+                    icon="x-mark"
+                >
+                    Reset Filter
+                </flux:button>
+            @endif
         </div>
 
         {{-- Tabel PO --}}

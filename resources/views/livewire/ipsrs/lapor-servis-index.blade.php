@@ -52,13 +52,13 @@
         {{-- Tabel Daftar Tiket Kerusakan --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
-                <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-36">No. Tiket</flux:table.column>
-                <flux:table.column>Sarana / Alat</flux:table.column>
-                <flux:table.column>Unit Pelapor</flux:table.column>
-                <flux:table.column>Prioritas</flux:table.column>
-                <flux:table.column>Teknisi Ditugaskan</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-36">Status</flux:table.column>
-                <flux:table.column class="text-right w-28">Aksi</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-32">No. Tiket</flux:table.column>
+                <flux:table.column class="w-64">Sarana / Alat</flux:table.column>
+                <flux:table.column class="w-44">Unit Pelapor</flux:table.column>
+                <flux:table.column class="text-center w-24">Prioritas</flux:table.column>
+                <flux:table.column class="w-36">Teknisi</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-28">Status</flux:table.column>
+                <flux:table.column class="text-right w-20">Aksi</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
@@ -81,11 +81,10 @@
                             </div>
                         </flux:table.cell>
 
-                        {{-- Sarana / Alat --}}
-                        <flux:table.cell>
-                            <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">
+                        <flux:table.cell style="white-space: normal;">
+                            <button type="button" wire:click="showDetail({{ $item->id }})" class="text-left font-medium text-xs text-zinc-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2">
                                 {{ $item->aset?->barang?->nama ?? '-' }}
-                            </div>
+                            </button>
                             <div class="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 mt-0.5">
                                 Kode: {{ $item->aset?->kode_aset ?? '-' }}
                                 @if ($item->aset?->nomor_seri)
@@ -105,8 +104,7 @@
                             @endif
                         </flux:table.cell>
 
-                        {{-- Unit Pelapor --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             <div class="text-xs font-medium text-zinc-800 dark:text-zinc-200">
                                 {{ $item->unit?->nama ?? '-' }}
                             </div>

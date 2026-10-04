@@ -86,14 +86,12 @@
         {{-- Tabel permintaan peminjaman --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
-                <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-36">Kode PINJ</flux:table.column>
-                <flux:table.column>Unit Peminjam</flux:table.column>
-                <flux:table.column>Aset Diminta</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'tanggal_pinjam'" :direction="$sortDirection" wire:click="sort('tanggal_pinjam')">Tanggal Pinjam</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'tanggal_kembali_rencana'" :direction="$sortDirection" wire:click="sort('tanggal_kembali_rencana')">Estimasi Kembali</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-36">Status</flux:table.column>
-                <flux:table.column class="text-right w-44">Aksi</flux:table.column>
-            </flux:table.columns>
+                <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-32">Kode PINJ</flux:table.column>
+                <flux:table.column class="w-44">Unit Peminjam</flux:table.column>
+                <flux:table.column class="w-48">Aset Diminta</flux:table.column>
+                <flux:table.column class="w-40">Periode Pinjam</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-28">Status</flux:table.column>
+                <flux:table.column class="text-right w-16">Aksi</flux:table.column>
 
             <flux:table.rows>
                 @forelse ($daftarPermintaan as $item)
@@ -108,7 +106,7 @@
                             {{ $item->kode }}
                         </flux:table.cell>
 
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">
                                 {{ $item->unitPeminjam?->nama ?? '-' }}
                             </div>
@@ -116,8 +114,7 @@
                                 Pengaju: {{ $item->pengaju?->nama ?? '-' }}
                             </div>
                         </flux:table.cell>
-
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             @forelse ($item->detail->take(2) as $det)
                                 <div class="text-xs text-zinc-800 dark:text-zinc-200">
                                     {{ $det->aset?->barang?->nama ?? $det->aset?->kode_aset ?? '-' }}
@@ -135,71 +132,39 @@
                             @endif
                         </flux:table.cell>
 
-                        <flux:table.cell class="text-xs tabular-nums">
-                            {{ $item->tanggal_pinjam?->format('d/m/Y') ?? '-' }}
+                        <flux:table.cell class="text-xs tabular-nums text-zinc-600 dark:text-zinc-400">
+                            <div>{{ $item->tanggal_pinjam?->format('d/m/Y') ?? '-' }} &rarr; {{ $item->tanggal_kembali_rencana?->format('d/m/Y') ?? '-' }}</div>
                         </flux:table.cell>
-
-                        <flux:table.cell class="text-xs tabular-nums">
-                            {{ $item->tanggal_kembali_rencana?->format('d/m/Y') ?? '-' }}
-                        </flux:table.cell>
-
                         <flux:table.cell class="text-center">
                             <x-status-badge :status="$item->status" />
                         </flux:table.cell>
 
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button
-                                    wire:click="showDetail({{ $item->id }})"
-                                    size="xs"
-                                    variant="ghost"
-                                    icon="eye"
-                                    title="Lihat Detail"
-                                />
-
-                                @if ($item->status === 'DIAJUKAN' && $canManageItem)
-                                    <flux:button
-                                        wire:click="confirmApprove({{ $item->id }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="check-circle"
-                                        title="Setujui Permintaan"
-                                        class="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
-                                        wire:loading.attr="disabled"
-                                    >
-                                        Setujui
-                                    </flux:button>
-                                    <flux:button
-                                        wire:click="confirmReject({{ $item->id }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="x-circle"
-                                        title="Tolak Permintaan"
-                                        class="text-rose-600 hover:text-rose-700 dark:text-rose-400"
-                                        wire:loading.attr="disabled"
-                                    >
-                                        Tolak
-                                    </flux:button>
-                                @endif
-
-                                @if ($item->status === 'DISETUJUI' && $canManageItem)
-                                    <flux:button
-                                        wire:click="confirmSerahTerima({{ $item->id }})"
-                                        size="xs"
-                                        variant="primary"
-                                        icon="arrow-right-start-on-rectangle"
-                                        title="Serah Terima Fisik"
-                                        class="bg-blue-600 hover:bg-blue-700 text-white"
-                                        wire:loading.attr="disabled"
-                                    >
-                                        Serah Terima
-                                    </flux:button>
-                                @endif
-                            </div>
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
+                                        Detail Permintaan
+                                    </flux:menu.item>
+                                    @if ($item->status === 'DIAJUKAN' && $canManageItem)
+                                        <flux:menu.item wire:click="confirmApprove({{ $item->id }})" icon="check-circle" class="text-emerald-600 dark:text-emerald-400">
+                                            Setujui
+                                        </flux:menu.item>
+                                        <flux:menu.item wire:click="confirmReject({{ $item->id }})" icon="x-circle" variant="danger">
+                                            Tolak
+                                        </flux:menu.item>
+                                    @endif
+                                    @if ($item->status === 'DISETUJUI' && $canManageItem)
+                                        <flux:menu.item wire:click="confirmSerahTerima({{ $item->id }})" icon="arrow-right-start-on-rectangle">
+                                            Serah Terima
+                                        </flux:menu.item>
+                                    @endif
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Tidak ada permohonan peminjaman aset yang sesuai filter." cols="7" />
+                    <x-empty-state message="Tidak ada permohonan peminjaman aset yang sesuai filter." cols="6" />
                 @endforelse
             </flux:table.rows>
         </flux:table>

@@ -84,15 +84,14 @@
         {{-- Tabel Hasil Uji Petik Opname --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
-                <flux:table.column class="w-36">Kode Opname</flux:table.column>
-                <flux:table.column>Fasilitas Gudang</flux:table.column>
+                <flux:table.column class="w-32">Kode Opname</flux:table.column>
+                <flux:table.column class="w-48">Fasilitas Gudang</flux:table.column>
                 <flux:table.column class="w-28">Tgl Opname</flux:table.column>
-                <flux:table.column class="text-center w-28">Total Batch</flux:table.column>
-                <flux:table.column class="text-center w-44">Temuan Selisih Fisik</flux:table.column>
-                <flux:table.column class="text-center w-36">Status Sesi</flux:table.column>
-                <flux:table.column class="text-right w-44">Aksi Auditor</flux:table.column>
+                <flux:table.column class="text-center w-24">Total Batch</flux:table.column>
+                <flux:table.column class="text-center w-36">Temuan Selisih</flux:table.column>
+                <flux:table.column class="text-center w-28">Status Sesi</flux:table.column>
+                <flux:table.column class="text-right w-36">Aksi Auditor</flux:table.column>
             </flux:table.columns>
-
             <flux:table.rows>
                 @forelse ($items as $opn)
                     @php
@@ -113,8 +112,7 @@
                             </div>
                         </flux:table.cell>
 
-                        {{-- Fasilitas Gudang --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">
                                 {{ $opn->gudang?->nama ?? '-' }}
                             </div>

@@ -64,13 +64,13 @@
         {{-- Tabel Uji Petik Kepatuhan PO --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
-                <flux:table.column class="w-36">Kode PO</flux:table.column>
-                <flux:table.column>Dasar PR Pemohon</flux:table.column>
-                <flux:table.column>Rekanan Vendor</flux:table.column>
-                <flux:table.column class="text-right w-36">Nilai Dokumen</flux:table.column>
-                <flux:table.column class="w-28">Est. Kirim</flux:table.column>
+                <flux:table.column class="w-32">Kode PO</flux:table.column>
+                <flux:table.column class="w-44">Dasar PR Pemohon</flux:table.column>
+                <flux:table.column class="w-44">Rekanan Vendor</flux:table.column>
+                <flux:table.column class="text-right w-32">Nilai Dokumen</flux:table.column>
+                <flux:table.column class="w-24">Est. Kirim</flux:table.column>
                 <flux:table.column class="text-center w-36">Indikator Kepatuhan</flux:table.column>
-                <flux:table.column class="text-right w-36">Aksi Auditor</flux:table.column>
+                <flux:table.column class="text-right w-32">Aksi Auditor</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
@@ -91,7 +91,7 @@
                         </flux:table.cell>
 
                         {{-- Ref PR --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             @if ($po->permintaanPengadaan)
                                 <div class="font-mono text-xs font-medium text-zinc-900 dark:text-zinc-100">
                                     {{ $po->permintaanPengadaan->kode }}
@@ -108,7 +108,7 @@
                         </flux:table.cell>
 
                         {{-- Rekanan Vendor --}}
-                        <flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                             <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">
                                 {{ $po->pemasok?->nama ?? '-' }}
                             </div>

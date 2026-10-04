@@ -32,6 +32,13 @@ class PermintaanPengadaanIndex extends Component
     #[Url(history: true)]
     public string $filterUrgensi = '';
 
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->filterStatus = '';
+        $this->filterUrgensi = '';
+        $this->resetPage();
+    }
     // Form fields
     public string $kode = '';
     public ?int $unit_id = null;
