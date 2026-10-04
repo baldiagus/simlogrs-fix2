@@ -243,8 +243,11 @@ class PermintaanBarangIndex extends Component
             abort(403, 'Anda tidak memiliki hak akses untuk membatalkan permintaan dari unit ini.');
         }
 
-        if ($permintaan->status !== 'DIAJUKAN') {
-            $this->toast('Hanya permintaan dengan status DIAJUKAN yang dapat dibatalkan.', 'danger');
+        $canBatal = in_array($permintaan->status, ['DIAJUKAN', 'DISETUJUI_KARU'])
+            && ! \App\Models\PengirimanBarang::where('permintaan_distribusi_id', $permintaan->id)->where('status', '!=', 'DIBATALKAN')->exists();
+
+        if (! $canBatal) {
+            $this->toast('Permintaan amprah ini sudah diproses dan tidak dapat dibatalkan.', 'danger');
             return;
         }
 
@@ -289,8 +292,11 @@ class PermintaanBarangIndex extends Component
             abort(403, 'Anda tidak memiliki hak akses untuk membatalkan permintaan dari unit ini.');
         }
 
-        if ($permintaan->status !== 'DIAJUKAN') {
-            $this->toast('Hanya permintaan dengan status DIAJUKAN yang dapat dibatalkan.', 'danger');
+        $canBatal = in_array($permintaan->status, ['DIAJUKAN', 'DISETUJUI_KARU'])
+            && ! \App\Models\PengirimanBarang::where('permintaan_distribusi_id', $permintaan->id)->where('status', '!=', 'DIBATALKAN')->exists();
+
+        if (! $canBatal) {
+            $this->toast('Permintaan amprah ini sudah diproses dan tidak dapat dibatalkan.', 'danger');
             return;
         }
 

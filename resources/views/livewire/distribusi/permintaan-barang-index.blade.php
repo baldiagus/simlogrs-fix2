@@ -104,7 +104,7 @@
                                     <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
                                         Detail Amprah
                                     </flux:menu.item>
-                                    @if ($item->status === 'DIAJUKAN' && ($isGlobalAdmin || (int) $userUnitId === (int) $item->unit_id))
+                                    @if (in_array($item->status, ['DIAJUKAN', 'DISETUJUI_KARU']) && ($isGlobalAdmin || (int) $userUnitId === (int) $item->unit_id))
                                         <flux:menu.separator />
                                         <flux:menu.item wire:click="confirmBatal({{ $item->id }})" icon="x-mark" variant="danger">
                                             Batalkan Permintaan

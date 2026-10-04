@@ -28,9 +28,20 @@ class DistribusiService
         $gudangId = $gudangId ?: $permintaan->gudang_id;
 
         return DB::transaction(function () use ($permintaan, $actor, $gudangId) {
-            // Validasi status permintaan
-            if (! in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DISETUJUI_KARU'])) {
-                throw new Exception("Permintaan {$permintaan->kode} belum disetujui untuk pengeluaran barang.");
+            // Kunci baris permintaan untuk mencegah eksekusi ganda / race condition
+            $lockedPermintaan = PermintaanDistribusi::lockForUpdate()->with(['detail', 'unit'])->findOrFail($permintaan->id);
+
+            // Validasi status permintaan dari database terkunci
+            if (! in_array($lockedPermintaan->status, ['DISETUJUI_GUDANG', 'DISETUJUI_KARU'])) {
+                throw new Exception("Permintaan {$lockedPermintaan->kode} sudah diproses atau belum disetujui untuk pengeluaran barang.");
+            }
+
+            // Pastikan belum pernah terbit SPPB aktif untuk permintaan ini
+            $alreadyHasSppb = PengirimanBarang::where('permintaan_distribusi_id', $lockedPermintaan->id)
+                ->where('status', '!=', 'DIBATALKAN')
+                ->exists();
+            if ($alreadyHasSppb) {
+                throw new Exception("Permintaan {$lockedPermintaan->kode} sudah pernah diterbitkan SPPB.");
             }
 
             // 1. Buat Header SPPB (Surat Perintah Pengeluaran Barang)
@@ -38,18 +49,18 @@ class DistribusiService
 
             $sppb = PengirimanBarang::create([
                 'kode'                     => $kodeSppb,
-                'permintaan_distribusi_id' => $permintaan->id,
+                'permintaan_distribusi_id' => $lockedPermintaan->id,
                 'gudang_id'                => $gudangId,
-                'unit_id'                  => $permintaan->unit_id,
+                'unit_id'                  => $lockedPermintaan->unit_id,
                 'tanggal_kirim'            => now()->toDateString(),
                 'status'                   => 'DIKIRIM',
-                'catatan'                  => $permintaan->catatan,
+                'catatan'                  => $lockedPermintaan->catatan,
                 'dikirim_oleh'             => $actor->id,
             ]);
 
             // 2. Iterasi setiap barang yang diminta dan eksekusi algoritma FEFO
-            foreach ($permintaan->detail as $detail) {
-                $qtyNeeded = (int) ($detail->jumlah_disetujui ?: $detail->jumlah);
+            foreach ($lockedPermintaan->detail as $detail) {
+                $qtyNeeded = $detail->jumlah_disetujui !== null ? (int) $detail->jumlah_disetujui : (int) $detail->jumlah;
                 if ($qtyNeeded <= 0) {
                     continue;
                 }
@@ -111,7 +122,7 @@ class DistribusiService
                         'saldo_sesudah'    => $saldoSesudah,
                         'referensi_jenis'  => 'PENGIRIMAN_DISTRIBUSI',
                         'referensi_id'     => $sppb->id,
-                        'keterangan'       => "Pengeluaran FEFO SPPB {$sppb->kode} untuk {$permintaan->unit?->nama} (Batch {$batch->nomor_batch})",
+                        'keterangan'       => "Pengeluaran FEFO SPPB {$sppb->kode} untuk {$lockedPermintaan->unit?->nama} (Batch {$batch->nomor_batch})",
                         'dibuat_oleh'      => $actor->id,
                     ]);
 
@@ -120,10 +131,11 @@ class DistribusiService
             }
 
             // 3. Update status permintaan distribusi
-            $permintaan->update([
+            $lockedPermintaan->update([
                 'status'         => 'SEDANG_DIKIRIM',
                 'disetujui_oleh' => $actor->id,
             ]);
+            $permintaan->status = 'SEDANG_DIKIRIM';
 
             return $sppb;
         });

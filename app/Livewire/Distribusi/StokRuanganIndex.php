@@ -88,6 +88,9 @@ class StokRuanganIndex extends Component
         if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $aset->unit_id) {
             abort(403, 'Anda tidak berwenang mengubah aset milik unit lain.');
         }
+        if (in_array($aset->status, ['DIPINJAM', 'DALAM_MAINTENANCE', 'DIHAPUSKAN'])) {
+            abort(403, "Status aset '{$aset->kode_aset}' ({$aset->status}) tidak dapat diubah secara manual di ruangan.");
+        }
 
         $this->selectedAsetId = $aset->id;
         $this->selectedAset = $aset;
@@ -116,6 +119,9 @@ class StokRuanganIndex extends Component
         $aset = Aset::findOrFail($this->selectedAsetId);
         if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $aset->unit_id) {
             abort(403, 'Anda tidak berwenang mengubah aset milik unit lain.');
+        }
+        if (in_array($aset->status, ['DIPINJAM', 'DALAM_MAINTENANCE', 'DIHAPUSKAN'])) {
+            abort(403, "Status aset '{$aset->kode_aset}' ({$aset->status}) tidak dapat diubah secara manual di ruangan.");
         }
 
         $aset->update([
@@ -186,6 +192,29 @@ class StokRuanganIndex extends Component
 
                 $sisaBaru = max(0, $stok->jumlah - $this->jumlah_pakai);
                 $stok->update(['jumlah' => $sisaBaru]);
+
+                \App\Models\LogAudit::create([
+                    'pengguna_id'     => $user?->id,
+                    'peran_id'        => $user?->roles?->first()?->id,
+                    'referensi_jenis' => 'PemakaianStokRuangan',
+                    'referensi_id'    => $stok->id,
+                    'aksi'            => 'PEMAKAIAN',
+                    'data_sebelum'    => [
+                        'jumlah' => $stok->jumlah,
+                        'unit'   => $stok->unit?->nama,
+                        'barang' => $stok->barang?->nama,
+                    ],
+                    'data_sesudah'    => [
+                        'jumlah_pakai' => $this->jumlah_pakai,
+                        'sisa'         => $sisaBaru,
+                        'keterangan'   => trim($this->keterangan),
+                        'unit'         => $stok->unit?->nama,
+                        'barang'       => $stok->barang?->nama,
+                    ],
+                    'ip_address'      => request()?->ip() ?: '127.0.0.1',
+                    'device'          => substr(request()?->userAgent() ?? 'Web Browser', 0, 255),
+                    'dibuat_pada'     => now(),
+                ]);
             });
 
             $namaBarang = $this->selectedStok?->barang?->nama ?? 'Barang';

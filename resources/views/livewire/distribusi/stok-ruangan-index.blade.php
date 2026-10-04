@@ -325,7 +325,7 @@
                                         ) && ($isGlobalAdmin || (int) $user->unit_id === (int) $ast->unit_id);
                                     @endphp
 
-                                    @if ($canUbahStatus)
+                                    @if ($canUbahStatus && ! in_array($ast->status, ['DIPINJAM', 'DALAM_MAINTENANCE', 'DIHAPUSKAN']))
                                         <flux:button
                                             wire:click="openUbahStatusAset({{ $ast->id }})"
                                             size="xs"

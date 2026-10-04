@@ -153,10 +153,17 @@ class PenerimaanBarangIndex extends Component
                         $remainingToCreate = $qty - $transferredCount;
                         for ($i = 0; $i < $remainingToCreate; $i++) {
                             $kodeAset = CodeGenerator::generate('AST', Aset::class, 'kode_aset');
+                            while (Aset::where('kode_aset', $kodeAset)->exists()) {
+                                $parts = explode('-', $kodeAset);
+                                $seq = (int) end($parts) + 1;
+                                $kodeAset = $parts[0] . '-' . $parts[1] . '-' . str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+                            }
+
                             $batch = $detail->stokBatch;
                             $nilaiPerolehan = (float) ($batch?->harga_satuan ?: ($barang->harga_beli_terakhir ?: ($barang->harga_estimasi ?: 0)));
-                            $nomorSeri = $batch?->nomor_batch ?: ('SN-' . $barang->kode . '-' . date('Ymd') . '-' . str_pad((string) ($i + 1), 3, '0', STR_PAD_LEFT));
-
+                            $nomorSeri = $batch?->nomor_batch
+                                ? ($batch->nomor_batch . '-' . str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT))
+                                : ('SN-' . $barang->kode . '-' . date('Ymd') . '-' . str_pad((string) ($i + 1), 3, '0', STR_PAD_LEFT));
                             Aset::create([
                                 'barang_id'         => $barang->id,
                                 'unit_id'           => $sppb->unit_id,
