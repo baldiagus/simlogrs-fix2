@@ -31,6 +31,10 @@ class RekamMedisAsetIndex extends Component
 
         $this->showDetailModal = true;
     }
+    public function openRekamMedis(int $asetId): void
+    {
+        $this->showBukuRiwayat($asetId);
+    }
 
     public function render()
     {

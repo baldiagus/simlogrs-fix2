@@ -10,6 +10,7 @@ use App\Models\PenugasanMaintenance;
 use App\Models\PermintaanMaintenance;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -81,36 +82,57 @@ class DaftarSpkPerbaikanIndex extends Component
         $this->validate();
 
         $user = auth()->user();
-        $tiket = PermintaanMaintenance::with('aset')->findOrFail($this->selected_tiket_id);
-
         $kodeSpk = CodeGenerator::generateSpk();
+        $success = false;
 
-        $spk = PenugasanMaintenance::create([
-            'kode'                      => $kodeSpk,
-            'permintaan_maintenance_id' => $tiket->id,
-            'teknisi_id'                => $this->teknisi_id,
-            'ditugaskan_oleh'           => $user->id,
-            'tanggal_penugasan'         => $this->tanggal_penugasan,
-            'target_selesai'            => $this->target_selesai,
-            'instruksi_khusus'          => $this->instruksi_khusus,
-            'status'                    => 'DITUGASKAN',
-        ]);
+        DB::transaction(function () use ($user, $kodeSpk, &$success) {
+            $tiket = PermintaanMaintenance::lockForUpdate()->with('aset')->findOrFail($this->selected_tiket_id);
 
-        $tiket->update(['status' => 'DITUGASKAN']);
+            if ($tiket->status !== 'DILAPORKAN') {
+                $this->toast("Tiket {$tiket->kode} sudah diproses sebelumnya (Status: {$tiket->status}).", 'warning');
+                return;
+            }
 
-        // Pastikan aset masuk ke status DALAM_MAINTENANCE
-        if ($tiket->aset && $tiket->aset->status !== 'DALAM_MAINTENANCE') {
-            $tiket->aset->update([
-                'status'  => 'DALAM_MAINTENANCE',
-                'kondisi' => $tiket->prioritas === 'CITO' ? 'RUSAK_BERAT' : 'RUSAK_RINGAN',
+            $alreadyHasSpk = PenugasanMaintenance::where('permintaan_maintenance_id', $tiket->id)
+                ->where('status', '!=', 'DIBATALKAN')
+                ->exists();
+            if ($alreadyHasSpk) {
+                $this->toast("Tiket {$tiket->kode} sudah memiliki SPK aktif.", 'warning');
+                return;
+            }
+
+            PenugasanMaintenance::create([
+                'kode'                      => $kodeSpk,
+                'permintaan_maintenance_id' => $tiket->id,
+                'teknisi_id'                => $this->teknisi_id,
+                'ditugaskan_oleh'           => $user->id,
+                'tanggal_penugasan'         => $this->tanggal_penugasan,
+                'target_selesai'            => $this->target_selesai,
+                'instruksi_khusus'          => $this->instruksi_khusus,
+                'status'                    => 'DITUGASKAN',
             ]);
+
+            $tiket->update(['status' => 'DITUGASKAN']);
+
+            // Pastikan aset masuk ke status DALAM_MAINTENANCE
+            if ($tiket->aset && $tiket->aset->status !== 'DALAM_MAINTENANCE') {
+                $tiket->aset->update([
+                    'status'  => 'DALAM_MAINTENANCE',
+                    'kondisi' => $tiket->prioritas === 'CITO' ? 'RUSAK_BERAT' : 'RUSAK_RINGAN',
+                ]);
+            }
+
+            $success = true;
+        });
+
+        if (! $success) {
+            $this->showSpkModal = false;
+            return;
         }
 
         $this->showSpkModal = false;
         $this->reset(['selected_tiket_id', 'selectedTiketForSpk', 'teknisi_id', 'instruksi_khusus']);
         $this->toast("Surat Perintah Kerja '{$kodeSpk}' berhasil diterbitkan.", 'success');
-
-        // Beralih ke tab SPK aktif
         $this->activeTab = 'spk';
     }
 

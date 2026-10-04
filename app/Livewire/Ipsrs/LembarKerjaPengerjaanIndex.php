@@ -117,6 +117,10 @@ class LembarKerjaPengerjaanIndex extends Component
         return (int) StokBatch::where('barang_id', $barangId)
             ->where('status', 'AKTIF')
             ->where('jumlah', '>', 0)
+            ->where(function ($q) {
+                $q->whereNull('tanggal_kedaluwarsa')
+                    ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
+            })
             ->sum('jumlah');
     }
 
@@ -186,6 +190,10 @@ class LembarKerjaPengerjaanIndex extends Component
                     $batches = StokBatch::where('barang_id', $barang->id)
                         ->where('status', 'AKTIF')
                         ->where('jumlah', '>', 0)
+                        ->where(function ($q) {
+                            $q->whereNull('tanggal_kedaluwarsa')
+                                ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
+                        })
                         ->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
                         ->lockForUpdate()
                         ->get();
@@ -331,7 +339,12 @@ class LembarKerjaPengerjaanIndex extends Component
             ->where('status', 'AKTIF')
             ->with('satuan')
             ->withSum(['stokBatch as stok_tersedia' => function ($q) {
-                $q->where('status', 'AKTIF')->where('jumlah', '>', 0);
+                $q->where('status', 'AKTIF')
+                    ->where('jumlah', '>', 0)
+                    ->where(function ($sq) {
+                        $sq->whereNull('tanggal_kedaluwarsa')
+                            ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
+                    });
             }], 'jumlah')
             ->orderBy('nama')
             ->get();

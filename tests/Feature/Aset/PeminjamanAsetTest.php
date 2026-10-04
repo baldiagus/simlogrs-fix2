@@ -118,13 +118,21 @@ class PeminjamanAsetTest extends TestCase
 
         // Buat unit ke-3 sebagai unit pemilik peminjaman asli
         $unitKetiga = Unit::where('status', 'AKTIF')->whereNotIn('id', [$this->unitPenyedia->id, $this->unitPeminjam->id])->first();
+        $userKetiga = User::create([
+            'nama' => 'Staf Unit Lain',
+            'username' => 'stafunitlain',
+            'email' => 'stafunitlain@simlog.test',
+            'password' => bcrypt('password'),
+            'unit_id' => $unitKetiga->id,
+            'status' => 'AKTIF',
+        ]);
 
         $pinjamUnitLain = PermintaanPeminjaman::create([
             'kode' => CodeGenerator::generate('PINJ', PermintaanPeminjaman::class, 'kode', 'Y', 3),
             'tipe_penyedia' => 'RUANGAN',
             'unit_penyedia_id' => $this->unitPenyedia->id,
             'unit_id' => $unitKetiga->id, // Milik unit lain!
-            'diajukan_oleh' => $this->userPeminjam->id,
+            'diajukan_oleh' => $userKetiga->id,
             'tanggal_pinjam' => now()->toDateString(),
             'tanggal_kembali_rencana' => now()->addDays(5)->toDateString(),
             'keperluan' => 'Peminjaman sah unit lain',

@@ -247,8 +247,14 @@ class PemeliharaanBerkalaIndex extends Component
                 'instruksi_khusus'          => "Servis berkala rutin sesuai jadwal {$jadwal->kode}. " . ($jadwal->catatan ?: ''),
                 'status'                    => 'DITUGASKAN',
             ]);
+            // 3. Kunci status aset ke DALAM_MAINTENANCE
+            if ($jadwal->aset && $jadwal->aset->status !== 'DALAM_MAINTENANCE') {
+                $jadwal->aset->update([
+                    'status' => 'DALAM_MAINTENANCE',
+                ]);
+            }
 
-            // 3. Catat tanggal eksekusi terakhir dan majukan tanggal berikutnya
+            // 4. Catat tanggal eksekusi terakhir dan majukan tanggal berikutnya
             $jadwal->update([
                 'tanggal_terakhir'   => now()->toDateString(),
                 'tanggal_berikutnya' => $jadwal->hitungTanggalBerikutnya(now())->toDateString(),

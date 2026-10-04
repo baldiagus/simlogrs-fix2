@@ -10,6 +10,7 @@ use App\Models\Aset;
 use App\Models\PermintaanMaintenance;
 use App\Support\File\FileOptimizer;
 use App\Support\Generator\CodeGenerator;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -140,6 +141,19 @@ class LaporServisIndex extends Component
     {
         $tiket = PermintaanMaintenance::findOrFail($id);
         $user = auth()->user();
+        $isGlobalViewer = $user && (
+            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_Dashboard')
+        );
+
+        if (! $isGlobalViewer) {
+            $isOwner = (int) $user?->id === (int) $tiket->dilaporkan_oleh;
+            $isSameUnit = $user?->unit_id && (int) $user->unit_id === (int) $tiket->unit_id;
+            if (! $isOwner && ! $isSameUnit) {
+                abort(403, 'Anda tidak berwenang membatalkan laporan kerusakan dari unit lain.');
+            }
+        }
 
         if ($tiket->status !== 'DILAPORKAN') {
             $this->toast('Hanya tiket berstatus DILAPORKAN yang dapat dibatalkan.', 'danger');
@@ -158,14 +172,47 @@ class LaporServisIndex extends Component
 
     public function batal(int $id): void
     {
-        $tiket = PermintaanMaintenance::findOrFail($id);
+        $tiket = PermintaanMaintenance::with('aset')->findOrFail($id);
+        $user = auth()->user();
+        $isGlobalViewer = $user && (
+            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
+            $user->can('page_AdminLogistikDashboard') ||
+            $user->can('page_Dashboard')
+        );
+
+        if (! $isGlobalViewer) {
+            $isOwner = (int) $user?->id === (int) $tiket->dilaporkan_oleh;
+            $isSameUnit = $user?->unit_id && (int) $user->unit_id === (int) $tiket->unit_id;
+            if (! $isOwner && ! $isSameUnit) {
+                abort(403, 'Anda tidak berwenang membatalkan laporan kerusakan dari unit lain.');
+            }
+        }
 
         if ($tiket->status !== 'DILAPORKAN') {
             $this->toast('Hanya tiket berstatus DILAPORKAN yang dapat dibatalkan.', 'danger');
             return;
         }
 
-        $tiket->update(['status' => 'DIBATALKAN']);
+        DB::transaction(function () use ($tiket) {
+            $tiket->update(['status' => 'DIBATALKAN']);
+
+            // Jika aset terkunci dalam maintenance akibat tiket ini dan tidak ada tiket aktif lain
+            if ($tiket->aset && $tiket->aset->status === 'DALAM_MAINTENANCE') {
+                $hasOtherActiveTicket = PermintaanMaintenance::where('aset_id', $tiket->aset_id)
+                    ->where('id', '!=', $tiket->id)
+                    ->whereIn('status', ['DILAPORKAN', 'DITUGASKAN', 'SEDANG_DIKERJAKAN', 'MENUNGGU_SPAREPART', 'UJI_FUNGSI'])
+                    ->exists();
+
+                if (! $hasOtherActiveTicket) {
+                    $newStatus = $tiket->aset->unit_id ? 'DIGUNAKAN' : 'TERSEDIA';
+                    $tiket->aset->update([
+                        'status'  => $newStatus,
+                        'kondisi' => 'BAIK',
+                    ]);
+                }
+            }
+        });
+
         $this->toast("Laporan kerusakan '{$tiket->kode}' berhasil dibatalkan.", 'info');
     }
 

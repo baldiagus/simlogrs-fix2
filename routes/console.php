@@ -126,7 +126,7 @@ Artisan::command('simlog:generate-preventive-maintenance', function () {
     $this->info('[' . now()->toDateTimeString() . '] Memindai jadwal maintenance preventif IPSRS...');
 
     $today = now()->toDateString();
-    $jadwals = JadwalMaintenance::with(['aset', 'teknisi'])
+    $jadwals = JadwalMaintenance::with(['aset.barang', 'teknisi'])
         ->where('status', 'AKTIF')
         ->where('tanggal_berikutnya', '<=', $today)
         ->get();
@@ -167,12 +167,16 @@ Artisan::command('simlog:generate-preventive-maintenance', function () {
             Notifikasi::create([
                 'pengguna_id' => $jadwal->teknisi_id,
                 'judul' => "SPK Preventif Baru: {$tiket->kode}",
-                'pesan' => "Anda ditugaskan pada pemeliharaan preventif {$jadwal->aset?->nama} ({$jadwal->jenis_maintenance}).",
+                'pesan' => "Anda ditugaskan pada pemeliharaan preventif " . ($jadwal->aset?->barang?->nama ?? 'Aset') . " ({$jadwal->jenis_maintenance}).",
                 'tautan' => '/teknisi/lembar-kerja',
                 'dibaca' => false,
                 'dibuat_pada' => now(),
             ]);
         }
+        if ($jadwal->aset && $jadwal->aset->status !== 'DALAM_MAINTENANCE') {
+            $jadwal->aset->update(['status' => 'DALAM_MAINTENANCE']);
+        }
+
 
         $jadwal->update([
             'tanggal_terakhir' => $today,
