@@ -141,7 +141,7 @@
                             Tanggal Permintaan: {{ $selectedPermintaan->tanggal_permintaan?->format('d F Y') }}
                         </flux:subheading>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2" style="margin-right: 2.25rem;">
                         <x-urgency-badge :urgency="$selectedPermintaan->urgensi" />
                         <x-status-badge :status="$selectedPermintaan->status" />
                     </div>

@@ -214,7 +214,9 @@
                 <div>
                     <div class="flex items-center justify-between">
                         <flux:heading size="lg">Rincian Permintaan Peminjaman</flux:heading>
-                        <x-status-badge :status="$selectedPinjam->status" />
+                        <div style="margin-right: 2.25rem;">
+                            <x-status-badge :status="$selectedPinjam->status" />
+                        </div>
                     </div>
                     <flux:subheading class="mt-1 font-mono text-xs text-zinc-500">
                         {{ $selectedPinjam->kode }}

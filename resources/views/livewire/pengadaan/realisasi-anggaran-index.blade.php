@@ -310,9 +310,11 @@
                             {{ $selectedAnggaran->unit?->nama ?? $selectedAnggaran->pos_anggaran }}
                         </flux:heading>
                     </div>
-                    <flux:badge size="sm" color="blue">
-                        Unit Kerja
-                    </flux:badge>
+                    <div style="margin-right: 2.25rem;">
+                        <flux:badge size="sm" color="blue">
+                            Unit Kerja
+                        </flux:badge>
+                    </div>
                 </div>
 
                 {{-- Ringkasan 3 Stat Box Modal --}}

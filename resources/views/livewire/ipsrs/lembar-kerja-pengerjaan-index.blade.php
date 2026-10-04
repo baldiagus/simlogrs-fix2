@@ -126,7 +126,7 @@
     <flux:modal name="modal-lembar-kerja" wire:model="showModal" class="w-full max-w-4xl">
         @if ($formSpk)
             <form wire:submit="saveLembarKerja" class="space-y-4">
-                <div>
+                <div style="padding-right: 2.5rem;">
                     <flux:heading size="lg">Lembar Kerja Servis: {{ $formSpk->kode }}</flux:heading>
                     <flux:subheading>
                         Sarana: <span class="font-medium text-zinc-900 dark:text-zinc-100">{{ $formSpk->permintaanMaintenance?->aset?->barang?->nama }}</span>
@@ -371,7 +371,9 @@
                             Unit: {{ $selectedSpk->permintaanMaintenance?->unit?->nama }}
                         </flux:subheading>
                     </div>
-                    <x-status-badge :status="$selectedSpk->status" />
+                    <div style="margin-right: 2.25rem;">
+                        <x-status-badge :status="$selectedSpk->status" />
+                    </div>
                 </div>
                 {{-- Keluhan & Foto Bukti Fisik Kerusakan dari Ruangan --}}
                 <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 text-xs space-y-2">

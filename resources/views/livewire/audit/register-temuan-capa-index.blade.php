@@ -235,7 +235,7 @@
     {{-- Modal 1: Registrasi Temuan Audit Baru --}}
     <flux:modal name="modal-buat-temuan" wire:model="showCreateModal" class="md:w-[42rem]">
         <form wire:submit="saveCreate" class="space-y-4">
-            <div>
+            <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">Registrasi Temuan Audit Baru</flux:heading>
                 <flux:subheading>Catat ketidaksesuaian tata kelola logistik hasil uji petik SPI ke dalam sistem CAPA.</flux:subheading>
             </div>
@@ -326,7 +326,7 @@
     <flux:modal name="modal-tindak-lanjut" wire:model="showTindakLanjutModal" class="md:w-[42rem]">
         @if ($selectedTemuan)
             <form wire:submit="saveTindakLanjut" class="space-y-4">
-                <div>
+                <div style="padding-right: 2.5rem;">
                     <flux:heading size="lg">Tindak Lanjut Perbaikan: {{ $selectedTemuan->kode }}</flux:heading>
                     <flux:subheading>Objek: {{ $selectedTemuan->objek_audit }} &bull; Batas Waktu: {{ $selectedTemuan->due_date_capa?->format('d/m/Y') }}</flux:subheading>
                 </div>
@@ -441,7 +441,9 @@
                             default       => 'zinc',
                         };
                     @endphp
-                    <flux:badge size="sm" :color="$cColor">{{ $selectedTemuan->status_capa }}</flux:badge>
+                    <div style="margin-right: 2.25rem;">
+                        <flux:badge size="sm" :color="$cColor">{{ $selectedTemuan->status_capa }}</flux:badge>
+                    </div>
                 </div>
 
                 {{-- Detail Jawaban Tindak Lanjut Unit --}}

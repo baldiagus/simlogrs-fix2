@@ -232,7 +232,7 @@
     {{-- Modal Form Penerimaan PO --}}
     <flux:modal name="modal-penerimaan-po" wire:model="showModal" class="w-full max-w-5xl" style="max-height: 88vh; overflow-y: auto;">
         <form wire:submit="savePenerimaan" class="space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4" style="padding-right: 2.5rem;">
                 <div>
                     <flux:heading size="lg">Penerimaan Barang dari PO</flux:heading>
                     <flux:subheading>
@@ -427,7 +427,7 @@
     {{-- Modal Konfirmasi Tolak Kiriman Fisik Vendor --}}
     <flux:modal name="modal-reject-kiriman" wire:model="showRejectModal" class="md:w-[34rem]">
         <form wire:submit="executeTolakKiriman" class="space-y-4">
-            <div>
+            <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg" class="text-red-600 dark:text-red-400 flex items-center gap-2">
                     <flux:icon.no-symbol class="size-5" />
                     <span>Tolak Kiriman Fisik Vendor</span>
@@ -491,7 +491,7 @@
     <flux:modal name="modal-tracking-detail" wire:model="showDetailPoModal" class="md:w-[48rem]">
         @if ($selectedPo)
             <div class="space-y-4">
-                <div>
+                <div style="padding-right: 2.5rem;">
                     <flux:heading size="lg">Detail PO: {{ $selectedPo->kode }}</flux:heading>
                     <flux:subheading>Informasi lengkap pesanan pembelian dan status pengiriman vendor.</flux:subheading>
                 </div>
@@ -530,41 +530,47 @@
 
                 {{-- Daftar Item --}}
                 <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Daftar Item Pesanan</div>
-                <flux:table bleed>
-                    <flux:table.columns>
-                        <flux:table.column>Barang</flux:table.column>
-                        <flux:table.column class="text-right">Qty Pesan</flux:table.column>
-                        <flux:table.column class="text-right">Qty Diterima</flux:table.column>
-                        <flux:table.column class="text-right">Harga Satuan</flux:table.column>
-                        <flux:table.column class="text-right">Subtotal</flux:table.column>
-                    </flux:table.columns>
-                    <flux:table.rows>
-                        @forelse ($selectedPo->detail as $detail)
-                            <flux:table.row>
-                                <flux:table.cell>
-                                    <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $detail->barang?->nama ?? '-' }}</div>
-                                    <div class="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">{{ $detail->barang?->kode ?? '' }}</div>
-                                </flux:table.cell>
-                                <flux:table.cell class="text-right font-mono text-xs tabular-nums">{{ number_format($detail->jumlah_dipesan, 0, ',', '.') }}</flux:table.cell>
-                                <flux:table.cell class="text-right font-mono text-xs tabular-nums">
-                                    @if ($detail->jumlah_diterima >= $detail->jumlah_dipesan)
-                                        <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ number_format($detail->jumlah_diterima, 0, ',', '.') }}</span>
-                                    @else
-                                        <span class="{{ $detail->jumlah_diterima > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500 dark:text-zinc-400' }}">{{ number_format($detail->jumlah_diterima, 0, ',', '.') }}</span>
-                                    @endif
-                                </flux:table.cell>
-                                <flux:table.cell class="text-right font-mono text-xs tabular-nums">
-                                    <x-rupiah :value="$detail->harga_satuan" />
-                                </flux:table.cell>
-                                <flux:table.cell class="text-right font-mono text-xs tabular-nums">
-                                    <x-rupiah :value="$detail->subtotal" class="font-semibold" />
-                                </flux:table.cell>
-                            </flux:table.row>
-                        @empty
-                            <x-empty-state message="Tidak ada item dalam PO ini." cols="5" />
-                        @endforelse
-                    </flux:table.rows>
-                </flux:table>
+                <div class="border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-700">
+                            <tr>
+                                <th class="py-2.5 px-3 font-semibold">Barang</th>
+                                <th class="py-2.5 px-3 font-semibold text-right">Qty Pesan</th>
+                                <th class="py-2.5 px-3 font-semibold text-right">Qty Diterima</th>
+                                <th class="py-2.5 px-3 font-semibold text-right">Harga Satuan</th>
+                                <th class="py-2.5 px-3 font-semibold text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                            @forelse ($selectedPo->detail as $detail)
+                                <tr>
+                                    <td class="py-2 px-3">
+                                        <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $detail->barang?->nama ?? '-' }}</div>
+                                        <div class="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">{{ $detail->barang?->kode ?? '' }}</div>
+                                    </td>
+                                    <td class="py-2 px-3 text-right font-mono text-xs tabular-nums">{{ number_format($detail->jumlah_dipesan, 0, ',', '.') }}</td>
+                                    <td class="py-2 px-3 text-right font-mono text-xs tabular-nums">
+                                        @if ($detail->jumlah_diterima >= $detail->jumlah_dipesan)
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ number_format($detail->jumlah_diterima, 0, ',', '.') }}</span>
+                                        @else
+                                            <span class="{{ $detail->jumlah_diterima > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500 dark:text-zinc-400' }}">{{ number_format($detail->jumlah_diterima, 0, ',', '.') }}</span>
+                                        @endif
+                                    </td>
+                                    <td class="py-2 px-3 text-right font-mono text-xs tabular-nums">
+                                        <x-rupiah :value="$detail->harga_satuan" />
+                                    </td>
+                                    <td class="py-2 px-3 text-right font-mono text-xs tabular-nums">
+                                        <x-rupiah :value="$detail->subtotal" class="font-semibold" />
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="py-4 text-center text-zinc-500 italic">Tidak ada item dalam PO ini.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
 
                 {{-- Total Biaya --}}
                 <div class="flex justify-end p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800">
@@ -613,7 +619,7 @@
     <flux:modal wire:model="showDetailModal" class="w-full max-w-[92vw] lg:max-w-6xl">
         @if ($selectedPenerimaan)
             <div class="space-y-4">
-                <div>
+                <div style="padding-right: 2.5rem;">
                     <flux:heading size="lg">Detail Penerimaan: {{ $selectedPenerimaan->kode }}</flux:heading>
                     <flux:subheading>Ref PO: {{ $selectedPenerimaan->pesananPembelian?->kode ?? '-' }} - {{ $selectedPenerimaan->pesananPembelian?->pemasok?->nama ?? '-' }}</flux:subheading>
                 </div>

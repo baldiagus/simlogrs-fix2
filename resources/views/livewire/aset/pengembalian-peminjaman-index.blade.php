@@ -219,7 +219,9 @@
                             Pemeriksaan kondisi fisik aset inventaris saat diserahterimakan kembali ke penyedia.
                         </flux:subheading>
                     </div>
-                    <flux:badge size="sm" color="amber" inset="top bottom">DIPINJAM</flux:badge>
+                    <div style="margin-right: 2.25rem;">
+                        <flux:badge size="sm" color="amber" inset="top bottom">DIPINJAM</flux:badge>
+                    </div>
                 </div>
 
                 {{-- Ringkasan Metadata Transaksi --}}
@@ -357,7 +359,9 @@
                             Tanggal Kembali: {{ $selectedPengembalian->tanggal_kembali_aktual?->format('d F Y') }}
                         </flux:subheading>
                     </div>
-                    <flux:badge size="sm" color="emerald" inset="top bottom">SELESAI</flux:badge>
+                    <div style="margin-right: 2.25rem;">
+                        <flux:badge size="sm" color="emerald" inset="top bottom">SELESAI</flux:badge>
+                    </div>
                 </div>
 
                 {{-- Metadata --}}

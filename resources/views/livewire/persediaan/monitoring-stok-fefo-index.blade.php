@@ -240,7 +240,9 @@
                             {{ $selectedBatch->barang?->nama }} &bull; Kode: {{ $selectedBatch->barang?->kode }}
                         </flux:subheading>
                     </div>
-                    <x-status-badge :status="$selectedBatch->status" />
+                    <div style="margin-right: 2.25rem;">
+                        <x-status-badge :status="$selectedBatch->status" />
+                    </div>
                 </div>
 
                 {{-- Metadata Grid --}}

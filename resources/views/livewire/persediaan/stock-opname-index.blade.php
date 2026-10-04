@@ -145,7 +145,7 @@
     {{-- Modal Inisiasi Siklus Opname Baru --}}
     <flux:modal name="modal-inisiasi-opname" wire:model="showInisiasiModal" class="md:w-[32rem]">
         <form wire:submit="inisiasiOpname" class="space-y-4">
-            <div>
+            <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">Buka Siklus Stock Opname</flux:heading>
                 <flux:subheading>Inisialisasi lembar hitung fisik persediaan untuk fasilitas gudang tertentu.</flux:subheading>
             </div>
@@ -210,7 +210,7 @@
                     </div>
 
                     {{-- Tombol Ekspor & Impor Excel --}}
-                    <div class="flex flex-wrap items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2" style="margin-right: 2.25rem;">
                         <flux:button
                             wire:click="exportExcel({{ $activeOpname->id }})"
                             size="xs"
@@ -372,7 +372,9 @@
                             Gudang: {{ $selectedOpname->gudang?->nama }} &bull; Tanggal: {{ $selectedOpname->tanggal_opname?->format('d F Y') }}
                         </flux:subheading>
                     </div>
-                    <x-status-badge :status="$selectedOpname->status" />
+                    <div style="margin-right: 2.25rem;">
+                        <x-status-badge :status="$selectedOpname->status" />
+                    </div>
                 </div>
 
                 {{-- Tabel Hasil Rekonsiliasi Lengkap --}}

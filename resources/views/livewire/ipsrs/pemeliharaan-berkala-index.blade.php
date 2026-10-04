@@ -184,7 +184,7 @@
     {{-- Modal Form Tambah / Ubah Jadwal Servis Rutin --}}
     <flux:modal name="modal-jadwal-form" wire:model="showModal" class="md:w-[42rem]">
         <form wire:submit="save" class="space-y-4">
-            <div>
+            <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">{{ $editingId ? 'Ubah Jadwal Pemeliharaan Preventif' : 'Pendaftaran Jadwal Servis Rutin Baru' }}</flux:heading>
                 <flux:subheading>Tentukan fasilitas aset, siklus interval servis berkala, dan teknisi pelaksana penanggung jawab.</flux:subheading>
             </div>

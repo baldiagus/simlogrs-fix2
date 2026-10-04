@@ -177,7 +177,7 @@
     {{-- Modal Formulir Lapor Kerusakan --}}
     <flux:modal name="modal-lapor-servis" wire:model="showModal" class="md:w-[38rem]">
         <form wire:submit="save" class="space-y-4">
-            <div>
+            <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">Formulir Lapor Kerusakan Sarana</flux:heading>
                 <flux:subheading>Sampaikan keluhan kendala teknis fasilitas atau alat kerja ruangan untuk ditangani tim IPSRS.</flux:subheading>
             </div>
@@ -288,7 +288,7 @@
                             Tanggal Lapor: {{ $selectedTiket->dibuat_pada?->format('d F Y H:i') }}
                         </flux:subheading>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2" style="margin-right: 2.25rem;">
                         @php
                             $prioCol = match($selectedTiket->prioritas) {
                                 'CITO' => 'rose',

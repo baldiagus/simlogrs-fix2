@@ -190,7 +190,9 @@
                             Unit Tujuan: <span class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedSppb->unit?->nama ?? '-' }}</span>
                         </flux:subheading>
                     </div>
-                    <x-status-badge :status="$selectedSppb->status" />
+                    <div style="margin-right: 2.25rem;">
+                        <x-status-badge :status="$selectedSppb->status" />
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-lg">

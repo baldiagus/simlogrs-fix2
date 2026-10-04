@@ -121,7 +121,7 @@
     {{-- Modal Form Tambah Amprah --}}
     <flux:modal name="modal-permintaan-form" wire:model="showModal" class="md:w-[52rem] max-w-[92vw]">
         <form wire:submit="save" class="space-y-4">
-            <div>
+            <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">Pengajuan Amprah Ruangan</flux:heading>
                 <flux:subheading>Kebutuhan operasional ruangan ke gudang logistik sentral.</flux:subheading>
             </div>
@@ -354,7 +354,7 @@
                             Tanggal: {{ $selectedPermintaan->tanggal_permintaan?->format('d F Y') }}
                         </flux:subheading>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2" style="margin-right: 2.25rem;">
                         <x-urgency-badge :urgency="$selectedPermintaan->urgensi" />
                         <x-status-badge :status="$selectedPermintaan->status" />
                     </div>

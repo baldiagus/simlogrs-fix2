@@ -186,7 +186,7 @@
     {{-- Modal Form Tambah / Ubah Aset --}}
     <flux:modal name="modal-aset-form" wire:model="showModal" class="md:w-[38rem]">
         <form wire:submit="save" class="space-y-4">
-            <div>
+            <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">{{ $editingId ? 'Ubah Register Aset' : 'Registrasi Unit Aset Baru' }}</flux:heading>
                 <flux:subheading>Pencatatan aktiva inventaris, nomor seri, dan lokasi penempatan.</flux:subheading>
             </div>
@@ -323,7 +323,7 @@
     <flux:modal wire:model="showDetailModal" class="md:w-[44rem]">
         @if ($selectedAset)
             <div class="space-y-4">
-                <div>
+                <div style="padding-right: 2.5rem;">
                     <flux:heading size="lg">Detail Aset Inventaris: {{ $selectedAset->barang?->nama }}</flux:heading>
                     <flux:subheading>Informasi lengkap unit fisik aset yang terdaftar.</flux:subheading>
                 </div>
@@ -462,7 +462,7 @@
                             Penempatan: {{ $selectedAset->unit?->nama ?? $selectedAset->gudang?->nama ?? 'Sentral' }}
                         </flux:subheading>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2" style="margin-right: 2.25rem;">
                         <x-status-badge :status="$selectedAset->status" />
                     </div>
                 </div>

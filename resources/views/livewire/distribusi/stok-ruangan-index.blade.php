@@ -365,7 +365,7 @@
     <flux:modal name="modal-ubah-status-aset" wire:model="showUbahStatusAsetModal" class="md:w-[30rem]">
         @if ($selectedAset)
             <form wire:submit="simpanStatusAset" class="space-y-4">
-                <div>
+                <div style="padding-right: 2.5rem;">
                     <flux:heading size="lg">Update Status Operasional Aset</flux:heading>
                     <flux:subheading>Sesuaikan status alat inventaris ruangan (sedang aktif digunakan atau siap pakai/dipinjamkan).</flux:subheading>
                 </div>
@@ -436,7 +436,7 @@
     <flux:modal name="modal-catat-pemakaian" wire:model="showPakaiModal" class="md:w-[32rem]">
         @if ($selectedStok)
             <form wire:submit="simpanPemakaian" class="space-y-4">
-                <div>
+                <div style="padding-right: 2.5rem;">
                     <flux:heading size="lg">Catat Pemakaian Barang</flux:heading>
                     <flux:subheading>Kurangi sisa fisik stok di lemari ruangan saat digunakan untuk operasional atau pelayanan pasien.</flux:subheading>
                 </div>

@@ -144,7 +144,7 @@
                             Tanggal Kirim: {{ $selectedSppb->tanggal_kirim?->format('d F Y') }}
                         </flux:subheading>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2" style="margin-right: 2.25rem;">
                         @if ($selectedSppb->permintaanDistribusi)
                             <x-urgency-badge :urgency="$selectedSppb->permintaanDistribusi->urgensi" />
                         @endif

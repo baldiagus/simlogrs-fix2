@@ -199,7 +199,9 @@
                             default       => 'zinc',
                         };
                     @endphp
-                    <flux:badge size="sm" :color="$mColor">{{ $selectedMutasi->jenis }}</flux:badge>
+                    <div style="margin-right: 2.25rem;">
+                        <flux:badge size="sm" :color="$mColor">{{ $selectedMutasi->jenis }}</flux:badge>
+                    </div>
                 </div>
 
                 {{-- Metadata Grid --}}

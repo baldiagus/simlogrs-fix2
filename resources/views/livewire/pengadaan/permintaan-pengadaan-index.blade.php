@@ -136,7 +136,7 @@
     {{-- Modal Form Tambah PR --}}
     <flux:modal name="modal-pr-form" wire:model="showModal" class="md:w-[48rem]">
         <form wire:submit="save" class="space-y-4">
-            <div>
+            <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">Buat Permintaan Pengadaan Baru</flux:heading>
                 <flux:subheading>Lengkapi informasi permintaan dan daftar barang yang dibutuhkan.</flux:subheading>
             </div>
@@ -256,7 +256,7 @@
     <flux:modal name="modal-pr-detail" wire:model="showDetailModal" class="md:w-[42rem]">
         @if ($selectedPr)
             <div class="space-y-4">
-                <div>
+                <div style="padding-right: 2.5rem;">
                     <flux:heading size="lg">Detail Permintaan Pengadaan</flux:heading>
                     <flux:subheading>{{ $selectedPr->kode }}</flux:subheading>
                 </div>
@@ -344,7 +344,7 @@
     {{-- Modal Tolak Pengadaan dengan Alasan Wajib --}}
     <flux:modal name="modal-reject-pengadaan" wire:model="showRejectPengadaanModal" class="md:w-[28rem]">
         <form wire:submit="submitRejectPengadaan" class="space-y-4">
-            <div>
+            <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">Tolak di Meja Pengadaan</flux:heading>
                 <flux:subheading class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     Berikan alasan resmi mengapa permohonan ini tidak dapat diterbitkan menjadi PO (misal: pagu anggaran habis atau barang tidak tersedia).

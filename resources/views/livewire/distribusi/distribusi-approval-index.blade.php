@@ -114,7 +114,7 @@
     <flux:modal name="modal-review-kuota" wire:model="showReviewModal" class="md:w-4xl max-w-5xl">
         @if ($selectedPermintaan)
             <div class="space-y-5">
-                <div>
+                <div style="padding-right: 2.5rem;">
                     <flux:heading size="lg">Review & Penyesuaian Kuota Distribusi</flux:heading>
                     <flux:subheading class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                         Periksa ketersediaan stok fisik gudang dan sesuaikan kuota barang yang disetujui untuk didistribusikan.
@@ -230,7 +230,7 @@
     <flux:modal name="modal-detail-distribusi" wire:model="showDetailModal" class="md:w-3xl max-w-4xl">
         @if ($selectedPermintaan)
             <div class="space-y-5">
-                <div>
+                <div style="padding-right: 2.5rem;">
                     <flux:heading size="lg">Detail Permintaan Distribusi</flux:heading>
                     <flux:subheading class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                         Informasi lengkap permohonan amprah barang ruangan.

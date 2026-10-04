@@ -161,9 +161,11 @@
                         </div>
                         <flux:heading size="lg" class="mt-0.5">{{ $selectedPemasok->nama }}</flux:heading>
                     </div>
-                    <flux:badge size="sm" :color="$selectedPemasok->status === 'AKTIF' ? 'emerald' : 'zinc'">
-                        {{ $selectedPemasok->status }}
-                    </flux:badge>
+                    <div style="margin-right: 2.25rem;">
+                        <flux:badge size="sm" :color="$selectedPemasok->status === 'AKTIF' ? 'emerald' : 'zinc'">
+                            {{ $selectedPemasok->status }}
+                        </flux:badge>
+                    </div>
                 </div>
 
                 {{-- Detail Informasi Kontak & Legalitas --}}

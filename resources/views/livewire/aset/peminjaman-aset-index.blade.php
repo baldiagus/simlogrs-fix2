@@ -367,7 +367,7 @@
     {{-- Modal Pengajuan Peminjaman Baru --}}
     <flux:modal name="modal-pinjam" wire:model="showPinjamModal" class="md:w-[54rem] max-w-[95vw]">
         <div class="space-y-6">
-            <div>
+            <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">Form Pengajuan Peminjaman Aset</flux:heading>
                 <flux:subheading>Pilih fasilitas penyedia aset inventaris yang berstatus tersedia dan dalam kondisi baik.</flux:subheading>
             </div>
@@ -506,7 +506,7 @@
     {{-- Modal Perpanjangan Waktu Peminjaman --}}
     <flux:modal name="modal-perpanjang" wire:model="showPerpanjangModal" class="md:w-[54rem] max-w-[95vw]">
         <div class="space-y-6">
-            <div>
+            <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">Perpanjangan Waktu Peminjaman</flux:heading>
                 <flux:subheading>Perpanjang batas waktu pengembalian aset inventaris dengan mencantumkan alasan operasional.</flux:subheading>
             </div>
@@ -580,7 +580,9 @@
                         <flux:heading size="lg">Detail Peminjaman: {{ $selectedPinjam->kode }}</flux:heading>
                         <flux:subheading>Informasi lengkap sirkulasi aset, penanggung jawab, dan catatan operasional.</flux:subheading>
                     </div>
-                    <x-status-badge :status="$selectedPinjam->status" />
+                    <div style="margin-right: 2.25rem;">
+                        <x-status-badge :status="$selectedPinjam->status" />
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">

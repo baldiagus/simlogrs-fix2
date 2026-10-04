@@ -98,7 +98,7 @@
     {{-- Modal Konversi PR → PO --}}
     <flux:modal name="modal-konversi-po" wire:model="showModal" class="md:w-[54rem]">
         <form wire:submit="savePo" class="space-y-4">
-            <div>
+            <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">Konversi PR → Pesanan Pembelian</flux:heading>
                 <flux:subheading>Buat PO baru dari permintaan pengadaan yang telah disetujui.</flux:subheading>
             </div>
@@ -187,7 +187,7 @@
     <flux:modal name="modal-detail-po" wire:model="showDetailModal" class="md:w-[48rem]">
         @if ($selectedPo)
             <div class="space-y-4">
-                <div>
+                <div style="padding-right: 2.5rem;">
                     <flux:heading size="lg">Detail Pesanan Pembelian</flux:heading>
                     <flux:subheading>{{ $selectedPo->kode }}</flux:subheading>
                 </div>

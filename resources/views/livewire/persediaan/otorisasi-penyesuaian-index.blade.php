@@ -172,7 +172,9 @@
                             Ref Opname: {{ $selectedPenyesuaian->stokOpname?->kode ?? '-' }}
                         </flux:subheading>
                     </div>
-                    <x-status-badge :status="$selectedPenyesuaian->status" />
+                    <div style="margin-right: 2.25rem;">
+                        <x-status-badge :status="$selectedPenyesuaian->status" />
+                    </div>
                 </div>
 
                 {{-- Ringkasan Valuasi Selisih --}}

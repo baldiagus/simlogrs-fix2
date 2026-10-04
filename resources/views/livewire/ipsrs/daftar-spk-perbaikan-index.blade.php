@@ -248,7 +248,7 @@
     <flux:modal name="modal-terbitkan-spk" wire:model="showSpkModal" class="md:w-[44rem]">
         @if ($selectedTiketForSpk)
             <form wire:submit="saveSpk" class="space-y-4">
-                <div>
+                <div style="padding-right: 2.5rem;">
                     <flux:heading size="lg">Disposisi Surat Perintah Kerja (SPK)</flux:heading>
                     <flux:subheading>Tugaskan teknisi pelaksana dan target penyelesaian perbaikan fisik sarana.</flux:subheading>
                 </div>
@@ -360,7 +360,9 @@
                             Tanggal Tugas: {{ $selectedSpk->tanggal_penugasan?->format('d F Y') }}
                         </flux:subheading>
                     </div>
-                    <x-status-badge :status="$selectedSpk->status" />
+                    <div style="margin-right: 2.25rem;">
+                        <x-status-badge :status="$selectedSpk->status" />
+                    </div>
                 </div>
 
                 {{-- Metadata SPK --}}

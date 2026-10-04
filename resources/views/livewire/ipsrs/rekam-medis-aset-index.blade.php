@@ -148,7 +148,7 @@
                             Penempatan: {{ $selectedAset->unit?->nama ?? $selectedAset->gudang?->nama ?? 'Sentral' }}
                         </flux:subheading>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2" style="margin-right: 2.25rem;">
                         <x-status-badge :status="$selectedAset->status" />
                     </div>
                 </div>

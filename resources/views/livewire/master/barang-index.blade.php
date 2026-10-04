@@ -161,7 +161,7 @@
     {{-- Modal Form Tambah / Ubah Barang --}}
     <flux:modal name="modal-barang-form" wire:model="showModal" class="md:w-[42rem]">
         <form wire:submit="save" class="space-y-4">
-            <div>
+            <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">{{ $editingId ? 'Ubah Data Komoditas' : 'Daftarkan Barang Baru' }}</flux:heading>
                 <flux:subheading>Lengkapi informasi spesifikasi, klasifikasi, stok minimum, dan harga estimasi.</flux:subheading>
             </div>
@@ -255,7 +255,7 @@
         @if ($selectedBarang)
             <div class="space-y-4">
                 {{-- Header Modal & Identitas Utama --}}
-                <div class="pb-3 border-b border-zinc-200 dark:border-zinc-800">
+                <div class="pb-3 border-b border-zinc-200 dark:border-zinc-800" style="padding-right: 2.5rem;">
                     <div class="flex items-center gap-2.5 flex-wrap">
                         <h3 class="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
                             {{ $selectedBarang->nama }}
