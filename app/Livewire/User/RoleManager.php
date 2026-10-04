@@ -22,7 +22,6 @@ class RoleManager extends Component
         'update' => [],
         'delete' => [],
     ];
-    public string $activeDomainFilter = '';
 
     public function boot(): void
     {
