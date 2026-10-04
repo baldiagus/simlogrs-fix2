@@ -28,6 +28,13 @@ class PenggunaIndex extends Component
 
     #[Url(history: true)]
     public string $filterStatus = '';
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->filterRole = '';
+        $this->filterStatus = '';
+        $this->resetPage();
+    }
 
     // Modal Form State
     public bool $showModal = false;

@@ -45,7 +45,8 @@
             @if ($selectedRole)
                 <flux:card class="p-6 space-y-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
                     {{-- Header Peran Terpilih --}}
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+                    {{-- Header Peran Terpilih (Sticky Header with Save Button) --}}
+                    <div class="sticky top-0 z-20 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md pb-4 pt-1 border-b border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div>
                             <flux:text size="xs" class="text-xs font-semibold text-zinc-600 dark:text-zinc-400">Konfigurasi Hak Akses Peran:</flux:text>
                             <div class="flex items-center gap-3 mt-0.5">
@@ -56,19 +57,28 @@
                             </div>
                         </div>
 
-                        @if ($selectedRole->name === 'super_admin' && auth()->user()?->hasRole('super_admin'))
-                            <flux:badge color="amber" icon="lock-closed">
-                                Anti Self-Lockout Aktif (Role & Pengguna Terkunci Penuh)
-                            </flux:badge>
-                        @elseif ($selectedRole->name === 'super_admin' && ! auth()->user()?->hasRole('super_admin'))
-                            <flux:badge color="red" icon="shield-exclamation">
-                                Terkunci (Hanya Super Admin)
-                            </flux:badge>
-                        @elseif (! auth()->user()?->hasRole('super_admin') && auth()->user()?->hasRole($selectedRole->name))
-                            <flux:badge color="amber" icon="lock-closed">
-                                Anti Self-Promotion (Peran Aktif Anda)
-                            </flux:badge>
-                        @endif
+                        <div class="flex items-center gap-2">
+                            @if ($selectedRole->name === 'super_admin' && auth()->user()?->hasRole('super_admin'))
+                                <flux:badge color="amber" icon="lock-closed">
+                                    Anti Self-Lockout Aktif
+                                </flux:badge>
+                            @elseif ($selectedRole->name === 'super_admin' && ! auth()->user()?->hasRole('super_admin'))
+                                <flux:badge color="red" icon="shield-exclamation">
+                                    Terkunci (Hanya Super Admin)
+                                </flux:badge>
+                            @elseif (! auth()->user()?->hasRole('super_admin') && auth()->user()?->hasRole($selectedRole->name))
+                                <flux:badge color="amber" icon="lock-closed">
+                                    Anti Self-Promotion (Peran Aktif Anda)
+                                </flux:badge>
+                            @endif
+
+                            @if ($canManage)
+                                <flux:button wire:click="save" variant="primary" size="sm" icon="check" wire:loading.attr="disabled">
+                                    <span wire:loading.remove wire:target="save">Simpan Wewenang</span>
+                                    <span wire:loading wire:target="save">Menyimpan...</span>
+                                </flux:button>
+                            @endif
+                        </div>
                     </div>
 
                     {{-- Panduan Otomatisasi (Cascade) --}}
@@ -80,8 +90,36 @@
                             <strong>Otomatisasi Akses Halaman:</strong> Mencentang <strong>Lihat Data</strong> otomatis mengaktifkan <em>Akses Halaman</em> ke modul bersangkutan. Mematikan <em>Lihat Data</em> otomatis mencabut izin Tambah, Ubah, dan Hapus pada modul tersebut.
                         </div>
                     </div>
+                    {{-- Tab Filter Domain Modul --}}
+                    <div class="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 text-xs">
+                        <button
+                            type="button"
+                            wire:click="$set('activeDomainFilter', '')"
+                            class="px-3 py-1.5 rounded-lg transition-colors font-medium {{ $activeDomainFilter === '' ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                        >
+                            Semua Domain
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="$set('activeDomainFilter', 'dashboard_portal')"
+                            class="px-3 py-1.5 rounded-lg transition-colors font-medium {{ $activeDomainFilter === 'dashboard_portal' ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                        >
+                            Dashboard Portal
+                        </button>
+                        @foreach ($domains as $dKey => $dVal)
+                            @if ($dKey === 'dashboard_portal') @continue @endif
+                            <button
+                                type="button"
+                                wire:click="$set('activeDomainFilter', '{{ $dKey }}')"
+                                class="px-3 py-1.5 rounded-lg transition-colors font-medium {{ $activeDomainFilter === $dKey ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                            >
+                                {{ $dVal['label'] }}
+                            </button>
+                        @endforeach
+                    </div>
 
                     {{-- BAGIAN 1: Akses Dashboard Portal (10 Portal) --}}
+                    @if (! $activeDomainFilter || $activeDomainFilter === 'dashboard_portal')
                     <div class="border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 space-y-4 bg-zinc-50/50 dark:bg-zinc-950/20">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b border-zinc-200 dark:border-zinc-800">
                             <div>
@@ -114,11 +152,15 @@
                             @endforeach
                         </div>
                     </div>
+                    @endif
 
                     {{-- BAGIAN 2: Matriks 4 Kolom Modul Operasional (Domain 2 s.d. 7) --}}
                     <div class="space-y-6">
                         @foreach ($domains as $domainKey => $domain)
                             @if ($domainKey === 'dashboard_portal')
+                                @continue
+                            @endif
+                            @if ($activeDomainFilter && $activeDomainFilter !== $domainKey)
                                 @continue
                             @endif
 
@@ -163,7 +205,10 @@
                                                         <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $mod['label'] }}</div>
                                                         <div class="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{{ $entityKey }}</div>
                                                         @if ($isSuperAdminLocked)
-                                                            <span class="inline-block text-[10px] text-amber-700 dark:text-amber-400 font-semibold mt-0.5">Terkunci (Anti Self-Lockout)</span>
+                                                            <span class="inline-flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-400 font-semibold mt-0.5">
+                                                                <flux:icon name="lock-closed" class="size-3" />
+                                                                Terkunci
+                                                            </span>
                                                         @endif
                                                     </td>
 

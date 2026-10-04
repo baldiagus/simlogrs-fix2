@@ -157,9 +157,13 @@
                 </p>
 
                 {{-- Metric Chips --}}
-                <div class="grid grid-cols-1 gap-2 text-xs">
-                    <div class="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-between">
-                        <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Tiket SPK Diterbitkan</div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80">
+                        <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Jadwal Siap Servis</div>
+                        <div class="text-base font-bold font-mono text-amber-600 dark:text-amber-400">{{ $jadwalSiapCount }}</div>
+                    </div>
+                    <div class="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80">
+                        <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Tiket SPK Terbit</div>
                         <div class="text-base font-bold font-mono text-indigo-600 dark:text-indigo-400">{{ $lastPreventive['created_count'] ?? 0 }}</div>
                     </div>
                 </div>
@@ -203,53 +207,101 @@
             <flux:badge size="sm" color="zinc">{{ $daftarNotifikasi->count() }} Terdata</flux:badge>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-xs text-left">
-                <thead class="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-700">
-                    <tr>
-                        <th scope="col" class="py-2.5 px-3 font-semibold">Waktu Terbit</th>
-                        <th scope="col" class="py-2.5 px-3 font-semibold">Penerima</th>
-                        <th scope="col" class="py-2.5 px-3 font-semibold">Judul Notifikasi</th>
-                        <th scope="col" class="py-2.5 px-3 font-semibold">Isi Pesan</th>
-                        <th scope="col" class="py-2.5 px-3 font-semibold text-center">Status Baca</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
-                    @forelse ($daftarNotifikasi as $notif)
-                        <tr class="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30">
-                            <td class="py-2.5 px-3 font-mono text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
-                                {{ $notif->dibuat_pada ? $notif->dibuat_pada->format('d/m/Y H:i') : '-' }}
-                            </td>
-                            <td class="py-2.5 px-3 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+        <flux:table bleed container:class="mt-4">
+            <flux:table.columns sticky>
+                <flux:table.column class="w-32">Waktu Terbit</flux:table.column>
+                <flux:table.column class="w-48">Penerima</flux:table.column>
+                <flux:table.column class="w-56">Judul Notifikasi</flux:table.column>
+                <flux:table.column>Isi Pesan</flux:table.column>
+                <flux:table.column class="text-center w-28">Status</flux:table.column>
+                <flux:table.column class="text-right w-16">Aksi</flux:table.column>
+            </flux:table.columns>
+            <flux:table.rows>
+                @forelse ($daftarNotifikasi as $notif)
+                    <flux:table.row :key="$notif->id">
+                        <flux:table.cell class="font-mono text-zinc-600 dark:text-zinc-400 text-xs whitespace-nowrap">
+                            {{ $notif->dibuat_pada ? $notif->dibuat_pada->format('d/m/Y H:i') : '-' }}
+                        </flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
+                            <span class="font-medium text-xs text-zinc-900 dark:text-zinc-100">
                                 {{ $notif->pengguna?->nama ?? 'User #' . $notif->pengguna_id }}
-                            </td>
-                            <td class="py-2.5 px-3 font-semibold text-zinc-800 dark:text-zinc-200">
+                            </span>
+                        </flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
+                            <button
+                                type="button"
+                                wire:click="showDetailNotif({{ $notif->id }})"
+                                class="text-left font-semibold text-xs text-zinc-800 dark:text-zinc-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-1"
+                                title="Klik untuk membaca pesan lengkap"
+                            >
                                 {{ $notif->judul }}
-                            </td>
-                            <td class="py-2.5 px-3 text-zinc-600 dark:text-zinc-400">
-                                <div class="max-w-md truncate" title="{{ $notif->pesan }}">
-                                    {{ $notif->pesan }}
-                                </div>
-                            </td>
-                            <td class="py-2.5 px-3 text-center">
-                                @if ($notif->dibaca)
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">Dibaca</span>
-                                @else
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Belum Dibaca</span>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="py-6 text-center text-zinc-500 text-xs">
-                                Belum ada notifikasi internal yang diterbitkan.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                            </button>
+                        </flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
+                            <div class="line-clamp-2 text-xs text-zinc-600 dark:text-zinc-400" title="{{ $notif->pesan }}">
+                                {{ $notif->pesan }}
+                            </div>
+                        </flux:table.cell>
+                        <flux:table.cell class="text-center w-28">
+                            @if ($notif->dibaca)
+                                <flux:badge size="sm" color="zinc">Dibaca</flux:badge>
+                            @else
+                                <flux:badge size="sm" color="blue">Belum Dibaca</flux:badge>
+                            @endif
+                        </flux:table.cell>
+                        <flux:table.cell class="text-right w-16">
+                            <flux:button
+                                wire:click="showDetailNotif({{ $notif->id }})"
+                                size="xs"
+                                variant="ghost"
+                                icon="eye"
+                                title="Lihat Notifikasi"
+                            />
+                        </flux:table.cell>
+                    </flux:table.row>
+                @empty
+                    <x-empty-state message="Belum ada notifikasi internal yang diterbitkan." cols="6" />
+                @endforelse
+            </flux:table.rows>
+        </flux:table>
     </flux:card>
+
+    {{-- Modal Detail Notifikasi --}}
+    <flux:modal name="modal-detail-notifikasi" wire:model="showDetailNotifModal" class="md:w-[32rem]">
+        @if ($selectedNotifikasi)
+            <div class="space-y-4">
+                <div class="pb-3 border-b border-zinc-200 dark:border-zinc-800" style="padding-right: 2.5rem;">
+                    <flux:heading size="lg">{{ $selectedNotifikasi->judul }}</flux:heading>
+                    <flux:subheading class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                        Waktu Terbit: {{ $selectedNotifikasi->dibuat_pada?->format('d F Y H:i:s') }} WIB
+                    </flux:subheading>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <span class="text-zinc-500 dark:text-zinc-400 font-medium">Penerima:</span>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5">{{ $selectedNotifikasi->pengguna?->nama ?? '-' }}</div>
+                    </div>
+
+                    <div>
+                        <span class="text-zinc-500 dark:text-zinc-400 font-medium">Status Baca:</span>
+                        <div class="mt-1">
+                            @if ($selectedNotifikasi->dibaca)
+                                <flux:badge size="sm" color="zinc">Sudah Dibaca</flux:badge>
+                            @else
+                                <flux:badge size="sm" color="blue">Belum Dibaca</flux:badge>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/60">
+                        <span class="text-zinc-500 dark:text-zinc-400 font-medium block mb-1">Isi Pesan Lengkap:</span>
+                        <p class="text-zinc-800 dark:text-zinc-200 leading-relaxed text-xs">{{ $selectedNotifikasi->pesan }}</p>
+                    </div>
+                </div>
+            </div>
+        @endif
+    </flux:modal>
 
     {{-- Modal Konfirmasi Aksi Scheduler --}}
     <x-confirm-modal

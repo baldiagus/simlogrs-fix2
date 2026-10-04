@@ -15,6 +15,14 @@ class SchedulerNotifikasiIndex extends Component
     use HasPortalLayout, HasToast, HasConfirmationModal;
 
     public bool $isProcessing = false;
+    public bool $showDetailNotifModal = false;
+    public ?Notifikasi $selectedNotifikasi = null;
+
+    public function showDetailNotif(int $id): void
+    {
+        $this->selectedNotifikasi = Notifikasi::with('pengguna')->find($id);
+        $this->showDetailNotifModal = true;
+    }
 
     public function boot(): void
     {
@@ -167,6 +175,9 @@ class SchedulerNotifikasiIndex extends Component
             'ringkasan' => 'Menunggu jadwal cron otomatis (01:00 WIB)',
             'created_count' => 0,
         ]);
+        $jadwalSiapCount = \App\Models\JadwalMaintenance::where('status', 'AKTIF')
+            ->whereDate('tanggal_berikutnya', '<=', now()->toDateString())
+            ->count();
 
         $daftarNotifikasi = Notifikasi::with('pengguna')
             ->latest('id')
@@ -177,6 +188,7 @@ class SchedulerNotifikasiIndex extends Component
             'lastSweep' => $lastSweep,
             'lastOverdue' => $lastOverdue,
             'lastPreventive' => $lastPreventive,
+            'jadwalSiapCount' => $jadwalSiapCount,
             'daftarNotifikasi' => $daftarNotifikasi,
         ])->layout('layouts.portal', [
             'title' => 'Task Scheduler & Cron Monitor',

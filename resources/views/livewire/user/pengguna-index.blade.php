@@ -58,62 +58,72 @@
 
     {{-- Filter Toolbar & Tabel Pengguna --}}
     <flux:card class="space-y-4 shadow-sm border border-zinc-200 dark:border-zinc-800">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div>
-                <flux:heading size="lg">Direktori Akun Pegawai Kedinasan</flux:heading>
-                <flux:subheading class="text-xs text-zinc-600 dark:text-zinc-400">
-                    Gunakan filter pencarian untuk menemukan pegawai berdasarkan NIP, nama, atau peranan.
-                </flux:subheading>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2">
-                {{-- Filter Peran --}}
-                <select
-                    wire:model.live="filterRole"
-                    class="h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                    <option value="">Semua Peran</option>
-                    @foreach ($daftarRoles as $roleItem)
-                        <option value="{{ $roleItem->name }}">{{ ucwords(str_replace('_', ' ', $roleItem->name)) }}</option>
-                    @endforeach
-                </select>
-
-                {{-- Filter Status --}}
-                <select
-                    wire:model.live="filterStatus"
-                    class="h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                    <option value="">Semua Status</option>
-                    <option value="AKTIF">Hanya Aktif</option>
-                    <option value="NONAKTIF">Nonaktif</option>
-                </select>
-
-                {{-- Search Bar --}}
-                <div class="w-full sm:w-60">
-                    <input
-                        type="text"
-                        wire:model.live.debounce.300ms="search"
-                        placeholder="Cari nama, NIP, user..."
-                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-            </div>
+        <div>
+            <flux:heading size="lg">Direktori Akun Pegawai Kedinasan</flux:heading>
+            <flux:subheading class="text-xs text-zinc-600 dark:text-zinc-400">
+                Gunakan filter pencarian untuk menemukan pegawai berdasarkan NIP, nama, atau peranan.
+            </flux:subheading>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-xs text-left">
-                <thead class="bg-zinc-50 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-700">
-                    <tr>
-                        <th class="py-2.5 px-3 font-semibold">Pegawai</th>
-                        <th class="py-2.5 px-3 font-semibold">Kredensial</th>
-                        <th class="py-2.5 px-3 font-semibold text-center">Peran Utama</th>
-                        <th class="py-2.5 px-3 font-semibold">Unit / Penugasan</th>
-                        <th class="py-2.5 px-3 font-semibold text-center">Status</th>
-                        <th class="py-2.5 px-3 font-semibold">Terakhir Login</th>
-                        <th class="py-2.5 px-3 font-semibold text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <div class="flex flex-wrap items-center gap-2.5">
+                {{-- Search Bar --}}
+                <div class="w-full sm:w-72">
+                    <flux:input
+                        wire:model.live.debounce.300ms="search"
+                        placeholder="Cari nama, NIP, username..."
+                        icon="magnifying-glass"
+                        clearable
+                    />
+                </div>
+
+                {{-- Filter Peran --}}
+                <div class="w-full sm:w-44">
+                    <select
+                        wire:model.live="filterRole"
+                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                    >
+                        <option value="">Semua Peran</option>
+                        @foreach ($daftarRoles as $roleItem)
+                            <option value="{{ $roleItem->name }}">{{ ucwords(str_replace('_', ' ', $roleItem->name)) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Filter Status --}}
+                <div class="w-full sm:w-36">
+                    <select
+                        wire:model.live="filterStatus"
+                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                    >
+                        <option value="">Semua Status</option>
+                        <option value="AKTIF">Hanya Aktif</option>
+                        <option value="NONAKTIF">Nonaktif</option>
+                    </select>
+                </div>
+
+                @if ($search || $filterRole || $filterStatus)
+                    <flux:button
+                        wire:click="resetFilters"
+                        size="sm"
+                        variant="subtle"
+                        icon="x-mark"
+                    >
+                        Reset Filter
+                    </flux:button>
+                @endif
+            </div>
+
+        <flux:table bleed container:class="mt-4">
+            <flux:table.columns sticky>
+                <flux:table.column class="w-64">Pegawai</flux:table.column>
+                <flux:table.column class="w-48">Kredensial</flux:table.column>
+                <flux:table.column class="text-center w-32">Peran Utama</flux:table.column>
+                <flux:table.column class="w-56">Unit / Penugasan</flux:table.column>
+                <flux:table.column class="text-center w-24">Status</flux:table.column>
+                <flux:table.column class="w-36">Terakhir Login</flux:table.column>
+                <flux:table.column class="text-right w-16">Aksi</flux:table.column>
+            </flux:table.columns>
+            <flux:table.rows>
                     @forelse ($users as $userItem)
                         @php
                             $primaryRole = $userItem->roles->firstWhere('name', '!=', 'panel_user');
@@ -132,9 +142,11 @@
                                 default          => 'zinc',
                             };
                             $initials = collect(explode(' ', $userItem->nama))->map(fn($w) => mb_substr($w, 0, 1))->take(2)->join('');
+                            $isTargetSuperAdmin = $userItem->hasRole('super_admin');
+                            $canManageUser = auth()->user()?->hasRole('super_admin') || ! $isTargetSuperAdmin;
                         @endphp
-                        <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40" wire:key="user-row-{{ $userItem->id }}">
-                            <td class="py-2.5 px-3">
+                    <flux:table.row :key="$userItem->id">
+                        <flux:table.cell style="white-space: normal;">
                                 <div class="flex items-center gap-2.5">
                                     <div class="size-8 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center font-bold font-mono text-[11px] text-zinc-700 dark:text-zinc-300 shrink-0">
                                         {{ $initials ?: 'U' }}
@@ -144,17 +156,17 @@
                                         <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">NIP: {{ $userItem->nip ?: '-' }}</div>
                                     </div>
                                 </div>
-                            </td>
-                            <td class="py-2.5 px-3 font-mono">
+                        </flux:table.cell>
+                        <flux:table.cell class="font-mono" style="white-space: normal;">
                                 <div class="font-semibold text-zinc-800 dark:text-zinc-200">{{ $userItem->username }}</div>
                                 <div class="text-[10px] text-zinc-500 dark:text-zinc-400">{{ $userItem->email }}</div>
-                            </td>
-                            <td class="py-2.5 px-3 text-center">
+                        </flux:table.cell>
+                        <flux:table.cell class="text-center">
                                 <flux:badge size="sm" :color="$roleColor">
                                     {{ $roleLabel }}
                                 </flux:badge>
-                            </td>
-                            <td class="py-2.5 px-3 text-zinc-700 dark:text-zinc-300">
+                        </flux:table.cell>
+                        <flux:table.cell style="white-space: normal;">
                                 @if ($userItem->unit)
                                     <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $userItem->unit->nama }}</div>
                                     <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">Ruangan Pelayanan</div>
@@ -164,13 +176,13 @@
                                 @else
                                     <div class="text-zinc-400">Pusat / Sentral</div>
                                 @endif
-                            </td>
-                            <td class="py-2.5 px-3 text-center">
+                        </flux:table.cell>
+                        <flux:table.cell class="text-center">
                                 <flux:badge size="sm" :color="$userItem->status === 'AKTIF' ? 'emerald' : 'zinc'">
                                     {{ $userItem->status }}
                                 </flux:badge>
-                            </td>
-                            <td class="py-2.5 px-3 font-mono text-zinc-600 dark:text-zinc-400 text-[11px] whitespace-nowrap">
+                        </flux:table.cell>
+                        <flux:table.cell class="font-mono text-[11px] whitespace-nowrap">
                                 @if ($userItem->terakhir_login)
                                     <div>{{ $userItem->terakhir_login->format('d/m/Y H:i') }} WIB</div>
                                     @if ($userItem->ip_terakhir)
@@ -179,68 +191,45 @@
                                 @else
                                     <span class="text-zinc-400">Belum pernah login</span>
                                 @endif
-                            </td>
-                            <td class="py-2.5 px-3 text-center">
-                                @php
-                                    $isTargetSuperAdmin = $userItem->hasRole('super_admin');
-                                    $canManageUser = auth()->user()?->hasRole('super_admin') || ! $isTargetSuperAdmin;
-                                @endphp
-                                <div class="flex items-center justify-center gap-1">
-                                    @can('update_user::pengguna')
-                                        @if ($canManageUser)
-                                            <flux:button
-                                                wire:click="openEdit({{ $userItem->id }})"
-                                                size="xs"
-                                                variant="ghost"
-                                                icon="pencil-square"
-                                                title="Ubah Data & Peran Pegawai"
-                                            />
-                                            <flux:button
-                                                wire:click="confirmResetPassword({{ $userItem->id }})"
-                                                size="xs"
-                                                variant="ghost"
-                                                icon="key"
-                                                title="Reset Kata Sandi ke Default"
-                                            />
-                                            <flux:button
-                                                wire:click="confirmToggleStatus({{ $userItem->id }})"
-                                                size="xs"
-                                                variant="ghost"
-                                                icon="{{ $userItem->status === 'AKTIF' ? 'lock-closed' : 'lock-open' }}"
-                                                title="{{ $userItem->status === 'AKTIF' ? 'Nonaktifkan Akun' : 'Aktifkan Akun' }}"
-                                                class="{{ $userItem->status === 'AKTIF' ? 'text-amber-600' : 'text-emerald-600' }}"
-                                            />
-                                            @can('delete_user::pengguna')
-                                                @if (auth()->id() !== $userItem->id)
-                                                    <flux:button
-                                                        wire:click="confirmDelete({{ $userItem->id }})"
-                                                        size="xs"
-                                                        variant="ghost"
-                                                        icon="trash"
-                                                        class="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
-                                                        title="Hapus Akun Pegawai"
-                                                    />
-                                                @endif
-                                            @endcan
-                                        @else
-                                            <flux:badge size="xs" color="amber" icon="lock-closed">
-                                                Terkunci
-                                            </flux:badge>
-                                        @endif
-                                    @endcan
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="py-8 text-center text-zinc-500 dark:text-zinc-400 text-xs">
-                                Tidak ada data akun pegawai yang sesuai dengan parameter pencarian.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                        </flux:table.cell>
+                        <flux:table.cell class="text-right w-16">
+                            @if ($canManageUser)
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                    <flux:menu class="min-w-44">
+                                        @can('update_user::pengguna')
+                                            <flux:menu.item wire:click="openEdit({{ $userItem->id }})" icon="pencil-square">
+                                                Ubah Data & Peran
+                                            </flux:menu.item>
+                                            <flux:menu.item wire:click="confirmResetPassword({{ $userItem->id }})" icon="key">
+                                                Reset Kata Sandi
+                                            </flux:menu.item>
+                                            <flux:menu.item wire:click="confirmToggleStatus({{ $userItem->id }})" icon="{{ $userItem->status === 'AKTIF' ? 'lock-closed' : 'lock-open' }}">
+                                                {{ $userItem->status === 'AKTIF' ? 'Nonaktifkan Akun' : 'Aktifkan Akun' }}
+                                            </flux:menu.item>
+                                        @endcan
+                                        @can('delete_user::pengguna')
+                                            @if (auth()->id() !== $userItem->id)
+                                                <flux:menu.separator />
+                                                <flux:menu.item wire:click="confirmDelete({{ $userItem->id }})" icon="trash" variant="danger">
+                                                    Hapus Akun
+                                                </flux:menu.item>
+                                            @endif
+                                        @endcan
+                                    </flux:menu>
+                                </flux:dropdown>
+                            @else
+                                <flux:badge size="xs" color="amber" icon="lock-closed">
+                                    Terkunci
+                                </flux:badge>
+                            @endif
+                        </flux:table.cell>
+                    </flux:table.row>
+                @empty
+                    <x-empty-state message="Tidak ada data akun pegawai yang sesuai dengan parameter pencarian." cols="7" />
+                @endforelse
+            </flux:table.rows>
+        </flux:table>
 
         <x-table-pagination :paginator="$users" />
     </flux:card>
@@ -248,7 +237,7 @@
     {{-- Modal Tambah / Edit Pengguna --}}
     <flux:modal wire:model="showModal" class="md:w-[42rem]">
         <form wire:submit="save" class="space-y-4">
-            <div class="pb-3 border-b border-zinc-200 dark:border-zinc-800">
+            <div class="pb-3 border-b border-zinc-200 dark:border-zinc-800" style="padding-right: 2.5rem;">
                 <flux:heading size="lg">
                     {{ $editingId ? 'Ubah Data Akun Pegawai' : 'Registrasi Akun Pegawai Baru' }}
                 </flux:heading>
