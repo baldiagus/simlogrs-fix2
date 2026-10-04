@@ -175,6 +175,7 @@
                                 <div class="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 mt-0.5">
                                     Ref: {{ $spk->permintaanMaintenance?->kode ?? '-' }} &bull; {{ $spk->permintaanMaintenance?->unit?->nama ?? '-' }}
                                 </div>
+                                @if ($spk->permintaanMaintenance?->foto_kerusakan)
                                     <div class="mt-1 flex items-center gap-1.5">
                                         <a href="{{ asset('storage/' . $spk->permintaanMaintenance->foto_kerusakan) }}" target="_blank" class="block rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden hover:opacity-80">
                                             <img src="{{ asset('storage/' . $spk->permintaanMaintenance->foto_kerusakan) }}" alt="Foto" class="h-6 w-6 object-cover" />
