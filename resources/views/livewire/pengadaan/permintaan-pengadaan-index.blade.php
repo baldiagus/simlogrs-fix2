@@ -33,6 +33,7 @@
                     <option value="{{ \App\Models\PermintaanPengadaan::STATUS_DIPROSES }}">DIPROSES (PO)</option>
                     <option value="{{ \App\Models\PermintaanPengadaan::STATUS_SELESAI }}">SELESAI</option>
                     <option value="{{ \App\Models\PermintaanPengadaan::STATUS_DITOLAK }}">{{ \App\Models\PermintaanPengadaan::STATUS_DITOLAK }}</option>
+                </select>
             </div>
 
             <div class="w-full sm:w-40">
