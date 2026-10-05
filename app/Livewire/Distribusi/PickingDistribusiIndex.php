@@ -26,6 +26,9 @@ class PickingDistribusiIndex extends Component
     public bool $showDetailModal = false;
     public ?PengirimanBarang $selectedSppb = null;
 
+    public bool $showPermintaanDetailModal = false;
+    public ?PermintaanDistribusi $selectedPermintaanDetail = null;
+    public array $ringkasanPermintaanDetail = [];
     public function setTab(string $tab): void
     {
         $this->activeTab = $tab;
@@ -144,6 +147,78 @@ class PickingDistribusiIndex extends Component
     {
         $this->showDetailModal = false;
         $this->selectedSppb = null;
+    }
+
+    public function showPermintaanDetail(int $id): void
+    {
+        $this->checkAccess();
+
+        $this->selectedPermintaanDetail = PermintaanDistribusi::with([
+            'unit',
+            'gudang',
+            'pengaju',
+            'penyetuju',
+            'detail.barang.satuan',
+        ])->findOrFail($id);
+
+        $gudangId = $this->selectedPermintaanDetail->gudang_id;
+
+        $existingShipments = PengirimanBarang::where('permintaan_distribusi_id', $this->selectedPermintaanDetail->id)
+            ->where('status', '!=', 'BATAL')
+            ->pluck('id');
+
+        $alreadySentMap = \App\Models\PengirimanBarangDetail::whereIn('pengiriman_barang_id', $existingShipments)
+            ->groupBy('barang_id')
+            ->selectRaw('barang_id, sum(jumlah_dikirim) as total_sent')
+            ->pluck('total_sent', 'barang_id')
+            ->toArray();
+
+        $this->ringkasanPermintaanDetail = [];
+
+        foreach ($this->selectedPermintaanDetail->detail as $det) {
+            $diminta = (int) $det->jumlah;
+            $disetujui = (int) ($det->jumlah_disetujui !== null ? $det->jumlah_disetujui : $diminta);
+            $terkirim = (int) ($alreadySentMap[$det->barang_id] ?? 0);
+            $sisaPicking = max(0, $disetujui - $terkirim);
+
+            $stokGudang = (int) \App\Models\StokBatch::where('barang_id', $det->barang_id)
+                ->where('status', 'AKTIF')
+                ->where('jumlah', '>', 0)
+                ->when($gudangId, fn ($q) => $q->where('gudang_id', $gudangId))
+                ->where(function ($q) {
+                    $q->whereNull('tanggal_kedaluwarsa')
+                        ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
+                })
+                ->sum('jumlah');
+
+            $this->ringkasanPermintaanDetail[$det->id] = [
+                'diminta'       => $diminta,
+                'disetujui'     => $disetujui,
+                'terkirim'      => $terkirim,
+                'sisa_picking'  => $sisaPicking,
+                'stok_gudang'   => $stokGudang,
+            ];
+        }
+
+        $this->showPermintaanDetailModal = true;
+    }
+
+    public function closePermintaanDetailModal(): void
+    {
+        $this->showPermintaanDetailModal = false;
+        $this->selectedPermintaanDetail = null;
+        $this->ringkasanPermintaanDetail = [];
+    }
+
+    public function confirmPickingFromDetail(): void
+    {
+        if (! $this->selectedPermintaanDetail) {
+            return;
+        }
+
+        $id = $this->selectedPermintaanDetail->id;
+        $this->showPermintaanDetailModal = false;
+        $this->confirmPicking($id);
     }
 
     protected function checkAccess(): void
