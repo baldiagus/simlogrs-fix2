@@ -63,10 +63,8 @@ class DistribusiApprovalIndex extends Component
             );
 
             $jumlahDiminta = (int) $detail->jumlah;
-            $jumlahDisetujui = $detail->jumlah_disetujui !== null
-                ? min((int) $detail->jumlah_disetujui, $stokGudang)
-                : min($jumlahDiminta, $stokGudang);
-
+            // Kuota disetujui terkunci 100% mengikuti permohonan ruangan (tidak boleh dikurangi sepihak)
+            $jumlahDisetujui = $jumlahDiminta;
             $this->itemQtys[$detail->id] = [
                 'detail_id'        => $detail->id,
                 'barang_id'        => $detail->barang_id,
@@ -123,19 +121,9 @@ class DistribusiApprovalIndex extends Component
         foreach ($this->itemQtys as $detailId => $item) {
             $disetujui = (int) $item['jumlah_disetujui'];
             $diminta = (int) $item['jumlah_diminta'];
-            $stokTersedia = $this->getStokTersediaGudang(
-                (int) $item['barang_id'],
-                $this->selectedPermintaan?->gudang_id,
-                $this->selectedId
-            );
 
             if ($disetujui > $diminta) {
-                $this->addError("itemQtys.{$detailId}.jumlah_disetujui", "Jumlah disetujui ({$disetujui}) melebihi jumlah yang diminta ({$diminta}).");
-                return;
-            }
-
-            if ($disetujui > $stokTersedia) {
-                $this->addError("itemQtys.{$detailId}.jumlah_disetujui", "Jumlah disetujui ({$disetujui}) melebihi sisa stok gudang yang tersedia ({$stokTersedia}).");
+                $this->addError("itemQtys.{$detailId}.jumlah_disetujui", "Jumlah disetujui ({$disetujui}) tidak boleh melebihi jumlah yang diminta ({$diminta}).");
                 return;
             }
         }
@@ -167,18 +155,7 @@ class DistribusiApprovalIndex extends Component
             'itemQtys.*.jumlah_disetujui' => 'required|integer|min:0',
         ]);
 
-        foreach ($this->itemQtys as $detailId => $item) {
-            $disetujui = (int) $item['jumlah_disetujui'];
-            $stokTersedia = $this->getStokTersediaGudang(
-                (int) $item['barang_id'],
-                $this->selectedPermintaan?->gudang_id,
-                $this->selectedId
-            );
-            if ($disetujui > $stokTersedia) {
-                $this->toast("Jumlah disetujui melebihi sisa stok gudang yang tersedia ({$stokTersedia}) untuk {$item['barang_nama']}.", 'danger');
-                return;
-            }
-        }
+        // Persetujuan mengesahkan kuota komitmen 100%; selisih terhadap stok fisik otomatis menjadi hutang gudang (backorder)
 
         DB::transaction(function () {
             $permintaan = PermintaanDistribusi::with('detail')->findOrFail($this->selectedId);

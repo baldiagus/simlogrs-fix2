@@ -195,9 +195,22 @@ class PenerimaanBarangIndex extends Component
                 // Update status SPPB
                 $sppb->update(['status' => 'DITERIMA']);
 
-                // Update status PermintaanDistribusi
+                // Evaluasi apakah permohonan amprah sudah selesai 100% atau masih ada sisa yang ditunggu
                 if ($sppb->permintaanDistribusi) {
-                    $sppb->permintaanDistribusi->update(['status' => 'SELESAI']);
+                    $permintaan = $sppb->permintaanDistribusi;
+                    $permintaan->load('detail');
+
+                    $totalDiterima = \App\Models\PenerimaanDistribusiDetail::whereHas('penerimaanDistribusi', function ($q) use ($permintaan) {
+                        $q->whereHas('pengirimanBarang', fn ($p) => $p->where('permintaan_distribusi_id', $permintaan->id));
+                    })->sum('jumlah_diterima');
+
+                    $totalDiminta = $permintaan->detail->sum(fn ($d) => $d->jumlah_disetujui !== null ? $d->jumlah_disetujui : $d->jumlah);
+
+                    if ($totalDiterima >= $totalDiminta) {
+                        $permintaan->update(['status' => 'SELESAI']);
+                    } else {
+                        $permintaan->update(['status' => 'DIKIRIM_SEBAGIAN']);
+                    }
                 }
             });
         } catch (\Throwable $e) {

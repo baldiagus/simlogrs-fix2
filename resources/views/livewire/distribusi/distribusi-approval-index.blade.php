@@ -160,10 +160,10 @@
                             <tr class="bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-semibold">
                                 <th class="py-2.5 px-3">Nama Barang</th>
                                 <th class="py-2.5 px-3 text-center">Satuan</th>
-                                <th class="py-2.5 px-3 text-right">Diminta Karu</th>
-                                <th class="py-2.5 px-3 text-right">Sisa Stok Bebas</th>
-                                <th class="py-2.5 px-3 text-right w-40">Input Jml Disetujui</th>
-                            </tr>
+                                <th class="py-2.5 px-3 text-right">Diminta Ruangan</th>
+                                <th class="py-2.5 px-3 text-right">Stok Fisik Bebas</th>
+                                <th class="py-2.5 px-3 text-right">Disetujui Penuh</th>
+                                <th class="py-2.5 px-3 text-right">Rencana Penyaluran</th>
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @foreach ($itemQtys as $detailId => $item)
@@ -195,21 +195,29 @@
                                             </span>
                                         @endif
                                     </td>
-                                    <td class="py-2.5 px-3 text-right">
-                                        <div class="flex flex-col items-end">
-                                            <input
-                                                type="number"
-                                                wire:model="itemQtys.{{ $detailId }}.jumlah_disetujui"
-                                                min="0"
-                                                max="{{ $item['stok_gudang'] }}"
-                                                class="w-24 text-right rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-2 py-1 text-xs font-mono text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            />
-                                            @error("itemQtys.{$detailId}.jumlah_disetujui")
-                                                <span class="text-[11px] text-rose-500 mt-1">{{ $message }}</span>
-                                            @enderror
-                                        </div>
+                                    <td class="py-2.5 px-3 text-right font-mono font-bold text-zinc-900 dark:text-zinc-100">
+                                        {{ number_format($item['jumlah_disetujui'], 0, ',', '.') }}
                                     </td>
-                                </tr>
+                                    <td class="py-2.5 px-3 text-right">
+                                        @php
+                                            $readyQty = min($item['stok_gudang'], $item['jumlah_diminta']);
+                                            $backorderQty = max(0, $item['jumlah_diminta'] - $item['stok_gudang']);
+                                        @endphp
+                                        @if ($backorderQty > 0)
+                                            <div class="flex flex-col items-end gap-0.5">
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                                    Kirim: {{ $readyQty }}
+                                                </span>
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                                    Hutang: {{ $backorderQty }}
+                                                </span>
+                                            </div>
+                                        @else
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                                Kirim 100% (Lengkap)
+                                            </span>
+                                        @endif
+                                    </td>
                             @endforeach
                         </tbody>
                     </table>
@@ -217,7 +225,7 @@
 
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
                     <div class="text-xs text-zinc-500 dark:text-zinc-400 italic">
-                        * Jumlah disetujui tidak boleh melebihi jumlah permintaan maupun sisa stok bebas di gudang (kuota permintaan lain yang menunggu picking otomatis memotong saldo bebas ini).
+                        * Permintaan ruangan disetujui penuh 100% tanpa pemotongan. Sisa barang yang belum ada stoknya otomatis menjadi hutang gudang dan diterbitkan SPPB susulan saat restok.
                     </div>
                     <div>
                         <flux:button type="button" variant="primary" wire:click="confirmApproveGudang" class="bg-blue-600 hover:bg-blue-700 text-white">

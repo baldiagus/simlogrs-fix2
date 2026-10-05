@@ -116,13 +116,23 @@ class DistribusiApprovalConcurrencyTest extends TestCase
         $test = Livewire::test(DistribusiApprovalIndex::class)
             ->call('openReview', $req2->id);
 
-        // ASSERTION: Sisa stok gudang tersedia untuk permintaan kedua HARUS 2 (10 fisik - 8 komitmen req1), BUKAN 10
+        // Sisa stok fisik bebas di gudang adalah 2 unit (10 fisik - 8 komitmen req1)
         $this->assertEquals(2, $test->get("itemQtys.{$detail2->id}.stok_gudang"));
-        $this->assertEquals(2, $test->get("itemQtys.{$detail2->id}.jumlah_disetujui"));
+        // Namun kuota disetujui terkunci 8 unit (100% permintaan ruangan, tidak boleh dipotong sepihak)
+        $this->assertEquals(8, $test->get("itemQtys.{$detail2->id}.jumlah_disetujui"));
 
-        // Memaksa persetujuan 5 unit (> 2 unit sisa) HARUS DITOLAK
-        $test->set("itemQtys.{$detail2->id}.jumlah_disetujui", 5)
+        // Memaksa persetujuan lebih dari diminta (misal 10 > 8) HARUS DITOLAK
+        $test->set("itemQtys.{$detail2->id}.jumlah_disetujui", 10)
             ->call('confirmApproveGudang')
             ->assertHasErrors(["itemQtys.{$detail2->id}.jumlah_disetujui"]);
+
+        // Persetujuan 8 unit (walau stok bebas saat ini 2) HARUS BERHASIL karena selisih 6 menjadi terhutang
+        $test->set("itemQtys.{$detail2->id}.jumlah_disetujui", 8)
+            ->call('confirmApproveGudang')
+            ->assertHasNoErrors()
+            ->call('submitApproveGudang');
+
+        $req2->refresh();
+        $this->assertEquals('DISETUJUI_GUDANG', $req2->status);
     }
 }

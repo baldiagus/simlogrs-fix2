@@ -63,8 +63,8 @@ class PickingDistribusiIndex extends Component
             return;
         }
 
-        if ($permintaan->status !== 'DISETUJUI_GUDANG') {
-            $this->toast("Permintaan {$permintaan->kode} belum disetujui gudang atau sudah diproses.", 'warning');
+        if (! in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN'])) {
+            $this->toast("Permintaan {$permintaan->kode} belum disetujui gudang atau sudah selesai diproses.", 'warning');
             return;
         }
 
@@ -178,7 +178,7 @@ class PickingDistribusiIndex extends Component
         );
 
         // Badge count untuk antrean Siap Picking
-        $siapPickingCount = PermintaanDistribusi::where('status', 'DISETUJUI_GUDANG')
+        $siapPickingCount = PermintaanDistribusi::whereIn('status', ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN'])
             ->when($user?->gudang_id && ! $isGlobalAdmin, function ($q) use ($user) {
                 $q->where(function ($sub) use ($user) {
                     $sub->where('gudang_id', $user->gudang_id)->orWhereNull('gudang_id');
@@ -189,7 +189,7 @@ class PickingDistribusiIndex extends Component
         if ($this->activeTab === 'siap-picking') {
             $query = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'detail.barang.satuan'])
                 ->withCount('detail')
-                ->where('status', 'DISETUJUI_GUDANG')
+                ->whereIn('status', ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN'])
                 ->when($user?->gudang_id && ! $isGlobalAdmin, function ($q) use ($user) {
                     $q->where(function ($sub) use ($user) {
                         $sub->where('gudang_id', $user->gudang_id)->orWhereNull('gudang_id');

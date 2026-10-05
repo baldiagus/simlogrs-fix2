@@ -78,9 +78,11 @@
                     @forelse ($items as $item)
                         <flux:table.row :key="$item->id">
                             <flux:table.cell class="font-mono font-semibold text-xs text-zinc-900 dark:text-zinc-100">
-                                {{ $item->kode }}
+                                <div>{{ $item->kode }}</div>
+                                @if ($item->status === 'DIKIRIM_SEBAGIAN')
+                                    <flux:badge size="xs" color="amber" class="mt-0.5">Sisa Terhutang</flux:badge>
+                                @endif
                             </flux:table.cell>
-
                             <flux:table.cell style="white-space: normal;">
                                 <div class="font-medium text-xs text-zinc-900 dark:text-zinc-100">{{ $item->unit?->nama ?? '-' }}</div>
                                 <div class="text-[11px] text-zinc-500 dark:text-zinc-400">Gudang: {{ $item->gudang?->nama ?? '-' }}</div>
@@ -112,7 +114,7 @@
                                         icon="cube"
                                         wire:loading.attr="disabled"
                                     >
-                                        Eksekusi Picking FEFO
+                                        {{ $item->status === 'DIKIRIM_SEBAGIAN' ? 'Picking Sisa Hutang' : 'Eksekusi Picking FEFO' }}
                                     </flux:button>
                                 @endcanany
                             </flux:table.cell>
