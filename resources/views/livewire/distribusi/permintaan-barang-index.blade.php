@@ -238,12 +238,12 @@
                 </div>
 
                 {{-- Daftar Baris Barang (Matriks 1x3 per baris) --}}
-                <div class="space-y-3 pb-48">
+                <div class="space-y-3">
                     @foreach ($items as $index => $row)
                         <div wire:key="amprah-item-{{ $index }}" class="p-3.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-                            <div class="w-full grid grid-cols-12 gap-4 items-start">
+                            <div class="w-full grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
                                 {{-- Kolom 1 (1x3): Barang & Informasi Stok Gudang (col-span-5) --}}
-                                <div class="col-span-5 w-full min-w-0">
+                                <div class="sm:col-span-5 w-full min-w-0">
                                     <x-searchable-select
                                         model="items.{{ $index }}.barang_id"
                                         label="Komoditas Barang"
@@ -277,7 +277,7 @@
                                 </div>
 
                                 {{-- Kolom 2 (1x3): Jumlah Diminta (col-span-2) --}}
-                                <div class="col-span-2 w-full min-w-0">
+                                <div class="sm:col-span-2 w-full min-w-0">
                                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                                         Jumlah <span class="text-red-500">*</span>
                                     </label>
@@ -294,9 +294,10 @@
                                         class="w-full text-sm rounded-lg border {{ $errors->has("items.{$index}.jumlah") ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 text-right font-mono tabular-nums focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     />
                                     @error("items.{$index}.jumlah") <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
+                                </div>
 
                                 {{-- Kolom 3 (1x3): Catatan Item & Tombol Hapus (col-span-5) --}}
-                                <div class="col-span-5 w-full min-w-0">
+                                <div class="sm:col-span-5 w-full min-w-0">
                                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                                         Catatan Item <span class="text-zinc-500 dark:text-zinc-400 font-normal">(Opsional)</span>
                                     </label>
