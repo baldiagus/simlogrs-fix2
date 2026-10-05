@@ -36,19 +36,25 @@ class PenerimaanBarangDistribusiTest extends TestCase
         $this->user = User::where('email', 'superadmin@simlogrs.local')->first();
         $this->unit = Unit::where('status', 'AKTIF')->first();
         $this->gudang = Gudang::where('status', 'AKTIF')->first();
-        $this->lokasi = LokasiGudang::where('gudang_id', $this->gudang->id)->where('status', 'AKTIF')->first();
+        $this->lokasi = LokasiGudang::firstOrCreate(
+            ['kode' => 'RAK-AST-01', 'gudang_id' => $this->gudang->id],
+            ['nama' => 'Rak Aset Test', 'status' => 'AKTIF']
+        );
+
+        $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'UNIT-AST'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
+        $kategoriId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-AST-TEST'], ['nama' => 'Kategori Aset Test', 'status' => 'AKTIF'])->id;
 
         // Cari atau buat komoditas aset
-        $this->barangAset = Barang::where('status', 'AKTIF')->where('tipe', 'ASET')->first();
-        if (! $this->barangAset) {
-            $this->barangAset = Barang::create([
-                'kode' => 'BRG-AST-TEST',
+        $this->barangAset = Barang::firstOrCreate(
+            ['kode' => 'BRG-AST-TEST'],
+            [
                 'nama' => 'Tensimeter Digital Uji Seri',
                 'tipe' => 'ASET',
-                'satuan_id' => 1,
+                'satuan_id' => $satuanId,
+                'kategori_id' => $kategoriId,
                 'status' => 'AKTIF',
-            ]);
-        }
+            ]
+        );
     }
 
     public function test_bulk_asset_receipt_assigns_unique_serial_numbers_per_unit(): void

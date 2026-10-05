@@ -12,10 +12,11 @@ use App\Models\Unit;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class StokRuanganIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, WithFileUploads;
 
     #[Url(history: true)]
     public string $activeTab = 'bhp'; // 'bhp' atau 'aset'
@@ -32,6 +33,13 @@ class StokRuanganIndex extends Component
     public string $statusAsetBaru = 'DIGUNAKAN';
     public string $kondisiAsetBaru = 'BAIK';
 
+    // Modal Lapor Servis IPSRS langsung dari ruangan
+    public bool $showLaporServisModal = false;
+    public ?int $servisAsetId = null;
+    public ?Aset $selectedAsetServis = null;
+    public string $servisPrioritas = 'SEDANG';
+    public string $servisDeskripsi = '';
+    public $servisFoto = null;
     #[Url(history: true)]
     public string $filterKondisi = ''; // '', 'TERSEDIA', 'HABIS'
 
@@ -134,6 +142,122 @@ class StokRuanganIndex extends Component
         $this->showUbahStatusAsetModal = false;
         $this->selectedAsetId = null;
         $this->selectedAset = null;
+    }
+
+    public function openLaporServis(int $asetId): void
+    {
+        $user = auth()->user();
+        abort_unless(
+            $user && (
+                $user->can('create_layanan_unit::lapor::servis') ||
+                $user->can('update_layanan_unit::stok::ruangan') ||
+                $user->can('view_any_layanan_unit::stok::ruangan') ||
+                $user->can('page_Dashboard') ||
+                $user->can('page_AdminLogistikDashboard') ||
+                $user->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'petugas_unit'])
+            ),
+            403,
+            'Anda tidak memiliki wewenang untuk melaporkan kerusakan sarana.'
+        );
+
+        $aset = Aset::with(['barang', 'unit'])->findOrFail($asetId);
+
+        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $aset->unit_id) {
+            abort(403, 'Anda tidak berwenang melaporkan kerusakan aset milik unit lain.');
+        }
+
+        $tiketAktif = \App\Models\PermintaanMaintenance::where('aset_id', $aset->id)
+            ->whereIn('status', ['DILAPORKAN', 'DISETUJUI', 'DALAM_PENGERJAAN'])
+            ->latest('id')
+            ->first();
+
+        if (in_array($aset->status, ['DALAM_MAINTENANCE', 'DIHAPUSKAN']) || $tiketAktif) {
+            $kodeTiket = $tiketAktif?->kode ?? 'aktif';
+            $this->toast("Aset '{$aset->kode_aset}' saat ini sudah dalam penanganan perbaikan teknisi IPSRS (Status: {$aset->status}, Tiket: {$kodeTiket}).", 'warning');
+            return;
+        }
+
+        $this->servisAsetId = $aset->id;
+        $this->selectedAsetServis = $aset;
+        $this->servisPrioritas = 'SEDANG';
+        $this->servisDeskripsi = '';
+        $this->servisFoto = null;
+        $this->showLaporServisModal = true;
+    }
+
+    public function simpanLaporServis(): void
+    {
+        $this->validate([
+            'servisPrioritas' => 'required|in:RENDAH,SEDANG,TINGGI,CITO',
+            'servisDeskripsi' => 'required|string|min:5',
+            'servisFoto'      => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
+        ], [
+            'servisPrioritas.required' => 'Prioritas penanganan wajib dipilih.',
+            'servisDeskripsi.required' => 'Deskripsi keluhan atau kerusakan sarana wajib dijelaskan.',
+            'servisDeskripsi.min'      => 'Deskripsi kerusakan minimal 5 karakter.',
+            'servisFoto.image'         => 'Berkas harus berupa foto gambar.',
+            'servisFoto.max'           => 'Ukuran foto maksimal adalah 10 MB.',
+        ]);
+
+        if (! $this->servisAsetId) {
+            return;
+        }
+
+        $user = auth()->user();
+        $aset = Aset::with(['barang', 'unit'])->findOrFail($this->servisAsetId);
+
+        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $aset->unit_id) {
+            abort(403, 'Anda tidak berwenang melaporkan kerusakan aset milik unit lain.');
+        }
+
+        $fotoPath = null;
+        if ($this->servisFoto) {
+            $opt = \App\Support\File\FileOptimizer::optimizeAndStore($this->servisFoto, 'maintenance/kerusakan');
+            $fotoPath = $opt['path'];
+        }
+
+        $kode = \App\Support\Generator\CodeGenerator::generateMnt();
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($kode, $aset, $user, $fotoPath) {
+            \App\Models\PermintaanMaintenance::create([
+                'kode'              => $kode,
+                'aset_id'           => $aset->id,
+                'unit_id'           => $aset->unit_id ?: $user->unit_id,
+                'dilaporkan_oleh'   => $user->id,
+                'deskripsi_masalah' => $this->servisDeskripsi,
+                'foto_kerusakan'    => $fotoPath,
+                'prioritas'         => $this->servisPrioritas,
+                'status'            => 'DILAPORKAN',
+            ]);
+
+            $kondisiAset = match ($this->servisPrioritas) {
+                'CITO'   => 'RUSAK_BERAT',
+                'TINGGI' => 'RUSAK_RINGAN',
+                default  => in_array($aset->kondisi, ['RUSAK_RINGAN', 'RUSAK_BERAT']) ? $aset->kondisi : 'RUSAK_RINGAN',
+            };
+
+            $aset->update([
+                'status'  => 'DALAM_MAINTENANCE',
+                'kondisi' => $kondisiAset,
+            ]);
+        });
+
+        $this->showLaporServisModal = false;
+        $this->reset(['servisAsetId', 'selectedAsetServis', 'servisPrioritas', 'servisDeskripsi', 'servisFoto']);
+        $this->toast("Laporan kerusakan '{$kode}' untuk {$aset->kode_aset} berhasil dikirim ke IPSRS.", 'success');
+    }
+
+    public function batalLaporServis(): void
+    {
+        $this->showLaporServisModal = false;
+        $this->reset(['servisAsetId', 'selectedAsetServis', 'servisPrioritas', 'servisDeskripsi', 'servisFoto']);
+    }
+
+    public function hapusFotoServis(): void
+    {
+        $this->servisFoto = null;
     }
 
     public function openCatatPemakaian(int $id): void

@@ -119,12 +119,24 @@ class PenerimaanPoIndex extends Component
         ]);
 
         $hasReceived = false;
+        $totalNetReceived = 0;
         $customErrors = [];
 
         foreach ($this->itemRows as $idx => $row) {
-            $terima = (int) ($row['jumlah_diterima'] ?? 0);
-            $rusak  = (int) ($row['jumlah_rusak'] ?? 0);
-            $sisa   = (int) ($row['sisa'] ?? 0);
+            $terima  = (int) ($row['jumlah_diterima'] ?? 0);
+            $rusak   = (int) ($row['jumlah_rusak'] ?? 0);
+            $sisa    = (int) ($row['sisa'] ?? 0);
+            $dipesan = (int) ($row['jumlah_dipesan'] ?? 0);
+
+            if ($terima > 0) {
+                $totalNetReceived += max(0, $terima - $rusak);
+            }
+
+            if ($rusak < 0) {
+                $customErrors["itemRows.{$idx}.jumlah_rusak"] = "Jumlah rusak tidak boleh kurang dari 0.";
+            } elseif ($rusak > $dipesan) {
+                $customErrors["itemRows.{$idx}.jumlah_rusak"] = "Jumlah rusak tidak boleh melebihi barang dipesan (maks. {$dipesan}).";
+            }
 
             if ($terima > 0) {
                 $hasReceived = true;
@@ -132,15 +144,13 @@ class PenerimaanPoIndex extends Component
                 if ($terima > $sisa) {
                     $customErrors["itemRows.{$idx}.jumlah_diterima"] = "Jumlah diterima melebihi sisa pesanan (maks. {$sisa}).";
                 }
-                if ($rusak > $terima) {
+                if ($rusak > $terima && ! isset($customErrors["itemRows.{$idx}.jumlah_rusak"])) {
                     $customErrors["itemRows.{$idx}.jumlah_rusak"] = "Jumlah rusak tidak boleh melebihi jumlah diterima.";
                 }
                 if (empty(trim($row['nomor_batch'] ?? ''))) {
                     $customErrors["itemRows.{$idx}.nomor_batch"] = "Nomor batch wajib diisi untuk barang yang diterima.";
                 }
-                if (empty($row['lokasi_gudang_id'])) {
-                    $customErrors["itemRows.{$idx}.lokasi_gudang_id"] = "Lokasi rak simpan wajib dipilih.";
-                } else {
+                if (! empty($row['lokasi_gudang_id'])) {
                     $isRackValid = LokasiGudang::where('id', $row['lokasi_gudang_id'])
                         ->where('gudang_id', $this->gudang_id)
                         ->where('status', 'AKTIF')
@@ -158,6 +168,15 @@ class PenerimaanPoIndex extends Component
             return;
         }
 
+        if ($totalNetReceived <= 0) {
+            $this->toast('Total barang layak diterima (nett) adalah 0 unit. Seluruh barang rusak. Silakan gunakan tombol "Tolak Kiriman Vendor" jika kiriman fisik ditolak.', 'danger');
+            $customErrors['transaksi_nett'] = 'Total barang layak diterima (nett) adalah 0 unit. Tidak ada stok fisik yang dapat dimasukkan ke gudang.';
+        }
+
+        $totalRusak = collect($this->itemRows)->sum(fn ($r) => (int) ($r['jumlah_rusak'] ?? 0));
+        if ($totalRusak > 0 && empty(trim($this->catatan))) {
+            $customErrors['catatan'] = "Terdapat barang rusak ({$totalRusak} unit). Catatan/berita acara kerusakan wajib diisi sebagai bukti klaim retur vendor.";
+        }
         if (! empty($customErrors)) {
             $this->setErrorBag($customErrors);
             return;
@@ -192,8 +211,13 @@ class PenerimaanPoIndex extends Component
             $po->refresh();
             $po->load('detail');
             $allReceived = $po->detail->every(fn ($d) => (int) $d->jumlah_diterima >= (int) $d->jumlah_dipesan);
+            $totalPernahDiterima = (int) $po->detail->sum('jumlah_diterima');
             $statusRcv = $allReceived ? 'LENGKAP' : 'SEBAGIAN';
-            $statusPo  = $allReceived ? 'DITERIMA_LENGKAP' : 'DITERIMA_SEBAGIAN';
+            $statusPo  = match (true) {
+                $allReceived => 'DITERIMA_LENGKAP',
+                $totalPernahDiterima > 0 => 'DITERIMA_SEBAGIAN',
+                default => $po->status,
+            };
 
             // 3. Buat dokumen penerimaan dengan status dinamis
             $penerimaan = PenerimaanBarang::create([
@@ -220,10 +244,12 @@ class PenerimaanPoIndex extends Component
                     ? (float) $poDetail->harga_satuan
                     : (float) ($row['harga_satuan'] ?? 0);
 
+                $rackId = ! empty($row['lokasi_gudang_id']) ? $row['lokasi_gudang_id'] : null;
+
                 PenerimaanBarangDetail::create([
                     'penerimaan_barang_id' => $penerimaan->id,
                     'barang_id'            => $row['barang_id'],
-                    'lokasi_gudang_id'     => $row['lokasi_gudang_id'],
+                    'lokasi_gudang_id'     => $rackId,
                     'nomor_batch'          => $row['nomor_batch'],
                     'tanggal_kedaluwarsa'  => $row['tanggal_kedaluwarsa'] ?: null,
                     'jumlah_diterima'      => $row['jumlah_diterima'],
@@ -235,7 +261,7 @@ class PenerimaanPoIndex extends Component
                     $batch = StokBatch::create([
                         'barang_id'           => $row['barang_id'],
                         'gudang_id'           => $this->gudang_id,
-                        'lokasi_gudang_id'    => $row['lokasi_gudang_id'],
+                        'lokasi_gudang_id'    => $rackId,
                         'nomor_batch'         => $row['nomor_batch'],
                         'tanggal_kedaluwarsa' => $row['tanggal_kedaluwarsa'] ?: null,
                         'jumlah'              => $netReceived,
@@ -247,7 +273,7 @@ class PenerimaanPoIndex extends Component
                         'barang_id'        => $row['barang_id'],
                         'stok_batch_id'    => $batch->id,
                         'gudang_id'        => $this->gudang_id,
-                        'lokasi_gudang_id' => $row['lokasi_gudang_id'],
+                        'lokasi_gudang_id' => $rackId,
                         'jenis'            => 'MASUK',
                         'jumlah'           => $netReceived,
                         'saldo_sebelum'    => 0,
@@ -329,15 +355,12 @@ class PenerimaanPoIndex extends Component
                 'diterima_oleh'        => auth()->id(),
             ]);
 
-            $defaultRackId = LokasiGudang::where('gudang_id', $this->gudang_id)->where('status', 'AKTIF')->value('id')
-                ?: LokasiGudang::where('status', 'AKTIF')->value('id');
-
             // Catat detail komoditas yang ditolak (kuantitas diterima = 0)
             foreach ($this->itemRows as $row) {
                 PenerimaanBarangDetail::create([
                     'penerimaan_barang_id' => $penerimaan->id,
                     'barang_id'            => $row['barang_id'],
-                    'lokasi_gudang_id'     => ! empty($row['lokasi_gudang_id']) ? $row['lokasi_gudang_id'] : $defaultRackId,
+                    'lokasi_gudang_id'     => ! empty($row['lokasi_gudang_id']) ? $row['lokasi_gudang_id'] : null,
                     'nomor_batch'          => 'REJECTED',
                     'tanggal_kedaluwarsa'  => null,
                     'jumlah_diterima'      => 0,

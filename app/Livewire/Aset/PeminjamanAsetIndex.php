@@ -125,32 +125,22 @@ class PeminjamanAsetIndex extends Component
 
     protected function applyPeminjamanScope($query, $user, bool $isGlobalAdmin): void
     {
+        if ($user?->unit_id) {
+            $query->where('unit_id', $user->unit_id);
+            return;
+        }
+
+        if ($user?->gudang_id) {
+            $query->where('tipe_penyedia', 'GUDANG')
+                  ->where('gudang_penyedia_id', $user->gudang_id);
+            return;
+        }
+
         if ($isGlobalAdmin) {
             return;
         }
 
-        $query->where(function ($q) use ($user) {
-            if ($user?->unit_id) {
-                if ($this->filterPerspektif === 'penyedia') {
-                    $q->where('tipe_penyedia', 'RUANGAN')
-                      ->where('unit_penyedia_id', $user->unit_id);
-                } elseif ($this->filterPerspektif === 'peminjam') {
-                    $q->where('unit_id', $user->unit_id);
-                } else {
-                    $q->where(function ($sub) use ($user) {
-                        $sub->where(function ($prov) use ($user) {
-                            $prov->where('tipe_penyedia', 'RUANGAN')
-                                 ->where('unit_penyedia_id', $user->unit_id);
-                        })->orWhere('unit_id', $user->unit_id);
-                    });
-                }
-            } elseif ($user?->gudang_id) {
-                $q->where('tipe_penyedia', 'GUDANG')
-                  ->where('gudang_penyedia_id', $user->gudang_id);
-            } else {
-                $q->whereRaw('1 = 0');
-            }
-        });
+        $query->whereRaw('1 = 0');
     }
 
     protected function applyKatalogScope($query, $user, bool $isGlobalAdmin): void
@@ -234,6 +224,9 @@ class PeminjamanAsetIndex extends Component
                 ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
                     $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
                 })
+                ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                    $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
+                })
                 ->first();
             $this->selected_aset_id = $aset?->id;
         } else {
@@ -247,6 +240,9 @@ class PeminjamanAsetIndex extends Component
                 ->where('kondisi', 'BAIK')
                 ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
                     $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                })
+                ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                    $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
                 })
                 ->first();
             $this->selected_aset_id = $aset?->id;
@@ -265,6 +261,9 @@ class PeminjamanAsetIndex extends Component
                     })
                     ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
                         $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                    })
+                    ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                        $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
                     });
             })
             ->withCount(['aset' => function ($q) {
@@ -277,6 +276,9 @@ class PeminjamanAsetIndex extends Component
                     })
                     ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
                         $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                    })
+                    ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                        $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
                     });
             }])
             ->with('satuan')
@@ -304,6 +306,9 @@ class PeminjamanAsetIndex extends Component
             })
             ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
                 $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+            })
+            ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
             })
             ->with(['unit', 'gudang'])
             ->get();
@@ -367,8 +372,14 @@ class PeminjamanAsetIndex extends Component
         abort_unless(auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
 
         $aset = Aset::with('barang')->findOrFail($asetId);
+        $isMaintenance = \App\Models\PermintaanMaintenance::where('aset_id', $aset->id)
+            ->whereNotIn('status', ['SELESAI', 'DIBATALKAN'])
+            ->exists();
+        if ($isMaintenance || $aset->status === 'DALAM_MAINTENANCE' || $aset->kondisi !== 'BAIK') {
+            $this->toast("Aset '{$aset->kode_aset}' sedang dalam laporan pemeliharaan/perbaikan IPSRS dan tidak dapat dipinjam.", 'warning');
+            return;
+        }
         $this->resetPinjamForm();
-
         $this->selected_barang_id = $aset->barang_id;
         $key = $aset->unit_id ? "RUANGAN_{$aset->unit_id}" : "GUDANG_{$aset->gudang_id}";
         $this->selectPenyediaKey($key);
@@ -453,6 +464,14 @@ class PeminjamanAsetIndex extends Component
 
         if ($isSedangDipinjam) {
             $this->addError('selected_aset_id', "Aset '{$aset->kode_aset}' ({$aset->barang?->nama}) sedang dalam proses pengajuan atau sedang aktif dipinjam oleh unit lain.");
+            return;
+        }
+
+        $isMaintenance = \App\Models\PermintaanMaintenance::where('aset_id', $aset->id)
+            ->whereNotIn('status', ['SELESAI', 'DIBATALKAN'])
+            ->exists();
+        if ($isMaintenance || $aset->status === 'DALAM_MAINTENANCE') {
+            $this->addError('selected_aset_id', "Aset '{$aset->kode_aset}' ({$aset->barang?->nama}) sedang dalam penanganan perbaikan/pemeliharaan IPSRS dan tidak dapat dipinjam.");
             return;
         }
         if ($this->tipe_penyedia === 'RUANGAN' && $this->unit_penyedia_id === $unitPeminjamId) {
@@ -709,6 +728,9 @@ class PeminjamanAsetIndex extends Component
         $countKatalogQuery = Aset::where('status', 'TERSEDIA')->where('kondisi', 'BAIK')
             ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($q) {
                 $q->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+            })
+            ->whereDoesntHave('permintaanMaintenance', function ($q) {
+                $q->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
             });
         $this->applyKatalogScope($countKatalogQuery, $user, $isGlobalAdmin);
         $countKatalog = $countKatalogQuery->count();
@@ -749,6 +771,9 @@ class PeminjamanAsetIndex extends Component
                 ->where('kondisi', 'BAIK')
                 ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($q) {
                     $q->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                })
+                ->whereDoesntHave('permintaanMaintenance', function ($q) {
+                    $q->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
                 });
             $this->applyKatalogScope($queryKatalog, $user, $isGlobalAdmin);
 

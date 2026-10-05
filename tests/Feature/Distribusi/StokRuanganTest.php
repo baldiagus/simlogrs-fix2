@@ -112,4 +112,110 @@ class StokRuanganTest extends TestCase
         $this->assertEquals($catatanPemakaian, $auditLog->data_sesudah['keterangan'] ?? null);
         $this->assertEquals(3, $auditLog->data_sesudah['jumlah_pakai'] ?? null);
     }
+
+    public function test_can_open_service_report_modal_with_preselected_asset(): void
+    {
+        $this->actingAs($this->user);
+
+        $aset = Aset::create([
+            'barang_id' => $this->barang->id,
+            'unit_id' => $this->unit->id,
+            'gudang_id' => null,
+            'kode_aset' => CodeGenerator::generate('AST', Aset::class, 'kode_aset'),
+            'nomor_seri' => 'SN-SRV-001',
+            'tanggal_perolehan' => now()->toDateString(),
+            'nilai_perolehan' => 7500000,
+            'kondisi' => 'BAIK',
+            'status' => 'DIGUNAKAN',
+        ]);
+
+        Livewire::test(StokRuanganIndex::class)
+            ->call('openLaporServis', $aset->id)
+            ->assertSet('showLaporServisModal', true)
+            ->assertSet('servisAsetId', $aset->id);
+    }
+
+    public function test_submitting_service_report_from_room_inventory_creates_maintenance_ticket(): void
+    {
+        $this->actingAs($this->user);
+
+        $aset = Aset::create([
+            'barang_id' => $this->barang->id,
+            'unit_id' => $this->unit->id,
+            'gudang_id' => null,
+            'kode_aset' => CodeGenerator::generate('AST', Aset::class, 'kode_aset'),
+            'nomor_seri' => 'SN-SRV-002',
+            'tanggal_perolehan' => now()->toDateString(),
+            'nilai_perolehan' => 12000000,
+            'kondisi' => 'BAIK',
+            'status' => 'DIGUNAKAN',
+        ]);
+
+        Livewire::test(StokRuanganIndex::class)
+            ->call('openLaporServis', $aset->id)
+            ->set('servisPrioritas', 'CITO')
+            ->set('servisDeskripsi', 'Kabel daya korsleting dan monitor padam total saat digunakan')
+            ->call('simpanLaporServis')
+            ->assertHasNoErrors()
+            ->assertSet('showLaporServisModal', false);
+
+        $this->assertDatabaseHas('permintaan_maintenance', [
+            'aset_id' => $aset->id,
+            'prioritas' => 'CITO',
+            'status' => 'DILAPORKAN',
+        ]);
+
+        $aset->refresh();
+        $this->assertEquals('DALAM_MAINTENANCE', $aset->status);
+        $this->assertEquals('RUSAK_BERAT', $aset->kondisi);
+    }
+
+    public function test_reporting_service_with_standard_priority_locks_asset_to_maintenance(): void
+    {
+        $this->actingAs($this->user);
+
+        $aset = Aset::create([
+            'barang_id' => $this->barang->id,
+            'unit_id' => $this->unit->id,
+            'gudang_id' => null,
+            'kode_aset' => CodeGenerator::generate('AST', Aset::class, 'kode_aset'),
+            'nomor_seri' => 'SN-SRV-SEDANG',
+            'tanggal_perolehan' => now()->toDateString(),
+            'nilai_perolehan' => 5000000,
+            'kondisi' => 'BAIK',
+            'status' => 'DIGUNAKAN',
+        ]);
+
+        Livewire::test(StokRuanganIndex::class)
+            ->call('openLaporServis', $aset->id)
+            ->set('servisPrioritas', 'SEDANG')
+            ->set('servisDeskripsi', 'Kertas sering macet dan roller berderit keras')
+            ->call('simpanLaporServis')
+            ->assertHasNoErrors();
+
+        $aset->refresh();
+        $this->assertEquals('DALAM_MAINTENANCE', $aset->status);
+        $this->assertEquals('RUSAK_RINGAN', $aset->kondisi);
+    }
+
+    public function test_cannot_report_service_again_for_asset_already_in_maintenance(): void
+    {
+        $this->actingAs($this->user);
+
+        $aset = Aset::create([
+            'barang_id' => $this->barang->id,
+            'unit_id' => $this->unit->id,
+            'gudang_id' => null,
+            'kode_aset' => CodeGenerator::generate('AST', Aset::class, 'kode_aset'),
+            'nomor_seri' => 'SN-SRV-LOCKED',
+            'tanggal_perolehan' => now()->toDateString(),
+            'nilai_perolehan' => 5000000,
+            'kondisi' => 'RUSAK_RINGAN',
+            'status' => 'DALAM_MAINTENANCE',
+        ]);
+
+        Livewire::test(StokRuanganIndex::class)
+            ->call('openLaporServis', $aset->id)
+            ->assertSet('showLaporServisModal', false);
+    }
 }

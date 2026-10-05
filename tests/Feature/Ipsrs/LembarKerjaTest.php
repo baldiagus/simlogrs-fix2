@@ -37,7 +37,10 @@ class LembarKerjaTest extends TestCase
 
         $this->unit = Unit::where('status', 'AKTIF')->first();
         $this->gudang = Gudang::where('status', 'AKTIF')->first();
-        $this->lokasi = LokasiGudang::where('gudang_id', $this->gudang->id)->where('status', 'AKTIF')->first();
+        $this->lokasi = LokasiGudang::firstOrCreate(
+            ['kode' => 'RAK-LK-01', 'gudang_id' => $this->gudang->id],
+            ['nama' => 'Rak Lembar Kerja Test', 'status' => 'AKTIF']
+        );
 
         $this->userTeknisi = User::create([
             'nama' => 'Teknisi Lembar Kerja Test',

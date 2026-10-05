@@ -221,9 +221,18 @@ class ApprovalPeminjamanIndex extends Component
                 ->where('id', '!=', $pinjam->id)
                 ->whereHas('detail', fn ($d) => $d->whereIn('aset_id', $asetIds))
                 ->first();
-
             if ($konflik) {
                 $this->toast("Aset pada permohonan ini telah disetujui atau sedang aktif dipinjam pada transaksi {$konflik->kode}.", 'danger');
+                return;
+            }
+
+            // Kunci integritas: periksa apakah ada aset di permohonan ini yang sedang dalam perbaikan IPSRS
+            $isMaintenance = \App\Models\PermintaanMaintenance::whereIn('aset_id', $asetIds)
+                ->whereNotIn('status', ['SELESAI', 'DIBATALKAN'])
+                ->exists() || Aset::whereIn('id', $asetIds)->where('status', 'DALAM_MAINTENANCE')->exists();
+
+            if ($isMaintenance) {
+                $this->toast('Aset pada permohonan ini sedang dalam penanganan perbaikan/pemeliharaan IPSRS dan tidak dapat disetujui.', 'danger');
                 return;
             }
 

@@ -30,10 +30,14 @@ class PengembalianPeminjamanViewTest extends TestCase
     {
         parent::setUp();
 
-        $units = Unit::where('status', 'AKTIF')->take(2)->get();
-        $this->unitPenyedia = $units[0];
-        $this->unitPeminjam = $units[1];
-
+        $this->unitPenyedia = Unit::firstOrCreate(
+            ['kode' => 'UNIT-PROV-TEST'],
+            ['nama' => 'Unit Provider Test', 'jenis' => 'PELAYANAN_MEDIS', 'penanggung_jawab' => 'Tester Prov', 'lokasi_gedung' => 'Gedung A']
+        );
+        $this->unitPeminjam = Unit::firstOrCreate(
+            ['kode' => 'UNIT-BORR-TEST'],
+            ['nama' => 'Unit Borrower Test', 'jenis' => 'PELAYANAN_MEDIS', 'penanggung_jawab' => 'Tester Borr', 'lokasi_gedung' => 'Gedung B']
+        );
         $this->userPeminjam = User::create([
             'nama' => 'Staf Peminjam Return Test',
             'username' => 'stafpeminjamreturn',

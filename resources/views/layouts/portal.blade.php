@@ -27,6 +27,12 @@
     @php
         $portalKey = $portal ?? request()->segment(1) ?? 'super-admin';
         $user = auth()->user();
+        $user?->loadMissing(['unit', 'gudang']);
+        $userUnitLabel = match (true) {
+            filled($user?->unit?->nama) => 'Unit: ' . $user->unit->nama,
+            filled($user?->gudang?->nama) => 'Fasilitas: ' . $user->gudang->nama,
+            default => 'Unit: Lintas Unit (Pusat)',
+        };
 
         $portalMeta = [
             'super-admin'    => ['label' => 'Super Administrator', 'badge' => 'blue'],
@@ -406,6 +412,10 @@
                     <div class="font-bold text-zinc-900 dark:text-zinc-100">{{ $user?->nama }}</div>
                     <div class="font-mono text-[11px] text-zinc-400">{{ $user?->email }}</div>
                     <div class="text-[10px] text-zinc-500 mt-1 uppercase font-semibold">Peran: {{ $userRoleLabel }}</div>
+                    <div class="text-[11px] text-zinc-600 dark:text-zinc-300 mt-1 flex items-center gap-1.5 truncate">
+                        <flux:icon name="building-office" class="size-3.5 text-zinc-400 shrink-0" />
+                        <span class="truncate font-medium">{{ $userUnitLabel }}</span>
+                    </div>
                 </div>
 
                 <flux:menu.separator />

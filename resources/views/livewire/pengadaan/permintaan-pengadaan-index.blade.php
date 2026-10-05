@@ -105,16 +105,17 @@
                                         $canApproveThis = $isGlobalApprover 
                                             || ($userUnitId && $item->unit_id && (int) $userUnitId === (int) $item->unit_id)
                                             || ($userGudangId && $item->gudang_id && (int) $userGudangId === (int) $item->gudang_id);
+                                        $approverRoleLabel = $item->gudang_id ? 'Kagud' : ($item->unit?->kode === 'IPSRS' ? 'Ka. IPSRS' : 'Karu');
                                     @endphp
 
                                     {{-- MEJA 1: Otorisasi Kepala Ruangan / Unit / Gudang (Khusus status DIAJUKAN) --}}
                                     @can('update_pengadaan::permintaan::pengadaan')
                                         @if ($item->status === \App\Models\PermintaanPengadaan::STATUS_DIAJUKAN && $canApproveThis)
                                             <flux:menu.item wire:click="confirmApprove({{ $item->id }})" icon="check-circle" class="text-emerald-600 dark:text-emerald-400">
-                                                Setujui (Karu)
+                                                Setujui ({{ $approverRoleLabel }})
                                             </flux:menu.item>
                                             <flux:menu.item wire:click="confirmReject({{ $item->id }})" icon="x-circle" variant="danger">
-                                                Tolak (Karu)
+                                                Tolak ({{ $approverRoleLabel }})
                                             </flux:menu.item>
                                         @endif
                                     @endcan

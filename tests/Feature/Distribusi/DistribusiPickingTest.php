@@ -33,14 +33,23 @@ class DistribusiPickingTest extends TestCase
         $this->user = User::where('email', 'superadmin@simlogrs.local')->first();
         $this->gudang = Gudang::where('status', 'AKTIF')->first();
         $this->unit = Unit::where('status', 'AKTIF')->first();
-        $this->lokasi = LokasiGudang::where('gudang_id', $this->gudang->id)->where('status', 'AKTIF')->first();
+        $this->lokasi = LokasiGudang::firstOrCreate(
+            ['kode' => 'RAK-PICK-01', 'gudang_id' => $this->gudang->id],
+            ['nama' => 'Rak Picking Test', 'status' => 'AKTIF']
+        );
 
-        // 2 barang berbeda
-        $barangs = Barang::where('status', 'AKTIF')->take(2)->get();
-        $this->barangA = $barangs[0];
-        $this->barangB = $barangs[1];
+        $kategori = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-PICK'], ['nama' => 'Kategori Pick', 'status' => 'AKTIF']);
+        $satuan = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'PCS-PICK'], ['nama' => 'Pcs', 'status' => 'AKTIF']);
+
+        $this->barangA = Barang::firstOrCreate(
+            ['kode' => 'BRG-PICK-A'],
+            ['nama' => 'Barang Pick A', 'kategori_id' => $kategori->id, 'satuan_id' => $satuan->id, 'status' => 'AKTIF', 'tipe' => 'HABIS_PAKAI']
+        );
+        $this->barangB = Barang::firstOrCreate(
+            ['kode' => 'BRG-PICK-B'],
+            ['nama' => 'Barang Pick B', 'kategori_id' => $kategori->id, 'satuan_id' => $satuan->id, 'status' => 'AKTIF', 'tipe' => 'HABIS_PAKAI']
+        );
     }
-
     public function test_picking_fefo_skips_items_with_zero_approved_quota(): void
     {
         // Siapkan stok di gudang hanya untuk Barang A (10 unit)

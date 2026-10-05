@@ -60,7 +60,9 @@ class MasterApiController extends ApiController
                 ->where('jumlah', '>', 0)
                 ->sum('jumlah');
 
-            $stokRuangan = (int) StokRuangan::where('barang_id', $b->id)->sum('jumlah');
+            $stokRuangan = $b->tipe === 'ASET'
+                ? (int) Aset::where('barang_id', $b->id)->whereNotNull('unit_id')->where('status', '!=', 'DIHAPUSKAN')->count()
+                : (int) StokRuangan::where('barang_id', $b->id)->sum('jumlah');
             $totalAset = (int) Aset::where('barang_id', $b->id)->count();
 
             return [
@@ -168,7 +170,9 @@ class MasterApiController extends ApiController
             ->where('jumlah', '>', 0)
             ->sum('jumlah');
 
-        $stokRuangan = (int) StokRuangan::where('barang_id', $barang->id)->sum('jumlah');
+        $stokRuangan = $barang->tipe === 'ASET'
+            ? (int) Aset::where('barang_id', $barang->id)->whereNotNull('unit_id')->where('status', '!=', 'DIHAPUSKAN')->count()
+            : (int) StokRuangan::where('barang_id', $barang->id)->sum('jumlah');
         $totalAset = (int) Aset::where('barang_id', $barang->id)->count();
 
         $data = [

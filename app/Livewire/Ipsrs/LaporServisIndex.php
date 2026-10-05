@@ -104,13 +104,16 @@ class LaporServisIndex extends Component
             'status'            => 'DILAPORKAN',
         ]);
 
-        // Jika prioritas CITO atau TINGGI, tandai aset ke status DALAM_MAINTENANCE
-        if (in_array($this->prioritas, ['CITO', 'TINGGI'], true)) {
-            $aset->update([
-                'status'  => 'DALAM_MAINTENANCE',
-                'kondisi' => $this->prioritas === 'CITO' ? 'RUSAK_BERAT' : 'RUSAK_RINGAN',
-            ]);
-        }
+        $kondisiAset = match ($this->prioritas) {
+            'CITO'   => 'RUSAK_BERAT',
+            'TINGGI' => 'RUSAK_RINGAN',
+            default  => in_array($aset->kondisi, ['RUSAK_RINGAN', 'RUSAK_BERAT']) ? $aset->kondisi : 'RUSAK_RINGAN',
+        };
+
+        $aset->update([
+            'status'  => 'DALAM_MAINTENANCE',
+            'kondisi' => $kondisiAset,
+        ]);
 
         $this->showModal = false;
         $this->reset(['aset_id', 'prioritas', 'deskripsi_masalah', 'foto']);

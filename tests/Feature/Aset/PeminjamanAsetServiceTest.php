@@ -33,10 +33,17 @@ class PeminjamanAsetServiceTest extends TestCase
         $this->user = User::where('email', 'superadmin@simlogrs.local')->first();
         $this->unitPeminjam = Unit::where('status', 'AKTIF')->first();
         $this->gudangPenyedia = Gudang::where('status', 'AKTIF')->first();
-        $this->lokasi = LokasiGudang::where('gudang_id', $this->gudangPenyedia->id)->where('status', 'AKTIF')->first();
+        $this->lokasi = LokasiGudang::firstOrCreate(
+            ['kode' => 'RAK-PINJ-SRV', 'gudang_id' => $this->gudangPenyedia->id],
+            ['nama' => 'Rak Pinjam Srv', 'status' => 'AKTIF']
+        );
 
-        $this->barangAset = Barang::where('status', 'AKTIF')->where('tipe', 'ASET')->first()
-            ?: Barang::where('status', 'AKTIF')->first();
+        $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'UNIT-PINJ'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
+        $kategoriId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-PINJ'], ['nama' => 'Kategori Pinjam', 'status' => 'AKTIF'])->id;
+        $this->barangAset = Barang::firstOrCreate(
+            ['kode' => 'BRG-PINJ-SRV'],
+            ['nama' => 'Barang Pinjam Srv', 'tipe' => 'ASET', 'satuan_id' => $satuanId, 'kategori_id' => $kategoriId, 'status' => 'AKTIF']
+        );
     }
 
     public function test_damaged_warehouse_asset_return_triggers_maintenance_without_misassigning_borrower_unit(): void

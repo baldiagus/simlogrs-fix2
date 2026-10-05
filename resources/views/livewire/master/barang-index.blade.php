@@ -373,13 +373,22 @@
                 </div>
 
                 @php
-                    $stokGudang = $selectedBarang->stokBatch->where('status', '!=', 'HABIS')->sum('jumlah');
+                    $asetGudang = $selectedBarang->aset->whereNotNull('gudang_id')->where('status', '!=', 'DIHAPUSKAN')->count();
+                    $batchGudang = (int) $selectedBarang->stokBatch->where('status', '!=', 'HABIS')->sum('jumlah');
+                    $stokGudang = ($selectedBarang->tipe === 'ASET' && $batchGudang === 0) ? $asetGudang : $batchGudang;
+
                     $valuasiGudang = $selectedBarang->stokBatch->where('status', '!=', 'HABIS')->sum(function ($b) {
                         return $b->jumlah * ($b->harga_satuan ?? 0);
                     });
-                    $stokRuangan = $selectedBarang->stokRuangan->sum('jumlah');
-                    $totalStokFisik = $stokGudang + $stokRuangan;
+                    if ($valuasiGudang == 0 && $selectedBarang->tipe === 'ASET') {
+                        $valuasiGudang = (float) $selectedBarang->aset->whereNotNull('gudang_id')->where('status', '!=', 'DIHAPUSKAN')->sum('nilai_perolehan');
+                    }
 
+                    $asetRuangan = $selectedBarang->aset->whereNotNull('unit_id')->where('status', '!=', 'DIHAPUSKAN')->count();
+                    $bhpRuangan = (int) $selectedBarang->stokRuangan->sum('jumlah');
+                    $stokRuangan = $selectedBarang->tipe === 'ASET' ? $asetRuangan : $bhpRuangan;
+
+                    $totalStokFisik = $stokGudang + $stokRuangan;
                     $stokMin = (int) $selectedBarang->stok_minimum;
                     $titikPesan = (int) $selectedBarang->titik_pesan;
 
@@ -417,7 +426,7 @@
                         <div class="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
                             {{ number_format($stokRuangan, 0, ',', '.') }} <span class="text-xs font-sans text-zinc-500 font-normal">{{ $selectedBarang->satuan?->simbol ?? $selectedBarang->satuan?->kode ?? 'Unit' }}</span>
                         </div>
-                        <div class="text-[11px] text-zinc-400">Standby di unit-unit pelayanan</div>
+                        <div class="text-[11px] text-zinc-400">{{ $selectedBarang->tipe === 'ASET' ? 'Aktiva fisik di unit pelayanan' : 'Standby di unit-unit pelayanan' }}</div>
                     </div>
 
                     {{-- Valuasi & Status Ketersediaan --}}

@@ -65,15 +65,9 @@
                     </div>
 
                     @if ($userUnitId)
-                        <div class="w-full sm:w-60">
-                            <select
-                                wire:model.live="filterPerspektif"
-                                class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100"
-                            >
-                                <option value="semua">Semua Terkait Ruangan</option>
-                                <option value="penyedia">Aset Ruangan Dipinjamkan Keluar</option>
-                                <option value="peminjam">Aset Luar yang Sedang Dipinjam</option>
-                            </select>
+                        <div class="px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs text-blue-700 dark:text-blue-300 font-medium flex items-center gap-1.5">
+                            <flux:icon name="arrow-right-start-on-rectangle" class="size-3.5 text-blue-600" />
+                            <span>Permohonan Pinjam Unit ke Luar</span>
                         </div>
                     @endif
                 @else
@@ -129,8 +123,8 @@
             <flux:table bleed container:class="mt-4">
                 <flux:table.columns sticky>
                     <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-32">Kode PINJ</flux:table.column>
-                    <flux:table.column class="w-36">Penyedia</flux:table.column>
-                    <flux:table.column class="w-36">Unit Peminjam</flux:table.column>
+                    <flux:table.column class="w-44">Penyedia Aset</flux:table.column>
+                    <flux:table.column class="w-36">Unit Pemohon</flux:table.column>
                     <flux:table.column class="w-44">Periode Pinjam</flux:table.column>
                     <flux:table.column class="w-48">Aset Dipinjam</flux:table.column>
                     <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-28">Status</flux:table.column>

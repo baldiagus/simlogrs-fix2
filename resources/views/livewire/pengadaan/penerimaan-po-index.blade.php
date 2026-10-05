@@ -277,16 +277,25 @@
                     </div>
                 </div>
 
+                @php
+                    $adaBarangRusak = collect($itemRows)->sum(fn($r) => (int)($r['jumlah_rusak'] ?? 0)) > 0;
+                @endphp
                 <div>
                     <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Catatan Penerimaan <span class="text-zinc-500 dark:text-zinc-400 font-normal">(Opsional)</span>
+                        Catatan Penerimaan 
+                        @if ($adaBarangRusak)
+                            <span class="text-red-500 font-semibold">* (Wajib diisi berita acara/alasan kerusakan)</span>
+                        @else
+                            <span class="text-zinc-500 dark:text-zinc-400 font-normal">(Opsional)</span>
+                        @endif
                     </label>
                     <textarea
                         wire:model="catatan"
                         rows="2"
-                        placeholder="misal: Kemasan kardus utuh, nomor segel vendor sesuai..."
-                        class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm resize-none"
+                        placeholder="{{ $adaBarangRusak ? 'Jelaskan kondisi kerusakan fisik (pecah, segel robek, basah, dll) untuk bukti klaim retur vendor...' : 'misal: Kemasan kardus utuh, nomor segel vendor sesuai...' }}"
+                        class="w-full text-sm rounded-lg border {{ $errors->has('catatan') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm resize-none"
                     ></textarea>
+                    @error('catatan') <span class="text-red-500 text-xs mt-1 block font-medium">{{ $message }}</span> @enderror
                 </div>
             </div>
 
@@ -359,8 +368,10 @@
                                                     type="number"
                                                     wire:model="itemRows.{{ $idx }}.jumlah_rusak"
                                                     min="0"
-                                                    placeholder="0"
-                                                    class="w-full text-right font-mono tabular-nums text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
+                                                    max="{{ $row['jumlah_dipesan'] }}"
+                                                    placeholder="Maks: {{ $row['jumlah_dipesan'] }}"
+                                                    x-on:input="if (parseInt($el.value) > {{ (int) $row['jumlah_dipesan'] }}) $el.value = {{ (int) $row['jumlah_dipesan'] }}; if (parseInt($el.value) < 0) $el.value = 0;"
+                                                    class="w-full text-right font-mono tabular-nums text-sm rounded-md border {{ $errors->has("itemRows.{$idx}.jumlah_rusak") ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow"
                                                 />
                                                 @error("itemRows.{$idx}.jumlah_rusak") <span class="text-red-500 text-[10px] mt-0.5 leading-tight">{{ $message }}</span> @enderror
                                             </div>
@@ -392,10 +403,9 @@
                                             <div class="col-span-2" wire:key="rak-select-wrapper-{{ $gudang_id ?? 'empty' }}-{{ $idx }}">
                                                 <x-searchable-select
                                                     model="itemRows.{{ $idx }}.lokasi_gudang_id"
-                                                    label="Rak Simpan"
-                                                    placeholder="Pilih Rak..."
+                                                    label="Rak Simpan (Opsional)"
+                                                    placeholder="Pilih Rak (Opsional)..."
                                                     :options="$daftarLokasiGudang"
-                                                    required
                                                 />
                                             </div>
                                         </div>

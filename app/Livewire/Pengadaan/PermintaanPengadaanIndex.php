@@ -127,14 +127,30 @@ class PermintaanPengadaanIndex extends Component
 
         $kodeFinal = $this->kode ?: CodeGenerator::generatePr();
 
+        $user = auth()->user();
+        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+
+        $isLeader = false;
+        if ($isGlobalAdmin) {
+            $isLeader = true;
+        } elseif ($this->gudang_id && $user->hasRole('kepala_gudang')) {
+            $isLeader = (int) $user->gudang_id === (int) $this->gudang_id;
+        } elseif ($this->unit_id && $user->hasRole(['kepala_unit', 'kepala_teknisi'])) {
+            $isLeader = (int) $user->unit_id === (int) $this->unit_id;
+        }
+
+        $initialStatus = $isLeader ? PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN : PermintaanPengadaan::STATUS_DIAJUKAN;
+        $disetujuiOleh = $isLeader ? $user->id : null;
+
         $pr = PermintaanPengadaan::create([
             'kode'               => $kodeFinal,
             'unit_id'            => $this->unit_id,
             'gudang_id'          => $this->gudang_id,
-            'diajukan_oleh'      => auth()->id(),
+            'diajukan_oleh'      => $user->id,
+            'disetujui_oleh'     => $disetujuiOleh,
             'tanggal_permintaan' => now()->toDateString(),
             'urgensi'            => $this->urgensi,
-            'status'             => PermintaanPengadaan::STATUS_DIAJUKAN,
+            'status'             => $initialStatus,
             'catatan'            => $this->catatan ?: null,
         ]);
 
@@ -143,11 +159,15 @@ class PermintaanPengadaanIndex extends Component
                 'permintaan_pengadaan_id' => $pr->id,
                 'barang_id'              => $item['barang_id'],
                 'jumlah'                 => $item['jumlah'],
+                'jumlah_disetujui'       => $isLeader ? $item['jumlah'] : null,
             ]);
         }
 
         $this->showModal = false;
-        $this->toast("Permintaan Pengadaan '{$kodeFinal}' berhasil diajukan.", 'success');
+        $toastMsg = $isLeader
+            ? "Permintaan Pengadaan '{$kodeFinal}' berhasil diajukan dan langsung diteruskan ke bagian pengadaan."
+            : "Permintaan Pengadaan '{$kodeFinal}' berhasil diajukan.";
+        $this->toast($toastMsg, 'success');
     }
 
     public function showDetail(int $id)

@@ -17,14 +17,15 @@ class DatabaseSeeder extends Seeder
             PeranSeeder::class,
             ShieldRolePermissionSeeder::class,
             PenggunaSeeder::class,
-            AnggaranPengadaanSeeder::class,
-            MasterDataSeeder::class,
-            PengadaanDummySeeder::class,
-            DistribusiDummySeeder::class,
-            PeminjamanAsetDummySeeder::class,
-            IpsrsDummySeeder::class,
-            PersediaanDummySeeder::class,
-            AuditDummySeeder::class,
+            // Data dummy dinonaktifkan (hanya akun & struktur dasar yang aktif):
+            // AnggaranPengadaanSeeder::class,
+            // MasterDataSeeder::class,
+            // PengadaanDummySeeder::class,
+            // DistribusiDummySeeder::class,
+            // PeminjamanAsetDummySeeder::class,
+            // IpsrsDummySeeder::class,
+            // PersediaanDummySeeder::class,
+            // AuditDummySeeder::class,
         ]);
     }
 }

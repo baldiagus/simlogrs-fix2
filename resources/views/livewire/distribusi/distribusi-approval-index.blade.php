@@ -158,7 +158,7 @@
                                 <th class="py-2.5 px-3">Nama Barang</th>
                                 <th class="py-2.5 px-3 text-center">Satuan</th>
                                 <th class="py-2.5 px-3 text-right">Diminta Karu</th>
-                                <th class="py-2.5 px-3 text-right">Stok Gudang Tersedia</th>
+                                <th class="py-2.5 px-3 text-right">Sisa Stok Bebas</th>
                                 <th class="py-2.5 px-3 text-right w-40">Input Jml Disetujui</th>
                             </tr>
                         </thead>
@@ -214,7 +214,7 @@
 
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
                     <div class="text-xs text-zinc-500 dark:text-zinc-400 italic">
-                        * Jumlah disetujui tidak boleh melebihi jumlah permintaan maupun saldo stok fisik gudang yang tersedia.
+                        * Jumlah disetujui tidak boleh melebihi jumlah permintaan maupun sisa stok bebas di gudang (kuota permintaan lain yang menunggu picking otomatis memotong saldo bebas ini).
                     </div>
                     <div>
                         <flux:button type="button" variant="primary" wire:click="confirmApproveGudang" class="bg-blue-600 hover:bg-blue-700 text-white">
