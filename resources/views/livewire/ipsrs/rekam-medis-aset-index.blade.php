@@ -112,16 +112,16 @@
                             @endif
                         </flux:table.cell>
 
-                        {{-- Aksi: Buka Buku Riwayat --}}
-                        <flux:table.cell class="text-right">
-                            <flux:button
-                                wire:click="showBukuRiwayat({{ $aset->id }})"
-                                size="xs"
-                                variant="primary"
-                                icon="book-open"
-                            >
-                                Rekam Medis
-                            </flux:button>
+                        {{-- Aksi --}}
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="showBukuRiwayat({{ $aset->id }})" icon="book-open">
+                                        Rekam Medis Aset
+                                    </flux:menu.item>
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

@@ -211,14 +211,15 @@
                         </flux:table.cell>
 
                         {{-- Aksi --}}
-                        <flux:table.cell class="text-right">
-                            <flux:button
-                                wire:click="showDetail({{ $item->id }})"
-                                size="xs"
-                                variant="ghost"
-                                icon="eye"
-                                title="Lihat Rincian Batch"
-                            />
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
+                                        Rincian Batch FEFO
+                                    </flux:menu.item>
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

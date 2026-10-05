@@ -110,30 +110,23 @@
                         </flux:table.cell>
 
                         {{-- Aksi --}}
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button
-                                    wire:click="showDetail({{ $opn->id }})"
-                                    size="xs"
-                                    variant="ghost"
-                                    icon="eye"
-                                    title="Lihat Detail Opname"
-                                />
-
-                                @if ($opn->status === 'BERJALAN')
-                                    @canany(['update_gudang_stok::stok::opname', 'create_gudang_stok::stok::opname', 'page_KepalaGudangDashboard', 'page_Dashboard'])
-                                        <flux:button
-                                            wire:click="openHitungFisik({{ $opn->id }})"
-                                            size="xs"
-                                            variant="primary"
-                                            icon="clipboard-document-list"
-                                            title="Input Perhitungan Fisik Lapangan"
-                                        >
-                                            Hitung Fisik
-                                        </flux:button>
-                                    @endcanany
-                                @endif
-                            </div>
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="showDetail({{ $opn->id }})" icon="eye">
+                                        Rincian Sesi Opname
+                                    </flux:menu.item>
+                                    @if ($opn->status === 'BERJALAN')
+                                        @canany(['update_gudang_stok::stok::opname', 'create_gudang_stok::stok::opname', 'page_KepalaGudangDashboard', 'page_Dashboard'])
+                                            <flux:menu.separator />
+                                            <flux:menu.item wire:click="openHitungFisik({{ $opn->id }})" icon="clipboard-document-list" class="text-blue-600 dark:text-blue-400">
+                                                Input Hitung Fisik
+                                            </flux:menu.item>
+                                        @endcanany
+                                    @endif
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

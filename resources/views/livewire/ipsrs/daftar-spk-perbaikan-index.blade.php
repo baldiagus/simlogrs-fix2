@@ -128,17 +128,17 @@
                                 @endif
                             </flux:table.cell>
                             {{-- Aksi: Terbitkan SPK --}}
-                            <flux:table.cell class="text-right">
-                                @can('create_pemeliharaan::spk::perbaikan')
-                                    <flux:button
-                                        wire:click="openTerbitkanSpk({{ $tiket->id }})"
-                                        size="xs"
-                                        variant="primary"
-                                        icon="clipboard-document-check"
-                                    >
-                                        Disposisi SPK
-                                    </flux:button>
-                                @endcan
+                            <flux:table.cell class="text-right w-16">
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                    <flux:menu class="min-w-44">
+                                        @can('create_pemeliharaan::spk::perbaikan')
+                                            <flux:menu.item wire:click="openTerbitkanSpk({{ $tiket->id }})" icon="clipboard-document-check" class="text-emerald-600 dark:text-emerald-400">
+                                                Disposisi SPK
+                                            </flux:menu.item>
+                                        @endcan
+                                    </flux:menu>
+                                </flux:dropdown>
                             </flux:table.cell>
                         </flux:table.row>
                     @empty
@@ -214,26 +214,18 @@
                             </flux:table.cell>
 
                             {{-- Aksi: Cetak PDF & Detail --}}
-                            <flux:table.cell class="text-right">
-                                <div class="flex items-center justify-end gap-1.5">
-                                    <flux:button
-                                        as="a"
-                                        href="/{{ \App\Support\Portal\PortalResolver::resolve() }}/spk/{{ $spk->id }}/cetak-pdf"
-                                        target="_blank"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="printer"
-                                        title="Cetak Dokumen Fisik SPK (PDF)"
-                                    />
-
-                                    <flux:button
-                                        wire:click="showDetailSpk({{ $spk->id }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="eye"
-                                        title="Lihat Detail SPK"
-                                    />
-                                </div>
+                            <flux:table.cell class="text-right w-16">
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                    <flux:menu class="min-w-44">
+                                        <flux:menu.item wire:click="showDetailSpk({{ $spk->id }})" icon="eye">
+                                            Detail SPK
+                                        </flux:menu.item>
+                                        <flux:menu.item as="a" href="/{{ \App\Support\Portal\PortalResolver::resolve() }}/spk/{{ $spk->id }}/cetak-pdf" target="_blank" icon="printer">
+                                            Cetak PDF SPK
+                                        </flux:menu.item>
+                                    </flux:menu>
+                                </flux:dropdown>
                             </flux:table.cell>
                         </flux:table.row>
                     @empty

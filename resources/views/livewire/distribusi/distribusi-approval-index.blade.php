@@ -72,36 +72,25 @@
                         <flux:table.cell class="text-center">
                             <x-status-badge :status="$item->status" />
                         </flux:table.cell>
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button
-                                    size="sm"
-                                    variant="ghost"
-                                    icon="eye"
-                                    wire:click="openDetail({{ $item->id }})"
-                                    title="Lihat Detail Permintaan"
-                                />
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="openDetail({{ $item->id }})" icon="eye">
+                                        Periksa Dokumen
+                                    </flux:menu.item>
 
-                                @if ($item->status === 'DISETUJUI_KARU')
-                                    <flux:button
-                                        size="sm"
-                                        variant="primary"
-                                        icon="clipboard-document-check"
-                                        wire:click="openReview({{ $item->id }})"
-                                        class="bg-blue-600 hover:bg-blue-700 text-white"
-                                    >
-                                        Review & Setujui
-                                    </flux:button>
-                                    <flux:button
-                                        size="sm"
-                                        variant="danger"
-                                        icon="x-mark"
-                                        wire:click="confirmRejectGudang({{ $item->id }})"
-                                    >
-                                        Tolak
-                                    </flux:button>
-                                @endif
-                            </div>
+                                    @if ($item->status === 'DISETUJUI_KARU')
+                                        <flux:menu.item wire:click="openReview({{ $item->id }})" icon="clipboard-document-check" class="text-blue-600 dark:text-blue-400">
+                                            Review &amp; Setujui
+                                        </flux:menu.item>
+                                        <flux:menu.separator />
+                                        <flux:menu.item wire:click="confirmRejectGudang({{ $item->id }})" icon="x-mark" variant="danger">
+                                            Tolak Permintaan
+                                        </flux:menu.item>
+                                    @endif
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

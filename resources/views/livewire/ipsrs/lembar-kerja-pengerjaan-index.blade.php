@@ -90,29 +90,23 @@
                         </flux:table.cell>
 
                         {{-- Aksi --}}
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button
-                                    wire:click="showDetail({{ $spk->id }})"
-                                    size="xs"
-                                    variant="ghost"
-                                    icon="eye"
-                                    title="Lihat Rincian Pengerjaan"
-                                />
-
-                                @if (in_array($spk->status, ['DITUGASKAN', 'DITERIMA']))
-                                    @can('create_pemeliharaan::lembar::kerja')
-                                        <flux:button
-                                            wire:click="openLembarKerja({{ $spk->id }})"
-                                            size="xs"
-                                            variant="primary"
-                                            icon="wrench-screwdriver"
-                                        >
-                                            Input Servis
-                                        </flux:button>
-                                    @endcan
-                                @endif
-                            </div>
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="showDetail({{ $spk->id }})" icon="eye">
+                                        Detail Pengerjaan
+                                    </flux:menu.item>
+                                    @if (in_array($spk->status, ['DITUGASKAN', 'DITERIMA']))
+                                        @can('create_pemeliharaan::lembar::kerja')
+                                            <flux:menu.separator />
+                                            <flux:menu.item wire:click="openLembarKerja({{ $spk->id }})" icon="wrench-screwdriver" class="text-emerald-600 dark:text-emerald-400">
+                                                Input Lembar Kerja
+                                            </flux:menu.item>
+                                        @endcan
+                                    @endif
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

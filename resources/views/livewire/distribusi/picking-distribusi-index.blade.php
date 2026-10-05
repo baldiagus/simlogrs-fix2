@@ -105,27 +105,22 @@
                                 </div>
                             </flux:table.cell>
 
-                            <flux:table.cell class="text-right">
-                                <div class="flex items-center justify-end gap-1.5">
-                                    <flux:button
-                                        wire:click="showPermintaanDetail({{ $item->id }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="eye"
-                                        title="Lihat Detail Rencana Picking"
-                                    />
-                                    @canany(['create_gudang_stok::picking::distribusi', 'update_gudang_stok::picking::distribusi', 'page_PickingDistribusiIndex', 'page_GudangDashboard'])
-                                        <flux:button
-                                            wire:click="confirmPicking({{ $item->id }})"
-                                            size="xs"
-                                            class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold shadow-xs inline-flex items-center gap-1.5"
-                                            icon="cube"
-                                            wire:loading.attr="disabled"
-                                        >
-                                            {{ $item->status === 'DIKIRIM_SEBAGIAN' ? 'Picking Sisa Hutang' : 'Eksekusi Picking FEFO' }}
-                                        </flux:button>
-                                    @endcanany
-                                </div>
+                            <flux:table.cell class="text-right w-16">
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                    <flux:menu class="min-w-44">
+                                        <flux:menu.item wire:click="showPermintaanDetail({{ $item->id }})" icon="eye">
+                                            Detail Permintaan
+                                        </flux:menu.item>
+
+                                        @canany(['create_gudang_stok::picking::distribusi', 'update_gudang_stok::picking::distribusi', 'page_PickingDistribusiIndex', 'page_GudangDashboard'])
+                                            <flux:menu.separator />
+                                            <flux:menu.item wire:click="confirmPicking({{ $item->id }})" icon="cube" class="text-emerald-600 dark:text-emerald-400">
+                                                {{ $item->status === 'DIKIRIM_SEBAGIAN' ? 'Picking Sisa Hutang' : 'Eksekusi Picking FEFO' }}
+                                            </flux:menu.item>
+                                        @endcanany
+                                    </flux:menu>
+                                </flux:dropdown>
                             </flux:table.cell>
                         </flux:table.row>
                     @empty
@@ -169,16 +164,15 @@
                                 <x-status-badge :status="$item->status" />
                             </flux:table.cell>
 
-                            <flux:table.cell class="text-right">
-                                <flux:button
-                                    wire:click="showSppbDetail({{ $item->id }})"
-                                    size="xs"
-                                    variant="ghost"
-                                    icon="eye"
-                                    title="Detail Alokasi Batch"
-                                >
-                                    Detail Alokasi Batch
-                                </flux:button>
+                            <flux:table.cell class="text-right w-16">
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                    <flux:menu class="min-w-44">
+                                        <flux:menu.item wire:click="showSppbDetail({{ $item->id }})" icon="eye">
+                                            Detail Alokasi Batch
+                                        </flux:menu.item>
+                                    </flux:menu>
+                                </flux:dropdown>
                             </flux:table.cell>
                         </flux:table.row>
                     @empty

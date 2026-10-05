@@ -83,41 +83,28 @@
                             <x-status-badge :status="$item->status" />
                         </flux:table.cell>
 
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button
-                                    wire:click="showDetail({{ $item->id }})"
-                                    size="xs"
-                                    variant="ghost"
-                                    icon="eye"
-                                    title="Lihat Detail"
-                                />
+                        <flux:table.cell class="text-right w-16">
+                            @php
+                                $canApproveThis = $isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $item->unit_id);
+                            @endphp
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
+                                        Periksa Dokumen
+                                    </flux:menu.item>
 
-                                @php
-                                    $canApproveThis = $isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $item->unit_id);
-                                @endphp
-
-                                @if ($item->status === 'DIAJUKAN' && $canApproveThis)
-                                    <flux:button
-                                        wire:click="confirmApproveKaru({{ $item->id }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="check-circle"
-                                        title="Setujui Amprah"
-                                        class="text-emerald-600 hover:text-emerald-700"
-                                        wire:loading.attr="disabled"
-                                    />
-                                    <flux:button
-                                        wire:click="confirmRejectKaru({{ $item->id }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="x-circle"
-                                        title="Tolak Amprah"
-                                        class="text-rose-600 hover:text-rose-700"
-                                        wire:loading.attr="disabled"
-                                    />
-                                @endif
-                            </div>
+                                    @if ($item->status === 'DIAJUKAN' && $canApproveThis)
+                                        <flux:menu.item wire:click="confirmApproveKaru({{ $item->id }})" icon="check" class="text-emerald-600 dark:text-emerald-400">
+                                            Setujui Amprah
+                                        </flux:menu.item>
+                                        <flux:menu.separator />
+                                        <flux:menu.item wire:click="confirmRejectKaru({{ $item->id }})" icon="x-mark" variant="danger">
+                                            Tolak Amprah
+                                        </flux:menu.item>
+                                    @endif
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

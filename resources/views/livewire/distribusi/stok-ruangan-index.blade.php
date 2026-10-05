@@ -317,44 +317,36 @@
                             </flux:table.cell>
 
                             {{-- Aksi --}}
-                            <flux:table.cell class="text-right">
-                                <div class="flex items-center justify-end gap-1.5">
-                                    @php
-                                        $user = auth()->user();
-                                        $canUbahStatus = $user && (
-                                            $user->can('update_layanan_unit::stok::ruangan') ||
-                                            $user->hasRole(['super_admin', 'admin_logistik', 'kepala_unit']) ||
-                                            $user->can('page_AdminLogistikDashboard')
-                                        ) && ($isGlobalAdmin || (int) $user->unit_id === (int) $ast->unit_id);
-                                    @endphp
-
-                                    @if ($canUbahStatus && ! in_array($ast->status, ['DIPINJAM', 'DALAM_MAINTENANCE', 'DIHAPUSKAN']))
-                                        <flux:button
-                                            wire:click="openUbahStatusAset({{ $ast->id }})"
-                                            size="xs"
-                                            variant="ghost"
-                                            icon="pencil-square"
-                                            title="Ubah Status Operasional Aset"
-                                        >
-                                            Ubah Status
-                                        </flux:button>
-                                    @endif
-
-                                    @if ($ast->status === 'DALAM_MAINTENANCE')
-                                        <flux:badge size="xs" color="amber" class="font-medium" title="Aset sedang dalam penanganan perbaikan oleh teknisi IPSRS">
-                                            Dalam Servis IPSRS
-                                        </flux:badge>
-                                    @elseif (! in_array($ast->status, ['DIPINJAM', 'DIHAPUSKAN']))
-                                        <flux:button
-                                            wire:click="openLaporServis({{ $ast->id }})"
-                                            size="xs"
-                                            variant="ghost"
-                                            icon="wrench"
-                                            title="Lapor Kerusakan / Servis ke IPSRS"
-                                        >
-                                            Lapor Servis
-                                        </flux:button>
-                                    @endif
+                            <flux:table.cell class="text-right w-16">
+                                @php
+                                    $user = auth()->user();
+                                    $canUbahStatus = $user && (
+                                        $user->can('update_layanan_unit::stok::ruangan') ||
+                                        $user->hasRole(['super_admin', 'admin_logistik', 'kepala_unit']) ||
+                                        $user->can('page_AdminLogistikDashboard')
+                                    ) && ($isGlobalAdmin || (int) $user->unit_id === (int) $ast->unit_id);
+                                @endphp
+                                @if ($ast->status === 'DALAM_MAINTENANCE')
+                                    <flux:badge size="xs" color="amber" class="font-medium" title="Aset sedang dalam penanganan perbaikan oleh teknisi IPSRS">
+                                        Dalam Servis IPSRS
+                                    </flux:badge>
+                                @else
+                                    <flux:dropdown position="bottom" align="end">
+                                        <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                        <flux:menu class="min-w-44">
+                                            @if ($canUbahStatus && ! in_array($ast->status, ['DIPINJAM', 'DALAM_MAINTENANCE', 'DIHAPUSKAN']))
+                                                <flux:menu.item wire:click="openUbahStatusAset({{ $ast->id }})" icon="pencil-square">
+                                                    Ubah Status Operasional
+                                                </flux:menu.item>
+                                            @endif
+                                            @if (! in_array($ast->status, ['DIPINJAM', 'DALAM_MAINTENANCE', 'DIHAPUSKAN']))
+                                                <flux:menu.item wire:click="openLaporServis({{ $ast->id }})" icon="wrench">
+                                                    Lapor Servis ke IPSRS
+                                                </flux:menu.item>
+                                            @endif
+                                        </flux:menu>
+                                    </flux:dropdown>
+                                @endif
                             </flux:table.cell>
                         </flux:table.row>
                     @empty

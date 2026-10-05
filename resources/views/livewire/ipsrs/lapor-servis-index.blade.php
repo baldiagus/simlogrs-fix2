@@ -143,27 +143,21 @@
                         </flux:table.cell>
 
                         {{-- Aksi --}}
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button
-                                    wire:click="showDetail({{ $item->id }})"
-                                    size="xs"
-                                    variant="ghost"
-                                    icon="eye"
-                                    title="Lihat Detail Tiket"
-                                />
-
-                                @if ($item->status === 'DILAPORKAN' && (auth()->user()?->id === $item->dilaporkan_oleh || auth()->user()?->can('page_Dashboard')))
-                                    <flux:button
-                                        wire:click="confirmBatal({{ $item->id }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="x-mark"
-                                        class="text-rose-600 hover:text-rose-700"
-                                        title="Batalkan Tiket"
-                                    />
-                                @endif
-                            </div>
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
+                                        Lihat Tiket Kerusakan
+                                    </flux:menu.item>
+                                    @if ($item->status === 'DILAPORKAN' && (auth()->user()?->id === $item->dilaporkan_oleh || auth()->user()?->can('page_Dashboard')))
+                                        <flux:menu.separator />
+                                        <flux:menu.item wire:click="confirmBatal({{ $item->id }})" icon="x-mark" variant="danger">
+                                            Batalkan Laporan
+                                        </flux:menu.item>
+                                    @endif
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

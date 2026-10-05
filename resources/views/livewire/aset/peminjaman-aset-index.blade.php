@@ -299,29 +299,20 @@
                             </flux:table.cell>
 
                             {{-- Aksi --}}
-                            <flux:table.cell class="text-right">
-                                <div class="flex items-center justify-end gap-1.5">
-                                    <flux:button
-                                        wire:click="showQr({{ $aset->id }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="qr-code"
-                                        title="Stiker QR Code"
-                                    >
-                                        Stiker QR
-                                    </flux:button>
-
-                                    @can('create_layanan_unit::peminjaman::aset')
-                                        <flux:button
-                                            wire:click="pinjamAset({{ $aset->id }})"
-                                            size="xs"
-                                            variant="primary"
-                                            icon="arrow-right-circle"
-                                        >
-                                            Ajukan Pinjam
-                                        </flux:button>
-                                    @endcan
-                                </div>
+                            <flux:table.cell class="text-right w-16">
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                    <flux:menu class="min-w-44">
+                                        @can('create_layanan_unit::peminjaman::aset')
+                                            <flux:menu.item wire:click="pinjamAset({{ $aset->id }})" icon="arrow-path" class="text-emerald-600 dark:text-emerald-400">
+                                                Ajukan Pinjam
+                                            </flux:menu.item>
+                                        @endcan
+                                        <flux:menu.item wire:click="showQr({{ $aset->id }})" icon="qr-code">
+                                            Stiker QR Code
+                                        </flux:menu.item>
+                                    </flux:menu>
+                                </flux:dropdown>
                             </flux:table.cell>
                         </flux:table.row>
                     @empty

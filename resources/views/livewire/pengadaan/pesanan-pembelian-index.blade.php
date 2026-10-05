@@ -86,17 +86,24 @@
                         <flux:table.cell class="text-center">
                             <x-status-badge :status="$item->status" />
                         </flux:table.cell>
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                @can('view_pengadaan::pesanan::pembelian')
-                                    <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail" />
-                                @endcan
-                                @if ($item->status === 'DITERBITKAN')
-                                    @can('update_pengadaan::pesanan::pembelian')
-                                        <flux:button wire:click="confirmUpdateStatusKirim({{ $item->id }})" size="xs" variant="ghost" icon="truck" title="Update Kirim" wire:loading.attr="disabled" />
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    @can('view_pengadaan::pesanan::pembelian')
+                                        <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
+                                            Detail Kontrak PO
+                                        </flux:menu.item>
                                     @endcan
-                                @endif
-                            </div>
+                                    @if ($item->status === 'DITERBITKAN')
+                                        @can('update_pengadaan::pesanan::pembelian')
+                                            <flux:menu.item wire:click="confirmUpdateStatusKirim({{ $item->id }})" icon="truck">
+                                                Tandai Dikirim Vendor
+                                            </flux:menu.item>
+                                        @endcan
+                                    @endif
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

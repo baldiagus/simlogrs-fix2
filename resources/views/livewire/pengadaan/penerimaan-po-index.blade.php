@@ -155,24 +155,24 @@
                             <flux:table.cell class="text-center">
                                 <x-status-badge :status="$item->status" />
                             </flux:table.cell>
-                            <flux:table.cell class="text-right">
-                                <div class="flex items-center justify-end gap-1.5">
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="showDetailPo({{ $item->id }})" icon="eye">
+                                        Lihat Detail PO
+                                    </flux:menu.item>
                                     @can('create_gudang_stok::penerimaan::po')
                                         @if (in_array($item->status, ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN']))
-                                            <flux:button
-                                                wire:click="terima({{ $item->id }})"
-                                                size="xs"
-                                                variant="primary"
-                                                icon="inbox-arrow-down"
-                                                title="Terima Kiriman PO Ini"
-                                            >
-                                                Terima PO
-                                            </flux:button>
+                                            <flux:menu.separator />
+                                            <flux:menu.item wire:click="terima({{ $item->id }})" icon="inbox-arrow-down" class="text-emerald-600 dark:text-emerald-400">
+                                                Terima Kiriman PO
+                                            </flux:menu.item>
                                         @endif
                                     @endcan
-                                    <flux:button wire:click="showDetailPo({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail PO" />
-                                </div>
-                            </flux:table.cell>
+                                </flux:menu>
+                            </flux:dropdown>
+                        </flux:table.cell>
                         </flux:table.row>
                     @empty
                         <x-empty-state message="Tidak ada pesanan pembelian aktif yang menunggu penerimaan." cols="7" />
@@ -203,23 +203,23 @@
                             <flux:table.cell class="text-center">
                                 <x-status-badge :status="$item->status" />
                             </flux:table.cell>
-                            <flux:table.cell class="text-right">
-                                <div class="flex items-center justify-end gap-1.5">
-                                    <flux:button wire:click="showDetail({{ $item->id }})" size="xs" variant="ghost" icon="eye" title="Lihat Detail RCV" />
-                                    @can('create_gudang_stok::penerimaan::po')
-                                        @if ($item->pesananPembelian && $item->pesananPembelian->status === 'DITERIMA_SEBAGIAN')
-                                            <flux:button
-                                                wire:click="terima({{ $item->pesanan_pembelian_id }})"
-                                                size="xs"
-                                                variant="primary"
-                                                icon="plus"
-                                                title="Terima Sisa Barang PO ini"
-                                            >
-                                                Terima Sisa
-                                            </flux:button>
-                                        @endif
-                                    @endcan
-                                </div>
+                            <flux:table.cell class="text-right w-16">
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                    <flux:menu class="min-w-44">
+                                        <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
+                                            Detail RCV
+                                        </flux:menu.item>
+                                        @can('create_gudang_stok::penerimaan::po')
+                                            @if ($item->pesananPembelian && $item->pesananPembelian->status === 'DITERIMA_SEBAGIAN')
+                                                <flux:menu.separator />
+                                                <flux:menu.item wire:click="terima({{ $item->pesanan_pembelian_id }})" icon="plus" class="text-blue-600 dark:text-blue-400">
+                                                    Terima Sisa Barang
+                                                </flux:menu.item>
+                                            @endif
+                                        @endcan
+                                    </flux:menu>
+                                </flux:dropdown>
                             </flux:table.cell>
                         </flux:table.row>
                     @empty

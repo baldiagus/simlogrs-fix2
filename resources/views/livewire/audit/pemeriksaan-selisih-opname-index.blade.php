@@ -166,30 +166,21 @@
                         </flux:table.cell>
 
                         {{-- Aksi --}}
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button
-                                    wire:click="showDetail({{ $opn->id }})"
-                                    size="xs"
-                                    variant="ghost"
-                                    icon="eye"
-                                    title="Lihat Rincian Selisih"
-                                >
-                                    Rincian
-                                </flux:button>
-
-                                @if ($hasSelisih && auth()->user()?->can('create_audit_manajemen::temuan::capa'))
-                                    <flux:button
-                                        wire:click="openTerbitkanCapa({{ $opn->id }})"
-                                        size="xs"
-                                        variant="danger"
-                                        icon="clipboard-document-check"
-                                        title="Terbitkan Temuan Audit CAPA"
-                                    >
-                                        CAPA
-                                    </flux:button>
-                                @endif
-                            </div>
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="showDetail({{ $opn->id }})" icon="eye">
+                                        Rincian Selisih
+                                    </flux:menu.item>
+                                    @if ($hasSelisih && auth()->user()?->can('create_audit_manajemen::temuan::capa'))
+                                        <flux:menu.separator />
+                                        <flux:menu.item wire:click="openTerbitkanCapa({{ $opn->id }})" icon="shield-exclamation" class="text-rose-600 dark:text-rose-400">
+                                            Terbitkan CAPA
+                                        </flux:menu.item>
+                                    @endif
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

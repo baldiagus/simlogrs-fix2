@@ -93,34 +93,25 @@
                         </flux:table.cell>
 
                         {{-- Aksi --}}
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <flux:button
-                                    wire:click="showDetail({{ $item->id }})"
-                                    size="xs"
-                                    variant="ghost"
-                                    icon="eye"
-                                    title="Lihat Detail SPPB"
-                                />
+                        <flux:table.cell class="text-right w-16">
+                            @php
+                                $canConfirmThis = $isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $item->unit_id);
+                            @endphp
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
+                                        Periksa Surat Jalan
+                                    </flux:menu.item>
 
-                                @php
-                                    $canConfirmThis = $isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $item->unit_id);
-                                @endphp
-
-                                @if ($item->status === 'DIKIRIM' && $canConfirmThis)
-                                    <flux:button
-                                        wire:click="confirmTerima({{ $item->id }})"
-                                        size="xs"
-                                        variant="primary"
-                                        class="!bg-emerald-600 hover:!bg-emerald-700 !text-white font-medium shadow-xs"
-                                        icon="check-circle"
-                                        title="Konfirmasi Terima Barang"
-                                        wire:loading.attr="disabled"
-                                    >
-                                        Konfirmasi Terima
-                                    </flux:button>
-                                @endif
-                            </div>
+                                    @if ($item->status === 'DIKIRIM' && $canConfirmThis)
+                                        <flux:menu.separator />
+                                        <flux:menu.item wire:click="confirmTerima({{ $item->id }})" icon="inbox" class="text-emerald-600 dark:text-emerald-400">
+                                            Konfirmasi Terima Fisik
+                                        </flux:menu.item>
+                                    @endif
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

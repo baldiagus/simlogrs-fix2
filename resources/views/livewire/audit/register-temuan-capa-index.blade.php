@@ -184,43 +184,32 @@
                         </flux:table.cell>
 
                         {{-- Aksi --}}
-                        <flux:table.cell class="text-right">
-                            <div class="flex items-center justify-end gap-1.5">
-                                @if ($item->status_capa === 'In Progress')
-                                    <flux:button
-                                        wire:click="openTindakLanjut({{ $item->id }})"
-                                        size="xs"
-                                        variant="outline"
-                                        icon="arrow-up-tray"
-                                        title="Unggah Tindak Lanjut Perbaikan"
-                                    >
-                                        Tindak Lanjut
-                                    </flux:button>
-                                @endif
-
-                                @if ($item->status_capa === 'In Review' && $canEvaluate)
-                                    <flux:button
-                                        wire:click="openEvaluasiClosing({{ $item->id }})"
-                                        size="xs"
-                                        variant="primary"
-                                        icon="check-circle"
-                                        class="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                        title="Evaluasi & Closing Temuan"
-                                    >
-                                        Evaluasi SPI
-                                    </flux:button>
-                                @endif
-
-                                @if ($item->status_capa === 'Closed')
-                                    <flux:button
-                                        wire:click="openEvaluasiClosing({{ $item->id }})"
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="eye"
-                                        title="Lihat Evaluasi Closing"
-                                    />
-                                @endif
-                            </div>
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    @if ($item->status_capa === 'Closed')
+                                        <flux:menu.item wire:click="openEvaluasiClosing({{ $item->id }})" icon="eye">
+                                            Rincian Evaluasi Closing
+                                        </flux:menu.item>
+                                    @endif
+                                    @if ($item->status_capa === 'In Progress')
+                                        <flux:menu.item wire:click="openTindakLanjut({{ $item->id }})" icon="arrow-up-tray" class="text-blue-600 dark:text-blue-400">
+                                            Unggah Tindak Lanjut
+                                        </flux:menu.item>
+                                    @endif
+                                    @if ($item->status_capa === 'In Review' && $canEvaluate)
+                                        <flux:menu.item wire:click="openEvaluasiClosing({{ $item->id }})" icon="check-badge" class="text-emerald-600 dark:text-emerald-400">
+                                            Evaluasi &amp; Closing SPI
+                                        </flux:menu.item>
+                                    @endif
+                                    @if ($item->status_capa === 'In Review' && ! $canEvaluate)
+                                        <flux:menu.item wire:click="openTindakLanjut({{ $item->id }})" icon="eye">
+                                            Lihat Tindak Lanjut
+                                        </flux:menu.item>
+                                    @endif
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

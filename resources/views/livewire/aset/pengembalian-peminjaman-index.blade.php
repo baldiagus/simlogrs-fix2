@@ -95,22 +95,19 @@
                                 ($pinjam->tipe_penyedia === 'RUANGAN' && (int) $user?->unit_id === (int) $pinjam->unit_penyedia_id) ||
                                 ($pinjam->tipe_penyedia === 'GUDANG' && (int) $user?->gudang_id === (int) $pinjam->gudang_penyedia_id);
                         @endphp
-                        {{-- Tombol Aksi: Proses Pengembalian --}}
-                        <flux:table.cell class="text-right">
+                        {{-- Aksi: Proses Pengembalian --}}
+                        <flux:table.cell class="text-right w-16">
                             @if ($isProvider)
-                                <flux:button
-                                    size="sm"
-                                    class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold shadow-xs inline-flex items-center gap-1.5"
-                                    wire:click="openPengembalianModal({{ $pinjam->id }})"
-                                    wire:loading.attr="disabled"
-                                >
-                                    <flux:icon name="arrow-uturn-left" class="size-3.5" />
-                                    <span>Proses Pengembalian</span>
-                                </flux:button>
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                    <flux:menu class="min-w-44">
+                                        <flux:menu.item wire:click="openPengembalianModal({{ $pinjam->id }})" icon="arrow-uturn-left" class="text-emerald-600 dark:text-emerald-400">
+                                            Proses Pengembalian
+                                        </flux:menu.item>
+                                    </flux:menu>
+                                </flux:dropdown>
                             @else
-                                <span class="text-[11px] text-zinc-500 italic">
-                                    Serahkan ke Penyedia
-                                </span>
+                                <span class="text-[11px] text-zinc-400 italic">Serahkan ke Penyedia</span>
                             @endif
                         </flux:table.cell>
                     </flux:table.row>
@@ -193,15 +190,16 @@
                             {{ $kembali->catatan ?: '-' }}
                         </flux:table.cell>
 
-                        {{-- Tombol Detail --}}
-                        <flux:table.cell class="text-right">
-                            <flux:button
-                                size="xs"
-                                variant="ghost"
-                                icon="eye"
-                                wire:click="openDetailPengembalianModal({{ $kembali->id }})"
-                                title="Lihat Rincian Inspeksi"
-                            />
+                        {{-- Aksi --}}
+                        <flux:table.cell class="text-right w-16">
+                            <flux:dropdown position="bottom" align="end">
+                                <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="openDetailPengembalianModal({{ $kembali->id }})" icon="eye">
+                                        Rincian Inspeksi
+                                    </flux:menu.item>
+                                </flux:menu>
+                            </flux:dropdown>
                         </flux:table.cell>
                     </flux:table.row>
                 @empty

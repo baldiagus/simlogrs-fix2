@@ -147,20 +147,18 @@
                         </flux:table.cell>
 
                         {{-- Aksi Auditor --}}
-                        <flux:table.cell class="text-right">
+                        <flux:table.cell class="text-right w-16">
                             @if ($hasAnomaly)
-                                <flux:button
-                                    wire:click="openTerbitkanCapa({{ $po->id }}, '{{ $isTanpaPr ? 'TANPA_PR' : ($isLate ? 'TERLAMBAT' : 'SELISIH_RCV') }}')"
-                                    size="xs"
-                                    variant="outline"
-                                    class="text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700 hover:bg-rose-50"
-                                    icon="clipboard-document-check"
-                                    title="Terbitkan Temuan Audit CAPA"
-                                >
-                                    Terbitkan CAPA
-                                </flux:button>
+                                <flux:dropdown position="bottom" align="end">
+                                    <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
+                                    <flux:menu class="min-w-44">
+                                        <flux:menu.item wire:click="openTerbitkanCapa({{ $po->id }}, '{{ $isTanpaPr ? 'TANPA_PR' : ($isLate ? 'TERLAMBAT' : 'SELISIH_RCV') }}')" icon="shield-exclamation" class="text-rose-600 dark:text-rose-400">
+                                            Terbitkan CAPA
+                                        </flux:menu.item>
+                                    </flux:menu>
+                                </flux:dropdown>
                             @else
-                                <span class="text-[11px] text-zinc-400 italic">Kepatuhan Baik</span>
+                                <span class="text-[11px] text-zinc-400 italic">Sesuai SOP</span>
                             @endif
                         </flux:table.cell>
                     </flux:table.row>
