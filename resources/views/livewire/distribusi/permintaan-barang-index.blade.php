@@ -134,7 +134,7 @@
     </flux:card>
 
     {{-- Modal Form Tambah Amprah --}}
-    <flux:modal name="modal-permintaan-form" wire:model="showModal" class="md:w-[52rem] max-w-[92vw]">
+    <flux:modal name="modal-permintaan-form" wire:model="showModal" class="md:w-[54rem] max-w-[95vw]">
         <form wire:submit="save" class="space-y-4">
             <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">Pengajuan Amprah Ruangan</flux:heading>
@@ -241,7 +241,7 @@
                 <div class="space-y-3">
                     @foreach ($items as $index => $row)
                         <div wire:key="amprah-item-{{ $index }}" class="p-3.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-                            <div class="w-full grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
+                            <div class="w-full grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-start">
                                 {{-- Kolom 1 (1x3): Barang & Informasi Stok Gudang (col-span-5) --}}
                                 <div class="sm:col-span-5 w-full min-w-0">
                                     <x-searchable-select
@@ -266,9 +266,9 @@
                                                     Stok Gudang: <strong>{{ number_format($stokAda, 0, ',', '.') }} {{ $selectedB?->satuan?->simbol ?? 'Unit' }}</strong>
                                                 </span>
                                             @else
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60">
-                                                    <span class="size-1.5 rounded-full bg-rose-500"></span>
-                                                    Stok Gudang Kosong (0 {{ $selectedB?->satuan?->simbol ?? 'Unit' }})
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60" title="Kebutuhan komoditas ini akan otomatis dicatat sebagai hutang gudang dan dikirim saat restok.">
+                                                    <span class="size-1.5 rounded-full bg-amber-500"></span>
+                                                    Stok Gudang 0 (Otomatis Terhutang)
                                                 </span>
                                             @endif
                                         </div>
