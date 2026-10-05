@@ -60,26 +60,28 @@ class ApprovalPermintaanIndex extends Component
 
     public function approveKaru(int $id): void
     {
-        $permintaan = PermintaanDistribusi::findOrFail($id);
-        $this->authorizeAction($permintaan);
+        $user = auth()->user();
 
-        if ($permintaan->status !== 'DIAJUKAN') {
-            $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat disetujui.', 'danger');
-            return;
-        }
+        DB::transaction(function () use ($id, $user) {
+            $permintaan = PermintaanDistribusi::lockForUpdate()->findOrFail($id);
+            $this->authorizeAction($permintaan);
 
-        DB::transaction(function () use ($permintaan) {
+            if ($permintaan->status !== 'DIAJUKAN') {
+                $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat disetujui.', 'danger');
+                return;
+            }
+
             $permintaan->update([
-                'status' => 'DISETUJUI_KARU',
-                'disetujui_oleh' => auth()->id(),
+                'status'         => 'DISETUJUI_KARU',
+                'disetujui_oleh' => $user->id,
             ]);
 
             $permintaan->detail()->update([
                 'jumlah_disetujui' => DB::raw('jumlah'),
             ]);
-        });
 
-        $this->toast("Permintaan amprah '{$permintaan->kode}' berhasil disetujui.", 'success');
+            $this->toast("Permintaan amprah '{$permintaan->kode}' berhasil disetujui.", 'success');
+        });
     }
 
     public function confirmRejectKaru(int $id): void
@@ -106,20 +108,24 @@ class ApprovalPermintaanIndex extends Component
 
     public function rejectKaru(int $id): void
     {
-        $permintaan = PermintaanDistribusi::findOrFail($id);
-        $this->authorizeAction($permintaan);
+        $user = auth()->user();
 
-        if ($permintaan->status !== 'DIAJUKAN') {
-            $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat ditolak.', 'danger');
-            return;
-        }
+        DB::transaction(function () use ($id, $user) {
+            $permintaan = PermintaanDistribusi::lockForUpdate()->findOrFail($id);
+            $this->authorizeAction($permintaan);
 
-        $permintaan->update([
-            'status' => 'DITOLAK',
-            'disetujui_oleh' => auth()->id(),
-        ]);
+            if ($permintaan->status !== 'DIAJUKAN') {
+                $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat ditolak.', 'danger');
+                return;
+            }
 
-        $this->toast("Permintaan amprah '{$permintaan->kode}' telah ditolak.", 'info');
+            $permintaan->update([
+                'status'         => 'DITOLAK',
+                'disetujui_oleh' => $user->id,
+            ]);
+
+            $this->toast("Permintaan amprah '{$permintaan->kode}' telah ditolak.", 'info');
+        });
     }
 
     public function showDetail(int $id): void

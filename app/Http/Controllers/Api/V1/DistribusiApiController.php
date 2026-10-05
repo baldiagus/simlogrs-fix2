@@ -277,32 +277,8 @@ class DistribusiApiController extends ApiController
         if (! $gudangId) {
             return $this->jsonError('Fasilitas gudang aktif belum tersedia.', 422);
         }
-        foreach ($request->input('items') as $row) {
-            $barangId = (int) $row['barang_id'];
-            $jumlahDiminta = (int) $row['jumlah'];
-
-            $stokTersedia = (int) StokBatch::where('barang_id', $barangId)
-                ->where('status', 'AKTIF')
-                ->where('jumlah', '>', 0)
-                ->when($gudangId, fn ($q) => $q->where('gudang_id', $gudangId))
-                ->where(function ($q) {
-                    $q->whereNull('tanggal_kedaluwarsa')
-                      ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
-                })
-                ->sum('jumlah');
-
-            $barang = Barang::with('satuan')->find($barangId);
-            $namaBarang = $barang?->nama ?? "Barang #{$barangId}";
-            $satuan = $barang?->satuan?->nama ?? 'Pcs';
-
-            if ($stokTersedia <= 0) {
-                return $this->jsonError("Komoditas '{$namaBarang}' di gudang tujuan saat ini kosong (0 {$satuan}). Tidak dapat diajukan amprah.", 422);
-            }
-
-            if ($jumlahDiminta > $stokTersedia) {
-                return $this->jsonError("Jumlah diminta untuk '{$namaBarang}' ({$jumlahDiminta} {$satuan}) melebihi stok gudang yang tersedia ({$stokTersedia} {$satuan}).", 422);
-            }
-        }
+        // Komoditas dengan stok gudang kosong atau kurang tetap diizinkan diajukan via API
+        // Selisih kebutuhan akan otomatis dicatat sebagai hutang gudang (backorder)
 
         $isPetugasUnitMurni = $user->hasRole('petugas_unit')
             && ! $user->hasRole('kepala_unit')
@@ -412,7 +388,7 @@ class DistribusiApiController extends ApiController
         $filterGudang = $gudangIds->isNotEmpty() ? $gudangIds->toArray() : ($user->gudang_id ? [$user->gudang_id] : []);
 
         $items = PermintaanDistribusi::query()
-            ->whereIn('status', ['DISETUJUI_GUDANG', 'DISETUJUI_KARU'])
+            ->whereIn('status', ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN', 'DISETUJUI_KARU'])
             ->when(! $isGlobalPickAdmin && $filterGudang, fn ($q) => $q->whereIn('gudang_id', $filterGudang))
             ->with(['unit:id,kode,nama', 'pengaju:id,nama', 'detail.barang.satuan'])
             ->latest('id')
@@ -459,7 +435,7 @@ class DistribusiApiController extends ApiController
 
         $permintaan = PermintaanDistribusi::with(['detail.barang', 'unit'])->find($request->input('permintaan_id'));
 
-        if (! in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DISETUJUI_KARU'], true)) {
+        if (! in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN', 'DISETUJUI_KARU'], true)) {
             return $this->jsonError("Permintaan {$permintaan->kode} tidak dalam status siap picking (saat ini: {$permintaan->status}).", 422);
         }
 
@@ -650,7 +626,20 @@ class DistribusiApiController extends ApiController
                 $sppb->update(['status' => 'DITERIMA']);
 
                 if ($sppb->permintaanDistribusi) {
-                    $sppb->permintaanDistribusi->update(['status' => 'SELESAI']);
+                    $permintaan = $sppb->permintaanDistribusi;
+                    $permintaan->load('detail');
+
+                    $totalDiterima = PenerimaanDistribusiDetail::whereHas('penerimaanDistribusi', function ($q) use ($permintaan) {
+                        $q->whereHas('pengirimanBarang', fn ($p) => $p->where('permintaan_distribusi_id', $permintaan->id));
+                    })->sum('jumlah_diterima');
+
+                    $totalDiminta = $permintaan->detail->sum(fn ($d) => $d->jumlah_disetujui !== null ? $d->jumlah_disetujui : $d->jumlah);
+
+                    if ($totalDiterima >= $totalDiminta) {
+                        $permintaan->update(['status' => 'SELESAI']);
+                    } else {
+                        $permintaan->update(['status' => 'DIKIRIM_SEBAGIAN']);
+                    }
                 }
 
                 return $rcv;

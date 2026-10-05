@@ -146,25 +146,8 @@ class PermintaanBarangIndex extends Component
             return;
         }
 
-        // Cek ketersediaan stok fisik gudang non-negatif
-        foreach ($this->items as $index => $item) {
-            $barangId = (int) ($item['barang_id'] ?? 0);
-            $jumlahDiminta = (int) ($item['jumlah'] ?? 0);
-            $stokTersedia = $this->getStokTersedia($barangId, (int) $this->gudang_id);
-            $barang = Barang::with('satuan')->find($barangId);
-            $namaBarang = $barang?->nama ?? "Barang #{$barangId}";
-            $satuan = $barang?->satuan?->simbol ?? 'unit';
-
-            if ($stokTersedia <= 0) {
-                $this->addError("items.{$index}.barang_id", "Komoditas '{$namaBarang}' di gudang tujuan saat ini kosong (0 {$satuan}). Tidak dapat diajukan amprah.");
-                return;
-            }
-
-            if ($jumlahDiminta > $stokTersedia) {
-                $this->addError("items.{$index}.jumlah", "Jumlah diminta ({$jumlahDiminta} {$satuan}) melebihi stok gudang yang tersedia ({$stokTersedia} {$satuan}).");
-                return;
-            }
-        }
+        // Komoditas dengan stok gudang kosong atau kurang tetap diizinkan diajukan
+        // Selisih kebutuhan akan otomatis dicatat sebagai hutang gudang (backorder)
         // Pengguna selain role 'petugas_unit' (Kepala Unit, Teknisi, Admin, dll.) langsung bypass Meja 1 ke Kepala Gudang
         $isPetugasUnitMurni = $user->hasRole('petugas_unit')
             && ! $user->hasRole('kepala_unit')
@@ -307,6 +290,58 @@ class PermintaanBarangIndex extends Component
         ]);
 
         $this->toast("Permintaan amprah '{$permintaan->kode}' berhasil dibatalkan.", 'info');
+    }
+
+    public function confirmTutupSisaHutang(int $id): void
+    {
+        $permintaan = PermintaanDistribusi::findOrFail($id);
+        $user = auth()->user();
+        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+
+        if (! $isGlobalAdmin && $user?->unit_id && (int) $user->unit_id !== (int) $permintaan->unit_id) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menutup sisa permintaan dari unit ini.');
+        }
+
+        if ($permintaan->status !== 'DIKIRIM_SEBAGIAN') {
+            $this->toast('Hanya permintaan dengan status DIKIRIM_SEBAGIAN yang dapat ditutup sisa hutangnya.', 'warning');
+            return;
+        }
+
+        $this->askConfirmation(
+            target: $id,
+            action: 'tutupSisaHutang',
+            title: 'Tutup Sisa Hutang Amprah',
+            description: "Apakah Anda yakin ingin menutup sisa barang yang belum terkirim pada permohonan {$permintaan->kode}? Sisa barang tidak akan dikirim lagi dan permohonan dinyatakan selesai.",
+            buttonText: 'Ya, Tutup Sisa Hutang',
+            variant: 'primary'
+        );
+    }
+
+    public function tutupSisaHutang(int $id): void
+    {
+        $user = auth()->user();
+        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+
+        DB::transaction(function () use ($id, $user, $isGlobalAdmin) {
+            $permintaan = PermintaanDistribusi::lockForUpdate()->findOrFail($id);
+
+            if (! $isGlobalAdmin && $user?->unit_id && (int) $user->unit_id !== (int) $permintaan->unit_id) {
+                abort(403, 'Anda tidak memiliki hak akses untuk menutup sisa permintaan dari unit ini.');
+            }
+
+            if ($permintaan->status !== 'DIKIRIM_SEBAGIAN') {
+                $this->toast('Hanya permintaan dengan status DIKIRIM_SEBAGIAN yang dapat ditutup sisa hutangnya.', 'warning');
+                return;
+            }
+
+            $catatanAwal = $permintaan->catatan ? $permintaan->catatan . "\n" : '';
+            $permintaan->update([
+                'status'  => 'SELESAI',
+                'catatan' => $catatanAwal . '[Sisa hutang ditutup oleh pemohon pada ' . now()->format('d/m/Y H:i') . ']',
+            ]);
+
+            $this->toast("Sisa barang terhutang untuk permohonan '{$permintaan->kode}' telah ditutup resmi.", 'info');
+        });
     }
 
     public function render()

@@ -113,6 +113,12 @@
                                             Batalkan Permintaan
                                         </flux:menu.item>
                                     @endif
+                                    @if ($item->status === 'DIKIRIM_SEBAGIAN' && ($isGlobalAdmin || (int) $userUnitId === (int) $item->unit_id))
+                                        <flux:menu.separator />
+                                        <flux:menu.item wire:click="confirmTutupSisaHutang({{ $item->id }})" icon="check-circle" class="text-blue-600">
+                                            Tutup Sisa Hutang
+                                        </flux:menu.item>
+                                    @endif
                                 </flux:menu>
                             </flux:dropdown>
                         </flux:table.cell>
@@ -283,17 +289,11 @@
                                         type="number"
                                         wire:model="items.{{ $index }}.jumlah"
                                         min="1"
-                                        @if ($stokMax > 0) max="{{ $stokMax }}" @endif
-                                        @if (!empty($items[$index]['barang_id']) && $stokMax <= 0) disabled @endif
                                         required
-                                        placeholder="{{ $stokMax <= 0 ? '0' : '1' }}"
-                                        class="w-full text-sm rounded-lg border {{ $errors->has("items.{$index}.jumlah") ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 text-right font-mono tabular-nums focus:outline-none focus:ring-1 focus:ring-blue-500 {{ !empty($items[$index]['barang_id']) && $stokMax <= 0 ? 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-400 cursor-not-allowed' : '' }}"
+                                        placeholder="1"
+                                        class="w-full text-sm rounded-lg border {{ $errors->has("items.{$index}.jumlah") ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 text-right font-mono tabular-nums focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     />
                                     @error("items.{$index}.jumlah") <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
-                                    @if (!empty($items[$index]['barang_id']) && $stokMax <= 0)
-                                        <p class="text-[10px] text-rose-600 dark:text-rose-400 font-medium mt-1">Stok 0 unit, tidak dapat diisi.</p>
-                                    @endif
-                                </div>
 
                                 {{-- Kolom 3 (1x3): Catatan Item & Tombol Hapus (col-span-5) --}}
                                 <div class="col-span-5 w-full min-w-0">
@@ -321,27 +321,13 @@
                 @error('items') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
             </div>
 
-            @php
-                $hasZeroStock = false;
-                foreach ($items as $itm) {
-                    if (!empty($itm['barang_id'])) {
-                        $stk = (int) ($stokGudangMap[$itm['barang_id']] ?? 0);
-                        if ($stk <= 0 || (int) ($itm['jumlah'] ?? 0) > $stk) {
-                            $hasZeroStock = true;
-                            break;
-                        }
-                    }
-                }
-            @endphp
-            @if ($hasZeroStock)
-                <div class="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
-                    <flux:icon name="exclamation-circle" class="size-4 shrink-0 text-rose-600" />
-                    <span>Terdapat komoditas dengan stok gudang kosong (0 unit) atau jumlah diminta melebihi stok yang tersedia. Mohon sesuaikan pilihan sebelum mengirim.</span>
-                </div>
-            @endif
+            <div class="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                <flux:icon name="information-circle" class="size-4 shrink-0 text-blue-600" />
+                <span>Barang yang stok gudangnya kosong atau kurang dari permintaan akan otomatis dicatat sebagai hutang gudang (backorder) dan diterbitkan SPPB susulan saat barang tiba.</span>
+            </div>
 
             <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                <flux:button type="submit" variant="primary" :disabled="$hasZeroStock" wire:loading.attr="disabled">
+                <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="save">Kirim Permintaan</span>
                     <span wire:loading wire:target="save">Mengirim...</span>
                 </flux:button>
