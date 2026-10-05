@@ -14,6 +14,9 @@
             @endcan
         </div>
 
+        {{-- Navigasi Sub-Tab Hub Pengadaan --}}
+        <x-pengadaan-transaksi-tabs active="pr" />
+
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center gap-3">
             <div class="w-full sm:w-80">

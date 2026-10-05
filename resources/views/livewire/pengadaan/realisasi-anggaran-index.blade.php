@@ -21,6 +21,9 @@
         </div>
     </div>
 
+    {{-- Navigasi Sub-Tab Hub Evaluasi --}}
+    <x-pengadaan-evaluasi-tabs active="anggaran" />
+
     {{-- 2 Kartu Screening Pengeluaran Riil (Tanpa Stripe Dekoratif - Anti Slop R-01 & R-31) --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {{-- Pengeluaran Amprah Unit --}}

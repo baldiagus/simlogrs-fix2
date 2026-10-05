@@ -9,6 +9,9 @@
         </div>
     </div>
 
+    {{-- Navigasi Sub-Tab Hub Evaluasi --}}
+    <x-pengadaan-evaluasi-tabs active="rekanan" />
+
     {{-- 3 Kartu Ringkasan Metrik Rekanan --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {{-- Total Rekanan --}}

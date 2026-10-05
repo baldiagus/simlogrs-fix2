@@ -8,6 +8,9 @@
             </div>
         </div>
 
+        {{-- Navigasi Sub-Tab Hub Servis IPSRS --}}
+        <x-ipsrs-servis-tabs active="spk" />
+
         {{-- Navigasi Tab --}}
         <flux:tabs class="pt-2">
             <flux:tab

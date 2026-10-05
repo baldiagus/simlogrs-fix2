@@ -14,6 +14,9 @@
             @endcan
         </div>
 
+        {{-- Navigasi Sub-Tab Hub Opname & Penyesuaian --}}
+        <x-persediaan-opname-tabs active="opname" />
+
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div class="w-full sm:w-80">

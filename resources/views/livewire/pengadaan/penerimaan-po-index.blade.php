@@ -8,6 +8,9 @@
             </div>
         </div>
 
+        {{-- Navigasi Sub-Tab Hub Pengadaan --}}
+        <x-pengadaan-transaksi-tabs active="rcv" />
+
         {{-- Tab Switcher (Dual-Mode: Tracking PO & Riwayat RCV) --}}
         <div class="flex border-b border-zinc-200 dark:border-zinc-800 gap-2">
             <button

@@ -14,6 +14,9 @@
             @endcan
         </div>
 
+        {{-- Navigasi Sub-Tab Hub Rutin & Rekam Medis --}}
+        <x-ipsrs-rutin-tabs active="preventif" />
+
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div class="w-full sm:w-80">

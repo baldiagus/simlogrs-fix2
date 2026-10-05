@@ -14,6 +14,9 @@
             @endif
         </div>
 
+        {{-- Navigasi Sub-Tab Hub Monitoring Persediaan --}}
+        <x-persediaan-monitoring-tabs active="mutasi" />
+
         {{-- Toolbar Filter & Pencarian --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 pt-1">
             <div class="md:col-span-2">

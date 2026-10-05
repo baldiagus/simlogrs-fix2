@@ -1,4 +1,7 @@
 <div class="space-y-6">
+    {{-- Navigasi Sub-Tab Hub Monitoring Persediaan --}}
+    <x-persediaan-monitoring-tabs active="fefo" />
+
     {{-- Kartu Metrik Monitoring FEFO --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs cursor-pointer hover:border-rose-400 transition-colors" wire:click="setFilter('KEDALUWARSA')">

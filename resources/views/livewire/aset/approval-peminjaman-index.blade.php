@@ -8,6 +8,9 @@
             </div>
         </div>
 
+        {{-- Navigasi Sub-Tab Hub Peminjaman --}}
+        <x-sirkulasi-peminjaman-tabs active="approval" />
+
         {{-- Toolbar filter dan pencarian --}}
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-1">
             <div class="flex flex-wrap items-center gap-1.5">

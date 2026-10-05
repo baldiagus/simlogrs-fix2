@@ -14,6 +14,9 @@
             @endif
         </div>
 
+        {{-- Navigasi Sub-Tab Hub Pengawasan Kepatuhan --}}
+        <x-audit-kepatuhan-tabs active="trail" />
+
         {{-- Toolbar Filter & Pencarian --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
             <div>

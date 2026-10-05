@@ -14,6 +14,9 @@
             @endcan
         </div>
 
+        {{-- Navigasi Sub-Tab Hub Servis IPSRS --}}
+        <x-ipsrs-servis-tabs active="lapor" />
+
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center gap-3">
             <div class="w-full sm:w-80">

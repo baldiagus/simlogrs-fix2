@@ -16,6 +16,9 @@
             @endcan
         </div>
 
+        {{-- Navigasi Sub-Tab Hub Peminjaman --}}
+        <x-sirkulasi-peminjaman-tabs active="pinjam" />
+
         {{-- Navigasi tab --}}
         <flux:tabs class="pt-2">
             <flux:tab

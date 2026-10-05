@@ -1,4 +1,7 @@
 <div class="space-y-6">
+    {{-- Navigasi Sub-Tab Hub Pengawasan Kepatuhan --}}
+    <x-audit-kepatuhan-tabs active="selisih" />
+
     {{-- Ringkasan Metrik Pengawasan Opname Fisik --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <flux:card class="p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs flex items-center gap-4">

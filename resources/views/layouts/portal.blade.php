@@ -215,33 +215,33 @@
                 </flux:sidebar.group>
             @endcan
 
-            @if ($user->can('view_any_pengadaan::permintaan::pengadaan') || $user->can('view_any_pengadaan::pesanan::pembelian') || $user->can('view_any_pengadaan::tracking::po') || $user->can('view_any_gudang_stok::penerimaan::po') || $user->can('view_any_pengadaan::realisasi::anggaran') || $user->can('view_any_pengadaan::master::rekanan'))
+            @if ($user->can('view_any_pengadaan::permintaan::pengadaan') || $user->can('view_any_pengadaan::pesanan::pembelian') || $user->can('view_any_gudang_stok::penerimaan::po') || $user->can('view_any_pengadaan::realisasi::anggaran') || $user->can('view_any_pengadaan::master::rekanan'))
                 <flux:sidebar.group expandable :expanded="$isPengadaanActive" heading="Pengadaan" class="grid">
-                    @can('view_any_pengadaan::permintaan::pengadaan')
-                        <flux:sidebar.item icon="document-text" href="/{{ $portalKey }}/permintaan-pengadaan" wire:navigate :current="request()->is('*/permintaan-pengadaan')">
-                            Permintaan (PR)
+                    @if ($user->can('view_any_pengadaan::permintaan::pengadaan') || $user->can('view_any_pengadaan::pesanan::pembelian') || $user->can('view_any_gudang_stok::penerimaan::po'))
+                        @php
+                            $pengadaanHref = match(true) {
+                                $user->can('view_any_pengadaan::permintaan::pengadaan') => "/{$portalKey}/permintaan-pengadaan",
+                                $user->can('view_any_pengadaan::pesanan::pembelian') => "/{$portalKey}/pesanan-pembelian",
+                                default => "/{$portalKey}/penerimaan-po",
+                            };
+                            $isPengadaanCurrent = request()->is('*/permintaan-pengadaan*') || request()->is('*/pesanan-pembelian*') || request()->is('*/penerimaan-po*');
+                        @endphp
+                        <flux:sidebar.item icon="document-text" :href="$pengadaanHref" wire:navigate :current="$isPengadaanCurrent">
+                            Transaksi Pengadaan
                         </flux:sidebar.item>
-                    @endcan
-                    @can('view_any_pengadaan::pesanan::pembelian')
-                        <flux:sidebar.item icon="clipboard-document-list" href="/{{ $portalKey }}/pesanan-pembelian" wire:navigate :current="request()->is('*/pesanan-pembelian')">
-                            Pesanan (PO)
+                    @endif
+
+                    @if ($user->can('view_any_pengadaan::realisasi::anggaran') || $user->can('view_any_pengadaan::master::rekanan'))
+                        @php
+                            $evaluasiHref = $user->can('view_any_pengadaan::realisasi::anggaran')
+                                ? "/{$portalKey}/realisasi-anggaran"
+                                : "/{$portalKey}/master-rekanan";
+                            $isEvaluasiCurrent = request()->is('*/realisasi-anggaran*') || request()->is('*/master-rekanan*');
+                        @endphp
+                        <flux:sidebar.item icon="banknotes" :href="$evaluasiHref" wire:navigate :current="$isEvaluasiCurrent">
+                            Pagu & Rekanan
                         </flux:sidebar.item>
-                    @endcan
-                    @can('view_any_gudang_stok::penerimaan::po')
-                        <flux:sidebar.item icon="inbox-arrow-down" href="/{{ $portalKey }}/penerimaan-po" wire:navigate :current="request()->is('*/penerimaan-po')">
-                            Penerimaan (Inbound)
-                        </flux:sidebar.item>
-                    @endcan
-                    @can('view_any_pengadaan::realisasi::anggaran')
-                        <flux:sidebar.item icon="banknotes" href="/{{ $portalKey }}/realisasi-anggaran" wire:navigate :current="request()->is('*/realisasi-anggaran')">
-                            Pagu & Realisasi
-                        </flux:sidebar.item>
-                    @endcan
-                    @can('view_any_pengadaan::master::rekanan')
-                        <flux:sidebar.item icon="building-storefront" href="/{{ $portalKey }}/master-rekanan" wire:navigate :current="request()->is('*/master-rekanan')">
-                            Evaluasi Rekanan
-                        </flux:sidebar.item>
-                    @endcan
+                    @endif
                 </flux:sidebar.group>
             @endif
 
@@ -286,19 +286,104 @@
 
             @if ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_any_layanan_unit::approval::peminjaman') || $user->can('view_any_layanan_unit::pengembalian::aset'))
                 <flux:sidebar.group expandable :expanded="$isSirkulasiActive" heading="Sirkulasi Aset" class="grid">
-                    @can('view_any_layanan_unit::peminjaman::aset')
-                        <flux:sidebar.item icon="arrow-path" href="/{{ $portalKey }}/peminjaman-aset" wire:navigate :current="request()->is('*/peminjaman-aset')">
-                            Peminjaman Aset
+                    @if ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_any_layanan_unit::approval::peminjaman'))
+                        @php
+                            $pinjamHref = match(true) {
+                                $user->can('view_any_layanan_unit::peminjaman::aset') => "/{$portalKey}/peminjaman-aset",
+                                default => "/{$portalKey}/approval-peminjaman",
+                            };
+                            $isPinjamCurrent = request()->is('*/peminjaman-aset*') || request()->is('*/approval-peminjaman*');
+                        @endphp
+                        <flux:sidebar.item icon="arrow-path" :href="$pinjamHref" wire:navigate :current="$isPinjamCurrent">
+                            Peminjaman & Otorisasi
                         </flux:sidebar.item>
-                    @endcan
-                    @can('view_any_layanan_unit::approval::peminjaman')
-                        <flux:sidebar.item icon="check-badge" href="/{{ $portalKey }}/approval-peminjaman" wire:navigate :current="request()->is('*/approval-peminjaman')">
-                            {{ $portalKey === 'kepala-gudang' ? 'Otorisasi Pinjam (Gudang)' : ($portalKey === 'kepala-unit' ? 'Otorisasi Pinjam (Karu)' : 'Otorisasi Pinjam') }}
-                        </flux:sidebar.item>
-                    @endcan
+                    @endif
+
                     @can('view_any_layanan_unit::pengembalian::aset')
-                        <flux:sidebar.item icon="arrow-down-tray" href="/{{ $portalKey }}/pengembalian-aset" wire:navigate :current="request()->is('*/pengembalian-aset')">
-                            Pengembalian Aset
+                        <flux:sidebar.item icon="arrow-down-tray" href="/{{ $portalKey }}/pengembalian-aset" wire:navigate :current="request()->is('*/pengembalian-aset*')">
+                            Pengembalian & Inspeksi
+                        </flux:sidebar.item>
+                    @endcan
+                </flux:sidebar.group>
+            @endif
+
+            @if ($user->can('view_any_layanan_unit::lapor::servis') || $user->can('view_any_pemeliharaan::spk::perbaikan') || $user->can('view_any_pemeliharaan::lembar::kerja') || $user->can('view_any_pemeliharaan::rekam::medis::aset') || $user->can('view_any_pemeliharaan::pemeliharaan::berkala'))
+                <flux:sidebar.group expandable :expanded="$isIpsrsActive" heading="Pemeliharaan & IPSRS" class="grid">
+                    @if ($user->can('view_any_layanan_unit::lapor::servis') || $user->can('view_any_pemeliharaan::spk::perbaikan') || $user->can('view_any_pemeliharaan::lembar::kerja'))
+                        @php
+                            $servisHref = match(true) {
+                                $user->can('view_any_layanan_unit::lapor::servis') => "/{$portalKey}/lapor-servis",
+                                $user->can('view_any_pemeliharaan::spk::perbaikan') => "/{$portalKey}/spk",
+                                default => "/{$portalKey}/lembar-kerja",
+                            };
+                            $isServisCurrent = request()->is('*/lapor-servis*') || request()->is('*/spk*') || request()->is('*/lembar-kerja*');
+                        @endphp
+                        <flux:sidebar.item icon="wrench-screwdriver" :href="$servisHref" wire:navigate :current="$isServisCurrent">
+                            Servis & Perbaikan
+                        </flux:sidebar.item>
+                    @endif
+
+                    @if ($user->can('view_any_pemeliharaan::pemeliharaan::berkala') || $user->can('view_any_pemeliharaan::rekam::medis::aset'))
+                        @php
+                            $preventifHref = $user->can('view_any_pemeliharaan::pemeliharaan::berkala')
+                                ? "/{$portalKey}/jadwal-preventif"
+                                : "/{$portalKey}/rekam-medis-aset";
+                            $isPreventifCurrent = request()->is('*/jadwal-preventif*') || request()->is('*/rekam-medis-aset*');
+                        @endphp
+                        <flux:sidebar.item icon="calendar-days" :href="$preventifHref" wire:navigate :current="$isPreventifCurrent">
+                            Preventif & Rekam Medis
+                        </flux:sidebar.item>
+                    @endif
+                </flux:sidebar.group>
+            @endif
+
+            @if ($user->can('view_any_gudang_stok::monitoring::fefo') || $user->can('view_any_gudang_stok::buku::mutasi') || $user->can('view_any_gudang_stok::stok::opname') || $user->can('view_any_gudang_stok::otorisasi::penyesuaian'))
+                <flux:sidebar.group expandable :expanded="$isPersediaanActive" heading="Persediaan & Opname" class="grid">
+                    @if ($user->can('view_any_gudang_stok::monitoring::fefo') || $user->can('view_any_gudang_stok::buku::mutasi'))
+                        @php
+                            $monitoringHref = $user->can('view_any_gudang_stok::monitoring::fefo')
+                                ? "/{$portalKey}/monitoring-fefo"
+                                : "/{$portalKey}/buku-mutasi";
+                            $isMonitoringCurrent = request()->is('*/monitoring-fefo*') || request()->is('*/buku-mutasi*');
+                        @endphp
+                        <flux:sidebar.item icon="clock" :href="$monitoringHref" wire:navigate :current="$isMonitoringCurrent">
+                            Monitoring & Kartu Stok
+                        </flux:sidebar.item>
+                    @endif
+
+                    @if ($user->can('view_any_gudang_stok::stok::opname') || $user->can('view_any_gudang_stok::otorisasi::penyesuaian'))
+                        @php
+                            $opnameHref = $user->can('view_any_gudang_stok::stok::opname')
+                                ? "/{$portalKey}/stok-opname"
+                                : "/{$portalKey}/otorisasi-penyesuaian";
+                            $isOpnameCurrent = request()->is('*/stok-opname*') || request()->is('*/otorisasi-penyesuaian*');
+                        @endphp
+                        <flux:sidebar.item icon="clipboard-document-check" :href="$opnameHref" wire:navigate :current="$isOpnameCurrent">
+                            Stock Opname & Otorisasi
+                        </flux:sidebar.item>
+                    @endif
+                </flux:sidebar.group>
+            @endif
+
+            @if ($user->can('view_any_audit_manajemen::audit::trail') || $user->can('view_any_audit_manajemen::kepatuhan::pengadaan') || $user->can('view_any_audit_manajemen::selisih::opname') || $user->can('view_any_audit_manajemen::temuan::capa'))
+                <flux:sidebar.group expandable :expanded="$isAuditActive" heading="Audit Internal (SPI)" class="grid">
+                    @if ($user->can('view_any_audit_manajemen::audit::trail') || $user->can('view_any_audit_manajemen::kepatuhan::pengadaan') || $user->can('view_any_audit_manajemen::selisih::opname'))
+                        @php
+                            $auditHref = match(true) {
+                                $user->can('view_any_audit_manajemen::audit::trail') => "/{$portalKey}/audit-trail",
+                                $user->can('view_any_audit_manajemen::kepatuhan::pengadaan') => "/{$portalKey}/kepatuhan-pengadaan",
+                                default => "/{$portalKey}/selisih-opname",
+                            };
+                            $isAuditCurrent = request()->is('*/audit-trail*') || request()->is('*/kepatuhan-pengadaan*') || request()->is('*/selisih-opname*');
+                        @endphp
+                        <flux:sidebar.item icon="shield-check" :href="$auditHref" wire:navigate :current="$isAuditCurrent">
+                            Pengawasan Kepatuhan
+                        </flux:sidebar.item>
+                    @endif
+
+                    @can('view_any_audit_manajemen::temuan::capa')
+                        <flux:sidebar.item icon="clipboard-document-list" href="/{{ $portalKey }}/temuan-capa" wire:navigate :current="request()->is('*/temuan-capa*')">
+                            Temuan & CAPA
                         </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
