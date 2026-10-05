@@ -8,6 +8,9 @@
             </div>
         </div>
 
+        {{-- Navigasi Sub-Tab Penyaluran SPPB --}}
+        <x-distribusi-sppb-tabs active="picking" />
+
         {{-- Navigasi Tab --}}
         <div class="flex flex-wrap items-center justify-between gap-4 pt-1">
             <div class="flex items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl text-xs font-medium border border-zinc-200/60 dark:border-zinc-700/60">

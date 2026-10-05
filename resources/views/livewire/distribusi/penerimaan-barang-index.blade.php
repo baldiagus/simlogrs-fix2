@@ -8,6 +8,9 @@
             </div>
         </div>
 
+        {{-- Navigasi Sub-Tab Penyaluran SPPB --}}
+        <x-distribusi-sppb-tabs active="terima" />
+
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center gap-3">
             <div class="w-full sm:w-80">

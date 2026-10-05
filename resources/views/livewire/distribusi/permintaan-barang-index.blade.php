@@ -14,6 +14,9 @@
             @endcan
         </div>
 
+        {{-- Navigasi Sub-Tab Modul Amprah Ruangan --}}
+        <x-distribusi-amprah-tabs active="permintaan" />
+
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center gap-3">
             <div class="w-full sm:w-80">

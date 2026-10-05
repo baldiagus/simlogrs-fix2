@@ -245,35 +245,39 @@
                 </flux:sidebar.group>
             @endif
 
-            @if ($user->can('view_any_layanan_unit::permintaan::barang') || $user->can('view_any_layanan_unit::approval::karu') || $user->can('view_any_layanan_unit::penerimaan::barang') || $user->can('view_any_layanan_unit::stok::ruangan') || $user->can('view_any_gudang_stok::distribusi::approval') || $user->can('view_any_gudang_stok::picking::distribusi'))
+            @if ($user->can('view_any_layanan_unit::permintaan::barang') || $user->can('view_any_layanan_unit::approval::karu') || $user->can('view_any_gudang_stok::distribusi::approval') || $user->can('view_any_gudang_stok::picking::distribusi') || $user->can('view_any_layanan_unit::penerimaan::barang') || $user->can('view_any_layanan_unit::stok::ruangan'))
                 <flux:sidebar.group expandable :expanded="$isDistribusiActive" heading="Distribusi & Amprah" class="grid">
-                    @can('view_any_layanan_unit::permintaan::barang')
-                        <flux:sidebar.item icon="arrow-up-tray" href="/{{ $portalKey }}/permintaan-barang" wire:navigate :current="request()->is('*/permintaan-barang')">
-                            Permintaan Amprah
+                    {{-- 1. Hub Amprah Ruangan (Permintaan & Otorisasi) --}}
+                    @if ($user->can('view_any_layanan_unit::permintaan::barang') || $user->can('view_any_layanan_unit::approval::karu') || $user->can('view_any_gudang_stok::distribusi::approval'))
+                        @php
+                            $amprahHref = match(true) {
+                                $user->can('view_any_layanan_unit::permintaan::barang') => "/{$portalKey}/permintaan-barang",
+                                $user->can('view_any_layanan_unit::approval::karu') => "/{$portalKey}/approval-permintaan",
+                                default => "/{$portalKey}/distribusi-approval",
+                            };
+                            $isAmprahCurrent = request()->is('*/permintaan-barang*') || request()->is('*/approval-permintaan*') || request()->is('*/distribusi-approval*');
+                        @endphp
+                        <flux:sidebar.item icon="arrow-up-tray" :href="$amprahHref" wire:navigate :current="$isAmprahCurrent">
+                            Amprah Ruangan
                         </flux:sidebar.item>
-                    @endcan
-                    @can('view_any_layanan_unit::approval::karu')
-                        <flux:sidebar.item icon="check-badge" href="/{{ $portalKey }}/approval-permintaan" wire:navigate :current="request()->is('*/approval-permintaan')">
-                            {{ $portalKey === 'kepala-gudang' ? 'Otorisasi Gudang' : ($portalKey === 'kepala-unit' ? 'Otorisasi Karu' : 'Otorisasi Amprah') }}
+                    @endif
+
+                    {{-- 2. Hub Penyaluran SPPB (Picking FEFO & Terima di Ruangan) --}}
+                    @if ($user->can('view_any_gudang_stok::picking::distribusi') || $user->can('view_any_layanan_unit::penerimaan::barang'))
+                        @php
+                            $sppbHref = $user->can('view_any_gudang_stok::picking::distribusi')
+                                ? "/{$portalKey}/picking-distribusi"
+                                : "/{$portalKey}/penerimaan-barang";
+                            $isSppbCurrent = request()->is('*/picking-distribusi*') || request()->is('*/penerimaan-barang*');
+                        @endphp
+                        <flux:sidebar.item icon="truck" :href="$sppbHref" wire:navigate :current="$isSppbCurrent">
+                            Penyaluran SPPB
                         </flux:sidebar.item>
-                    @endcan
-                    @can('view_any_gudang_stok::distribusi::approval')
-                        <flux:sidebar.item icon="clipboard-document-check" href="/{{ $portalKey }}/distribusi-approval" wire:navigate :current="request()->is('*/distribusi-approval')">
-                            Otorisasi Logistik
-                        </flux:sidebar.item>
-                    @endcan
-                    @can('view_any_gudang_stok::picking::distribusi')
-                        <flux:sidebar.item icon="queue-list" href="/{{ $portalKey }}/picking-distribusi" wire:navigate :current="request()->is('*/picking-distribusi')">
-                            Picking FEFO (SPPB)
-                        </flux:sidebar.item>
-                    @endcan
-                    @can('view_any_layanan_unit::penerimaan::barang')
-                        <flux:sidebar.item icon="inbox" href="/{{ $portalKey }}/penerimaan-barang" wire:navigate :current="request()->is('*/penerimaan-barang')">
-                            Terima di Ruangan
-                        </flux:sidebar.item>
-                    @endcan
+                    @endif
+
+                    {{-- 3. Persediaan Ruangan (Stok Lemari & Aset Lokal) --}}
                     @can('view_any_layanan_unit::stok::ruangan')
-                        <flux:sidebar.item icon="cube" href="/{{ $portalKey }}/stok-ruangan" wire:navigate :current="request()->is('*/stok-ruangan')">
+                        <flux:sidebar.item icon="cube" href="/{{ $portalKey }}/stok-ruangan" wire:navigate :current="request()->is('*/stok-ruangan*')">
                             Persediaan Ruangan
                         </flux:sidebar.item>
                     @endcan
