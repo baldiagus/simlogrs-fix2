@@ -1,7 +1,7 @@
 @props(['active' => 'picking'])
 
 @php
-    $portalKey = request()->segment(1) ?? 'super-admin';
+    $portalKey = \App\Support\Portal\PortalResolver::resolve();
     $user = auth()->user();
     $canPicking = $user?->can('view_any_gudang_stok::picking::distribusi');
     $canTerima = $user?->can('view_any_layanan_unit::penerimaan::barang');

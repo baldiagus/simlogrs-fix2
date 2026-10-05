@@ -52,12 +52,15 @@
                 <flux:subheading>Monitoring sisa fisik persediaan BHP dan sarana inventaris yang ditempatkan di ruangan.</flux:subheading>
             </div>
             <div class="flex items-center gap-2">
+                @php
+                    $portalSlug = \App\Support\Portal\PortalResolver::resolve();
+                @endphp
                 @if ($activeTab === 'bhp')
-                    <flux:button as="a" href="/{{ request()->segment(1) ?? 'unit' }}/permintaan-barang" variant="primary" icon="plus">
+                    <flux:button as="a" href="/{{ $portalSlug }}/permintaan-barang" variant="primary" icon="plus">
                         Ajukan Amprah Baru
                     </flux:button>
                 @else
-                    <flux:button as="a" href="/{{ request()->segment(1) ?? 'unit' }}/peminjaman-aset" variant="primary" icon="plus">
+                    <flux:button as="a" href="/{{ $portalSlug }}/peminjaman-aset" variant="primary" icon="plus">
                         Pinjam Aset Baru
                     </flux:button>
                 @endif
@@ -214,7 +217,7 @@
                                     @else
                                         <flux:button
                                             as="a"
-                                            href="/{{ request()->segment(1) ?? 'unit' }}/permintaan-barang"
+                                            href="/{{ \App\Support\Portal\PortalResolver::resolve() }}/permintaan-barang"
                                             size="xs"
                                             variant="danger"
                                             icon="arrow-up-tray"

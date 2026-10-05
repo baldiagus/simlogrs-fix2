@@ -215,7 +215,7 @@
                                 <div class="flex items-center justify-end gap-1.5">
                                     <flux:button
                                         as="a"
-                                        href="/{{ request()->segment(1) ?? 'teknisi' }}/spk/{{ $spk->id }}/cetak-pdf"
+                                        href="/{{ \App\Support\Portal\PortalResolver::resolve() }}/spk/{{ $spk->id }}/cetak-pdf"
                                         target="_blank"
                                         size="xs"
                                         variant="ghost"
@@ -441,7 +441,7 @@
                 <div class="flex items-center justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
                     <flux:button
                         as="a"
-                        href="/{{ request()->segment(1) ?? 'teknisi' }}/spk/{{ $selectedSpk->id }}/cetak-pdf"
+                        href="/{{ \App\Support\Portal\PortalResolver::resolve() }}/spk/{{ $selectedSpk->id }}/cetak-pdf"
                         target="_blank"
                         variant="primary"
                         icon="printer"

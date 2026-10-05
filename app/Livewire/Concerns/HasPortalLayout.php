@@ -9,6 +9,6 @@ trait HasPortalLayout
      */
     public function getPortalName(): string
     {
-        return request()->segment(1) ?? 'admin';
+        return \App\Support\Portal\PortalResolver::resolve();
     }
 }

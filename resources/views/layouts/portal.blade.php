@@ -25,7 +25,7 @@
     </div>
 
     @php
-        $portalKey = $portal ?? request()->segment(1) ?? 'super-admin';
+        $portalKey = \App\Support\Portal\PortalResolver::resolve($portal ?? null);
         $user = auth()->user();
         $user?->loadMissing(['unit', 'gudang']);
         $userUnitLabel = match (true) {

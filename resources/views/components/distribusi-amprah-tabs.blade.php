@@ -1,7 +1,7 @@
 @props(['active' => 'permintaan'])
 
 @php
-    $portalKey = request()->segment(1) ?? 'super-admin';
+    $portalKey = \App\Support\Portal\PortalResolver::resolve();
     $user = auth()->user();
     $canPermintaan = $user?->can('view_any_layanan_unit::permintaan::barang');
     $canApprovalKaru = $user?->can('view_any_layanan_unit::approval::karu');

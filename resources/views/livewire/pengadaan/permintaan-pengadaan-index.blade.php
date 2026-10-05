@@ -124,8 +124,7 @@
                                     @can('create_pengadaan::pesanan::pembelian')
                                         @if ($item->status === \App\Models\PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN)
                                             <flux:menu.item
-                                                as="a"
-                                                href="/{{ request()->segment(1) ?? 'pengadaan' }}/pesanan-pembelian?konversi_pr={{ $item->id }}"
+                                                href="/{{ \App\Support\Portal\PortalResolver::resolve() }}/pesanan-pembelian?konversi_pr={{ $item->id }}"
                                                 icon="shopping-cart"
                                             >
                                                 Terbitkan PO
