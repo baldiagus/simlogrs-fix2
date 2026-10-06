@@ -1,23 +1,24 @@
 <div class="space-y-6">
-    {{-- Header & Sub-Navigasi Sirkulasi Aset --}}
-    <x-sirkulasi-peminjaman-tabs active="pengalihan" />
-
     {{-- Header Aksi & Judul --}}
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <flux:heading size="xl" class="font-bold tracking-tight">Pengalihan & Mutasi Aset</flux:heading>
-            <flux:subheading class="text-zinc-500 dark:text-zinc-400">
-                Mutasi kepemilikan operasional fisik aset antar-ruangan dan gudang secara permanen
-            </flux:subheading>
+    <div class="space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <flux:heading size="xl" class="font-bold tracking-tight">Pengalihan & Mutasi Aset</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">
+                    Mutasi kepemilikan operasional fisik aset antar-ruangan dan gudang secara permanen
+                </flux:subheading>
+            </div>
+
+            @can('create_layanan_unit::pengalihan::aset')
+                <flux:button variant="primary" icon="arrows-right-left" wire:click="openCreateModal">
+                    Ajukan Pengalihan Aset
+                </flux:button>
+            @endcan
         </div>
 
-        @can('create_layanan_unit::pengalihan::aset')
-            <flux:button variant="primary" icon="arrows-right-left" wire:click="openCreateModal">
-                Ajukan Pengalihan Aset
-            </flux:button>
-        @endcan
+        {{-- Sub-Navigasi Sirkulasi Aset --}}
+        <x-sirkulasi-peminjaman-tabs active="pengalihan" />
     </div>
-
     {{-- Metrik KPI Ringkasan --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <flux:card class="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
