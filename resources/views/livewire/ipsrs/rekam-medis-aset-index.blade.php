@@ -241,6 +241,47 @@
                     @endforelse
                 </div>
 
+                {{-- Riwayat Mutasi & Lokasi Penempatan Aset Fisik --}}
+                <div class="space-y-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+                    <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
+                        <span>Riwayat Mutasi & Lokasi Penempatan</span>
+                        <span class="text-[11px] font-normal text-zinc-500">Histori mutasi permanen antar-unit/gudang</span>
+                    </div>
+
+                    @forelse ($selectedAset->pengalihanDetail->filter(fn($pd) => $pd->pengalihanAset && $pd->pengalihanAset->status === 'SELESAI') as $pd)
+                        @php $tf = $pd->pengalihanAset; @endphp
+                        <div class="p-3 rounded-xl border border-blue-100 dark:border-blue-900/60 bg-blue-50/30 dark:bg-blue-950/20 text-xs space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-mono font-bold text-blue-600 dark:text-blue-400">{{ $tf->kode }}</span>
+                                    <span class="text-zinc-400">&bull;</span>
+                                    <span class="text-zinc-500">{{ $tf->tanggal_serah_terima?->format('d M Y H:i') }}</span>
+                                </div>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                    MUTASI PERMANEN
+                                </span>
+                            </div>
+
+                            <div class="flex items-center gap-2 text-xs font-medium">
+                                <span class="text-zinc-600 dark:text-zinc-400">{{ $tf->nama_lokasi_asal }}</span>
+                                <flux:icon name="arrow-right" class="size-3 text-zinc-400" />
+                                <span class="text-blue-700 dark:text-blue-300 font-bold">{{ $tf->nama_lokasi_tujuan }}</span>
+                            </div>
+
+                            <div class="text-[11px] text-zinc-500">
+                                Dasar: {{ $tf->alasan }}
+                                @if ($tf->penerima)
+                                    &bull; Diterima oleh: <span class="text-zinc-700 dark:text-zinc-300 font-medium">{{ $tf->penerima->nama }}</span>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-4 text-center text-xs text-zinc-400 italic border rounded-lg">
+                            Belum pernah mengalami mutasi atau pengalihan (berada di lokasi perolehan awal).
+                        </div>
+                    @endforelse
+                </div>
+
             </div>
         @endif
     </flux:modal>

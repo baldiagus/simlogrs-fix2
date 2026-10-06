@@ -94,6 +94,7 @@ class ShieldRolePermissionSeeder extends Seeder
             '%_layanan_unit::pengembalian::aset%',
             'view_any_layanan_unit::peminjaman::aset%',
             'view_layanan_unit::peminjaman::aset%',
+            '%_layanan_unit::pengalihan::aset%',
             '%_pengadaan::permintaan::pengadaan%',
         ]);
 
@@ -158,6 +159,7 @@ class ShieldRolePermissionSeeder extends Seeder
             '%_layanan_unit::peminjaman::aset%',
             '%_layanan_unit::pengembalian::aset%',
             '%_layanan_unit::lapor::servis%',
+            '%_layanan_unit::pengalihan::aset%',
             '%_layanan_unit::stok::ruangan%',
             '%_pengadaan::permintaan::pengadaan%',
             'view_any_master::barang%',
@@ -179,6 +181,10 @@ class ShieldRolePermissionSeeder extends Seeder
             'update_layanan_unit::pengembalian::aset',
             'view_layanan_unit::pengembalian::aset',
             'create_layanan_unit::lapor::servis',
+            'create_layanan_unit::pengalihan::aset',
+            'view_any_layanan_unit::pengalihan::aset',
+            'view_layanan_unit::pengalihan::aset',
+            'update_layanan_unit::pengalihan::aset',
             'view_any_layanan_unit::lapor::servis',
             'view_layanan_unit::lapor::servis',
             'view_any_layanan_unit::stok::ruangan',
@@ -254,6 +260,7 @@ class ShieldRolePermissionSeeder extends Seeder
             'create_layanan_unit::pengembalian::aset',
             'create_layanan_unit::permintaan::barang',
             'create_layanan_unit::stok::ruangan',
+            'create_layanan_unit::pengalihan::aset',
         ]);
 
         // 13. Role: auditor

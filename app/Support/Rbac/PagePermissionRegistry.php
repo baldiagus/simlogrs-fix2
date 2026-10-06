@@ -54,6 +54,7 @@ class PagePermissionRegistry
                     'layanan_unit::peminjaman::aset' => ['label' => 'Peminjaman Aset Ruangan', 'entity' => 'layanan_unit::peminjaman::aset', 'page' => 'page_PeminjamanAsetIndex'],
                     'layanan_unit::approval::peminjaman' => ['label' => 'Otorisasi Peminjaman Aset', 'entity' => 'layanan_unit::approval::peminjaman', 'page' => 'page_ApprovalPeminjamanIndex'],
                     'layanan_unit::pengembalian::aset' => ['label' => 'Pengembalian & Cek Fisik Aset', 'entity' => 'layanan_unit::pengembalian::aset', 'page' => 'page_PengembalianPeminjamanIndex'],
+                    'layanan_unit::pengalihan::aset' => ['label' => 'Pengalihan & Mutasi Aset', 'entity' => 'layanan_unit::pengalihan::aset', 'page' => 'page_PengalihanAsetIndex'],
                     'layanan_unit::lapor::servis' => ['label' => 'Lapor Kerusakan (Servis)', 'entity' => 'layanan_unit::lapor::servis', 'page' => 'page_LaporServisIndex'],
                     'layanan_unit::stok::ruangan' => ['label' => 'Persediaan Lokal Ruangan', 'entity' => 'layanan_unit::stok::ruangan', 'page' => 'page_StokRuanganIndex'],
                     'layanan_unit::penerimaan::barang' => ['label' => 'Konfirmasi Penerimaan Distribusi', 'entity' => 'layanan_unit::penerimaan::barang', 'page' => 'page_PenerimaanBarangIndex'],

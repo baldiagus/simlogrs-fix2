@@ -96,7 +96,8 @@
         $isSirkulasiActive = request()->is(
             '*/peminjaman-aset*',
             '*/approval-peminjaman*',
-            '*/pengembalian-aset*'
+            '*/pengembalian-aset*',
+            '*/pengalihan-aset*'
         );
 
         $isIpsrsActive = request()->is(
@@ -284,7 +285,7 @@
                 </flux:sidebar.group>
             @endif
 
-            @if ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_any_layanan_unit::approval::peminjaman') || $user->can('view_any_layanan_unit::pengembalian::aset'))
+            @if ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_any_layanan_unit::approval::peminjaman') || $user->can('view_any_layanan_unit::pengembalian::aset') || $user->can('view_any_layanan_unit::pengalihan::aset'))
                 <flux:sidebar.group expandable :expanded="$isSirkulasiActive" heading="Sirkulasi Aset" class="grid">
                     @if ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_any_layanan_unit::approval::peminjaman'))
                         @php
@@ -302,6 +303,11 @@
                     @can('view_any_layanan_unit::pengembalian::aset')
                         <flux:sidebar.item icon="arrow-down-tray" href="/{{ $portalKey }}/pengembalian-aset" wire:navigate :current="request()->is('*/pengembalian-aset*')">
                             Pengembalian & Inspeksi
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('view_any_layanan_unit::pengalihan::aset')
+                        <flux:sidebar.item icon="arrows-right-left" href="/{{ $portalKey }}/pengalihan-aset" wire:navigate :current="request()->is('*/pengalihan-aset*')">
+                            Pengalihan & Mutasi
                         </flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>

@@ -27,6 +27,11 @@ class RekamMedisAsetIndex extends Component
             'permintaanMaintenance.penugasan.teknisi',
             'permintaanMaintenance.logMaintenance.teknisi',
             'permintaanMaintenance.sukuCadang.barang',
+            'pengalihanDetail.pengalihanAset.unitAsal',
+            'pengalihanDetail.pengalihanAset.unitTujuan',
+            'pengalihanDetail.pengalihanAset.gudangAsal',
+            'pengalihanDetail.pengalihanAset.gudangTujuan',
+            'pengalihanDetail.pengalihanAset.penerima',
         ])->findOrFail($asetId);
 
         $this->showDetailModal = true;

@@ -15,6 +15,7 @@ class SirkulasiAsetHubNavigationTest extends TestCase
         $view = $this->blade('<x-sirkulasi-peminjaman-tabs active="pinjam" />');
         $view->assertSee('Permohonan Pinjam');
         $view->assertSee('Otorisasi Peminjaman');
+        $view->assertSee('Pengalihan & Mutasi', false);
         $view->assertDontSee('/livewire/');
     }
 }
