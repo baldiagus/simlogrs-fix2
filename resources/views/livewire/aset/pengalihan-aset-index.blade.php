@@ -198,28 +198,28 @@
                                     </flux:menu.item>
 
                                     @if ($row->status === 'DIAJUKAN')
-                                        @can('approve_layanan_unit::pengalihan::aset')
+                                        @if (auth()->user()?->can('update_layanan_unit::pengalihan::aset') || auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'kepala_gudang']))
                                             <flux:menu.item icon="check" wire:click="openApprovalModal({{ $row->id }}, 'APPROVE')">
                                                 Setujui Pengalihan
                                             </flux:menu.item>
                                             <flux:menu.item icon="x-mark" class="text-red-600" wire:click="openApprovalModal({{ $row->id }}, 'REJECT')">
                                                 Tolak Pengalihan
                                             </flux:menu.item>
-                                        @endcan
+                                        @endif
 
-                                        @can('create_layanan_unit::pengalihan::aset')
+                                        @if (auth()->user()?->can('delete_layanan_unit::pengalihan::aset') || auth()->user()?->can('create_layanan_unit::pengalihan::aset') || auth()->user()?->hasRole(['super_admin', 'admin_logistik']))
                                             <flux:menu.item icon="trash" class="text-zinc-500" wire:click="cancelPengalihan({{ $row->id }})">
                                                 Batalkan Pengajuan
                                             </flux:menu.item>
-                                        @endcan
+                                        @endif
                                     @endif
 
                                     @if ($row->status === 'DISETUJUI')
-                                        @can('receive_layanan_unit::pengalihan::aset')
+                                        @if (auth()->user()?->can('update_layanan_unit::pengalihan::aset') || auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'petugas_unit', 'kepala_gudang', 'petugas_gudang']))
                                             <flux:menu.item icon="arrow-down-tray" class="text-blue-600 font-semibold" wire:click="openTerimaModal({{ $row->id }})">
                                                 Konfirmasi Serah Terima Fisik
                                             </flux:menu.item>
-                                        @endcan
+                                        @endif
                                     @endif
                                 </flux:menu>
                             </flux:dropdown>

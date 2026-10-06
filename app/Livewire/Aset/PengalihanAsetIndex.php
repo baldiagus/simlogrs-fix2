@@ -216,10 +216,13 @@ class PengalihanAsetIndex extends Component
     public function executeApproval(): void
     {
         $user = auth()->user();
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
         abort_unless(
-            $user?->can('approve_layanan_unit::pengalihan::aset') ||
+            $user?->can('update_layanan_unit::pengalihan::aset') ||
+            $isGlobalAdmin ||
             $user?->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'kepala_gudang']),
-            403
+            403,
+            'Anda tidak memiliki wewenang untuk menyetujui atau menolak pengalihan aset.'
         );
 
         $service = app(PengalihanAsetService::class);
@@ -267,11 +270,14 @@ class PengalihanAsetIndex extends Component
     public function executeTerima(): void
     {
         $user = auth()->user();
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
         abort_unless(
-            $user?->can('receive_layanan_unit::pengalihan::aset') ||
+            $user?->can('update_layanan_unit::pengalihan::aset') ||
             $user?->can('create_layanan_unit::pengalihan::aset') ||
+            $isGlobalAdmin ||
             $user?->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'petugas_unit', 'kepala_gudang', 'petugas_gudang']),
-            403
+            403,
+            'Anda tidak memiliki wewenang untuk mengonfirmasi serah terima fisik aset.'
         );
 
         try {
@@ -290,6 +296,15 @@ class PengalihanAsetIndex extends Component
     public function cancelPengalihan(int $id): void
     {
         $user = auth()->user();
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
+        abort_unless(
+            $user?->can('delete_layanan_unit::pengalihan::aset') ||
+            $user?->can('create_layanan_unit::pengalihan::aset') ||
+            $isGlobalAdmin,
+            403,
+            'Anda tidak memiliki wewenang untuk membatalkan pengalihan aset.'
+        );
+
         try {
             $service = app(PengalihanAsetService::class);
             $transfer = $service->batalkanPengalihan($id, $user->id, 'Dibatalkan oleh pengaju');
@@ -303,8 +318,18 @@ class PengalihanAsetIndex extends Component
     public function render()
     {
         $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard'));
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard')));
 
+        abort_unless(
+            $user && (
+                $user->can('view_any_layanan_unit::pengalihan::aset') ||
+                $user->can('view_layanan_unit::pengalihan::aset') ||
+                $user->can('page_PengalihanAsetIndex') ||
+                $isGlobalAdmin
+            ),
+            403,
+            'Anda tidak memiliki wewenang untuk mengakses halaman Pengalihan & Mutasi Aset.'
+        );
         // Query data pengalihan
         $query = PengalihanAset::with([
             'unitAsal', 'unitTujuan', 'gudangAsal', 'gudangTujuan',
