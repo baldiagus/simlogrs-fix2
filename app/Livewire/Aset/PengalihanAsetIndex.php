@@ -86,7 +86,7 @@ class PengalihanAsetIndex extends Component
 
     public function setTab(string $tab): void
     {
-        $this->activeTab = in_array($tab, ['aktif', 'riwayat'], true) ? $tab : 'aktif';
+        $this->activeTab = in_array($tab, ['aktif', 'otorisasi', 'riwayat'], true) ? $tab : 'aktif';
         $this->resetPage();
     }
 
@@ -602,10 +602,57 @@ class PengalihanAsetIndex extends Component
             }
         }
 
-        // Tab filter
+        // 1. Tab Aktif: Pengajuan milik unit/gudang pengguna (pemohon / penerima)
         if ($this->activeTab === 'aktif') {
+            if (! $isGlobalAdmin) {
+                $query->where(function ($q) use ($user) {
+                    if ($user?->unit_id) {
+                        $q->where(fn ($sub) => $sub->where('tipe_tujuan', 'RUANGAN')->where('unit_tujuan_id', $user->unit_id))
+                          ->orWhere('diajukan_oleh', $user->id);
+                    } elseif ($user?->gudang_id) {
+                        $q->where(fn ($sub) => $sub->where('tipe_tujuan', 'GUDANG')->where('gudang_tujuan_id', $user->gudang_id))
+                          ->orWhere('diajukan_oleh', $user->id);
+                    }
+                });
+            }
             $query->whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
-        } else {
+        }
+        // 2. Tab Otorisasi: Pengajuan dari unit/gudang LAIN yang meminta aset dari fasilitas pengguna
+        elseif ($this->activeTab === 'otorisasi') {
+            if (! $isGlobalAdmin) {
+                $query->where(function ($q) use ($user) {
+                    if ($user?->unit_id) {
+                        $q->where('tipe_asal', 'RUANGAN')
+                          ->where('unit_asal_id', $user->unit_id)
+                          ->where(function ($sub) use ($user) {
+                              $sub->where('tipe_tujuan', '!=', 'RUANGAN')
+                                  ->orWhere('unit_tujuan_id', '!=', $user->unit_id);
+                          });
+                    } elseif ($user?->gudang_id) {
+                        $q->where('tipe_asal', 'GUDANG')
+                          ->where('gudang_asal_id', $user->gudang_id)
+                          ->where(function ($sub) use ($user) {
+                              $sub->where('tipe_tujuan', '!=', 'GUDANG')
+                                  ->orWhere('gudang_tujuan_id', '!=', $user->gudang_id);
+                          });
+                    }
+                });
+            }
+            $query->where('status', 'DIAJUKAN');
+        }
+        // 3. Tab Riwayat: Selesai, Ditolak, Dibatalkan
+        else {
+            if (! $isGlobalAdmin) {
+                $query->where(function ($q) use ($user) {
+                    if ($user?->unit_id) {
+                        $q->where(fn ($sub) => $sub->where('tipe_asal', 'RUANGAN')->where('unit_asal_id', $user->unit_id))
+                          ->orWhere(fn ($sub) => $sub->where('tipe_tujuan', 'RUANGAN')->where('unit_tujuan_id', $user->unit_id));
+                    } elseif ($user?->gudang_id) {
+                        $q->where(fn ($sub) => $sub->where('tipe_asal', 'GUDANG')->where('gudang_asal_id', $user->gudang_id))
+                          ->orWhere(fn ($sub) => $sub->where('tipe_tujuan', 'GUDANG')->where('gudang_tujuan_id', $user->gudang_id));
+                    }
+                });
+            }
             $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
         }
 
@@ -633,16 +680,77 @@ class PengalihanAsetIndex extends Component
 
         $items = $query->orderBy($this->getValidatedSortColumn(['kode', 'status', 'tanggal_pengalihan']), $this->getValidatedSortDirection())->paginate($this->perPage);
 
-        // Metrik KPI
-        $kpiBerjalan = PengalihanAset::whereIn('status', ['DIAJUKAN', 'DISETUJUI'])->count();
-        $kpiMenungguTerima = PengalihanAset::where('status', 'DISETUJUI')->count();
-        $kpiSelesaiBulanIni = PengalihanAset::where('status', 'SELESAI')
+        // Hitungan Tab & KPI yang disinkronkan ke fasilitas pengguna
+        $countAktifQuery = PengalihanAset::whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
+        if (! $isGlobalAdmin) {
+            $countAktifQuery->where(function ($q) use ($user) {
+                if ($user?->unit_id) {
+                    $q->where(fn ($sub) => $sub->where('tipe_tujuan', 'RUANGAN')->where('unit_tujuan_id', $user->unit_id))
+                      ->orWhere('diajukan_oleh', $user->id);
+                } elseif ($user?->gudang_id) {
+                    $q->where(fn ($sub) => $sub->where('tipe_tujuan', 'GUDANG')->where('gudang_tujuan_id', $user->gudang_id))
+                      ->orWhere('diajukan_oleh', $user->id);
+                }
+            });
+        }
+        $countAktif = $countAktifQuery->count();
+
+        $countOtorisasiQuery = PengalihanAset::where('status', 'DIAJUKAN');
+        if (! $isGlobalAdmin) {
+            $countOtorisasiQuery->where(function ($q) use ($user) {
+                if ($user?->unit_id) {
+                    $q->where('tipe_asal', 'RUANGAN')
+                      ->where('unit_asal_id', $user->unit_id)
+                      ->where(function ($sub) use ($user) {
+                          $sub->where('tipe_tujuan', '!=', 'RUANGAN')
+                              ->orWhere('unit_tujuan_id', '!=', $user->unit_id);
+                      });
+                } elseif ($user?->gudang_id) {
+                    $q->where('tipe_asal', 'GUDANG')
+                      ->where('gudang_asal_id', $user->gudang_id)
+                      ->where(function ($sub) use ($user) {
+                          $sub->where('tipe_tujuan', '!=', 'GUDANG')
+                              ->orWhere('gudang_tujuan_id', '!=', $user->gudang_id);
+                      });
+                }
+            });
+        }
+        $countOtorisasi = $countOtorisasiQuery->count();
+
+        $kpiBerjalan = $countAktif;
+        $kpiMenungguTerima = (clone $countAktifQuery)->where('status', 'DISETUJUI')->count();
+
+        $riwayatQuery = PengalihanAset::where('status', 'SELESAI');
+        if (! $isGlobalAdmin) {
+            $riwayatQuery->where(function ($q) use ($user) {
+                if ($user?->unit_id) {
+                    $q->where(fn ($sub) => $sub->where('tipe_asal', 'RUANGAN')->where('unit_asal_id', $user->unit_id))
+                      ->orWhere(fn ($sub) => $sub->where('tipe_tujuan', 'RUANGAN')->where('unit_tujuan_id', $user->unit_id));
+                } elseif ($user?->gudang_id) {
+                    $q->where(fn ($sub) => $sub->where('tipe_asal', 'GUDANG')->where('gudang_asal_id', $user->gudang_id))
+                      ->orWhere(fn ($sub) => $sub->where('tipe_tujuan', 'GUDANG')->where('gudang_tujuan_id', $user->gudang_id));
+                }
+            });
+        }
+        $kpiSelesaiBulanIni = (clone $riwayatQuery)
             ->whereMonth('tanggal_serah_terima', now()->month)
             ->whereYear('tanggal_serah_terima', now()->year)
             ->count();
-        $kpiTotalAset = \App\Models\PengalihanAsetDetail::whereHas('pengalihanAset', fn ($q) => $q->where('status', 'SELESAI'))->count();
 
-        // Status penguncian lokasi asal
+        $kpiTotalAset = \App\Models\PengalihanAsetDetail::whereHas('pengalihanAset', function ($q) use ($isGlobalAdmin, $user) {
+            $q->where('status', 'SELESAI');
+            if (! $isGlobalAdmin) {
+                $q->where(function ($sub) use ($user) {
+                    if ($user?->unit_id) {
+                        $sub->where(fn ($s) => $s->where('tipe_asal', 'RUANGAN')->where('unit_asal_id', $user->unit_id))
+                            ->orWhere(fn ($s) => $s->where('tipe_tujuan', 'RUANGAN')->where('unit_tujuan_id', $user->unit_id));
+                    } elseif ($user?->gudang_id) {
+                        $sub->where(fn ($s) => $s->where('tipe_asal', 'GUDANG')->where('gudang_asal_id', $user->gudang_id))
+                            ->orWhere(fn ($s) => $s->where('tipe_tujuan', 'GUDANG')->where('gudang_tujuan_id', $user->gudang_id));
+                    }
+                });
+            }
+        })->count();
         $isOriginLocked = ! $isGlobalAdmin && ($user?->unit_id || $user?->gudang_id);
         $namaLokasiAsalUser = $user?->unit_id
             ? ($user->unit?->nama ?? 'Ruangan Anda')
@@ -683,6 +791,8 @@ class PengalihanAsetIndex extends Component
 
         return view('livewire.aset.pengalihan-aset-index', [
             'items' => $items,
+            'countAktif' => $countAktif,
+            'countOtorisasi' => $countOtorisasi,
             'kpiBerjalan' => $kpiBerjalan,
             'kpiMenungguTerima' => $kpiMenungguTerima,
             'kpiSelesaiBulanIni' => $kpiSelesaiBulanIni,

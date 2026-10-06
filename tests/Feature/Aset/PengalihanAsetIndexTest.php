@@ -243,4 +243,73 @@ class PengalihanAsetIndexTest extends TestCase
 
         $this->assertLessThanOrEqual(5, $test->get('quantity'));
     }
+
+    public function test_active_tab_only_displays_asset_transfers_requested_by_user_facility(): void
+    {
+        $userUnit = User::create([
+            'nama' => 'Perawat Ruangan 2 Tab Test',
+            'username' => 'perawat_u2_tab',
+            'email' => 'perawat_u2_tab@simlog.test',
+            'password' => bcrypt('password'),
+            'unit_id' => $this->unit2->id,
+            'status' => 'AKTIF',
+        ]);
+        $userUnit->givePermissionTo(['view_any_layanan_unit::pengalihan::aset', 'create_layanan_unit::pengalihan::aset']);
+
+        $this->actingAs($userUnit);
+
+        // Transfer antara unit 1 ke gudang (tidak melibatkan unit 2)
+        $gudang = Gudang::where('status', 'AKTIF')->first();
+        $service = app(PengalihanAsetService::class);
+        $transferLain = $service->ajukanPengalihan([
+            'tipe_asal' => 'RUANGAN',
+            'unit_asal_id' => $this->unit1->id,
+            'tipe_tujuan' => 'GUDANG',
+            'gudang_tujuan_id' => $gudang->id,
+            'tanggal_pengalihan' => now()->toDateString(),
+            'alasan' => 'Pengalihan aset fasilitas lain',
+            'diajukan_oleh' => $this->userAdmin->id,
+            'aset_ids' => [$this->aset->id],
+        ]);
+
+        Livewire::test(PengalihanAsetIndex::class)
+            ->set('activeTab', 'aktif')
+            ->assertDontSee($transferLain->kode)
+            ->assertSet('kpiBerjalan', 0);
+    }
+
+    public function test_authorization_tab_displays_inbound_asset_requests_from_other_facilities(): void
+    {
+        // Aset berada di Unit 1
+        $userUnit1 = User::create([
+            'nama' => 'Perawat Ruangan 1 Pemilik',
+            'username' => 'perawat_u1_owner',
+            'email' => 'perawat_u1_owner@simlog.test',
+            'password' => bcrypt('password'),
+            'unit_id' => $this->unit1->id,
+            'status' => 'AKTIF',
+        ]);
+        $userUnit1->givePermissionTo(['view_any_layanan_unit::pengalihan::aset', 'update_layanan_unit::pengalihan::aset']);
+
+        // Unit 2 meminta aset dari Unit 1
+        $service = app(PengalihanAsetService::class);
+        $transferInbound = $service->ajukanPengalihan([
+            'tipe_asal' => 'RUANGAN',
+            'unit_asal_id' => $this->unit1->id,
+            'tipe_tujuan' => 'RUANGAN',
+            'unit_tujuan_id' => $this->unit2->id,
+            'tanggal_pengalihan' => now()->toDateString(),
+            'alasan' => 'Permintaan unit 2 meminjam permanen',
+            'diajukan_oleh' => $this->userAdmin->id,
+            'aset_ids' => [$this->aset->id],
+        ]);
+
+        $this->actingAs($userUnit1);
+
+        Livewire::test(PengalihanAsetIndex::class)
+            ->set('activeTab', 'aktif')
+            ->assertDontSee($transferInbound->kode) // Tidak boleh ada di tab pengajuan aktif
+            ->call('setTab', 'otorisasi')
+            ->assertSee($transferInbound->kode); // Harus ada di tab otorisasi
+    }
 }

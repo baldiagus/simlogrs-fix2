@@ -199,4 +199,63 @@ class PengalihanBarangIndexTest extends TestCase
             'diajukan_oleh' => $this->userGudang->id,
         ]);
     }
+
+    public function test_active_tab_only_displays_transfers_requested_by_user_facility(): void
+    {
+        $this->actingAs($this->userGudang);
+
+        // Buat pengalihan antar gudang lain (gudang 2 ke gudang destinasi lain)
+        $service = app(\App\Services\Persediaan\PengalihanBarangService::class);
+        $transferLain = $service->ajukanPengalihan([
+            'tipe_asal' => 'GUDANG',
+            'gudang_asal_id' => $this->gudang2->id,
+            'tipe_tujuan' => 'RUANGAN',
+            'unit_tujuan_id' => $this->unit1->id,
+            'tanggal_pengalihan' => now()->toDateString(),
+            'alasan' => 'Pengalihan fasilitas lain',
+            'diajukan_oleh' => $this->userAdmin->id,
+            'items' => [
+                [
+                    'barang_id' => $this->barangBhp->id,
+                    'stok_batch_id' => $this->batch->id,
+                    'jumlah' => 5,
+                ],
+            ],
+        ]);
+
+        Livewire::test(PengalihanBarangIndex::class)
+            ->set('activeTab', 'aktif')
+            ->assertDontSee($transferLain->kode)
+            ->assertSet('kpiBerjalan', 0);
+    }
+
+    public function test_authorization_tab_displays_inbound_requests_from_other_facilities(): void
+    {
+        $this->actingAs($this->userGudang);
+
+        // Unit lain mengajukan permintaan dari Gudang 1
+        $service = app(\App\Services\Persediaan\PengalihanBarangService::class);
+        $transferInbound = $service->ajukanPengalihan([
+            'tipe_asal' => 'GUDANG',
+            'gudang_asal_id' => $this->gudang1->id,
+            'tipe_tujuan' => 'RUANGAN',
+            'unit_tujuan_id' => $this->unit1->id,
+            'tanggal_pengalihan' => now()->toDateString(),
+            'alasan' => 'Permintaan pasokan dari gudang 1',
+            'diajukan_oleh' => $this->userUnit->id,
+            'items' => [
+                [
+                    'barang_id' => $this->barangBhp->id,
+                    'stok_batch_id' => $this->batch->id,
+                    'jumlah' => 5,
+                ],
+            ],
+        ]);
+
+        Livewire::test(PengalihanBarangIndex::class)
+            ->set('activeTab', 'aktif')
+            ->assertDontSee($transferInbound->kode) // Tidak boleh ada di tab pengajuan aktif saya
+            ->call('setTab', 'otorisasi')
+            ->assertSee($transferInbound->kode); // Muncul di tab otorisasi
+    }
 }

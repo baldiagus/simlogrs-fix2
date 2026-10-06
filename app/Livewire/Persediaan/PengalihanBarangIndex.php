@@ -87,7 +87,7 @@ class PengalihanBarangIndex extends Component
 
     public function setTab(string $tab): void
     {
-        $this->activeTab = in_array($tab, ['aktif', 'riwayat'], true) ? $tab : 'aktif';
+        $this->activeTab = in_array($tab, ['aktif', 'otorisasi', 'riwayat'], true) ? $tab : 'aktif';
         $this->resetPage();
     }
 
@@ -345,16 +345,36 @@ class PengalihanBarangIndex extends Component
             'detail.barang.satuan',
         ]);
 
-        if (! $isGlobalAdmin && $user?->gudang_id) {
-            $query->where(function ($q) use ($user) {
-                $q->where(fn ($sub) => $sub->where('tipe_asal', 'GUDANG')->where('gudang_asal_id', $user->gudang_id))
-                  ->orWhere(fn ($sub) => $sub->where('tipe_tujuan', 'GUDANG')->where('gudang_tujuan_id', $user->gudang_id));
-            });
-        }
-
+        // 1. Tab Aktif: Pengajuan yang diterbitkan oleh / ditujukan ke gudang pengguna
         if ($this->activeTab === 'aktif') {
+            if (! $isGlobalAdmin && $user?->gudang_id) {
+                $query->where(function ($q) use ($user) {
+                    $q->where(fn ($sub) => $sub->where('tipe_tujuan', 'GUDANG')->where('gudang_tujuan_id', $user->gudang_id))
+                      ->orWhere('diajukan_oleh', $user->id);
+                });
+            }
             $query->whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
-        } else {
+        }
+        // 2. Tab Otorisasi: Pengajuan dari gudang/unit LAIN yang meminta stok dari gudang pengguna
+        elseif ($this->activeTab === 'otorisasi') {
+            if (! $isGlobalAdmin && $user?->gudang_id) {
+                $query->where('tipe_asal', 'GUDANG')
+                      ->where('gudang_asal_id', $user->gudang_id)
+                      ->where(function ($sub) use ($user) {
+                          $sub->where('tipe_tujuan', '!=', 'GUDANG')
+                              ->orWhere('gudang_tujuan_id', '!=', $user->gudang_id);
+                      });
+            }
+            $query->where('status', 'DIAJUKAN');
+        }
+        // 3. Tab Riwayat: Selesai, Ditolak, Dibatalkan
+        else {
+            if (! $isGlobalAdmin && $user?->gudang_id) {
+                $query->where(function ($q) use ($user) {
+                    $q->where(fn ($sub) => $sub->where('tipe_asal', 'GUDANG')->where('gudang_asal_id', $user->gudang_id))
+                      ->orWhere(fn ($sub) => $sub->where('tipe_tujuan', 'GUDANG')->where('gudang_tujuan_id', $user->gudang_id));
+                });
+            }
             $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
         }
 
@@ -375,14 +395,51 @@ class PengalihanBarangIndex extends Component
 
         $items = $query->orderBy($this->getValidatedSortColumn(['kode', 'status', 'tanggal_pengalihan']), $this->getValidatedSortDirection())->paginate($this->perPage);
 
-        $kpiBerjalan = PengalihanBarang::whereIn('status', ['DIAJUKAN', 'DISETUJUI'])->count();
-        $kpiMenungguTerima = PengalihanBarang::where('status', 'DISETUJUI')->count();
-        $kpiSelesaiBulanIni = PengalihanBarang::where('status', 'SELESAI')
+        // Hitungan Tab & KPI yang disinkronkan ke gudang pengguna (mencegah kebocoran angka global)
+        $countAktifQuery = PengalihanBarang::whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
+        if (! $isGlobalAdmin && $user?->gudang_id) {
+            $countAktifQuery->where(function ($q) use ($user) {
+                $q->where(fn ($sub) => $sub->where('tipe_tujuan', 'GUDANG')->where('gudang_tujuan_id', $user->gudang_id))
+                  ->orWhere('diajukan_oleh', $user->id);
+            });
+        }
+        $countAktif = $countAktifQuery->count();
+
+        $countOtorisasiQuery = PengalihanBarang::where('status', 'DIAJUKAN');
+        if (! $isGlobalAdmin && $user?->gudang_id) {
+            $countOtorisasiQuery->where('tipe_asal', 'GUDANG')
+                ->where('gudang_asal_id', $user->gudang_id)
+                ->where(function ($sub) use ($user) {
+                    $sub->where('tipe_tujuan', '!=', 'GUDANG')
+                        ->orWhere('gudang_tujuan_id', '!=', $user->gudang_id);
+                });
+        }
+        $countOtorisasi = $countOtorisasiQuery->count();
+
+        $kpiBerjalan = $countAktif;
+        $kpiMenungguTerima = (clone $countAktifQuery)->where('status', 'DISETUJUI')->count();
+
+        $riwayatQuery = PengalihanBarang::where('status', 'SELESAI');
+        if (! $isGlobalAdmin && $user?->gudang_id) {
+            $riwayatQuery->where(function ($q) use ($user) {
+                $q->where(fn ($sub) => $sub->where('tipe_asal', 'GUDANG')->where('gudang_asal_id', $user->gudang_id))
+                  ->orWhere(fn ($sub) => $sub->where('tipe_tujuan', 'GUDANG')->where('gudang_tujuan_id', $user->gudang_id));
+            });
+        }
+        $kpiSelesaiBulanIni = (clone $riwayatQuery)
             ->whereMonth('tanggal_serah_terima', now()->month)
             ->whereYear('tanggal_serah_terima', now()->year)
             ->count();
-        $kpiTotalItem = \App\Models\PengalihanBarangDetail::whereHas('pengalihanBarang', fn ($q) => $q->where('status', 'SELESAI'))->sum('jumlah');
 
+        $kpiTotalItem = \App\Models\PengalihanBarangDetail::whereHas('pengalihanBarang', function ($q) use ($isGlobalAdmin, $user) {
+            $q->where('status', 'SELESAI');
+            if (! $isGlobalAdmin && $user?->gudang_id) {
+                $q->where(function ($sub) use ($user) {
+                    $sub->where(fn ($s) => $s->where('tipe_asal', 'GUDANG')->where('gudang_asal_id', $user->gudang_id))
+                        ->orWhere(fn ($s) => $s->where('tipe_tujuan', 'GUDANG')->where('gudang_tujuan_id', $user->gudang_id));
+                });
+            }
+        })->sum('jumlah');
         $daftarBarang = Barang::where('status', 'AKTIF')
             ->where('tipe', '!=', 'ASET')
             ->orderBy('nama')
@@ -404,6 +461,8 @@ class PengalihanBarangIndex extends Component
 
         return view('livewire.persediaan.pengalihan-barang-index', [
             'items' => $items,
+            'countAktif' => $countAktif,
+            'countOtorisasi' => $countOtorisasi,
             'kpiBerjalan' => $kpiBerjalan,
             'kpiMenungguTerima' => $kpiMenungguTerima,
             'kpiSelesaiBulanIni' => $kpiSelesaiBulanIni,

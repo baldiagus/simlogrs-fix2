@@ -59,9 +59,23 @@
                 >
                     <flux:icon name="arrows-right-left" class="size-4" />
                     <span>Pengalihan Aktif</span>
-                    @if ($kpiBerjalan > 0)
+                    @if ($countAktif > 0)
                         <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                            {{ $kpiBerjalan }}
+                            {{ $countAktif }}
+                        </span>
+                    @endif
+                </button>
+
+                <button
+                    type="button"
+                    wire:click="setTab('otorisasi')"
+                    class="px-4 py-2 text-xs font-semibold rounded-t-lg transition-colors border-b-2 flex items-center gap-2 {{ $activeTab === 'otorisasi' ? 'border-amber-600 text-amber-600 dark:text-amber-400 bg-white dark:bg-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200' }}"
+                >
+                    <flux:icon name="check-badge" class="size-4" />
+                    <span>Menunggu Otorisasi</span>
+                    @if ($countOtorisasi > 0)
+                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                            {{ $countOtorisasi }}
                         </span>
                     @endif
                 </button>
@@ -178,7 +192,7 @@
                                         Lihat Berita Acara / Detail
                                     </flux:menu.item>
 
-                                    @if ($row->status === 'DIAJUKAN')
+                                    @if ($activeTab === 'otorisasi' || ($row->status === 'DIAJUKAN' && (int)$row->gudang_asal_id === (int)auth()->user()?->gudang_id))
                                         @if (auth()->user()?->can('update_gudang_stok::pengalihan::barang') || auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang']))
                                             <flux:menu.item icon="check" wire:click="openApprovalModal({{ $row->id }}, 'APPROVE')">
                                                 Setujui Pengalihan
@@ -187,16 +201,20 @@
                                                 Tolak Pengalihan
                                             </flux:menu.item>
                                         @endif
-
-                                        <flux:menu.item icon="trash" class="text-zinc-500" wire:click="cancelPengalihan({{ $row->id }})">
-                                            Batalkan Pengajuan
-                                        </flux:menu.item>
                                     @endif
 
-                                    @if ($row->status === 'DISETUJUI')
-                                        <flux:menu.item icon="arrow-down-tray" class="text-blue-600 font-semibold" wire:click="executeTerima({{ $row->id }})">
-                                            Konfirmasi Serah Terima Fisik
-                                        </flux:menu.item>
+                                    @if ($activeTab === 'aktif' || (int)$row->diajukan_oleh === (int)auth()->user()?->id)
+                                        @if ($row->status === 'DIAJUKAN')
+                                            <flux:menu.item icon="trash" class="text-zinc-500" wire:click="cancelPengalihan({{ $row->id }})">
+                                                Batalkan Pengajuan
+                                            </flux:menu.item>
+                                        @endif
+
+                                        @if ($row->status === 'DISETUJUI')
+                                            <flux:menu.item icon="arrow-down-tray" class="text-blue-600 font-semibold" wire:click="executeTerima({{ $row->id }})">
+                                                Konfirmasi Serah Terima Fisik
+                                            </flux:menu.item>
+                                        @endif
                                     @endif
                                 </flux:menu>
                             </flux:dropdown>
@@ -210,10 +228,22 @@
                                     <flux:icon name="arrows-right-left" class="size-6" />
                                 </div>
                                 <div class="font-medium text-sm text-zinc-800 dark:text-zinc-200">
-                                    {{ $activeTab === 'aktif' ? 'Belum Ada Pengalihan Barang Aktif' : 'Arsip Mutasi Barang Masih Kosong' }}
+                                    @if ($activeTab === 'aktif')
+                                        Belum Ada Pengalihan Aktif
+                                    @elseif ($activeTab === 'otorisasi')
+                                        Tidak Ada Permintaan Menunggu Otorisasi
+                                    @else
+                                        Arsip Mutasi Barang Masih Kosong
+                                    @endif
                                 </div>
                                 <div class="text-xs text-zinc-500 max-w-sm">
-                                    Tidak ada pengalihan barang habis pakai yang sedang diproses.
+                                    @if ($activeTab === 'aktif')
+                                        Tidak ada permohonan pengalihan barang aktif yang sedang diproses oleh fasilitas Anda.
+                                    @elseif ($activeTab === 'otorisasi')
+                                        Saat ini tidak ada unit atau gudang lain yang meminta persediaan dari gudang Anda.
+                                    @else
+                                        Belum ada riwayat mutasi barang habis pakai yang selesai atau dibatalkan.
+                                    @endif
                                 </div>
                             </div>
                         </flux:table.cell>
