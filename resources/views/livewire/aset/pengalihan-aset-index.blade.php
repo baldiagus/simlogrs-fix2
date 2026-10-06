@@ -80,7 +80,7 @@
         </div>
 
         {{-- Filter & Search Toolbar --}}
-        <div class="p-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div class="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div class="flex-1 max-w-md">
                 <flux:input
                     wire:model.live.debounce.300ms="search"
@@ -111,20 +111,16 @@
         {{-- Table Pengalihan --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
-                <flux:table.column class="w-12 text-zinc-500 font-mono text-xs">#</flux:table.column>
-                <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-40 font-mono">Kode Dokumen</flux:table.column>
-                <flux:table.column class="w-60">Asal &rarr; Tujuan</flux:table.column>
-                <flux:table.column class="w-60">Daftar Aset Fisik</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-36 font-mono">Kode Dokumen</flux:table.column>
+                <flux:table.column class="w-48">Asal Mutasi</flux:table.column>
+                <flux:table.column class="w-48">Tujuan Mutasi</flux:table.column>
+                <flux:table.column class="w-64">Daftar Aset Fisik</flux:table.column>
                 <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-28">Status</flux:table.column>
-                <flux:table.column class="text-right w-20">Aksi</flux:table.column>
+                <flux:table.column class="text-right w-16">Aksi</flux:table.column>
             </flux:table.columns>
             <flux:table.rows>
                 @forelse ($items as $idx => $row)
                     <flux:table.row :key="'trf-row-'.$row->id">
-                        <flux:table.cell class="text-zinc-500 font-mono text-xs">
-                            {{ $items->firstItem() + $idx }}
-                        </flux:table.cell>
-
                         <flux:table.cell>
                             <div class="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">
                                 {{ $row->kode }}
@@ -135,16 +131,13 @@
                             </div>
                         </flux:table.cell>
 
-                        <flux:table.cell>
-                            <div class="flex items-center gap-1.5 text-xs font-medium">
-                                <span class="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center gap-1">
-                                    <flux:icon name="{{ $row->tipe_asal === 'RUANGAN' ? 'building-office' : 'building-storefront' }}" class="size-3 text-zinc-400" />
-                                    <span>{{ $row->nama_lokasi_asal }}</span>
-                                </span>
-                                <flux:icon name="arrow-right" class="size-3 text-zinc-400 shrink-0" />
-                                <span class="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 flex items-center gap-1">
-                                    <flux:icon name="{{ $row->tipe_tujuan === 'RUANGAN' ? 'building-office' : 'building-storefront' }}" class="size-3 text-blue-400" />
-                                    <span>{{ $row->nama_lokasi_tujuan }}</span>
+                        <flux:table.cell style="white-space: normal;">
+                            <div class="flex items-center gap-1.5">
+                                <flux:badge size="xs" :color="$row->tipe_asal === 'RUANGAN' ? 'cyan' : 'emerald'">
+                                    {{ $row->tipe_asal }}
+                                </flux:badge>
+                                <span class="text-xs font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                                    {{ $row->nama_lokasi_asal }}
                                 </span>
                             </div>
                             @if ($row->alasan)
@@ -154,6 +147,16 @@
                             @endif
                         </flux:table.cell>
 
+                        <flux:table.cell style="white-space: normal;">
+                            <div class="flex items-center gap-1.5">
+                                <flux:badge size="xs" :color="$row->tipe_tujuan === 'RUANGAN' ? 'blue' : 'purple'">
+                                    {{ $row->tipe_tujuan }}
+                                </flux:badge>
+                                <span class="text-xs font-semibold text-blue-600 dark:text-blue-400 truncate">
+                                    {{ $row->nama_lokasi_tujuan }}
+                                </span>
+                            </div>
+                        </flux:table.cell>
                         <flux:table.cell>
                             <div class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                                 {{ $row->detail->count() }} Unit Aset
