@@ -314,7 +314,7 @@
                         </div>
                     </div>
 
-                    <div class="space-y-3 pb-48">
+                    <div class="space-y-3 pb-2">
                         @foreach ($itemRows as $idx => $row)
                             <div wire:key="inbound-item-card-{{ $idx }}" class="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm relative" style="overflow: visible; z-index: {{ 30 - $idx }};">
                                 {{-- Baris 1: Ringkasan Pesanan (PO) --}}
