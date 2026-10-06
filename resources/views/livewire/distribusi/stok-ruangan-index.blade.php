@@ -49,20 +49,32 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <flux:heading size="xl" level="1">{{ $pageTitle }}</flux:heading>
-                <flux:subheading>Monitoring sisa fisik persediaan BHP dan sarana inventaris yang ditempatkan di ruangan.</flux:subheading>
+                <flux:subheading>{{ $pageSubtitle }}</flux:subheading>
             </div>
             <div class="flex items-center gap-2">
                 @php
                     $portalSlug = \App\Support\Portal\PortalResolver::resolve();
                 @endphp
                 @if ($activeTab === 'bhp')
-                    <flux:button as="a" href="/{{ $portalSlug }}/permintaan-barang" variant="primary" icon="plus">
-                        Ajukan Amprah Baru
-                    </flux:button>
+                    @if ($isWarehouseUser)
+                        <flux:button as="a" href="/{{ $portalSlug }}/pengalihan-barang" variant="primary" icon="arrows-right-left">
+                            Pengalihan Barang
+                        </flux:button>
+                    @else
+                        <flux:button as="a" href="/{{ $portalSlug }}/permintaan-barang" variant="primary" icon="plus">
+                            Ajukan Amprah Baru
+                        </flux:button>
+                    @endif
                 @else
-                    <flux:button as="a" href="/{{ $portalSlug }}/peminjaman-aset" variant="primary" icon="plus">
-                        Pinjam Aset Baru
-                    </flux:button>
+                    @if ($isWarehouseUser)
+                        <flux:button as="a" href="/{{ $portalSlug }}/pengalihan-aset" variant="primary" icon="arrows-right-left">
+                            Pengalihan Aset
+                        </flux:button>
+                    @else
+                        <flux:button as="a" href="/{{ $portalSlug }}/peminjaman-aset" variant="primary" icon="plus">
+                            Pinjam Aset Baru
+                        </flux:button>
+                    @endif
                 @endif
             </div>
         </div>
@@ -75,7 +87,7 @@
                 icon="cube"
                 :badge="$countTotalItem"
             >
-                Barang Habis Pakai (BHP)
+                {{ $isWarehouseUser ? 'Barang Persediaan' : 'Barang Habis Pakai (BHP)' }}
             </flux:tab>
             <flux:tab
                 wire:click="setTab('aset')"
@@ -83,7 +95,7 @@
                 icon="computer-desktop"
                 :badge="$countTotalAset"
             >
-                Aset & Inventaris Ruangan
+                {{ $isWarehouseUser ? 'Aset & Sarana Gudang' : 'Aset & Inventaris Ruangan' }}
             </flux:tab>
         </flux:tabs>
 
@@ -176,7 +188,7 @@
                             {{-- Unit (Jika Admin) --}}
                             @if ($isGlobalAdmin)
                                 <flux:table.cell class="text-xs text-zinc-600 dark:text-zinc-300">
-                                    {{ $stok->unit?->nama ?? '-' }}
+                                    {{ $stok->unit?->nama ?? $stok->gudang?->nama ?? '-' }}
                                 </flux:table.cell>
                             @endif
 
@@ -204,26 +216,39 @@
                             {{-- Aksi --}}
                             <flux:table.cell class="text-right">
                                 <div class="flex items-center justify-end gap-1.5">
-                                    @if (! $isHabis)
-                                        <flux:button
-                                            wire:click="openCatatPemakaian({{ $stok->id }})"
-                                            size="xs"
-                                            variant="primary"
-                                            icon="minus-circle"
-                                            title="Catat Pemakaian"
-                                        >
-                                            Catat Pakai
-                                        </flux:button>
+                                    @if (! $isWarehouseUser)
+                                        @if (! $isHabis)
+                                            <flux:button
+                                                wire:click="openCatatPemakaian({{ $stok->id }})"
+                                                size="xs"
+                                                variant="primary"
+                                                icon="minus-circle"
+                                                title="Catat Pemakaian"
+                                            >
+                                                Catat Pakai
+                                            </flux:button>
+                                        @else
+                                            <flux:button
+                                                as="a"
+                                                href="/{{ \App\Support\Portal\PortalResolver::resolve() }}/permintaan-barang"
+                                                size="xs"
+                                                variant="danger"
+                                                icon="arrow-up-tray"
+                                                title="Stok Habis - Ajukan Amprah"
+                                            >
+                                                Amprah
+                                            </flux:button>
+                                        @endif
                                     @else
                                         <flux:button
                                             as="a"
-                                            href="/{{ \App\Support\Portal\PortalResolver::resolve() }}/permintaan-barang"
+                                            href="/{{ \App\Support\Portal\PortalResolver::resolve() }}/pengalihan-barang"
                                             size="xs"
-                                            variant="danger"
-                                            icon="arrow-up-tray"
-                                            title="Stok Habis - Ajukan Amprah"
+                                            variant="ghost"
+                                            icon="arrows-right-left"
+                                            title="Pengalihan Stok Gudang"
                                         >
-                                            Amprah
+                                            Alihkan
                                         </flux:button>
                                     @endif
                                 </div>
@@ -278,7 +303,7 @@
                             {{-- Unit (Jika Admin) --}}
                             @if ($isGlobalAdmin)
                                 <flux:table.cell class="text-xs text-zinc-600 dark:text-zinc-300">
-                                    {{ $ast->unit?->nama ?? '-' }}
+                                    {{ $ast->unit?->nama ?? $ast->gudang?->nama ?? '-' }}
                                 </flux:table.cell>
                             @endif
 

@@ -88,13 +88,16 @@ class StokRuanganIndex extends Component
             $user->can('update_layanan_unit::stok::ruangan') ||
             $user->can('page_Dashboard') ||
             $user->can('page_AdminLogistikDashboard') ||
-            $user->hasRole(['super_admin', 'admin_logistik', 'kepala_unit'])
+            $user->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'kepala_gudang', 'petugas_gudang'])
         );
         abort_unless($canUpdate, 403, 'Anda tidak memiliki wewenang mengubah status aset operasional.');
 
         $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
-        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $aset->unit_id) {
-            abort(403, 'Anda tidak berwenang mengubah aset milik unit lain.');
+        $isOwner = ($user?->unit_id && (int) $user->unit_id === (int) $aset->unit_id)
+                || ($user?->gudang_id && (int) $user->gudang_id === (int) $aset->gudang_id);
+
+        if (! $isGlobalAdmin && ! $isOwner) {
+            abort(403, 'Anda tidak berwenang mengubah aset milik fasilitas lain.');
         }
         if (in_array($aset->status, ['DIPINJAM', 'DALAM_MAINTENANCE', 'DIHAPUSKAN'])) {
             abort(403, "Status aset '{$aset->kode_aset}' ({$aset->status}) tidak dapat diubah secara manual di ruangan.");
@@ -125,8 +128,11 @@ class StokRuanganIndex extends Component
         $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
 
         $aset = Aset::findOrFail($this->selectedAsetId);
-        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $aset->unit_id) {
-            abort(403, 'Anda tidak berwenang mengubah aset milik unit lain.');
+        $isOwner = ($user?->unit_id && (int) $user->unit_id === (int) $aset->unit_id)
+                || ($user?->gudang_id && (int) $user->gudang_id === (int) $aset->gudang_id);
+
+        if (! $isGlobalAdmin && ! $isOwner) {
+            abort(403, 'Anda tidak berwenang mengubah aset milik fasilitas lain.');
         }
         if (in_array($aset->status, ['DIPINJAM', 'DALAM_MAINTENANCE', 'DIHAPUSKAN'])) {
             abort(403, "Status aset '{$aset->kode_aset}' ({$aset->status}) tidak dapat diubah secara manual di ruangan.");
@@ -154,17 +160,20 @@ class StokRuanganIndex extends Component
                 $user->can('view_any_layanan_unit::stok::ruangan') ||
                 $user->can('page_Dashboard') ||
                 $user->can('page_AdminLogistikDashboard') ||
-                $user->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'petugas_unit'])
+                $user->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'petugas_unit', 'kepala_gudang', 'petugas_gudang'])
             ),
             403,
             'Anda tidak memiliki wewenang untuk melaporkan kerusakan sarana.'
         );
 
-        $aset = Aset::with(['barang', 'unit'])->findOrFail($asetId);
+        $aset = Aset::with(['barang', 'unit', 'gudang'])->findOrFail($asetId);
 
         $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
-        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $aset->unit_id) {
-            abort(403, 'Anda tidak berwenang melaporkan kerusakan aset milik unit lain.');
+        $isOwner = ($user?->unit_id && (int) $user->unit_id === (int) $aset->unit_id)
+                || ($user?->gudang_id && (int) $user->gudang_id === (int) $aset->gudang_id);
+
+        if (! $isGlobalAdmin && ! $isOwner) {
+            abort(403, 'Anda tidak berwenang melaporkan kerusakan aset milik fasilitas lain.');
         }
 
         $tiketAktif = \App\Models\PermintaanMaintenance::where('aset_id', $aset->id)
@@ -360,30 +369,44 @@ class StokRuanganIndex extends Component
             auth()->user()?->can('page_StokRuanganIndex') ||
             auth()->user()?->can('view_any_layanan_unit::stok::ruangan') ||
             auth()->user()?->can('view_layanan_unit::stok::ruangan') ||
+            auth()->user()?->can('view_any_gudang_stok::stok::batch') ||
             auth()->user()?->can('page_Dashboard') ||
-            auth()->user()?->can('page_AdminLogistikDashboard'),
+            auth()->user()?->can('page_AdminLogistikDashboard') ||
+            auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang', 'petugas_gudang']),
             403,
             'Anda tidak memiliki akses ke halaman persediaan lokal ruangan.'
         );
 
         $user = auth()->user();
         $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
+        $isWarehouseUser = ! $isGlobalAdmin && (bool) $user?->gudang_id;
+        $isRoomUser = ! $isGlobalAdmin && (bool) $user?->unit_id;
 
         // Target unit query
         $effectiveUnitId = $isGlobalAdmin ? $this->filterUnitId : $user?->unit_id;
 
-        $baseQuery = StokRuangan::query()
-            ->when($effectiveUnitId, fn ($q) => $q->where('unit_id', $effectiveUnitId))
-            ->when(! $effectiveUnitId && ! $isGlobalAdmin, fn ($q) => $q->whereRaw('1 = 0'));
+        // 1. Kueri Persediaan Barang
+        if ($isWarehouseUser) {
+            $baseQuery = \App\Models\StokBatch::query()
+                ->where('gudang_id', $user->gudang_id);
+        } elseif ($isRoomUser) {
+            $baseQuery = StokRuangan::query()
+                ->where('unit_id', $user->unit_id);
+        } elseif ($isGlobalAdmin) {
+            $baseQuery = StokRuangan::query()
+                ->when($this->filterUnitId, fn ($q) => $q->where('unit_id', $this->filterUnitId));
+        } else {
+            $baseQuery = StokRuangan::query()->whereRaw('1 = 0');
+        }
 
         // Metrik Ringkasan
         $countTotalItem = (clone $baseQuery)->count();
         $countTersedia = (clone $baseQuery)->where('jumlah', '>', 0)->count();
         $countHabis = (clone $baseQuery)->where('jumlah', '<=', 0)->count();
 
-        // Data List
+        // Data List Barang
         $query = (clone $baseQuery)
-            ->with(['barang.satuan', 'barang.kategori', 'unit'])
+            ->with($isWarehouseUser ? ['barang.satuan', 'barang.kategori', 'gudang'] : ['barang.satuan', 'barang.kategori', 'unit'])
             ->when($this->filterKondisi === 'TERSEDIA', fn ($q) => $q->where('jumlah', '>', 0))
             ->when($this->filterKondisi === 'HABIS', fn ($q) => $q->where('jumlah', '<=', 0))
             ->when($this->search, function ($q) {
@@ -391,24 +414,30 @@ class StokRuanganIndex extends Component
                     $sub->whereHas('barang', function ($b) {
                         $b->where('nama', 'ilike', "%{$this->search}%")
                             ->orWhere('kode', 'ilike', "%{$this->search}%");
-                    })
-                    ->orWhereHas('unit', fn ($u) => $u->where('nama', 'ilike', "%{$this->search}%"));
+                    });
                 });
             });
         $daftarStok = $query
-            ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
+            ->orderBy($this->sortBy ?: ($isWarehouseUser ? 'barang_id' : 'id'), $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
-        // 2. Query Aset Fisik Ruangan
-        $baseAsetQuery = Aset::query()
-            ->when($effectiveUnitId, fn ($q) => $q->where('unit_id', $effectiveUnitId))
-            ->when(! $effectiveUnitId && ! $isGlobalAdmin, fn ($q) => $q->whereRaw('1 = 0'));
+        // 2. Query Aset Fisik Ruangan / Fasilitas Gudang
+        $baseAsetQuery = Aset::query();
+        if ($isWarehouseUser) {
+            $baseAsetQuery->where('gudang_id', $user->gudang_id);
+        } elseif ($isRoomUser) {
+            $baseAsetQuery->where('unit_id', $user->unit_id);
+        } elseif ($isGlobalAdmin) {
+            $baseAsetQuery->when($this->filterUnitId, fn ($q) => $q->where('unit_id', $this->filterUnitId));
+        } else {
+            $baseAsetQuery->whereRaw('1 = 0');
+        }
 
         $countTotalAset = (clone $baseAsetQuery)->count();
         $countAsetBaik = (clone $baseAsetQuery)->where('kondisi', 'BAIK')->count();
 
         $asetQuery = (clone $baseAsetQuery)
-            ->with(['barang.kategori', 'barang.satuan', 'unit'])
+            ->with(['barang.kategori', 'barang.satuan', 'unit', 'gudang'])
             ->when($this->filterKondisiAset, fn ($q) => $q->where('kondisi', $this->filterKondisiAset))
             ->when($this->filterStatusAset, fn ($q) => $q->where('status', $this->filterStatusAset))
             ->when($this->search, function ($q) {
@@ -425,27 +454,37 @@ class StokRuanganIndex extends Component
 
         $daftarUnit = $isGlobalAdmin ? Unit::where('status', 'AKTIF')->orderBy('nama')->get(['id', 'nama', 'kode']) : collect();
 
-        $pageTitle = ($user?->unit && ! $isGlobalAdmin)
-            ? "Persediaan Lokal Ruangan ({$user->unit->nama})"
-            : 'Persediaan Lokal Ruangan';
+        $pageTitle = match (true) {
+            $isWarehouseUser => "Persediaan Fasilitas Gudang (" . ($user->gudang?->nama ?? 'Gudang Anda') . ")",
+            $isRoomUser => "Persediaan Lokal Ruangan (" . ($user->unit?->nama ?? 'Ruangan Anda') . ")",
+            default => 'Persediaan Fasilitas & Ruangan',
+        };
+
+        $pageSubtitle = $isWarehouseUser
+            ? 'Monitoring fisik persediaan barang dan sarana inventaris yang berada di fasilitas gudang ini.'
+            : 'Monitoring sisa fisik persediaan BHP dan sarana inventaris yang ditempatkan di ruangan.';
 
         return view('livewire.distribusi.stok-ruangan-index', [
-            'activeTab'      => $this->activeTab,
-            'daftarStok'     => $daftarStok,
-            'daftarAset'     => $daftarAset,
-            'daftarUnit'     => $daftarUnit,
-            'isGlobalAdmin'  => $isGlobalAdmin,
-            'userUnitId'     => $user?->unit_id,
-            'countTotalItem' => $countTotalItem,
-            'countTersedia'  => $countTersedia,
-            'countHabis'     => $countHabis,
-            'countTotalAset' => $countTotalAset,
-            'countAsetBaik'  => $countAsetBaik,
-            'sortBy'         => $this->sortBy,
-            'sortDirection'  => $this->sortDirection,
-            'selectedStok'   => $this->selectedStok,
-            'selectedAset'   => $this->selectedAset,
-            'pageTitle'      => $pageTitle,
+            'activeTab'           => $this->activeTab,
+            'daftarStok'          => $daftarStok,
+            'daftarAset'          => $daftarAset,
+            'daftarUnit'          => $daftarUnit,
+            'isGlobalAdmin'       => $isGlobalAdmin,
+            'isWarehouseUser'     => $isWarehouseUser,
+            'isRoomUser'          => $isRoomUser,
+            'userUnitId'          => $user?->unit_id,
+            'userGudangId'        => $user?->gudang_id,
+            'countTotalItem'      => $countTotalItem,
+            'countTersedia'       => $countTersedia,
+            'countHabis'          => $countHabis,
+            'countTotalAset'      => $countTotalAset,
+            'countAsetBaik'       => $countAsetBaik,
+            'sortBy'              => $this->sortBy,
+            'sortDirection'       => $this->sortDirection,
+            'selectedStok'        => $this->selectedStok,
+            'selectedAset'        => $this->selectedAset,
+            'pageTitle'           => $pageTitle,
+            'pageSubtitle'        => $pageSubtitle,
         ])->layout('layouts.portal', [
             'portal' => $this->getPortalName(),
             'title'  => $pageTitle,

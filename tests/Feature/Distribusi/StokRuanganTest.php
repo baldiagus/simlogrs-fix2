@@ -218,4 +218,125 @@ class StokRuanganTest extends TestCase
             ->call('openLaporServis', $aset->id)
             ->assertSet('showLaporServisModal', false);
     }
+
+    public function test_warehouse_user_can_view_their_warehouse_assets_in_asset_tab(): void
+    {
+        $gudang = \App\Models\Gudang::where('status', 'AKTIF')->first();
+        $userGudang = User::create([
+            'nama' => 'Petugas Gudang Persediaan',
+            'username' => 'petugas_gdg_stk',
+            'email' => 'gdg_stk@simlog.test',
+            'password' => bcrypt('password'),
+            'gudang_id' => $gudang->id,
+            'status' => 'AKTIF',
+        ]);
+        $userGudang->givePermissionTo([
+            'view_any_layanan_unit::stok::ruangan',
+            'view_layanan_unit::stok::ruangan',
+            'page_StokRuanganIndex',
+        ]);
+
+        $asetGudang = Aset::create([
+            'barang_id' => $this->barang->id,
+            'unit_id' => null,
+            'gudang_id' => $gudang->id,
+            'kode_aset' => 'AST-GDG-' . uniqid(),
+            'nomor_seri' => 'SN-GDG-101',
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        $this->actingAs($userGudang);
+
+        Livewire::test(StokRuanganIndex::class)
+            ->call('setTab', 'aset')
+            ->assertSee($asetGudang->kode_aset)
+            ->assertSee($this->barang->nama);
+    }
+
+    public function test_warehouse_user_can_view_their_warehouse_inventory_in_goods_tab(): void
+    {
+        $gudang = \App\Models\Gudang::where('status', 'AKTIF')->first();
+        $userGudang = User::create([
+            'nama' => 'Petugas Gudang Persediaan BHP',
+            'username' => 'petugas_gdg_bhp',
+            'email' => 'gdg_bhp@simlog.test',
+            'password' => bcrypt('password'),
+            'gudang_id' => $gudang->id,
+            'status' => 'AKTIF',
+        ]);
+        $userGudang->givePermissionTo([
+            'view_any_layanan_unit::stok::ruangan',
+            'view_layanan_unit::stok::ruangan',
+            'page_StokRuanganIndex',
+        ]);
+
+        $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'UNT-STK-GDG'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
+        $kategoriId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-STK-GDG'], ['nama' => 'Kategori BHP', 'status' => 'AKTIF'])->id;
+        $barangBhp = Barang::firstOrCreate(
+            ['kode' => 'BRG-BHP-GDG-01'],
+            [
+                'nama' => 'Sarung Tangan Karet Medis',
+                'tipe' => 'HABIS_PAKAI',
+                'satuan_id' => $satuanId,
+                'kategori_id' => $kategoriId,
+                'status' => 'AKTIF',
+            ]
+        );
+
+        \App\Models\StokBatch::create([
+            'barang_id' => $barangBhp->id,
+            'gudang_id' => $gudang->id,
+            'nomor_batch' => 'BATCH-TEST-GDG-01',
+            'tanggal_kedaluwarsa' => now()->addYear()->toDateString(),
+            'jumlah' => 45,
+            'status' => 'AKTIF',
+        ]);
+
+        $this->actingAs($userGudang);
+
+        Livewire::test(StokRuanganIndex::class)
+            ->call('setTab', 'bhp')
+            ->assertSee($barangBhp->nama)
+            ->assertSee('45');
+    }
+
+    public function test_warehouse_user_can_manage_status_and_report_service_for_warehouse_asset(): void
+    {
+        $gudang = \App\Models\Gudang::where('status', 'AKTIF')->first();
+        $userGudang = User::create([
+            'nama' => 'Petugas Gudang Aset Manage',
+            'username' => 'petugas_gdg_mng',
+            'email' => 'gdg_mng@simlog.test',
+            'password' => bcrypt('password'),
+            'gudang_id' => $gudang->id,
+            'status' => 'AKTIF',
+        ]);
+        $userGudang->givePermissionTo([
+            'view_any_layanan_unit::stok::ruangan',
+            'update_layanan_unit::stok::ruangan',
+            'create_layanan_unit::lapor::servis',
+            'page_StokRuanganIndex',
+        ]);
+
+        $asetGudang = Aset::create([
+            'barang_id' => $this->barang->id,
+            'unit_id' => null,
+            'gudang_id' => $gudang->id,
+            'kode_aset' => 'AST-GDG-MANAGE-' . uniqid(),
+            'nomor_seri' => 'SN-GDG-202',
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        $this->actingAs($userGudang);
+
+        Livewire::test(StokRuanganIndex::class)
+            ->call('openUbahStatusAset', $asetGudang->id)
+            ->assertSet('showUbahStatusAsetModal', true)
+            ->call('openLaporServis', $asetGudang->id)
+            ->assertSet('showLaporServisModal', true);
+    }
 }
