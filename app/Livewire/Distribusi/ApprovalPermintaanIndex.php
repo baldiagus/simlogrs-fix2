@@ -130,7 +130,7 @@ class ApprovalPermintaanIndex extends Component
 
     public function showDetail(int $id): void
     {
-        $permintaan = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang.satuan'])->findOrFail($id);
+        $permintaan = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang.satuan', 'pengiriman.detail'])->findOrFail($id);
 
         $user = auth()->user();
         $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));

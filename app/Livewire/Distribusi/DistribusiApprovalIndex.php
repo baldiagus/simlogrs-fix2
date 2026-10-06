@@ -232,7 +232,7 @@ class DistribusiApprovalIndex extends Component
             403
         );
 
-        $this->selectedPermintaan = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang.satuan'])
+        $this->selectedPermintaan = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang.satuan', 'pengiriman.detail'])
             ->findOrFail($id);
         $this->showDetailModal = true;
     }

@@ -203,6 +203,7 @@ class PermintaanBarangIndex extends Component
             'pengaju',
             'penyetuju',
             'detail.barang.satuan',
+            'pengiriman.detail',
         ])->findOrFail($id);
 
         $user = auth()->user();

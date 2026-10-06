@@ -118,7 +118,7 @@
     </flux:card>
 
     {{-- Modal Detail Permintaan Distribusi --}}
-    <flux:modal name="modal-detail-permintaan" wire:model="showDetailModal" class="md:w-[48rem]">
+    <flux:modal name="modal-detail-permintaan" wire:model="showDetailModal" class="md:w-[54rem] max-w-[95vw]">
         @if ($selectedPermintaan)
             <div class="space-y-5">
                 <div class="flex items-start justify-between gap-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
@@ -166,6 +166,13 @@
                     </div>
                 @endif
 
+                @if ($selectedPermintaan->status === 'DIKIRIM_SEBAGIAN')
+                    <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                        <flux:icon name="clock" class="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <span>Permintaan ini telah dikirim sebagian. Sisa barang yang terhutang akan otomatis diprioritaskan saat gudang menerima restok barang dari vendor.</span>
+                    </div>
+                @endif
+
                 {{-- Tabel Detail Barang --}}
                 <div>
                     <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2">Daftar Komoditas / Barang</div>
@@ -175,14 +182,26 @@
                                 <tr>
                                     <th class="text-left px-3 py-2 w-10">#</th>
                                     <th class="text-left px-3 py-2">Barang</th>
-                                    <th class="text-left px-3 py-2 w-28">Satuan</th>
-                                    <th class="text-right px-3 py-2 w-28">Jumlah Diminta</th>
-                                    <th class="text-right px-3 py-2 w-28">Jumlah Disetujui</th>
+                                    <th class="text-left px-3 py-2 w-20">Satuan</th>
+                                    <th class="text-right px-3 py-2 w-20">Diminta</th>
+                                    <th class="text-right px-3 py-2 w-20">Disetujui</th>
+                                    <th class="text-right px-3 py-2 w-20">Terkirim</th>
+                                    <th class="text-right px-3 py-2 w-28">Sisa Hutang</th>
                                     <th class="text-left px-3 py-2">Catatan</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                @php
+                                    $shipmentDetails = $selectedPermintaan->pengiriman
+                                        ? $selectedPermintaan->pengiriman->where('status', '!=', 'BATAL')->flatMap->detail
+                                        : collect();
+                                @endphp
                                 @forelse ($selectedPermintaan->detail as $detail)
+                                    @php
+                                        $terkirim = (int) $shipmentDetails->where('barang_id', $detail->barang_id)->sum('jumlah_dikirim');
+                                        $disetujui = (int) ($detail->jumlah_disetujui !== null ? $detail->jumlah_disetujui : $detail->jumlah);
+                                        $sisaHutang = max(0, $disetujui - $terkirim);
+                                    @endphp
                                     <tr>
                                         <td class="px-3 py-2 text-zinc-500 text-xs">{{ $loop->iteration }}</td>
                                         <td class="px-3 py-2">
@@ -192,7 +211,7 @@
                                         <td class="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">
                                             {{ $detail->barang?->satuan?->nama ?? $detail->barang?->satuan?->simbol ?? '-' }}
                                         </td>
-                                        <td class="px-3 py-2 text-right font-mono tabular-nums text-xs font-semibold">
+                                        <td class="px-3 py-2 text-right font-mono tabular-nums text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                                             {{ number_format($detail->jumlah, 0, ',', '.') }}
                                         </td>
                                         <td class="px-3 py-2 text-right font-mono tabular-nums text-xs">
@@ -202,13 +221,27 @@
                                                 <span class="text-zinc-500 dark:text-zinc-400 italic text-xs font-sans">Belum diproses</span>
                                             @endif
                                         </td>
+                                        <td class="px-3 py-2 text-right font-mono tabular-nums text-xs text-zinc-700 dark:text-zinc-300">
+                                            {{ number_format($terkirim, 0, ',', '.') }}
+                                        </td>
+                                        <td class="px-3 py-2 text-right font-mono tabular-nums text-xs">
+                                            @if ($selectedPermintaan->status === 'DIAJUKAN' || $detail->jumlah_disetujui === null)
+                                                <span class="text-zinc-400 italic text-xs font-sans">-</span>
+                                            @elseif ($sisaHutang > 0)
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                                    {{ number_format($sisaHutang, 0, ',', '.') }}
+                                                </span>
+                                            @else
+                                                <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">0 (Lengkap)</span>
+                                            @endif
+                                        </td>
                                         <td class="px-3 py-2 text-xs text-zinc-500">
                                             {{ $detail->catatan ?: '-' }}
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="px-3 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
+                                        <td colspan="8" class="px-3 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
                                             Tidak ada item barang dalam permintaan ini.
                                         </td>
                                     </tr>
