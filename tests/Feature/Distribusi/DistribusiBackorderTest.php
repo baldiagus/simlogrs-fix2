@@ -291,4 +291,75 @@ class DistribusiBackorderTest extends TestCase
         $stokRuangan = StokRuangan::where('unit_id', $this->unit->id)->where('barang_id', $this->barang->id)->first();
         $this->assertEquals(2, $stokRuangan->jumlah);
     }
+
+    public function test_executing_picking_via_livewire_component_succeeds_for_partially_sent_requests(): void
+    {
+        $this->actingAs($this->userAdmin);
+
+        // 1. Setup permintaan 5 unit dengan SPPB 1 sudah terbit 2 unit (status DIKIRIM_SEBAGIAN)
+        $req = PermintaanDistribusi::create([
+            'kode' => CodeGenerator::generate('REQ', PermintaanDistribusi::class, 'kode', 'Ym', 3),
+            'unit_id' => $this->unit->id,
+            'gudang_id' => $this->gudang->id,
+            'tanggal_permintaan' => now()->toDateString(),
+            'urgensi' => 'REGULER',
+            'status' => 'DIKIRIM_SEBAGIAN',
+            'diajukan_oleh' => $this->userAdmin->id,
+            'disetujui_oleh' => $this->userAdmin->id,
+        ]);
+        $detail = PermintaanDistribusiDetail::create([
+            'permintaan_distribusi_id' => $req->id,
+            'barang_id' => $this->barang->id,
+            'jumlah' => 5,
+            'jumlah_disetujui' => 5,
+        ]);
+
+        $sppb1 = PengirimanBarang::create([
+            'kode' => CodeGenerator::generate('SPPB', PengirimanBarang::class, 'kode', 'Ymd', 4),
+            'permintaan_distribusi_id' => $req->id,
+            'gudang_id' => $this->gudang->id,
+            'unit_id' => $this->unit->id,
+            'tanggal_kirim' => now()->toDateString(),
+            'status' => 'DITERIMA',
+            'dikirim_oleh' => $this->userAdmin->id,
+        ]);
+        $batchLama = StokBatch::create([
+            'barang_id' => $this->barang->id,
+            'gudang_id' => $this->gudang->id,
+            'lokasi_gudang_id' => $this->lokasi->id,
+            'nomor_batch' => 'BATCH-OLD-SPPB1',
+            'jumlah' => 0,
+            'status' => 'HABIS',
+        ]);
+        \App\Models\PengirimanBarangDetail::create([
+            'pengiriman_barang_id' => $sppb1->id,
+            'barang_id' => $this->barang->id,
+            'stok_batch_id' => $batchLama->id,
+            'jumlah_dikirim' => 2,
+        ]);
+
+        // 2. Beri stok restok baru 10 unit di gudang
+        StokBatch::create([
+            'barang_id' => $this->barang->id,
+            'gudang_id' => $this->gudang->id,
+            'lokasi_gudang_id' => $this->lokasi->id,
+            'nomor_batch' => 'BATCH-NEW-RESTOCK',
+            'tanggal_kedaluwarsa' => now()->addYear()->toDateString(),
+            'jumlah' => 10,
+            'status' => 'AKTIF',
+        ]);
+
+        // 3. Panggil executePicking langsung melalui komponen Livewire PickingDistribusiIndex
+        \Livewire\Livewire::test(\App\Livewire\Distribusi\PickingDistribusiIndex::class)
+            ->call('executePicking', $req->id)
+            ->assertHasNoErrors();
+        // Verifikasi SPPB kedua terbit
+        $sppb2 = PengirimanBarang::where('permintaan_distribusi_id', $req->id)->latest('id')->first();
+        $this->assertNotNull($sppb2);
+        $this->assertNotEquals($sppb1->id, $sppb2->id);
+        $this->assertEquals(3, $sppb2->detail->sum('jumlah_dikirim'));
+
+        $req->refresh();
+        $this->assertEquals('SEDANG_DIKIRIM', $req->status);
+    }
 }

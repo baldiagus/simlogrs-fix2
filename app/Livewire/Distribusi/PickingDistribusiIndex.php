@@ -105,7 +105,7 @@ class PickingDistribusiIndex extends Component
             return;
         }
 
-        if (! in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DISETUJUI_KARU'])) {
+        if (! in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN', 'DISETUJUI_KARU'], true)) {
             $this->toast("Status permintaan {$permintaan->kode} ({$permintaan->status}) tidak valid untuk picking.", 'warning');
             return;
         }

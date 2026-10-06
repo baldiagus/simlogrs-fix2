@@ -212,13 +212,13 @@ class GudangApiController extends ApiController
 
         if (! $permintaan) {
             $permintaan = PermintaanDistribusi::with(['detail.barang', 'unit'])
-                ->whereIn('status', ['DISETUJUI_GUDANG', 'DISETUJUI_KARU'])
+                ->whereIn('status', ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN', 'DISETUJUI_KARU'])
                 ->latest('id')
                 ->first();
         }
 
         // Jika ada permohonan distribusi yang siap dipicking, jalankan picking FEFO
-        if ($permintaan && in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DISETUJUI_KARU'], true)) {
+        if ($permintaan && in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN', 'DISETUJUI_KARU'], true)) {
             try {
                 $gudangId = $request->input('gudang_id') ?: $permintaan->gudang_id;
                 $sppb = $service->eksekusiPickingFefo($permintaan, $user, $gudangId);
