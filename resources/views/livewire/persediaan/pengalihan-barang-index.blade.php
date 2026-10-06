@@ -256,7 +256,7 @@
                             <flux:select wire:model.live="gudang_asal_id" label="Gudang Asal (Sumber Stok)" size="sm" required>
                                 <option value="">-- Pilih Gudang Asal --</option>
                                 @foreach ($gudangs as $g)
-                                    <option value="{{ $g->id }}">{{ $g->nama }}</option>
+                                    <option value="{{ $g->id }}" @disabled((int)$gudang_tujuan_id === (int)$g->id)>{{ $g->nama }} @if((int)$gudang_tujuan_id === (int)$g->id) (Tujuan) @endif</option>
                                 @endforeach
                             </flux:select>
                         </div>
@@ -289,33 +289,40 @@
                         {{-- Pilihan Tujuan: Ruangan / Gudang --}}
                         <div>
                             <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                                Tujuan Mutasi <span class="text-red-500">*</span>
+                                Lokasi Tujuan Penerima <span class="text-red-500">*</span>
                             </label>
-                            <div class="flex items-center gap-3 text-xs mb-2">
-                                <label class="flex items-center gap-1.5 cursor-pointer">
-                                    <input type="radio" value="GUDANG" wire:model.live="tipe_tujuan" class="text-blue-600" />
-                                    <span>Gudang</span>
-                                </label>
-                                <label class="flex items-center gap-1.5 cursor-pointer">
-                                    <input type="radio" value="RUANGAN" wire:model.live="tipe_tujuan" class="text-blue-600" />
-                                    <span>Ruangan</span>
-                                </label>
-                            </div>
-
-                            @if ($tipe_tujuan === 'GUDANG')
-                                <flux:select wire:model.live="gudang_tujuan_id" size="sm" required>
-                                    <option value="">-- Pilih Gudang Tujuan --</option>
-                                    @foreach ($gudangs as $g)
-                                        <option value="{{ $g->id }}" @disabled((int)$gudang_asal_id === (int)$g->id)>{{ $g->nama }}</option>
-                                    @endforeach
-                                </flux:select>
+                            @if ($isDestinationLocked)
+                                <div class="p-2.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
+                                    <flux:icon name="{{ $tipe_tujuan === 'GUDANG' ? 'building-storefront' : 'building-office' }}" class="size-4 text-blue-600" />
+                                    <span>{{ $namaLokasiTujuanUser }}</span>
+                                </div>
                             @else
-                                <flux:select wire:model.live="unit_tujuan_id" size="sm" required>
-                                    <option value="">-- Pilih Ruangan Tujuan --</option>
-                                    @foreach ($units as $u)
-                                        <option value="{{ $u->id }}">{{ $u->nama }}</option>
-                                    @endforeach
-                                </flux:select>
+                                <div class="flex items-center gap-3 text-xs mb-2">
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="radio" value="GUDANG" wire:model.live="tipe_tujuan" class="text-blue-600" />
+                                        <span>Gudang</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="radio" value="RUANGAN" wire:model.live="tipe_tujuan" class="text-blue-600" />
+                                        <span>Ruangan</span>
+                                    </label>
+                                </div>
+
+                                @if ($tipe_tujuan === 'GUDANG')
+                                    <flux:select wire:model.live="gudang_tujuan_id" size="sm" required>
+                                        <option value="">-- Pilih Gudang Tujuan --</option>
+                                        @foreach ($gudangs as $g)
+                                            <option value="{{ $g->id }}" @disabled((int)$gudang_asal_id === (int)$g->id)>{{ $g->nama }}</option>
+                                        @endforeach
+                                    </flux:select>
+                                @else
+                                    <flux:select wire:model.live="unit_tujuan_id" size="sm" required>
+                                        <option value="">-- Pilih Ruangan Tujuan --</option>
+                                        @foreach ($units as $u)
+                                            <option value="{{ $u->id }}">{{ $u->nama }}</option>
+                                        @endforeach
+                                    </flux:select>
+                                @endif
                             @endif
                         </div>
 

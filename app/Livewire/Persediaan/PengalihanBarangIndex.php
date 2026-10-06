@@ -59,12 +59,29 @@ class PengalihanBarangIndex extends Component
     {
         $this->tanggal_pengalihan = now()->toDateString();
         $user = auth()->user();
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
 
-        if ($user?->gudang_id) {
+        if (! $isGlobalAdmin) {
+            if ($user?->gudang_id) {
+                $this->tipe_tujuan = 'GUDANG';
+                $this->gudang_tujuan_id = $user->gudang_id;
+                $this->unit_tujuan_id = null;
+            } elseif ($user?->unit_id) {
+                $this->tipe_tujuan = 'RUANGAN';
+                $this->unit_tujuan_id = $user->unit_id;
+                $this->gudang_tujuan_id = null;
+            }
+
             $this->tipe_asal = 'GUDANG';
-            $this->gudang_asal_id = $user->gudang_id;
+            $this->gudang_asal_id = Gudang::where('status', 'AKTIF')
+                ->where('id', '!=', $this->gudang_tujuan_id)
+                ->value('id');
         } else {
             $this->gudang_asal_id = Gudang::where('status', 'AKTIF')->value('id');
+            $this->tipe_tujuan = 'GUDANG';
+            $this->gudang_tujuan_id = Gudang::where('status', 'AKTIF')
+                ->where('id', '!=', $this->gudang_asal_id)
+                ->value('id');
         }
     }
 
@@ -93,9 +110,22 @@ class PengalihanBarangIndex extends Component
         $this->alasan = '';
         $this->catatan = '';
 
-        if (! $user->hasRole(['super_admin', 'admin_logistik']) && $user?->gudang_id) {
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
+        if (! $isGlobalAdmin) {
+            if ($user?->gudang_id) {
+                $this->tipe_tujuan = 'GUDANG';
+                $this->gudang_tujuan_id = $user->gudang_id;
+                $this->unit_tujuan_id = null;
+            } elseif ($user?->unit_id) {
+                $this->tipe_tujuan = 'RUANGAN';
+                $this->unit_tujuan_id = $user->unit_id;
+                $this->gudang_tujuan_id = null;
+            }
+
             $this->tipe_asal = 'GUDANG';
-            $this->gudang_asal_id = $user->gudang_id;
+            $this->gudang_asal_id = Gudang::where('status', 'AKTIF')
+                ->where('id', '!=', $this->gudang_tujuan_id)
+                ->value('id');
         }
 
         $this->showCreateModal = true;
@@ -154,6 +184,19 @@ class PengalihanBarangIndex extends Component
 
         abort_unless($canCreate, 403, 'Akses ditolak.');
 
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
+        if (! $isGlobalAdmin) {
+            if ($user?->gudang_id) {
+                $this->tipe_tujuan = 'GUDANG';
+                $this->gudang_tujuan_id = $user->gudang_id;
+                $this->unit_tujuan_id = null;
+            } elseif ($user?->unit_id) {
+                $this->tipe_tujuan = 'RUANGAN';
+                $this->unit_tujuan_id = $user->unit_id;
+                $this->gudang_tujuan_id = null;
+            }
+        }
+
         $this->validate([
             'selected_barang_id' => 'required|exists:barang,id',
             'tipe_asal' => 'required|in:GUDANG,RUANGAN',
@@ -173,7 +216,7 @@ class PengalihanBarangIndex extends Component
         ]);
 
         if ($this->tipe_asal === 'GUDANG' && $this->tipe_tujuan === 'GUDANG' && (int) $this->gudang_asal_id === (int) $this->gudang_tujuan_id) {
-            $this->addError('gudang_tujuan_id', 'Gudang tujuan tidak boleh sama dengan gudang asal.');
+            $this->addError('gudang_asal_id', 'Gudang asal dan gudang tujuan pengalihan tidak boleh sama.');
             return;
         }
 
@@ -371,6 +414,10 @@ class PengalihanBarangIndex extends Component
             'units' => $units,
             'raks' => $raks,
             'isGlobalAdmin' => $isGlobalAdmin,
+            'isDestinationLocked' => ! $isGlobalAdmin && ($user?->gudang_id || $user?->unit_id),
+            'namaLokasiTujuanUser' => $user?->gudang_id
+                ? ($user->gudang?->nama ?? 'Gudang Anda')
+                : ($user?->unit_id ? ($user->unit?->nama ?? 'Ruangan Anda') : 'Lokasi Terdaftar'),
         ])->layout('layouts.portal', [
             'portal' => $this->getPortalName(),
             'title' => 'Pengalihan & Mutasi Barang',
