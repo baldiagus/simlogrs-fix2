@@ -217,4 +217,30 @@ class PengalihanAsetIndexTest extends TestCase
         $this->assertNotNull($latestTrf);
         $this->assertEquals(2, $latestTrf->detail()->count());
     }
+
+    public function test_searching_provider_in_transfer_modal_filters_displayed_cards(): void
+    {
+        $this->actingAs($this->userAdmin);
+
+        Livewire::test(PengalihanAsetIndex::class)
+            ->call('openCreateModal')
+            ->set('selected_barang_id', $this->aset->barang_id)
+            ->set('searchPenyedia', substr($this->unit1->nama, 0, 4))
+            ->assertSee($this->aset->kode_aset)
+            ->set('searchPenyedia', 'NAMA_TIDAK_ADA_XYZ')
+            ->assertDontSee($this->aset->kode_aset);
+    }
+
+    public function test_transfer_quantity_is_clamped_to_selected_provider_stock(): void
+    {
+        $this->actingAs($this->userAdmin);
+
+        $test = Livewire::test(PengalihanAsetIndex::class)
+            ->call('openCreateModal')
+            ->set('selected_barang_id', $this->aset->barang_id)
+            ->set('selected_penyedia_key', "RUANGAN_{$this->unit1->id}")
+            ->set('quantity', 50); // stok hanya 1
+
+        $this->assertLessThanOrEqual(5, $test->get('quantity'));
+    }
 }

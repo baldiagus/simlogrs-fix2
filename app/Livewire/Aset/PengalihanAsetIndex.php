@@ -38,6 +38,7 @@ class PengalihanAsetIndex extends Component
     // Alur Pemilihan Komoditas & Penyedia (Sesuai Peminjaman Aset, Tanpa Tanggal Kembali)
     public ?int $selected_barang_id = null;
     public ?string $selected_penyedia_key = null;
+    public string $searchPenyedia = '';
     public ?int $selected_aset_id = null;
     public int $quantity = 1;
     public string $tipe_asal = 'RUANGAN';
@@ -107,8 +108,8 @@ class PengalihanAsetIndex extends Component
         $this->selected_penyedia_key = null;
         $this->selected_aset_id = null;
         $this->quantity = 1;
+        $this->searchPenyedia = '';
         $this->selected_aset_ids = [];
-        $this->searchAsetModal = '';
         $this->alasan = '';
         $this->catatan = '';
         // Default lokasi tujuan adalah ruangan / gudang milik pengguna login
@@ -130,9 +131,9 @@ class PengalihanAsetIndex extends Component
         $this->selected_penyedia_key = null;
         $this->selected_aset_id = null;
         $this->quantity = 1;
+        $this->searchPenyedia = '';
         $this->selected_aset_ids = [];
     }
-
     public function updatedSelectedPenyediaKey(): void
     {
         if (! $this->selected_penyedia_key) {
@@ -144,6 +145,10 @@ class PengalihanAsetIndex extends Component
         $providers = $this->getPenyediaAsetList();
         $provider = collect($providers)->firstWhere('key', $this->selected_penyedia_key);
         if ($provider) {
+            $maxAvailable = $provider['jumlah'];
+            if ($this->quantity > $maxAvailable) {
+                $this->quantity = max(1, $maxAvailable);
+            }
             $this->tipe_asal = $provider['tipe'];
             if ($provider['tipe'] === 'RUANGAN') {
                 $this->unit_asal_id = $provider['id'];
@@ -160,17 +165,39 @@ class PengalihanAsetIndex extends Component
         }
     }
 
-    public function updatedQuantity(): void
+    public function updatedQuantity($value): void
     {
+        $max = $this->maxQuantity;
+        if ((int) $value > $max) {
+            $this->quantity = $max;
+            $this->addError('quantity', "Jumlah unit melebihi stok tersedia (maksimal {$max} unit).");
+        } elseif ((int) $value < 1) {
+            $this->quantity = 1;
+            $this->resetErrorBag('quantity');
+        } else {
+            $this->resetErrorBag('quantity');
+        }
+
         if ($this->selected_penyedia_key) {
             $providers = $this->getPenyediaAsetList();
             $provider = collect($providers)->firstWhere('key', $this->selected_penyedia_key);
             if ($provider) {
-                $max = count($provider['aset_ids']);
-                $qty = max(1, min((int) $this->quantity, $max));
+                $qty = max(1, min((int) $this->quantity, count($provider['aset_ids'])));
                 $this->selected_aset_ids = array_slice($provider['aset_ids'], 0, $qty);
             }
         }
+    }
+
+    public function getMaxQuantityProperty(): int
+    {
+        if (! $this->selected_penyedia_key) {
+            return 1;
+        }
+
+        $providers = $this->getPenyediaAsetList();
+        $provider = collect($providers)->firstWhere('key', $this->selected_penyedia_key);
+
+        return $provider ? max(1, $provider['jumlah']) : 1;
     }
 
     public function getDaftarBarangAsetTersedia()
@@ -256,6 +283,13 @@ class PengalihanAsetIndex extends Component
                 'aset_ids'   => $group->pluck('id')->toArray(),
                 'kode_asets' => $group->pluck('kode_aset')->implode(', '),
             ];
+        }
+        if ($this->searchPenyedia) {
+            $term = strtolower(trim($this->searchPenyedia));
+            $providers = array_values(array_filter($providers, function ($p) use ($term) {
+                return str_contains(strtolower($p['nama']), $term) ||
+                       str_contains(strtolower($p['kode']), $term);
+            }));
         }
 
         return $providers;

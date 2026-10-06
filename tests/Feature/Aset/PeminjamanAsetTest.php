@@ -372,4 +372,51 @@ class PeminjamanAsetTest extends TestCase
             ->call('savePinjam')
             ->assertHasErrors(['quantity']);
     }
+
+    public function test_searching_provider_in_loan_modal_filters_displayed_cards(): void
+    {
+        $this->actingAs($this->userPeminjam);
+
+        // Buat aset di unit penyedia
+        Aset::create([
+            'barang_id' => $this->barangAset->id,
+            'unit_id' => $this->unitPenyedia->id,
+            'kode_aset' => 'AST-SEARCH-P1-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        // Filter dengan nama unit yang cocok
+        Livewire::test(PeminjamanAsetIndex::class)
+            ->call('createPinjam')
+            ->set('selected_barang_id', $this->barangAset->id)
+            ->set('searchPenyedia', substr($this->unitPenyedia->nama, 0, 4))
+            ->assertSee($this->unitPenyedia->nama)
+            ->set('searchPenyedia', 'NAMA_TIDAK_ADA_XYZ')
+            ->assertDontSee($this->unitPenyedia->nama);
+    }
+
+    public function test_quantity_is_clamped_to_selected_provider_stock(): void
+    {
+        $this->actingAs($this->userPeminjam);
+
+        Aset::create([
+            'barang_id' => $this->barangAset->id,
+            'unit_id' => $this->unitPenyedia->id,
+            'kode_aset' => 'AST-CLAMP-P1-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        $test = Livewire::test(PeminjamanAsetIndex::class)
+            ->call('createPinjam')
+            ->set('selected_barang_id', $this->barangAset->id)
+            ->set('quantity', 10)
+            ->call('selectPenyediaKey', "RUANGAN_{$this->unitPenyedia->id}");
+
+        // Harus di-clamp ke maksimal unit tersedia
+        $this->assertEquals(1, $test->get('quantity'));
+    }
 }

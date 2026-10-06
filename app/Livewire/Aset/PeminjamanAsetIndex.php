@@ -41,6 +41,7 @@ class PeminjamanAsetIndex extends Component
     public ?PermintaanPeminjaman $selectedPinjam = null;
     public ?int $selected_barang_id = null;
     public ?string $selected_penyedia_key = null;
+    public string $searchPenyedia = '';
     public string $tipe_penyedia = 'RUANGAN';
     public ?int $unit_penyedia_id = null;
     public ?int $gudang_penyedia_id = null;
@@ -198,7 +199,6 @@ class PeminjamanAsetIndex extends Component
     {
         $this->selectPenyediaKey($value);
     }
-
     public function selectPenyediaKey(?string $key): void
     {
         $this->selected_penyedia_key = $key;
@@ -208,6 +208,15 @@ class PeminjamanAsetIndex extends Component
             $this->unit_penyedia_id = null;
             $this->gudang_penyedia_id = null;
             return;
+        }
+
+        $providers = $this->getPenyediaAsetList();
+        $provider = collect($providers)->firstWhere('key', $key);
+        if ($provider) {
+            $maxAvailable = $provider['jumlah'];
+            if ($this->quantity > $maxAvailable) {
+                $this->quantity = max(1, $maxAvailable);
+            }
         }
 
         [$tipe, $id] = explode('_', $key, 2);
@@ -248,6 +257,28 @@ class PeminjamanAsetIndex extends Component
                 ->first();
             $this->selected_aset_id = $aset?->id;
         }
+    }
+
+    public function updatedQuantity($value): void
+    {
+        $max = $this->maxQuantity;
+        if ((int) $value > $max) {
+            $this->addError('quantity', "Jumlah unit melebihi stok tersedia (maksimal {$max} unit).");
+        } else {
+            $this->resetErrorBag('quantity');
+        }
+    }
+
+    public function getMaxQuantityProperty(): int
+    {
+        if (! $this->selected_penyedia_key) {
+            return 1;
+        }
+
+        $providers = $this->getPenyediaAsetList();
+        $provider = collect($providers)->firstWhere('key', $this->selected_penyedia_key);
+
+        return $provider ? max(1, $provider['jumlah']) : 1;
     }
     public function getDaftarBarangAsetTersedia()
     {
@@ -355,9 +386,16 @@ class PeminjamanAsetIndex extends Component
             ];
         }
 
+        if ($this->searchPenyedia) {
+            $term = strtolower(trim($this->searchPenyedia));
+            $providers = array_values(array_filter($providers, function ($p) use ($term) {
+                return str_contains(strtolower($p['nama']), $term) ||
+                       str_contains(strtolower($p['kode']), $term);
+            }));
+        }
+
         return $providers;
     }
-
     public function createPinjam(): void
     {
         abort_unless(auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
@@ -403,6 +441,7 @@ class PeminjamanAsetIndex extends Component
             'keperluan',
             'catatan',
         ]);
+        $this->searchPenyedia = '';
         $this->quantity = 1;
         $this->tipe_penyedia = 'RUANGAN';
     }

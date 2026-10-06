@@ -370,6 +370,15 @@
                                 Lokasi Fasilitas Pemilik Aset <span class="text-red-500">*</span>
                             </label>
 
+                            <div class="mb-2.5">
+                                <flux:input
+                                    wire:model.live.debounce.200ms="searchPenyedia"
+                                    placeholder="Cari nama ruangan atau fasilitas penyedia..."
+                                    icon="magnifying-glass"
+                                    size="sm"
+                                />
+                            </div>
+
                             @if (empty($daftarPenyediaAset))
                                 <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300">
                                     Saat ini tidak ada unit ruangan atau fasilitas gudang yang memiliki aset ini dalam kondisi siap pinjam.
@@ -421,7 +430,10 @@
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <flux:field>
                             <flux:label>Jumlah Unit Dipinjam <span class="text-red-500">*</span></flux:label>
-                            <flux:input type="number" min="1" wire:model.live="quantity" required />
+                            <flux:input type="number" min="1" max="{{ $this->maxQuantity }}" wire:model.live="quantity" required />
+                            <flux:description class="text-[11px] text-zinc-500 mt-0.5">
+                                Maksimal {{ $this->maxQuantity }} unit tersedia di fasilitas ini
+                            </flux:description>
                             <flux:error name="quantity" />
                         </flux:field>
 
