@@ -300,4 +300,76 @@ class PeminjamanAsetTest extends TestCase
             ->call('savePinjam')
             ->assertHasErrors(['selected_aset_id']);
     }
+
+    public function test_user_can_borrow_multiple_asset_units_in_single_request(): void
+    {
+        $this->actingAs($this->userPeminjam);
+
+        // Buat 3 unit aset tersedia di Unit Penyedia
+        $asetA = Aset::create([
+            'barang_id' => $this->barangAset->id,
+            'unit_id' => $this->unitPenyedia->id,
+            'kode_aset' => 'AST-QTY-A-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+        $asetB = Aset::create([
+            'barang_id' => $this->barangAset->id,
+            'unit_id' => $this->unitPenyedia->id,
+            'kode_aset' => 'AST-QTY-B-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+        $asetC = Aset::create([
+            'barang_id' => $this->barangAset->id,
+            'unit_id' => $this->unitPenyedia->id,
+            'kode_aset' => 'AST-QTY-C-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        Livewire::test(PeminjamanAsetIndex::class)
+            ->call('createPinjam')
+            ->set('selected_barang_id', $this->barangAset->id)
+            ->call('selectPenyediaKey', "RUANGAN_{$this->unitPenyedia->id}")
+            ->set('quantity', 2)
+            ->set('tanggal_pinjam', now()->toDateString())
+            ->set('tanggal_kembali_rencana', now()->addDays(3)->toDateString())
+            ->set('keperluan', 'Peminjaman 2 unit sekaligus untuk ruang ICU')
+            ->call('savePinjam')
+            ->assertHasNoErrors();
+
+        $latestPinjam = PermintaanPeminjaman::where('unit_id', $this->unitPeminjam->id)->latest('id')->first();
+        $this->assertNotNull($latestPinjam);
+        $this->assertEquals(2, $latestPinjam->detail()->count());
+    }
+
+    public function test_borrow_quantity_cannot_exceed_available_units_at_provider(): void
+    {
+        $this->actingAs($this->userPeminjam);
+
+        // Hanya buat 1 aset
+        Aset::create([
+            'barang_id' => $this->barangAset->id,
+            'unit_id' => $this->unitPenyedia->id,
+            'kode_aset' => 'AST-QTY-ONLY1-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        Livewire::test(PeminjamanAsetIndex::class)
+            ->call('createPinjam')
+            ->set('selected_barang_id', $this->barangAset->id)
+            ->call('selectPenyediaKey', "RUANGAN_{$this->unitPenyedia->id}")
+            ->set('quantity', 99) // melebihi stok tersedia
+            ->set('tanggal_pinjam', now()->toDateString())
+            ->set('tanggal_kembali_rencana', now()->addDays(3)->toDateString())
+            ->set('keperluan', 'Uji coba quantity berlebih')
+            ->call('savePinjam')
+            ->assertHasErrors(['quantity']);
+    }
 }

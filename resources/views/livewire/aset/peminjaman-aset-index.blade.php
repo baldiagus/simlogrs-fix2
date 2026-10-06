@@ -418,7 +418,13 @@
                         Tahap 3: Jadwal dan Keperluan Peminjaman
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <flux:field>
+                            <flux:label>Jumlah Unit Dipinjam <span class="text-red-500">*</span></flux:label>
+                            <flux:input type="number" min="1" wire:model.live="quantity" required />
+                            <flux:error name="quantity" />
+                        </flux:field>
+
                         <flux:field>
                             <flux:label>Tanggal Mulai Pinjam <span class="text-red-500">*</span></flux:label>
                             <flux:input type="date" wire:model="tanggal_pinjam" required />

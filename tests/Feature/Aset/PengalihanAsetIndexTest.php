@@ -179,4 +179,42 @@ class PengalihanAsetIndexTest extends TestCase
             ->call('openCreateModal')
             ->assertDontSee('Terkunci Otomatis');
     }
+
+    public function test_user_can_transfer_multiple_asset_quantities_from_provider(): void
+    {
+        $userPenerima = User::create([
+            'nama' => 'Perawat Penerima Multi Qty',
+            'username' => 'perawat_multi_qty',
+            'email' => 'multi_qty@simlog.test',
+            'password' => bcrypt('password'),
+            'unit_id' => $this->unit2->id,
+            'status' => 'AKTIF',
+        ]);
+        $userPenerima->givePermissionTo(['view_any_layanan_unit::pengalihan::aset', 'create_layanan_unit::pengalihan::aset']);
+
+        // Buat 2 aset lagi di Unit 1
+        Aset::create([
+            'barang_id' => $this->aset->barang_id,
+            'unit_id' => $this->unit1->id,
+            'kode_aset' => 'AST-QTY-TRF-2',
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        $this->actingAs($userPenerima);
+
+        Livewire::test(PengalihanAsetIndex::class)
+            ->call('openCreateModal')
+            ->set('selected_barang_id', $this->aset->barang_id)
+            ->set('selected_penyedia_key', "RUANGAN_{$this->unit1->id}")
+            ->set('quantity', 2)
+            ->set('alasan', 'Permohonan mutasi 2 unit monitor')
+            ->call('submitPengalihan')
+            ->assertHasNoErrors();
+
+        $latestTrf = PengalihanAset::where('unit_tujuan_id', $this->unit2->id)->latest('id')->first();
+        $this->assertNotNull($latestTrf);
+        $this->assertEquals(2, $latestTrf->detail()->count());
+    }
 }

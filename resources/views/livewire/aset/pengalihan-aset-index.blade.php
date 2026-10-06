@@ -346,7 +346,7 @@
                         Tahap 3: Lokasi Tujuan & Keperluan Pengalihan
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {{-- Lokasi Tujuan Penerima --}}
                         <div>
                             <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
@@ -384,6 +384,15 @@
                                     </flux:select>
                                 @endif
                             @endif
+                        </div>
+
+                        {{-- Jumlah Unit yang Dialihkan --}}
+                        <div>
+                            <flux:field>
+                                <flux:label>Jumlah Unit Dialihkan <span class="text-red-500">*</span></flux:label>
+                                <flux:input type="number" min="1" wire:model.live="quantity" required />
+                                <flux:error name="quantity" />
+                            </flux:field>
                         </div>
 
                         {{-- Tanggal Pengalihan (TANPA TANGGAL KEMBALI) --}}

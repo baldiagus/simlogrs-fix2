@@ -39,7 +39,7 @@ class PengalihanAsetIndex extends Component
     public ?int $selected_barang_id = null;
     public ?string $selected_penyedia_key = null;
     public ?int $selected_aset_id = null;
-
+    public int $quantity = 1;
     public string $tipe_asal = 'RUANGAN';
     public ?int $unit_asal_id = null;
     public ?int $gudang_asal_id = null;
@@ -106,11 +106,11 @@ class PengalihanAsetIndex extends Component
         $this->selected_barang_id = null;
         $this->selected_penyedia_key = null;
         $this->selected_aset_id = null;
+        $this->quantity = 1;
         $this->selected_aset_ids = [];
         $this->searchAsetModal = '';
         $this->alasan = '';
         $this->catatan = '';
-
         // Default lokasi tujuan adalah ruangan / gudang milik pengguna login
         if ($user?->unit_id) {
             $this->tipe_tujuan = 'RUANGAN';
@@ -129,6 +129,7 @@ class PengalihanAsetIndex extends Component
     {
         $this->selected_penyedia_key = null;
         $this->selected_aset_id = null;
+        $this->quantity = 1;
         $this->selected_aset_ids = [];
     }
 
@@ -151,11 +152,24 @@ class PengalihanAsetIndex extends Component
                 $this->gudang_asal_id = $provider['id'];
                 $this->unit_asal_id = null;
             }
-            $this->selected_aset_ids = $provider['aset_ids'];
+            $this->selected_aset_ids = array_slice($provider['aset_ids'], 0, max(1, (int) $this->quantity));
             $this->selected_aset_id = $provider['aset_ids'][0] ?? null;
         } else {
             $this->selected_aset_ids = [];
             $this->selected_aset_id = null;
+        }
+    }
+
+    public function updatedQuantity(): void
+    {
+        if ($this->selected_penyedia_key) {
+            $providers = $this->getPenyediaAsetList();
+            $provider = collect($providers)->firstWhere('key', $this->selected_penyedia_key);
+            if ($provider) {
+                $max = count($provider['aset_ids']);
+                $qty = max(1, min((int) $this->quantity, $max));
+                $this->selected_aset_ids = array_slice($provider['aset_ids'], 0, $qty);
+            }
         }
     }
 
@@ -291,7 +305,32 @@ class PengalihanAsetIndex extends Component
 
         // Jika menggunakan alur pemilihan penyedia aset (seperti peminjaman aset)
         if ($this->selected_penyedia_key) {
-            $this->updatedSelectedPenyediaKey();
+            $providers = $this->getPenyediaAsetList();
+            $provider = collect($providers)->firstWhere('key', $this->selected_penyedia_key);
+            if (! $provider) {
+                $this->addError('selected_penyedia_key', 'Lokasi penyedia aset tidak valid.');
+                return;
+            }
+
+            $maxAvailable = count($provider['aset_ids']);
+            $this->validate([
+                'quantity' => "required|integer|min:1|max:{$maxAvailable}",
+            ], [
+                'quantity.required' => 'Jumlah unit aset yang dialihkan wajib diisi.',
+                'quantity.min'      => 'Jumlah unit minimal 1 unit.',
+                'quantity.max'      => "Jumlah unit melebihi stok tersedia (maksimal {$maxAvailable} unit).",
+            ]);
+
+            $this->selected_aset_ids = array_slice($provider['aset_ids'], 0, (int) $this->quantity);
+            $this->tipe_asal = $provider['tipe'];
+            if ($provider['tipe'] === 'RUANGAN') {
+                $this->unit_asal_id = $provider['id'];
+                $this->gudang_asal_id = null;
+            } else {
+                $this->gudang_asal_id = $provider['id'];
+                $this->unit_asal_id = null;
+            }
+
             if (! $isGlobalAdmin) {
                 if ($user?->unit_id) {
                     $this->tipe_tujuan = 'RUANGAN';

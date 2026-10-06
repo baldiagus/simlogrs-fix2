@@ -45,6 +45,7 @@ class PeminjamanAsetIndex extends Component
     public ?int $unit_penyedia_id = null;
     public ?int $gudang_penyedia_id = null;
     public ?int $selected_aset_id = null;
+    public int $quantity = 1;
     public string $tanggal_pinjam = '';
     public string $tanggal_kembali_rencana = '';
     public string $keperluan = '';
@@ -402,6 +403,7 @@ class PeminjamanAsetIndex extends Component
             'keperluan',
             'catatan',
         ]);
+        $this->quantity = 1;
         $this->tipe_penyedia = 'RUANGAN';
     }
 
@@ -419,7 +421,6 @@ class PeminjamanAsetIndex extends Component
         $rules = [
             'selected_barang_id'      => ['required', Rule::exists('barang', 'id')->where('status', 'AKTIF')],
             'selected_penyedia_key'   => 'required|string',
-            'selected_aset_id'        => 'required|exists:aset,id',
             'tanggal_pinjam'          => 'required|date',
             'tanggal_kembali_rencana' => 'required|date|after_or_equal:tanggal_pinjam',
             'keperluan'               => 'required|string|max:1000',
@@ -429,7 +430,6 @@ class PeminjamanAsetIndex extends Component
         $messages = [
             'selected_barang_id.required'            => 'Aset inventaris wajib dipilih.',
             'selected_penyedia_key.required'         => 'Lokasi unit atau gudang penyedia wajib dipilih.',
-            'selected_aset_id.required'              => 'Fisik aset tidak ditemukan pada lokasi penyedia.',
             'tanggal_pinjam.required'                => 'Tanggal pinjam wajib diisi.',
             'tanggal_kembali_rencana.required'       => 'Tanggal rencana pengembalian wajib diisi.',
             'tanggal_kembali_rencana.after_or_equal' => 'Tanggal rencana kembali tidak boleh sebelum tanggal pinjam.',
@@ -438,21 +438,43 @@ class PeminjamanAsetIndex extends Component
 
         $this->validate($rules, $messages);
 
-        $query = Aset::where('id', $this->selected_aset_id)
+        // Query seluruh aset yang tersedia di lokasi penyedia
+        $assetsQuery = Aset::where('barang_id', $this->selected_barang_id)
             ->where('status', 'TERSEDIA')
             ->where('kondisi', 'BAIK')
-            ->whereHas('barang', fn ($b) => $b->where('status', 'AKTIF'));
+            ->whereHas('barang', fn ($b) => $b->where('status', 'AKTIF'))
+            ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
+                $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+            })
+            ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
+            });
 
         if ($this->tipe_penyedia === 'RUANGAN') {
-            $query->where('unit_id', $this->unit_penyedia_id)
+            $assetsQuery->where('unit_id', $this->unit_penyedia_id)
                 ->whereHas('unit', fn ($u) => $u->where('status', 'AKTIF'));
         } else {
-            $query->where('gudang_id', $this->gudang_penyedia_id)
+            $assetsQuery->where('gudang_id', $this->gudang_penyedia_id)
                 ->whereHas('gudang', fn ($g) => $g->where('status', 'AKTIF'));
         }
 
-        $aset = $query->first();
-        if (! $aset) {
+        $availableCount = $assetsQuery->count();
+        if ($availableCount === 0) {
+            $this->addError('selected_penyedia_key', 'Tidak ada aset yang tersedia pada lokasi penyedia.');
+            $this->addError('selected_aset_id', 'Aset tidak tersedia atau sedang dalam perbaikan.');
+            return;
+        }
+
+        $this->validate([
+            'quantity' => "required|integer|min:1|max:{$availableCount}",
+        ], [
+            'quantity.required' => 'Jumlah unit peminjaman wajib diisi.',
+            'quantity.min'      => 'Jumlah unit minimal 1 unit.',
+            'quantity.max'      => "Jumlah unit melebihi stok tersedia (maksimal {$availableCount} unit).",
+        ]);
+
+        $allocatedAssets = $assetsQuery->take($this->quantity)->get();
+        if ($allocatedAssets->isEmpty()) {
             $this->addError('selected_aset_id', 'Aset yang dipilih tidak tersedia atau tidak berada pada lokasi penyedia.');
             return;
         }
@@ -481,7 +503,7 @@ class PeminjamanAsetIndex extends Component
 
         $kode = CodeGenerator::generate('PINJ', PermintaanPeminjaman::class, 'kode', 'Y', 3);
 
-        DB::transaction(function () use ($kode, $unitPeminjamId, $user, $aset) {
+        DB::transaction(function () use ($kode, $unitPeminjamId, $user, $allocatedAssets) {
             $pinjam = PermintaanPeminjaman::create([
                 'kode'                    => $kode,
                 'tipe_penyedia'           => $this->tipe_penyedia,
@@ -496,12 +518,14 @@ class PeminjamanAsetIndex extends Component
                 'catatan'                 => $this->catatan ?: null,
             ]);
 
-            PermintaanPeminjamanDetail::create([
-                'permintaan_peminjaman_id' => $pinjam->id,
-                'aset_id'                  => $aset->id,
-                'kondisi_saat_pinjam'      => $aset->kondisi,
-                'catatan'                  => $this->catatan ?: null,
-            ]);
+            foreach ($allocatedAssets as $ast) {
+                PermintaanPeminjamanDetail::create([
+                    'permintaan_peminjaman_id' => $pinjam->id,
+                    'aset_id'                  => $ast->id,
+                    'kondisi_saat_pinjam'      => $ast->kondisi,
+                    'catatan'                  => $this->catatan ?: null,
+                ]);
+            }
         });
 
         $this->showPinjamModal = false;
