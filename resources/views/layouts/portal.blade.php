@@ -96,7 +96,11 @@
         $isSirkulasiActive = request()->is(
             '*/peminjaman-aset*',
             '*/approval-peminjaman*',
-            '*/pengembalian-aset*',
+            '*/pengembalian-aset*'
+        );
+
+        $isPengalihanActive = request()->is(
+            '*/pengalihan-barang*',
             '*/pengalihan-aset*'
         );
 
@@ -285,7 +289,7 @@
                 </flux:sidebar.group>
             @endif
 
-            @if ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_any_layanan_unit::approval::peminjaman') || $user->can('view_any_layanan_unit::pengembalian::aset') || $user->can('view_any_layanan_unit::pengalihan::aset') || $user->hasRole(['super_admin', 'admin_logistik']))
+            @if ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_any_layanan_unit::approval::peminjaman') || $user->can('view_any_layanan_unit::pengembalian::aset'))
                 <flux:sidebar.group expandable :expanded="$isSirkulasiActive || $user->hasRole(['super_admin', 'admin_logistik'])" heading="Sirkulasi Aset" class="grid">
                     @if ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_any_layanan_unit::approval::peminjaman'))
                         @php
@@ -305,11 +309,22 @@
                             Pengembalian & Inspeksi
                         </flux:sidebar.item>
                     @endcan
-                    @if ($user->can('view_any_layanan_unit::pengalihan::aset') || $user->can('page_PengalihanAsetIndex') || $user->hasRole(['super_admin', 'admin_logistik']))
-                        <flux:sidebar.item icon="arrows-right-left" href="/{{ $portalKey }}/pengalihan-aset" wire:navigate :current="request()->is('*/pengalihan-aset*')">
-                            Pengalihan & Mutasi
+                </flux:sidebar.group>
+            @endif
+
+            {{-- Modul Mandiri: Pengalihan & Mutasi --}}
+            @if ($user->can('view_any_pengalihan::barang') || $user->can('view_any_layanan_unit::pengalihan::aset') || $user->can('view_any_pengalihan::aset') || $user->can('page_PengalihanAsetIndex') || $user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang', 'petugas_gudang', 'kepala_unit', 'petugas_unit']))
+                <flux:sidebar.group expandable :expanded="$isPengalihanActive || $user->hasRole(['super_admin', 'admin_logistik'])" heading="Pengalihan & Mutasi" class="grid">
+                    {{-- Gudang dapat melakukan pengalihan barang dan aset; Unit hanya aset --}}
+                    @if ($user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang', 'petugas_gudang']) || $user->can('page_Dashboard') || $user->can('view_any_pengalihan::barang'))
+                        <flux:sidebar.item icon="cube" href="/{{ $portalKey }}/pengalihan-barang" wire:navigate :current="request()->is('*/pengalihan-barang*')">
+                            Pengalihan Barang
                         </flux:sidebar.item>
                     @endif
+
+                    <flux:sidebar.item icon="computer-desktop" href="/{{ $portalKey }}/pengalihan-aset" wire:navigate :current="request()->is('*/pengalihan-aset*')">
+                        Pengalihan Aset
+                    </flux:sidebar.item>
                 </flux:sidebar.group>
             @endif
 

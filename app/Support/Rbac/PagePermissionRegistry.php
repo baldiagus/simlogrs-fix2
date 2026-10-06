@@ -75,6 +75,7 @@ class PagePermissionRegistry
                     'gudang_stok::distribusi::approval' => ['label' => 'Otorisasi Distribusi (Admin Logistik)', 'entity' => 'gudang_stok::distribusi::approval', 'page' => 'page_DistribusiApprovalIndex'],
                     'gudang_stok::picking::distribusi' => ['label' => 'Picking FEFO & SPPB', 'entity' => 'gudang_stok::picking::distribusi', 'page' => 'page_PickingDistribusiIndex'],
                     'gudang_stok::penerimaan::po' => ['label' => 'Penerimaan Inbound Vendor (PO)', 'entity' => 'gudang_stok::penerimaan::po', 'page' => 'page_PenerimaanPoIndex'],
+                    'gudang_stok::pengalihan::barang' => ['label' => 'Pengalihan & Mutasi Barang', 'entity' => 'gudang_stok::pengalihan::barang', 'page' => 'page_PengalihanBarangIndex'],
                 ],
             ],
 

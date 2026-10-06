@@ -1,0 +1,201 @@
+<?php
+
+namespace Tests\Feature\Persediaan;
+
+use App\Models\Barang;
+use App\Models\Gudang;
+use App\Models\LokasiGudang;
+use App\Models\PengalihanBarang;
+use App\Models\PergerakanStok;
+use App\Models\StokBatch;
+use App\Models\StokRuangan;
+use App\Models\Unit;
+use App\Models\User;
+use App\Services\Persediaan\PengalihanBarangService;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Tests\TestCase;
+
+class PengalihanBarangServiceTest extends TestCase
+{
+    use DatabaseTransactions;
+
+    protected User $userPetugas;
+    protected User $userKaru;
+    protected Gudang $gudangAsal;
+    protected Gudang $gudangTujuan;
+    protected Unit $unitTujuan;
+    protected Unit $unitAsal;
+    protected Barang $barangBhp;
+    protected StokBatch $batchAsal;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $gudangs = Gudang::where('status', 'AKTIF')->take(2)->get();
+        $this->gudangAsal = $gudangs[0];
+        $this->gudangTujuan = $gudangs[1] ?? Gudang::create(['kode' => 'GDG-DST', 'nama' => 'Gudang Destinasi', 'status' => 'AKTIF']);
+
+        $units = Unit::where('status', 'AKTIF')->take(2)->get();
+        $this->unitAsal = $units[0];
+        $this->unitTujuan = $units[1];
+
+        $this->userPetugas = User::create([
+            'nama' => 'Petugas Gudang TF',
+            'username' => 'petugas_tf_brg',
+            'email' => 'petugas_tf_brg@simlog.test',
+            'password' => bcrypt('password'),
+            'gudang_id' => $this->gudangAsal->id,
+            'status' => 'AKTIF',
+        ]);
+
+        $this->userKaru = User::create([
+            'nama' => 'Karu Penerima TF',
+            'username' => 'karu_tf_brg',
+            'email' => 'karu_tf_brg@simlog.test',
+            'password' => bcrypt('password'),
+            'unit_id' => $this->unitTujuan->id,
+            'status' => 'AKTIF',
+        ]);
+
+        $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'BOX-TF'], ['nama' => 'Box', 'status' => 'AKTIF'])->id;
+        $kategoriId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-BHP-TF'], ['nama' => 'Kategori BHP', 'status' => 'AKTIF'])->id;
+        $this->barangBhp = Barang::firstOrCreate(
+            ['kode' => 'BRG-BHP-TF-01'],
+            [
+                'nama' => 'Spuit 3cc Disposable TF',
+                'tipe' => 'HABIS_PAKAI',
+                'satuan_id' => $satuanId,
+                'kategori_id' => $kategoriId,
+                'status' => 'AKTIF',
+            ]
+        );
+
+        $lokasiAsal = LokasiGudang::firstOrCreate(
+            ['gudang_id' => $this->gudangAsal->id, 'kode' => 'RAK-BHP-01'],
+            ['nama' => 'Rak BHP Asal', 'status' => 'AKTIF']
+        );
+
+        $this->batchAsal = StokBatch::create([
+            'barang_id' => $this->barangBhp->id,
+            'gudang_id' => $this->gudangAsal->id,
+            'lokasi_gudang_id' => $lokasiAsal->id,
+            'nomor_batch' => 'BATCH-TF-001',
+            'tanggal_kedaluwarsa' => now()->addYear()->toDateString(),
+            'jumlah' => 100,
+            'status' => 'AKTIF',
+        ]);
+    }
+
+    public function test_submitting_goods_transfer_from_warehouse_locks_batch_stock(): void
+    {
+        $service = app(PengalihanBarangService::class);
+
+        $transfer = $service->ajukanPengalihan([
+            'tipe_asal' => 'GUDANG',
+            'gudang_asal_id' => $this->gudangAsal->id,
+            'tipe_tujuan' => 'RUANGAN',
+            'unit_tujuan_id' => $this->unitTujuan->id,
+            'tanggal_pengalihan' => now()->toDateString(),
+            'alasan' => 'Drop stok darurat ruang ICU',
+            'diajukan_oleh' => $this->userPetugas->id,
+            'items' => [
+                [
+                    'barang_id' => $this->barangBhp->id,
+                    'stok_batch_id' => $this->batchAsal->id,
+                    'jumlah' => 20,
+                    'catatan' => '20 Box',
+                ],
+            ],
+        ]);
+
+        $this->assertInstanceOf(PengalihanBarang::class, $transfer);
+        $this->assertEquals('DIAJUKAN', $transfer->status);
+        $this->assertCount(1, $transfer->detail);
+
+        $this->batchAsal->refresh();
+        $this->assertEquals(80, $this->batchAsal->jumlah);
+    }
+
+    public function test_executing_receipt_to_room_increments_room_inventory_and_logs_stock_movement(): void
+    {
+        $service = app(PengalihanBarangService::class);
+
+        $transfer = $service->ajukanPengalihan([
+            'tipe_asal' => 'GUDANG',
+            'gudang_asal_id' => $this->gudangAsal->id,
+            'tipe_tujuan' => 'RUANGAN',
+            'unit_tujuan_id' => $this->unitTujuan->id,
+            'tanggal_pengalihan' => now()->toDateString(),
+            'alasan' => 'Drop stok darurat ruang ICU',
+            'diajukan_oleh' => $this->userPetugas->id,
+            'items' => [
+                [
+                    'barang_id' => $this->barangBhp->id,
+                    'stok_batch_id' => $this->batchAsal->id,
+                    'jumlah' => 30,
+                ],
+            ],
+        ]);
+
+        $service->setujuiPengalihan($transfer->id, $this->userPetugas->id);
+        $service->eksekusiSerahTerima($transfer->id, $this->userKaru->id);
+
+        $transfer->refresh();
+        $this->assertEquals('SELESAI', $transfer->status);
+
+        // 1. Verifikasi stok ruangan bertambah (Muncul di Persediaan Lokal Ruangan)
+        $stokRuangan = StokRuangan::where('unit_id', $this->unitTujuan->id)
+            ->where('barang_id', $this->barangBhp->id)
+            ->first();
+
+        $this->assertNotNull($stokRuangan);
+        $this->assertEquals(30, $stokRuangan->jumlah);
+
+        // 2. Verifikasi riwayat mutasi kartu stok tercatat
+        $pergerakan = PergerakanStok::where('referensi_jenis', 'PENGALIHAN_BARANG')
+            ->where('referensi_id', $transfer->id)
+            ->first();
+
+        $this->assertNotNull($pergerakan);
+        $this->assertEquals(30, $pergerakan->jumlah);
+        $this->assertEquals('TRANSFER', $pergerakan->jenis);
+    }
+
+    public function test_executing_receipt_between_warehouses_creates_or_increments_destination_batch(): void
+    {
+        $service = app(PengalihanBarangService::class);
+
+        $transfer = $service->ajukanPengalihan([
+            'tipe_asal' => 'GUDANG',
+            'gudang_asal_id' => $this->gudangAsal->id,
+            'tipe_tujuan' => 'GUDANG',
+            'gudang_tujuan_id' => $this->gudangTujuan->id,
+            'tanggal_pengalihan' => now()->toDateString(),
+            'alasan' => 'Pemerataan persediaan logistik',
+            'diajukan_oleh' => $this->userPetugas->id,
+            'items' => [
+                [
+                    'barang_id' => $this->barangBhp->id,
+                    'stok_batch_id' => $this->batchAsal->id,
+                    'jumlah' => 25,
+                ],
+            ],
+        ]);
+
+        $service->setujuiPengalihan($transfer->id, $this->userPetugas->id);
+        $service->eksekusiSerahTerima($transfer->id, $this->userPetugas->id);
+
+        $transfer->refresh();
+        $this->assertEquals('SELESAI', $transfer->status);
+
+        // Verifikasi batch bertambah di gudang tujuan
+        $batchTujuan = StokBatch::where('gudang_id', $this->gudangTujuan->id)
+            ->where('barang_id', $this->barangBhp->id)
+            ->where('nomor_batch', $this->batchAsal->nomor_batch)
+            ->first();
+
+        $this->assertNotNull($batchTujuan);
+        $this->assertEquals(25, $batchTujuan->jumlah);
+    }
+}

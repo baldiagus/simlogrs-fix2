@@ -39,6 +39,7 @@ use App\Livewire\Aset\PeminjamanAsetIndex;
 use App\Livewire\Aset\ApprovalPeminjamanIndex;
 use App\Livewire\Aset\PengembalianPeminjamanIndex;
 use App\Livewire\Aset\PengalihanAsetIndex;
+use App\Livewire\Persediaan\PengalihanBarangIndex;
 use App\Livewire\Ipsrs\LaporServisIndex;
 use App\Livewire\Ipsrs\DaftarSpkPerbaikanIndex;
 use App\Livewire\Ipsrs\LembarKerjaPengerjaanIndex;
@@ -136,6 +137,7 @@ foreach ($portals as $portalKey => $dashboardClass) {
             Route::get('/pengembalian-aset', PengembalianPeminjamanIndex::class)->name('pengembalian-aset');
 
             Route::get('/pengalihan-aset', PengalihanAsetIndex::class)->name('pengalihan-aset');
+            Route::get('/pengalihan-barang', PengalihanBarangIndex::class)->name('pengalihan-barang');
             // Siklus Pemeliharaan Sarana & IPSRS (Grup 7)
             Route::get('/lapor-servis', LaporServisIndex::class)->name('lapor-servis');
             Route::get('/spk', DaftarSpkPerbaikanIndex::class)->name('spk');

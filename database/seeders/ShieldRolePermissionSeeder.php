@@ -106,6 +106,7 @@ class ShieldRolePermissionSeeder extends Seeder
             '%_gudang_stok::penerimaan::po%',
             '%_gudang_stok::stok::opname%',
             '%_gudang_stok::tata::letak::rak%',
+            '%_gudang_stok::pengalihan::barang%',
             'view_any_gudang_stok::monitoring::fefo',
             'view_gudang_stok::monitoring::fefo',
             'view_any_gudang_stok::buku::mutasi',

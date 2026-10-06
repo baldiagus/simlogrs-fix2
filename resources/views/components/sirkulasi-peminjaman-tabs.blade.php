@@ -6,7 +6,6 @@
 
     $canPinjam = $user?->can('view_any_layanan_unit::peminjaman::aset');
     $canApproval = $user?->can('view_any_layanan_unit::approval::peminjaman');
-    $canPengalihan = $user?->can('view_any_layanan_unit::pengalihan::aset') || $user?->can('page_PengalihanAsetIndex') || $user?->hasRole(['super_admin', 'admin_logistik']);
 
     $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
 
@@ -18,7 +17,7 @@
             ->count();
     }
 
-    $totalTabs = ($canPinjam ? 1 : 0) + ($canApproval ? 1 : 0) + ($canPengalihan ? 1 : 0);
+    $totalTabs = ($canPinjam ? 1 : 0) + ($canApproval ? 1 : 0);
 @endphp
 
 @if ($totalTabs > 1)
@@ -47,16 +46,6 @@
                         {{ $pendingApprovalCount }}
                     </span>
                 @endif
-            </a>
-        @endif
-        @if ($canPengalihan)
-            <a
-                href="/{{ $portalKey }}/pengalihan-aset"
-                wire:navigate
-                class="px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 {{ $active === 'pengalihan' ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
-            >
-                <flux:icon name="arrows-right-left" class="size-3.5" />
-                <span>Pengalihan & Mutasi</span>
             </a>
         @endif
     </div>

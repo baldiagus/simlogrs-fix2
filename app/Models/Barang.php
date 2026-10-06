@@ -59,4 +59,9 @@ class Barang extends BaseModel
     {
         return $this->hasMany(StokRuangan::class, 'barang_id');
     }
+
+    public function pengalihanBarangDetail(): HasMany
+    {
+        return $this->hasMany(PengalihanBarangDetail::class, 'barang_id');
+    }
 }
