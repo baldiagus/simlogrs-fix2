@@ -92,39 +92,32 @@
 
             <div class="flex items-center gap-2">
                 @if ($activeTab === 'aktif')
-                    <flux:select wire:model.live="filterStatus" size="sm" class="w-36">
+                    <flux:select wire:model.live="filterStatus" size="sm" class="w-44">
                         <option value="">Semua Status</option>
                         <option value="DIAJUKAN">DIAJUKAN</option>
                         <option value="DISETUJUI">DISETUJUI</option>
                     </flux:select>
                 @else
-                    <flux:select wire:model.live="filterStatus" size="sm" class="w-36">
+                    <flux:select wire:model.live="filterStatus" size="sm" class="w-44">
                         <option value="">Semua Status</option>
                         <option value="SELESAI">SELESAI</option>
                         <option value="DITOLAK">DITOLAK</option>
                         <option value="DIBATALKAN">DIBATALKAN</option>
                     </flux:select>
                 @endif
-
-                <flux:select wire:model.live="perPage" size="sm" class="w-24">
-                    <option value="10">10 / hal</option>
-                    <option value="25">25 / hal</option>
-                    <option value="50">50 / hal</option>
-                </flux:select>
             </div>
         </div>
 
         {{-- Table Pengalihan --}}
         <flux:table bleed container:class="mt-4">
-            <flux:table.columns>
-                <flux:table.column class="w-12">#</flux:table.column>
-                <flux:table.column>Dokumen & Tgl</flux:table.column>
-                <flux:table.column>Asal &rarr; Tujuan</flux:table.column>
-                <flux:table.column>Daftar Aset Fisik</flux:table.column>
-                <flux:table.column>Status</flux:table.column>
-                <flux:table.column class="text-right">Aksi</flux:table.column>
+            <flux:table.columns sticky>
+                <flux:table.column class="w-12 text-zinc-500 font-mono text-xs">#</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-40 font-mono">Kode Dokumen</flux:table.column>
+                <flux:table.column class="w-60">Asal &rarr; Tujuan</flux:table.column>
+                <flux:table.column class="w-60">Daftar Aset Fisik</flux:table.column>
+                <flux:table.column sortable :sorted="$sortBy === 'status'" :direction="$sortDirection" wire:click="sort('status')" class="text-center w-28">Status</flux:table.column>
+                <flux:table.column class="text-right w-20">Aksi</flux:table.column>
             </flux:table.columns>
-
             <flux:table.rows>
                 @forelse ($items as $idx => $row)
                     <flux:table.row :key="'trf-row-'.$row->id">
@@ -168,24 +161,13 @@
                             <div class="text-[11px] text-zinc-500 truncate max-w-xs mt-0.5">
                                 {{ $row->detail->map(fn($d) => ($d->aset?->barang?->nama ?? 'Aset') . ' (' . ($d->aset?->kode_aset ?? '-') . ')')->take(2)->implode(', ') }}
                                 @if ($row->detail->count() > 2)
-                                    <span class="text-zinc-400">+{{ $row->detail->count() - 2 }} lainnya</span>
+                                    <span class="text-zinc-400"> +{{ $row->detail->count() - 2 }} lainnya</span>
                                 @endif
                             </div>
                         </flux:table.cell>
 
-                        <flux:table.cell>
-                            @php
-                                $badgeColor = match($row->status) {
-                                    'DIAJUKAN' => 'amber',
-                                    'DISETUJUI' => 'blue',
-                                    'SELESAI' => 'emerald',
-                                    'DITOLAK' => 'red',
-                                    default => 'zinc',
-                                };
-                            @endphp
-                            <flux:badge size="sm" :color="$badgeColor" inset="top bottom">
-                                {{ $row->status }}
-                            </flux:badge>
+                        <flux:table.cell class="text-center">
+                            <x-status-badge :status="$row->status" />
                         </flux:table.cell>
 
                         <flux:table.cell class="text-right">
@@ -227,11 +209,28 @@
                     </flux:table.row>
                 @empty
                     <flux:table.row>
-                        <flux:table.cell colspan="6" class="text-center py-10 text-zinc-500">
-                            <flux:icon name="archive-box" class="size-8 mx-auto text-zinc-300 dark:text-zinc-600 mb-2" />
-                            <div class="font-medium text-sm">Tidak ada data pengalihan aset</div>
-                            <div class="text-xs text-zinc-400 mt-0.5">
-                                {{ $activeTab === 'aktif' ? 'Tidak ada permohonan yang sedang berjalan.' : 'Belum ada arsip histori mutasi.' }}
+                        <flux:table.cell colspan="6" class="text-center py-12 text-zinc-500">
+                            <div class="flex flex-col items-center justify-center space-y-2">
+                                <div class="p-3 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400">
+                                    <flux:icon name="arrows-right-left" class="size-6" />
+                                </div>
+                                <div class="font-medium text-sm text-zinc-800 dark:text-zinc-200">
+                                    {{ $activeTab === 'aktif' ? 'Belum Ada Pengalihan Aktif' : 'Arsip Mutasi Masih Kosong' }}
+                                </div>
+                                <div class="text-xs text-zinc-500 max-w-sm">
+                                    {{ $activeTab === 'aktif'
+                                        ? 'Tidak ada permohonan pengalihan aset yang sedang menunggu proses atau serah terima.'
+                                        : 'Belum ada riwayat mutasi kepemilikan aset yang telah rampung atau dibatalkan.' }}
+                                </div>
+                                @if ($activeTab === 'aktif')
+                                    @can('create_layanan_unit::pengalihan::aset')
+                                        <div class="pt-2">
+                                            <flux:button size="sm" variant="primary" icon="plus" wire:click="openCreateModal">
+                                                Ajukan Pengalihan Sekarang
+                                            </flux:button>
+                                        </div>
+                                    @endcan
+                                @endif
                             </div>
                         </flux:table.cell>
                     </flux:table.row>

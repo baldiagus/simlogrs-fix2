@@ -376,7 +376,7 @@ class PengalihanAsetIndex extends Component
             });
         }
 
-        $items = $query->orderBy('id', 'desc')->paginate($this->perPage);
+        $items = $query->orderBy($this->getValidatedSortColumn(['kode', 'status', 'tanggal_pengalihan']), $this->getValidatedSortDirection())->paginate($this->perPage);
 
         // Metrik KPI
         $kpiBerjalan = PengalihanAset::whereIn('status', ['DIAJUKAN', 'DISETUJUI'])->count();
