@@ -115,90 +115,68 @@ class PengalihanAsetIndexTest extends TestCase
             ->assertSee('SELESAI');
     }
 
-    public function test_origin_is_locked_to_authenticated_user_room_and_only_shows_room_assets(): void
+    public function test_modal_lists_available_asset_commodities_and_shows_provider_cards(): void
     {
-        $userUnit = User::create([
-            'nama' => 'Perawat Ruangan 1',
-            'username' => 'perawat_r1',
-            'email' => 'perawat_r1@simlog.test',
+        $userPenerima = User::create([
+            'nama' => 'Perawat Penerima Unit 2',
+            'username' => 'perawat_u2',
+            'email' => 'perawat_u2@simlog.test',
             'password' => bcrypt('password'),
-            'unit_id' => $this->unit1->id,
+            'unit_id' => $this->unit2->id,
             'status' => 'AKTIF',
         ]);
-        $userUnit->givePermissionTo(['view_any_layanan_unit::pengalihan::aset', 'create_layanan_unit::pengalihan::aset']);
+        $userPenerima->givePermissionTo(['view_any_layanan_unit::pengalihan::aset', 'create_layanan_unit::pengalihan::aset']);
 
-        $this->actingAs($userUnit);
-
-        // Aset di unit lain (unit2) tidak boleh muncul
-        $asetUnitLain = Aset::create([
-            'barang_id' => $this->aset->barang_id,
-            'unit_id' => $this->unit2->id,
-            'kode_aset' => 'AST-U2-' . uniqid(),
-            'tanggal_perolehan' => now()->toDateString(),
-            'status' => 'TERSEDIA',
-            'kondisi' => 'BAIK',
-        ]);
+        $this->actingAs($userPenerima);
 
         Livewire::test(PengalihanAsetIndex::class)
             ->call('openCreateModal')
-            ->assertSet('tipe_asal', 'RUANGAN')
-            ->assertSet('unit_asal_id', $this->unit1->id)
+            ->set('selected_barang_id', $this->aset->barang_id)
+            ->assertSee($this->unit1->nama) // Unit 1 memiliki aset ini
             ->assertSee($this->aset->kode_aset)
-            ->assertDontSee($asetUnitLain->kode_aset)
-            ->assertSee('Terkunci Otomatis');
+            ->assertDontSee('Terkunci Otomatis');
     }
 
-    public function test_user_cannot_tamper_origin_location_on_submit(): void
+    public function test_submitting_transfer_from_selected_provider_without_return_date(): void
     {
-        $userUnit = User::create([
-            'nama' => 'Perawat Ruangan 1 Tamper',
-            'username' => 'perawat_r1_tamper',
-            'email' => 'tamper@simlog.test',
+        $userPenerima = User::create([
+            'nama' => 'Perawat Penerima Unit 2 Submit',
+            'username' => 'perawat_u2_sub',
+            'email' => 'perawat_u2_sub@simlog.test',
             'password' => bcrypt('password'),
-            'unit_id' => $this->unit1->id,
+            'unit_id' => $this->unit2->id,
             'status' => 'AKTIF',
         ]);
-        $userUnit->givePermissionTo(['view_any_layanan_unit::pengalihan::aset', 'create_layanan_unit::pengalihan::aset']);
+        $userPenerima->givePermissionTo(['view_any_layanan_unit::pengalihan::aset', 'create_layanan_unit::pengalihan::aset']);
 
-        $this->actingAs($userUnit);
+        $this->actingAs($userPenerima);
 
         Livewire::test(PengalihanAsetIndex::class)
             ->call('openCreateModal')
-            ->set('unit_asal_id', $this->unit2->id) // Percobaan manipulasi unit asal
-            ->set('tipe_tujuan', 'RUANGAN')
-            ->set('unit_tujuan_id', $this->unit2->id)
-            ->set('selected_aset_ids', [$this->aset->id])
-            ->set('alasan', 'Percobaan pengalihan manipulasi unit')
+            ->set('selected_barang_id', $this->aset->barang_id)
+            ->set('selected_penyedia_key', "RUANGAN_{$this->unit1->id}")
+            ->set('alasan', 'Permohonan pengalihan alat monitor ke ruang ICU')
             ->call('submitPengalihan')
             ->assertHasNoErrors();
 
-        // Dokumen yang terbit di DB HARUS tetap unit_asal_id milik akun login (unit1)
+        // Asal adalah Unit 1 (penyedia alat), Tujuan adalah Unit 2 (unit pemohon)
         $this->assertDatabaseHas('pengalihan_aset', [
             'unit_asal_id' => $this->unit1->id,
-            'diajukan_oleh' => $userUnit->id,
+            'unit_tujuan_id' => $this->unit2->id,
+            'status' => 'DIAJUKAN',
+            'diajukan_oleh' => $userPenerima->id,
         ]);
+
+        $this->aset->refresh();
+        $this->assertEquals('DALAM_PENGALIHAN', $this->aset->status);
     }
 
-    public function test_modal_asset_search_filters_displayed_assets(): void
+    public function test_modal_ui_does_not_render_terkunci_otomatis_badge(): void
     {
         $this->actingAs($this->userAdmin);
 
-        $asetKedua = Aset::create([
-            'barang_id' => $this->aset->barang_id,
-            'unit_id' => $this->unit1->id,
-            'kode_aset' => 'AST-SEARCH-TARGET-99',
-            'nomor_seri' => 'SN-UNIQUE-TARGET',
-            'tanggal_perolehan' => now()->toDateString(),
-            'status' => 'TERSEDIA',
-            'kondisi' => 'BAIK',
-        ]);
-
         Livewire::test(PengalihanAsetIndex::class)
             ->call('openCreateModal')
-            ->set('tipe_asal', 'RUANGAN')
-            ->set('unit_asal_id', $this->unit1->id)
-            ->set('searchAsetModal', 'TARGET-99')
-            ->assertSee('AST-SEARCH-TARGET-99')
-            ->assertDontSee($this->aset->kode_aset);
+            ->assertDontSee('Terkunci Otomatis');
     }
 }

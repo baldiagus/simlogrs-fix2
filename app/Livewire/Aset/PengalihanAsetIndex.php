@@ -34,6 +34,12 @@ class PengalihanAsetIndex extends Component
     public string $searchAsetModal = '';
     #[Url(history: true)]
     public ?int $filterTujuanUnitId = null;
+
+    // Alur Pemilihan Komoditas & Penyedia (Sesuai Peminjaman Aset, Tanpa Tanggal Kembali)
+    public ?int $selected_barang_id = null;
+    public ?string $selected_penyedia_key = null;
+    public ?int $selected_aset_id = null;
+
     public string $tipe_asal = 'RUANGAN';
     public ?int $unit_asal_id = null;
     public ?int $gudang_asal_id = null;
@@ -97,25 +103,148 @@ class PengalihanAsetIndex extends Component
 
         $this->resetValidation();
         $this->tanggal_pengalihan = now()->toDateString();
+        $this->selected_barang_id = null;
+        $this->selected_penyedia_key = null;
+        $this->selected_aset_id = null;
         $this->selected_aset_ids = [];
         $this->searchAsetModal = '';
         $this->alasan = '';
         $this->catatan = '';
 
-        // Kunci lokasi asal sesuai ruangan/gudang akun login
-        if (! $isGlobalAdmin) {
-            if ($user?->unit_id) {
-                $this->tipe_asal = 'RUANGAN';
-                $this->unit_asal_id = $user->unit_id;
-                $this->gudang_asal_id = null;
-            } elseif ($user?->gudang_id) {
-                $this->tipe_asal = 'GUDANG';
-                $this->gudang_asal_id = $user->gudang_id;
-                $this->unit_asal_id = null;
-            }
+        // Default lokasi tujuan adalah ruangan / gudang milik pengguna login
+        if ($user?->unit_id) {
+            $this->tipe_tujuan = 'RUANGAN';
+            $this->unit_tujuan_id = $user->unit_id;
+            $this->gudang_tujuan_id = null;
+        } elseif ($user?->gudang_id) {
+            $this->tipe_tujuan = 'GUDANG';
+            $this->gudang_tujuan_id = $user->gudang_id;
+            $this->unit_tujuan_id = null;
         }
 
         $this->showCreateModal = true;
+    }
+
+    public function updatedSelectedBarangId(): void
+    {
+        $this->selected_penyedia_key = null;
+        $this->selected_aset_id = null;
+        $this->selected_aset_ids = [];
+    }
+
+    public function updatedSelectedPenyediaKey(): void
+    {
+        if (! $this->selected_penyedia_key) {
+            $this->selected_aset_ids = [];
+            $this->selected_aset_id = null;
+            return;
+        }
+
+        $providers = $this->getPenyediaAsetList();
+        $provider = collect($providers)->firstWhere('key', $this->selected_penyedia_key);
+        if ($provider) {
+            $this->tipe_asal = $provider['tipe'];
+            if ($provider['tipe'] === 'RUANGAN') {
+                $this->unit_asal_id = $provider['id'];
+                $this->gudang_asal_id = null;
+            } else {
+                $this->gudang_asal_id = $provider['id'];
+                $this->unit_asal_id = null;
+            }
+            $this->selected_aset_ids = $provider['aset_ids'];
+            $this->selected_aset_id = $provider['aset_ids'][0] ?? null;
+        } else {
+            $this->selected_aset_ids = [];
+            $this->selected_aset_id = null;
+        }
+    }
+
+    public function getDaftarBarangAsetTersedia()
+    {
+        return \App\Models\Barang::where('status', 'AKTIF')
+            ->whereHas('aset', function ($q) {
+                $q->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+                    ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
+                    ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                        $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
+                    });
+            })
+            ->withCount(['aset' => function ($q) {
+                $q->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+                    ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
+                    ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                        $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
+                    });
+            }])
+            ->with('satuan')
+            ->orderBy('nama')
+            ->get();
+    }
+
+    public function getPenyediaAsetList(): array
+    {
+        if (! $this->selected_barang_id) {
+            return [];
+        }
+
+        $user = auth()->user();
+        $userUnitId = $user?->unit_id;
+        $userGudangId = $user?->gudang_id;
+
+        $assets = Aset::where('barang_id', $this->selected_barang_id)
+            ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+            ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
+            ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
+            })
+            ->with(['unit', 'gudang'])
+            ->get();
+
+        $providers = [];
+
+        // Kelompokkan penyedia ruangan unit
+        $units = $assets->whereNotNull('unit_id')->groupBy('unit_id');
+        foreach ($units as $unitId => $group) {
+            $unit = $group->first()->unit;
+            if (! $unit || $unit->status !== 'AKTIF') continue;
+
+            $isOwnUnit = $userUnitId && (int) $userUnitId === (int) $unitId;
+
+            $providers[] = [
+                'key'        => "RUANGAN_{$unitId}",
+                'tipe'       => 'RUANGAN',
+                'id'         => $unitId,
+                'nama'       => $unit->nama,
+                'kode'       => $unit->kode,
+                'jumlah'     => $group->count(),
+                'is_own'     => $isOwnUnit,
+                'aset_ids'   => $group->pluck('id')->toArray(),
+                'kode_asets' => $group->pluck('kode_aset')->implode(', '),
+            ];
+        }
+
+        // Kelompokkan penyedia fasilitas gudang
+        $gudangs = $assets->whereNotNull('gudang_id')->groupBy('gudang_id');
+        foreach ($gudangs as $gudangId => $group) {
+            $gudang = $group->first()->gudang;
+            if (! $gudang || $gudang->status !== 'AKTIF') continue;
+
+            $isOwnGudang = $userGudangId && (int) $userGudangId === (int) $gudangId;
+
+            $providers[] = [
+                'key'        => "GUDANG_{$gudangId}",
+                'tipe'       => 'GUDANG',
+                'id'         => $gudangId,
+                'nama'       => $gudang->nama,
+                'kode'       => $gudang->kode,
+                'jumlah'     => $group->count(),
+                'is_own'     => $isOwnGudang,
+                'aset_ids'   => $group->pluck('id')->toArray(),
+                'kode_asets' => $group->pluck('kode_aset')->implode(', '),
+            ];
+        }
+
+        return $providers;
     }
 
     public function updatedTipeAsal(): void
@@ -160,19 +289,34 @@ class PengalihanAsetIndex extends Component
             403
         );
 
-        // Proteksi server-side: paksa kunci lokasi asal sesuai unit/gudang akun login
-        if (! $isGlobalAdmin) {
-            if ($user?->unit_id) {
-                $this->tipe_asal = 'RUANGAN';
-                $this->unit_asal_id = $user->unit_id;
-                $this->gudang_asal_id = null;
-            } elseif ($user?->gudang_id) {
-                $this->tipe_asal = 'GUDANG';
-                $this->gudang_asal_id = $user->gudang_id;
-                $this->unit_asal_id = null;
+        // Jika menggunakan alur pemilihan penyedia aset (seperti peminjaman aset)
+        if ($this->selected_penyedia_key) {
+            $this->updatedSelectedPenyediaKey();
+            if (! $isGlobalAdmin) {
+                if ($user?->unit_id) {
+                    $this->tipe_tujuan = 'RUANGAN';
+                    $this->unit_tujuan_id = $user->unit_id;
+                    $this->gudang_tujuan_id = null;
+                } elseif ($user?->gudang_id) {
+                    $this->tipe_tujuan = 'GUDANG';
+                    $this->gudang_tujuan_id = $user->gudang_id;
+                    $this->unit_tujuan_id = null;
+                }
+            }
+        } else {
+            // Proteksi fallback jika menggunakan form manual
+            if (! $isGlobalAdmin) {
+                if ($user?->unit_id) {
+                    $this->tipe_asal = 'RUANGAN';
+                    $this->unit_asal_id = $user->unit_id;
+                    $this->gudang_asal_id = null;
+                } elseif ($user?->gudang_id) {
+                    $this->tipe_asal = 'GUDANG';
+                    $this->gudang_asal_id = $user->gudang_id;
+                    $this->unit_asal_id = null;
+                }
             }
         }
-
         $this->validate([
             'tipe_asal' => 'required|in:RUANGAN,GUDANG',
             'unit_asal_id' => 'required_if:tipe_asal,RUANGAN|nullable|exists:unit,id',
@@ -461,6 +605,9 @@ class PengalihanAsetIndex extends Component
         $gudangs = Gudang::where('status', 'AKTIF')->orderBy('nama')->get();
         $raks = $this->gudang_tujuan_id ? LokasiGudang::where('gudang_id', $this->gudang_tujuan_id)->where('status', 'AKTIF')->orderBy('kode')->get() : collect();
 
+        $daftarBarangAsetTersedia = $this->getDaftarBarangAsetTersedia();
+        $daftarPenyediaAset = $this->getPenyediaAsetList();
+
         return view('livewire.aset.pengalihan-aset-index', [
             'items' => $items,
             'kpiBerjalan' => $kpiBerjalan,
@@ -468,6 +615,8 @@ class PengalihanAsetIndex extends Component
             'kpiSelesaiBulanIni' => $kpiSelesaiBulanIni,
             'kpiTotalAset' => $kpiTotalAset,
             'asetTersedia' => $asetTersedia,
+            'daftarBarangAsetTersedia' => $daftarBarangAsetTersedia,
+            'daftarPenyediaAset' => $daftarPenyediaAset,
             'units' => $units,
             'gudangs' => $gudangs,
             'raks' => $raks,

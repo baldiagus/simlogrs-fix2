@@ -254,218 +254,182 @@
     </flux:card>
 
     {{-- MODAL CREATE PENGALIHAN ASET --}}
-    <flux:modal name="modal-create-pengalihan" wire:model="showCreateModal" class="w-full max-w-3xl" style="max-height: 90vh; overflow-y: auto;">
-        <form wire:submit="submitPengalihan" class="space-y-4 pb-2">
-            <div>
-                <flux:heading size="lg">Form Pengajuan Pengalihan Aset</flux:heading>
-                <flux:subheading>
-                    Mutasikan aset fisik ke ruangan atau gudang lain secara permanen
-                </flux:subheading>
+    <flux:modal name="modal-create-pengalihan" wire:model="showCreateModal" class="md:w-[54rem] max-w-[95vw]" style="max-height: 90vh; overflow-y: auto;">
+        <div class="space-y-6">
+            <div style="padding-right: 2.5rem;">
+                <flux:heading size="lg">Form Pengajuan Pengalihan & Mutasi Aset</flux:heading>
+                <flux:subheading>Pilih fasilitas penyedia aset inventaris untuk dialihkan secara permanen ke unit kerja Anda.</flux:subheading>
             </div>
 
-            {{-- Grid Asal & Tujuan --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-3.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700/60">
-                {{-- Lokasi Asal --}}
-                <div class="space-y-2.5">
-                    <div class="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-                        <flux:icon name="arrow-up-tray" class="size-3.5 text-zinc-400" />
-                        <span>Lokasi Asal (Sumber Aset)</span>
+            <form wire:submit="submitPengalihan" class="space-y-5">
+                {{-- Tahap 1: Pilih Aset Inventaris --}}
+                <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-3">
+                    <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                        Tahap 1: Pilih Aset Inventaris
                     </div>
 
-                    @if ($isOriginLocked)
-                        <div class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 shadow-xs space-y-1.5">
-                            <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Unit / Fasilitas Anda</span>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800">
-                                    Terkunci Otomatis
-                                </span>
-                            </div>
-                            <div class="flex items-center gap-2 font-bold text-sm text-zinc-900 dark:text-zinc-100 pt-0.5">
-                                <flux:icon name="{{ $tipe_asal === 'RUANGAN' ? 'building-office' : 'building-storefront' }}" class="size-4 text-blue-600 dark:text-blue-400" />
-                                <span>{{ $namaLokasiAsalUser }}</span>
-                            </div>
-                            <p class="text-[11px] text-zinc-500">
-                                Pengalihan diterbitkan dari unit operasional akun Anda.
+                    <div>
+                        <x-searchable-select
+                            model="selected_barang_id"
+                            label="Aset / Komoditas yang Ingin Dialihkan"
+                            placeholder="-- Cari Aset Inventaris Tersedia... --"
+                            :options="$daftarBarangAsetTersedia->map(fn($b) => ['id' => $b->id, 'nama' => $b->nama, 'sub' => 'Tersedia: ' . $b->aset_count . ' ' . ($b->satuan?->simbol ?? 'Unit')])"
+                            live="true"
+                            required
+                        />
+
+                        @if ($selected_barang_id)
+                            <p class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1.5">
+                                Ditemukan {{ count($daftarPenyediaAset) }} fasilitas pemilik yang memiliki unit komoditas ini.
                             </p>
-                        </div>
-                    @else
-                        <div class="flex items-center gap-3 text-xs">
-                            <label class="flex items-center gap-1.5 cursor-pointer">
-                                <input type="radio" value="RUANGAN" wire:model.live="tipe_asal" class="text-blue-600" />
-                                <span>Ruangan / Unit</span>
-                            </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer">
-                                <input type="radio" value="GUDANG" wire:model.live="tipe_asal" class="text-blue-600" />
-                                <span>Gudang Logistik</span>
-                            </label>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Tahap 2: Pilih Fasilitas Asal Pemilik Aset --}}
+                @if ($selected_barang_id)
+                    <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-3">
+                        <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                            Tahap 2: Pilih Lokasi Fasilitas Asal Pemilik Aset (Sumber)
                         </div>
 
-                        @if ($tipe_asal === 'RUANGAN')
-                            <flux:select wire:model.live="unit_asal_id" label="Pilih Ruangan Asal" size="sm">
-                                <option value="">-- Pilih Ruangan Asal --</option>
-                                @foreach ($units as $u)
-                                    <option value="{{ $u->id }}">{{ $u->nama }}</option>
-                                @endforeach
-                            </flux:select>
-                        @else
-                            <flux:select wire:model.live="gudang_asal_id" label="Pilih Gudang Asal" size="sm">
-                                <option value="">-- Pilih Gudang Asal --</option>
-                                @foreach ($gudangs as $g)
-                                    <option value="{{ $g->id }}">{{ $g->nama }}</option>
-                                @endforeach
-                            </flux:select>
-                        @endif
-                    @endif
-                </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                                Lokasi Fasilitas Asal Pemilik Aset <span class="text-red-500">*</span>
+                            </label>
 
-                {{-- Lokasi Tujuan --}}
-                <div class="space-y-2.5">
-                    <div class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider flex items-center gap-1.5">
-                        <flux:icon name="arrow-down-tray" class="size-3.5 text-blue-500" />
-                        <span>Lokasi Tujuan (Permanen)</span>
-                    </div>
-
-                    <div class="flex items-center gap-3 text-xs">
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="radio" value="RUANGAN" wire:model.live="tipe_tujuan" class="text-blue-600" />
-                            <span>Ruangan / Unit</span>
-                        </label>
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="radio" value="GUDANG" wire:model.live="tipe_tujuan" class="text-blue-600" />
-                            <span>Gudang Logistik</span>
-                        </label>
-                    </div>
-
-                    @if ($tipe_tujuan === 'RUANGAN')
-                        <flux:select wire:model.live="unit_tujuan_id" label="Pilih Ruangan Tujuan" size="sm">
-                            <option value="">-- Pilih Ruangan Tujuan --</option>
-                            @foreach ($units as $u)
-                                <option value="{{ $u->id }}" @disabled($tipe_asal === 'RUANGAN' && (int)$unit_asal_id === (int)$u->id)>
-                                    {{ $u->nama }} @if($tipe_asal === 'RUANGAN' && (int)$unit_asal_id === (int)$u->id) (Asal) @endif
-                                </option>
-                            @endforeach
-                        </flux:select>
-                        @error('unit_tujuan_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    @else
-                        <flux:select wire:model.live="gudang_tujuan_id" label="Pilih Gudang Tujuan" size="sm">
-                            <option value="">-- Pilih Gudang Tujuan --</option>
-                            @foreach ($gudangs as $g)
-                                <option value="{{ $g->id }}" @disabled($tipe_asal === 'GUDANG' && (int)$gudang_asal_id === (int)$g->id)>
-                                    {{ $g->nama }} @if($tipe_asal === 'GUDANG' && (int)$gudang_asal_id === (int)$g->id) (Asal) @endif
-                                </option>
-                            @endforeach
-                        </flux:select>
-
-                        @if ($raks->isNotEmpty())
-                            <flux:select wire:model.live="lokasi_gudang_tujuan_id" label="Rak Simpan Gudang (Opsional)" size="sm">
-                                <option value="">-- Tanpa Rak Khusus --</option>
-                                @foreach ($raks as $rak)
-                                    <option value="{{ $rak->id }}">{{ $rak->kode }} - {{ $rak->nama }}</option>
-                                @endforeach
-                            </flux:select>
-                        @endif
-                        @error('gudang_tujuan_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    @endif
-                </div>
-            </div>
-
-            {{-- Pemilihan Aset Fisik --}}
-            <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                    <label class="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                        Pilih Aset Fisik yang Hendak Dialihkan <span class="text-red-500">*</span>
-                    </label>
-                    <span class="text-xs text-zinc-500">
-                        Terpilih: <strong class="text-blue-600 font-bold">{{ count($selected_aset_ids) }}</strong> dari {{ $asetTersedia->count() }} Aset
-                    </span>
-                </div>
-
-                <div>
-                    <flux:input
-                        wire:model.live.debounce.250ms="searchAsetModal"
-                        placeholder="Cari kode register, nomor seri, nama sarana alat..."
-                        icon="magnifying-glass"
-                        size="sm"
-                    />
-                </div>
-
-                <div class="border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 max-h-52 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800/80 bg-white dark:bg-zinc-900">
-                    @forelse ($asetTersedia as $ast)
-                        <label class="flex items-center justify-between p-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 rounded-lg cursor-pointer text-xs">
-                            <div class="flex items-center gap-2.5">
-                                <input
-                                    type="checkbox"
-                                    value="{{ $ast->id }}"
-                                    wire:model.live="selected_aset_ids"
-                                    class="rounded text-blue-600"
-                                />
-                                <div>
-                                    <div class="font-semibold text-zinc-900 dark:text-zinc-100">
-                                        {{ $ast->barang?->nama ?? 'Aset' }}
-                                    </div>
-                                    <div class="text-[11px] text-zinc-500 font-mono">
-                                        Kode: {{ $ast->kode_aset }} &bull; SN: {{ $ast->nomor_seri ?? '-' }}
-                                    </div>
+                            @if (empty($daftarPenyediaAset))
+                                <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300">
+                                    Saat ini tidak ada unit ruangan atau fasilitas gudang yang memiliki aset ini dalam kondisi siap dialihkan.
                                 </div>
-                            </div>
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                                {{ $ast->kondisi }}
-                            </span>
-                        </label>
-                    @empty
-                        <div class="py-6 text-center text-xs text-zinc-400">
-                            Tidak ada aset fisik tersedia di lokasi asal ini.
+                            @else
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                    @foreach ($daftarPenyediaAset as $p)
+                                        <label
+                                            class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors {{ $selected_penyedia_key === $p['key'] ? 'border-blue-600 bg-blue-50/60 dark:bg-blue-900/30 text-blue-950 dark:text-blue-100 ring-1 ring-blue-600' : 'border-zinc-200 dark:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800' }} {{ $p['is_own'] ? 'opacity-60 cursor-not-allowed' : '' }}"
+                                        >
+                                            <input
+                                                type="radio"
+                                                wire:model.live="selected_penyedia_key"
+                                                value="{{ $p['key'] }}"
+                                                class="mt-0.5 text-blue-600 focus:ring-blue-500"
+                                                {{ $p['is_own'] ? 'disabled' : '' }}
+                                            />
+                                            <div class="flex-1 text-xs">
+                                                <div class="font-semibold flex items-center justify-between gap-2">
+                                                    <span>{{ $p['nama'] }}</span>
+                                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase {{ $p['tipe'] === 'RUANGAN' ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' }}">
+                                                        {{ $p['tipe'] }}
+                                                    </span>
+                                                </div>
+                                                <div class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                                                    Tersedia: <strong>{{ $p['jumlah'] }} unit</strong> (Kode: {{ $p['kode_asets'] }})
+                                                </div>
+                                                @if ($p['is_own'])
+                                                    <div class="text-xs text-amber-700 dark:text-amber-300 font-medium mt-0.5">
+                                                        Fasilitas Anda sendiri (tidak dapat mengalihkan ke diri sendiri)
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                @error('selected_penyedia_key') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                            @endif
                         </div>
-                    @endforelse
-                </div>
-                @error('selected_aset_ids') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-            </div>
+                    </div>
+                @endif
 
-            {{-- Ringkasan Alur Mutasi --}}
-            @php
-                $destName = $tipe_tujuan === 'RUANGAN'
-                    ? ($units->firstWhere('id', $unit_tujuan_id)?->nama ?? 'Pilih Ruangan Tujuan')
-                    : ($gudangs->firstWhere('id', $gudang_tujuan_id)?->nama ?? 'Pilih Gudang Tujuan');
-                $originName = $isOriginLocked
-                    ? $namaLokasiAsalUser
-                    : ($tipe_asal === 'RUANGAN'
-                        ? ($units->firstWhere('id', $unit_asal_id)?->nama ?? 'Pilih Ruangan Asal')
-                        : ($gudangs->firstWhere('id', $gudang_asal_id)?->nama ?? 'Pilih Gudang Asal'));
-            @endphp
-            <div class="p-2.5 rounded-xl bg-zinc-100/70 dark:bg-zinc-800/60 border border-zinc-200/70 dark:border-zinc-700/70 flex items-center justify-between text-xs">
-                <div class="flex items-center gap-2 font-medium text-zinc-600 dark:text-zinc-300">
-                    <span class="font-bold text-zinc-900 dark:text-zinc-100">{{ $originName }}</span>
-                    <flux:icon name="arrow-right" class="size-3 text-zinc-400 shrink-0" />
-                    <span class="font-bold text-blue-600 dark:text-blue-400">{{ $destName }}</span>
-                </div>
-                <div class="text-[11px] text-zinc-500">
-                    Total: <strong class="text-zinc-800 dark:text-zinc-200">{{ count($selected_aset_ids) }}</strong> alat dialihkan
-                </div>
-            </div>
+                {{-- Tahap 3: Lokasi Tujuan & Keperluan Pengalihan (TANPA TANGGAL KEMBALI) --}}
+                <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-4">
+                    <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                        Tahap 3: Lokasi Tujuan & Keperluan Pengalihan
+                    </div>
 
-            {{-- Justifikasi Alasan --}}
-            <div class="space-y-1">
-                <flux:textarea
-                    wire:model="alasan"
-                    label="Alasan / Dasar Pengalihan Aset"
-                    placeholder="Contoh: Pemindahan permanen alat monitor jantung untuk perluasan ruang ICU gedung B..."
-                    rows="2"
-                    required
-                />
-                @error('alasan') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-            </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {{-- Lokasi Tujuan Penerima --}}
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                                Lokasi Tujuan Penerima (Permanen) <span class="text-red-500">*</span>
+                            </label>
+                            @if (! $isGlobalAdmin)
+                                <div class="p-2.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
+                                    <flux:icon name="{{ auth()->user()?->unit_id ? 'building-office' : 'building-storefront' }}" class="size-4 text-blue-600" />
+                                    <span>{{ $namaLokasiAsalUser }}</span>
+                                </div>
+                            @else
+                                <div class="flex items-center gap-3 text-xs mb-2">
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="radio" value="RUANGAN" wire:model.live="tipe_tujuan" class="text-blue-600" />
+                                        <span>Ruangan / Unit</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="radio" value="GUDANG" wire:model.live="tipe_tujuan" class="text-blue-600" />
+                                        <span>Gudang Logistik</span>
+                                    </label>
+                                </div>
+                                @if ($tipe_tujuan === 'RUANGAN')
+                                    <flux:select wire:model.live="unit_tujuan_id" size="sm">
+                                        <option value="">-- Pilih Ruangan Tujuan --</option>
+                                        @foreach ($units as $u)
+                                            <option value="{{ $u->id }}">{{ $u->nama }}</option>
+                                        @endforeach
+                                    </flux:select>
+                                @else
+                                    <flux:select wire:model.live="gudang_tujuan_id" size="sm">
+                                        <option value="">-- Pilih Gudang Tujuan --</option>
+                                        @foreach ($gudangs as $g)
+                                            <option value="{{ $g->id }}">{{ $g->nama }}</option>
+                                        @endforeach
+                                    </flux:select>
+                                @endif
+                            @endif
+                        </div>
 
-            {{-- Footer Buttons --}}
-            <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
-                <flux:button type="button" variant="ghost" wire:click="$set('showCreateModal', false)">
-                    Batal
-                </flux:button>
-                <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
-                    <span wire:loading.remove wire:target="submitPengalihan">Ajukan Pengalihan</span>
-                    <span wire:loading wire:target="submitPengalihan">Memproses...</span>
-                </flux:button>
-            </div>
-        </form>
+                        {{-- Tanggal Pengalihan (TANPA TANGGAL KEMBALI) --}}
+                        <div>
+                            <flux:field>
+                                <flux:label>Tanggal Eksekusi Pengalihan <span class="text-red-500">*</span></flux:label>
+                                <flux:input type="date" wire:model="tanggal_pengalihan" required />
+                                <flux:error name="tanggal_pengalihan" />
+                            </flux:field>
+                        </div>
+                    </div>
+
+                    {{-- Alasan / Dasar Pengalihan --}}
+                    <flux:field>
+                        <flux:label>Alasan / Dasar Pengalihan Aset <span class="text-red-500">*</span></flux:label>
+                        <flux:textarea
+                            wire:model="alasan"
+                            placeholder="Jelaskan kebutuhan mutasi permanen aset ini (misal: penataan ulang kapasitas ruang perawatan, relokasi alat medis)..."
+                            rows="2"
+                            required
+                        />
+                        <flux:error name="alasan" />
+                    </flux:field>
+
+                    {{-- Catatan Tambahan (Opsional) --}}
+                    <flux:field>
+                        <flux:label>Catatan Tambahan (Opsional)</flux:label>
+                        <flux:input
+                            wire:model="catatan"
+                            placeholder="Kelengkapan aksesoris, kabel power, kondisi fisik awal..."
+                        />
+                    </flux:field>
+                </div>
+
+                {{-- Footer Buttons --}}
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+                    <flux:button type="button" variant="ghost" wire:click="$set('showCreateModal', false)">
+                        Batal
+                    </flux:button>
+                    <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                        <span wire:loading.remove wire:target="submitPengalihan">Ajukan Pengalihan Aset</span>
+                        <span wire:loading wire:target="submitPengalihan">Memproses...</span>
+                    </flux:button>
+                </div>
+            </form>
+        </div>
     </flux:modal>
 
     {{-- MODAL DETAIL / BERITA ACARA SERAH TERIMA (BAST) --}}
