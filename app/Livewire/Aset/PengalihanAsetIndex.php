@@ -202,21 +202,27 @@ class PengalihanAsetIndex extends Component
 
     public function getDaftarBarangAsetTersedia()
     {
+        $user = auth()->user();
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
+        $ownUnitId = ! $isGlobalAdmin ? $user?->unit_id : null;
+        $ownGudangId = ! $isGlobalAdmin ? $user?->gudang_id : null;
+
+        $constraint = function ($q) use ($ownUnitId, $ownGudangId) {
+            $q->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+                ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
+                ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                    $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
+                })
+                ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
+                    $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                })
+                ->when($ownUnitId, fn ($sub) => $sub->where(fn ($sq) => $sq->where('unit_id', '!=', $ownUnitId)->orWhereNull('unit_id')))
+                ->when($ownGudangId, fn ($sub) => $sub->where(fn ($sq) => $sq->where('gudang_id', '!=', $ownGudangId)->orWhereNull('gudang_id')));
+        };
+
         return \App\Models\Barang::where('status', 'AKTIF')
-            ->whereHas('aset', function ($q) {
-                $q->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
-                    ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
-                    ->whereDoesntHave('permintaanMaintenance', function ($sub) {
-                        $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
-                    });
-            })
-            ->withCount(['aset' => function ($q) {
-                $q->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
-                    ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
-                    ->whereDoesntHave('permintaanMaintenance', function ($sub) {
-                        $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
-                    });
-            }])
+            ->whereHas('aset', $constraint)
+            ->withCount(['aset' => $constraint])
             ->with('satuan')
             ->orderBy('nama')
             ->get();
@@ -229,8 +235,9 @@ class PengalihanAsetIndex extends Component
         }
 
         $user = auth()->user();
-        $userUnitId = $user?->unit_id;
-        $userGudangId = $user?->gudang_id;
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
+        $ownUnitId = ! $isGlobalAdmin ? $user?->unit_id : null;
+        $ownGudangId = ! $isGlobalAdmin ? $user?->gudang_id : null;
 
         $assets = Aset::where('barang_id', $this->selected_barang_id)
             ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
@@ -238,9 +245,13 @@ class PengalihanAsetIndex extends Component
             ->whereDoesntHave('permintaanMaintenance', function ($sub) {
                 $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
             })
+            ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
+                $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+            })
+            ->when($ownUnitId, fn ($sub) => $sub->where(fn ($sq) => $sq->where('unit_id', '!=', $ownUnitId)->orWhereNull('unit_id')))
+            ->when($ownGudangId, fn ($sub) => $sub->where(fn ($sq) => $sq->where('gudang_id', '!=', $ownGudangId)->orWhereNull('gudang_id')))
             ->with(['unit', 'gudang'])
             ->get();
-
         $providers = [];
 
         // Kelompokkan penyedia ruangan unit

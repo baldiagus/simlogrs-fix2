@@ -282,37 +282,30 @@ class PeminjamanAsetIndex extends Component
     }
     public function getDaftarBarangAsetTersedia()
     {
+        $user = auth()->user();
+        $isGlobalAdmin = (bool) ($user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik'])));
+        $ownUnitId = ! $isGlobalAdmin ? $user?->unit_id : null;
+
+        $constraint = function ($q) use ($ownUnitId) {
+            $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK')
+                ->where(function ($loc) {
+                    $loc->whereNull('unit_id')->orWhereHas('unit', fn ($u) => $u->where('status', 'AKTIF'));
+                })
+                ->where(function ($loc) {
+                    $loc->whereNull('gudang_id')->orWhereHas('gudang', fn ($g) => $g->where('status', 'AKTIF'));
+                })
+                ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
+                    $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                })
+                ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                    $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
+                })
+                ->when($ownUnitId, fn ($sub) => $sub->where('unit_id', '!=', $ownUnitId));
+        };
+
         return Barang::where('status', 'AKTIF')
-            ->whereHas('aset', function ($q) {
-                $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK')
-                    ->where(function ($loc) {
-                        $loc->whereNull('unit_id')->orWhereHas('unit', fn ($u) => $u->where('status', 'AKTIF'));
-                    })
-                    ->where(function ($loc) {
-                        $loc->whereNull('gudang_id')->orWhereHas('gudang', fn ($g) => $g->where('status', 'AKTIF'));
-                    })
-                    ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
-                        $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
-                    })
-                    ->whereDoesntHave('permintaanMaintenance', function ($sub) {
-                        $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
-                    });
-            })
-            ->withCount(['aset' => function ($q) {
-                $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK')
-                    ->where(function ($loc) {
-                        $loc->whereNull('unit_id')->orWhereHas('unit', fn ($u) => $u->where('status', 'AKTIF'));
-                    })
-                    ->where(function ($loc) {
-                        $loc->whereNull('gudang_id')->orWhereHas('gudang', fn ($g) => $g->where('status', 'AKTIF'));
-                    })
-                    ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
-                        $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
-                    })
-                    ->whereDoesntHave('permintaanMaintenance', function ($sub) {
-                        $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
-                    });
-            }])
+            ->whereHas('aset', $constraint)
+            ->withCount(['aset' => $constraint])
             ->with('satuan')
             ->orderBy('nama')
             ->get();

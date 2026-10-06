@@ -426,7 +426,11 @@
                                 <flux:label>Jumlah Unit Dialihkan <span class="text-red-500">*</span></flux:label>
                                 <flux:input type="number" min="1" max="{{ $this->maxQuantity }}" wire:model.live="quantity" required />
                                 <flux:description class="text-[11px] text-zinc-500 mt-0.5">
-                                    Maksimal {{ $this->maxQuantity }} unit tersedia
+                                    @if ($selected_penyedia_key)
+                                        Maksimal {{ $this->maxQuantity }} unit tersedia
+                                    @else
+                                        <span class="text-amber-600 dark:text-amber-400">Pilih fasilitas penyedia asal terlebih dahulu</span>
+                                    @endif
                                 </flux:description>
                                 <flux:error name="quantity" />
                             </flux:field>

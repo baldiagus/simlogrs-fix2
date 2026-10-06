@@ -312,4 +312,66 @@ class PengalihanAsetIndexTest extends TestCase
             ->call('setTab', 'otorisasi')
             ->assertSee($transferInbound->kode); // Harus ada di tab otorisasi
     }
+
+    public function test_commodity_available_count_strictly_matches_sum_of_provider_units(): void
+    {
+        $userUnit2 = User::create([
+            'nama' => 'Perawat Ruangan 2 Test Konsistensi',
+            'username' => 'perawat_u2_konsistensi',
+            'email' => 'u2_konsistensi@simlog.test',
+            'password' => bcrypt('password'),
+            'unit_id' => $this->unit2->id,
+            'status' => 'AKTIF',
+        ]);
+        $userUnit2->givePermissionTo(['view_any_layanan_unit::pengalihan::aset', 'create_layanan_unit::pengalihan::aset']);
+
+        // Buat 1 aset lagi di Unit 1
+        Aset::create([
+            'barang_id' => $this->aset->barang_id,
+            'unit_id' => $this->unit1->id,
+            'kode_aset' => 'AST-U1-SECOND-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        // Dan 1 aset di Unit 2 milik pemohon sendiri (TIDAK BOLEH dihitung sebagai aset luar yang bisa dialihkan ke unit 2)
+        Aset::create([
+            'barang_id' => $this->aset->barang_id,
+            'unit_id' => $this->unit2->id,
+            'kode_aset' => 'AST-U2-OWN-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        $this->actingAs($userUnit2);
+
+        $component = Livewire::test(PengalihanAsetIndex::class)
+            ->call('openCreateModal')
+            ->set('selected_barang_id', $this->aset->barang_id);
+
+        $daftarBarang = $component->instance()->getDaftarBarangAsetTersedia();
+        $barangItem = $daftarBarang->firstWhere('id', $this->aset->barang_id);
+
+        $providers = $component->instance()->getPenyediaAsetList();
+        $totalAvailableFromProviders = collect($providers)
+            ->where('is_own', false)
+            ->sum('jumlah');
+
+        // Jumlah unit tersedia di Tahap 1 HARUS sama persis dengan total unit pada kartu penyedia di Tahap 2
+        $this->assertEquals($totalAvailableFromProviders, $barangItem->aset_count);
+    }
+
+    public function test_quantity_helper_text_prompts_for_provider_before_selection(): void
+    {
+        $this->actingAs($this->userAdmin);
+
+        Livewire::test(PengalihanAsetIndex::class)
+            ->call('openCreateModal')
+            ->set('selected_barang_id', $this->aset->barang_id)
+            // Belum memilih penyedia
+            ->assertDontSee('Maksimal 1 unit tersedia')
+            ->assertSee('Pilih fasilitas penyedia asal terlebih dahulu');
+    }
 }

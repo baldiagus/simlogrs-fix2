@@ -88,17 +88,11 @@
             'opacity-60 cursor-not-allowed' => $disabled,
         ]) }}
         <span class="truncate pr-2" :class="selectedOption ? 'font-medium' : 'text-zinc-400 dark:text-zinc-500 text-xs'">
-            <template x-if="selectedOption">
-                <span>
-                    <span x-text="selectedOption.label"></span>
-                    <template x-if="selectedOption.sub">
-                        <span class="text-zinc-400 text-xs font-normal" x-text="' (' + selectedOption.sub + ')'"></span>
-                    </template>
-                </span>
-            </template>
-            <template x-if="!selectedOption">
-                <span>{{ $placeholder }}</span>
-            </template>
+            <span x-show="selectedOption">
+                <span x-text="selectedOption ? selectedOption.label : ''"></span>
+                <span x-show="selectedOption && selectedOption.sub" class="text-zinc-400 text-xs font-normal" x-text="selectedOption && selectedOption.sub ? ' (' + selectedOption.sub + ')' : ''"></span>
+            </span>
+            <span x-show="!selectedOption">{{ $placeholder }}</span>
         </span>
 
         <span class="flex items-center gap-1.5 shrink-0 text-zinc-400">
