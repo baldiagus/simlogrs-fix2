@@ -31,6 +31,9 @@ class PengalihanAsetIndex extends Component
 
     // Modal Create State
     public bool $showCreateModal = false;
+    public string $searchAsetModal = '';
+    #[Url(history: true)]
+    public ?int $filterTujuanUnitId = null;
     public string $tipe_asal = 'RUANGAN';
     public ?int $unit_asal_id = null;
     public ?int $gudang_asal_id = null;
@@ -83,10 +86,11 @@ class PengalihanAsetIndex extends Component
     public function openCreateModal(): void
     {
         $user = auth()->user();
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
         abort_unless(
             $user?->can('create_layanan_unit::pengalihan::aset') ||
             $user?->can('page_PengalihanAsetIndex') ||
-            $user?->hasRole(['super_admin', 'admin_logistik']),
+            $isGlobalAdmin,
             403,
             'Anda tidak memiliki wewenang untuk mengajukan pengalihan aset.'
         );
@@ -94,8 +98,23 @@ class PengalihanAsetIndex extends Component
         $this->resetValidation();
         $this->tanggal_pengalihan = now()->toDateString();
         $this->selected_aset_ids = [];
+        $this->searchAsetModal = '';
         $this->alasan = '';
         $this->catatan = '';
+
+        // Kunci lokasi asal sesuai ruangan/gudang akun login
+        if (! $isGlobalAdmin) {
+            if ($user?->unit_id) {
+                $this->tipe_asal = 'RUANGAN';
+                $this->unit_asal_id = $user->unit_id;
+                $this->gudang_asal_id = null;
+            } elseif ($user?->gudang_id) {
+                $this->tipe_asal = 'GUDANG';
+                $this->gudang_asal_id = $user->gudang_id;
+                $this->unit_asal_id = null;
+            }
+        }
+
         $this->showCreateModal = true;
     }
 
@@ -134,11 +153,25 @@ class PengalihanAsetIndex extends Component
     public function submitPengalihan(): void
     {
         $user = auth()->user();
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
         abort_unless(
             $user?->can('create_layanan_unit::pengalihan::aset') ||
-            $user?->hasRole(['super_admin', 'admin_logistik']),
+            $isGlobalAdmin,
             403
         );
+
+        // Proteksi server-side: paksa kunci lokasi asal sesuai unit/gudang akun login
+        if (! $isGlobalAdmin) {
+            if ($user?->unit_id) {
+                $this->tipe_asal = 'RUANGAN';
+                $this->unit_asal_id = $user->unit_id;
+                $this->gudang_asal_id = null;
+            } elseif ($user?->gudang_id) {
+                $this->tipe_asal = 'GUDANG';
+                $this->gudang_asal_id = $user->gudang_id;
+                $this->unit_asal_id = null;
+            }
+        }
 
         $this->validate([
             'tipe_asal' => 'required|in:RUANGAN,GUDANG',
@@ -376,6 +409,11 @@ class PengalihanAsetIndex extends Component
             });
         }
 
+        // Filter Tujuan di main toolbar
+        if ($this->filterTujuanUnitId) {
+            $query->where('tipe_tujuan', 'RUANGAN')->where('unit_tujuan_id', $this->filterTujuanUnitId);
+        }
+
         $items = $query->orderBy($this->getValidatedSortColumn(['kode', 'status', 'tanggal_pengalihan']), $this->getValidatedSortDirection())->paginate($this->perPage);
 
         // Metrik KPI
@@ -387,7 +425,13 @@ class PengalihanAsetIndex extends Component
             ->count();
         $kpiTotalAset = \App\Models\PengalihanAsetDetail::whereHas('pengalihanAset', fn ($q) => $q->where('status', 'SELESAI'))->count();
 
-        // Daftar Aset yang dapat dipilih untuk form create
+        // Status penguncian lokasi asal
+        $isOriginLocked = ! $isGlobalAdmin && ($user?->unit_id || $user?->gudang_id);
+        $namaLokasiAsalUser = $user?->unit_id
+            ? ($user->unit?->nama ?? 'Ruangan Anda')
+            : ($user?->gudang_id ? ($user->gudang?->nama ?? 'Gudang Anda') : 'Lokasi Terdaftar');
+
+        // Daftar Aset yang dapat dipilih untuk form create sesuai lokasi asal
         $asetTersedia = collect();
         if ($this->showCreateModal) {
             $asetQuery = Aset::with('barang')
@@ -400,6 +444,14 @@ class PengalihanAsetIndex extends Component
                 $asetQuery->where('gudang_id', $this->gudang_asal_id);
             } else {
                 $asetQuery->whereRaw('1=0');
+            }
+
+            if ($this->searchAsetModal) {
+                $asetQuery->where(function ($q) {
+                    $q->where('kode_aset', 'ilike', "%{$this->searchAsetModal}%")
+                      ->orWhere('nomor_seri', 'ilike', "%{$this->searchAsetModal}%")
+                      ->orWhereHas('barang', fn ($b) => $b->where('nama', 'ilike', "%{$this->searchAsetModal}%"));
+                });
             }
 
             $asetTersedia = $asetQuery->orderBy('kode_aset')->get();
@@ -420,6 +472,8 @@ class PengalihanAsetIndex extends Component
             'gudangs' => $gudangs,
             'raks' => $raks,
             'isGlobalAdmin' => $isGlobalAdmin,
+            'isOriginLocked' => $isOriginLocked,
+            'namaLokasiAsalUser' => $namaLokasiAsalUser,
         ])->layout('layouts.portal', [
             'portal' => $this->getPortalName(),
             'title' => 'Pengalihan & Mutasi Aset',
