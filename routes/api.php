@@ -54,6 +54,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/gudang/pengalihan-barang/{id}/otorisasi', [GudangApiController::class, 'otorisasiPengalihanBarang']);
         Route::post('/gudang/pengalihan-barang/{id}/serah-terima', [GudangApiController::class, 'serahTerimaPengalihanBarang']);
         Route::post('/gudang/pengalihan-barang/{id}/batal', [GudangApiController::class, 'batalPengalihanBarang']);
+        Route::get('/gudang/stok-tersedia', [GudangApiController::class, 'stokTersedia']);
 
 
         // 6. Sirkulasi Aset & Scanner QR
@@ -70,6 +71,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/aset/kembalikan', [AsetApiController::class, 'kembalikan']);
         Route::get('/aset/pengalihan', [AsetApiController::class, 'daftarPengalihan']);
         Route::get('/aset/pengalihan/komoditas-tersedia', [AsetApiController::class, 'komoditasAsetTersedia']);
+        Route::get('/aset/pengalihan/inventaris-asal', [AsetApiController::class, 'inventarisAsal']);
         Route::post('/aset/pengalihan', [AsetApiController::class, 'simpanPengalihan']);
         Route::post('/aset/pengalihan/{id}/batal', [AsetApiController::class, 'batalPengalihan']);
         Route::post('/aset/pengalihan/{id}/otorisasi', [AsetApiController::class, 'otorisasiPengalihan']);

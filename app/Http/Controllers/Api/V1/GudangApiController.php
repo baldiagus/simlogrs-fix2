@@ -818,6 +818,38 @@ class GudangApiController extends ApiController
     }
 
     /**
+     * Cek ketersediaan stok fisik aktif komoditas barang pada gudang tertentu.
+     * GET /v1/gudang/stok-tersedia?barang_id={id}&gudang_id={id}
+     */
+    public function stokTersedia(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'barang_id' => 'required|exists:barang,id',
+            'gudang_id' => 'required|exists:gudang,id',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->jsonError('Parameter tidak valid.', 422, $validator->errors());
+        }
+
+        $barangId = (int) $request->query('barang_id');
+        $gudangId = (int) $request->query('gudang_id');
+
+        $barang = Barang::with('satuan')->find($barangId);
+        $totalStok = (int) StokBatch::where('barang_id', $barangId)
+            ->where('gudang_id', $gudangId)
+            ->where('status', 'AKTIF')
+            ->sum('jumlah');
+
+        return $this->jsonSuccess([
+            'barang_id'     => $barangId,
+            'gudang_id'     => $gudangId,
+            'stok_tersedia' => $totalStok,
+            'satuan'        => $barang?->satuan?->nama ?? 'Pcs',
+        ], 'Informasi stok berhasil diambil.');
+    }
+
+    /**
      * Otorisasi pengalihan barang (APPROVE / REJECT).
      * POST /v1/gudang/pengalihan-barang/{id}/otorisasi
      */

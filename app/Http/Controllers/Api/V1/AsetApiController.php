@@ -1052,6 +1052,57 @@ class AsetApiController extends ApiController
     }
 
     /**
+     * Daftar inventaris aset fisik milik unit atau gudang pengguna login yang siap dialihkan.
+     * GET /v1/aset/pengalihan/inventaris-asal
+     */
+    public function inventarisAsal(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik', 'manajemen'])));
+
+        $query = Aset::with(['barang.kategori', 'barang.satuan', 'barang.merek', 'unit', 'gudang'])
+            ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+            ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
+            ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                $sub->whereNotIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
+            })
+            ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
+                $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+            });
+
+        if (! $isGlobalAdmin) {
+            $query->where(function ($q) use ($user) {
+                if ($user->unit_id) {
+                    $q->where('unit_id', $user->unit_id);
+                } elseif ($user->gudang_id) {
+                    $q->where('gudang_id', $user->gudang_id);
+                }
+            });
+        }
+
+        $items = $query->orderBy('kode_aset')->get()->map(function ($a) {
+            $isRuangan = $a->unit_id !== null;
+            return [
+                'id'             => $a->id,
+                'kode_aset'      => $a->kode_aset,
+                'nomor_seri'     => $a->nomor_seri ?? '-',
+                'nama_komoditas' => $a->barang?->nama ?? 'Aset Fisik',
+                'spesifikasi'    => $a->barang?->spesifikasi ?? '-',
+                'kategori'       => $a->barang?->kategori?->nama ?? 'Umum',
+                'satuan'         => $a->barang?->satuan?->nama ?? 'Unit',
+                'merek'          => $a->barang?->merek?->nama ?? '-',
+                'kondisi'        => $a->kondisi,
+                'tipe_penyedia'  => $isRuangan ? 'RUANGAN' : 'GUDANG',
+                'penyedia_id'    => $isRuangan ? $a->unit_id : $a->gudang_id,
+                'nama_penyedia'  => $isRuangan ? ($a->unit?->nama ?? 'Ruangan') : ($a->gudang?->nama ?? 'Gudang'),
+                'lokasi_lengkap' => $a->lokasiTercatat ?? ($isRuangan ? $a->unit?->nama : $a->gudang?->nama),
+            ];
+        });
+
+        return $this->jsonSuccess($items, 'Daftar inventaris aset fisik asal berhasil dimuat.');
+    }
+
+    /**
      * Simpan pengajuan pengalihan aset baru.
      * POST /v1/aset/pengalihan
      */
