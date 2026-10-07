@@ -126,38 +126,47 @@
                 <flux:subheading>Buat PO baru dari permintaan pengadaan yang telah disetujui.</flux:subheading>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <flux:input wire:model="kode" label="Kode PO (Otomatis)" disabled readonly class="font-mono bg-zinc-100 dark:bg-zinc-800/80 cursor-not-allowed font-semibold" />
-
-                <div>
-                    <x-searchable-select
-                        model="pemasok_id"
-                        label="Vendor / Pemasok"
-                        placeholder="Pilih Vendor..."
-                        :options="$daftarPemasok"
-                        required
-                    />
+            {{-- Tahap 1: Kontrak Vendor & Syarat Pembayaran --}}
+            <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-4">
+                <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    Tahap 1: Rekanan Vendor & Ketentuan Kontrak PO
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Syarat Pembayaran <span class="text-red-500">*</span></label>
-                    <select wire:model="syarat_pembayaran" required class="w-full text-sm rounded-lg border {{ $errors->has('syarat_pembayaran') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                        <option value="TEMPO_30_HARI">Tempo 30 Hari</option>
-                        <option value="TEMPO_60_HARI">Tempo 60 Hari</option>
-                        <option value="TUNAI">Tunai</option>
-                    </select>
-                    @error('syarat_pembayaran') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <flux:input wire:model="kode" label="Kode PO (Otomatis)" disabled readonly class="font-mono bg-zinc-100 dark:bg-zinc-800/80 cursor-not-allowed font-semibold" />
+
+                    <div>
+                        <x-searchable-select
+                            model="pemasok_id"
+                            label="Vendor / Pemasok"
+                            placeholder="Pilih Vendor..."
+                            :options="$daftarPemasok"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Syarat Pembayaran <span class="text-red-500">*</span></label>
+                        <select wire:model="syarat_pembayaran" required class="w-full text-sm rounded-lg border {{ $errors->has('syarat_pembayaran') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
+                            <option value="TEMPO_30_HARI">Tempo 30 Hari</option>
+                            <option value="TEMPO_60_HARI">Tempo 60 Hari</option>
+                            <option value="TUNAI">Tunai</option>
+                        </select>
+                        @error('syarat_pembayaran') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <flux:input wire:model="estimasi_tanggal_kirim" label="Estimasi Tanggal Kirim" type="date" />
+                    <flux:textarea wire:model="catatan" label="Catatan Tambahan (Opsional)" placeholder="Catatan instruksi pengiriman atau syarat teknis..." rows="2" />
                 </div>
             </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <flux:input wire:model="estimasi_tanggal_kirim" label="Estimasi Tanggal Kirim" type="date" />
-                <flux:textarea wire:model="catatan" label="Catatan" placeholder="Catatan tambahan (opsional)" rows="2" />
-            </div>
-
             {{-- Tabel Item Barang --}}
-            <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 space-y-3">
-                <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Detail Item Barang</div>
+            {{-- Tahap 2: Penetapan Harga & Rincian Item PO --}}
+            <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-3">
+                <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    Tahap 2: Negosiasi Harga Satuan & Verifikasi Nilai Total PO
+                </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
@@ -197,9 +206,12 @@
                 @error('itemRows.*.harga_satuan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
             </div>
 
-            <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+                <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">
+                    Batal
+                </flux:button>
                 <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
-                    <span wire:loading.remove wire:target="savePo">Simpan Pesanan Pembelian</span>
+                    <span wire:loading.remove wire:target="savePo">Terbitkan Pesanan Pembelian</span>
                     <span wire:loading wire:target="savePo">Menyimpan...</span>
                 </flux:button>
             </div>

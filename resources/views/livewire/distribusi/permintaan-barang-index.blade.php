@@ -144,95 +144,102 @@
                 <flux:subheading>Kebutuhan operasional ruangan ke gudang logistik sentral.</flux:subheading>
             </div>
 
-            {{-- Baris 1: Informasi Dokumen & Unit --}}
-            <div class="grid grid-cols-3 gap-4 mb-4">
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        No. Amprah <span class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono font-normal">(Otomatis)</span>
-                    </label>
-                    <input
-                        type="text"
-                        wire:model="kode"
-                        disabled
-                        readonly
-                        class="w-full text-sm font-mono font-semibold rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 text-zinc-600 dark:text-zinc-300 cursor-not-allowed"
-                    />
+            {{-- Tahap 1: Informasi Dokumen, Lokasi Pemohon & Urgensi --}}
+            <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-4">
+                <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    Tahap 1: Informasi Dokumen, Lokasi Pemohon & Urgensi
                 </div>
 
-                @if ($isGlobalAdmin || ! auth()->user()?->unit_id)
+                {{-- Baris 1: Informasi Dokumen & Unit --}}
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                            No. Amprah <span class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono font-normal">(Otomatis)</span>
+                        </label>
+                        <input
+                            type="text"
+                            wire:model="kode"
+                            disabled
+                            readonly
+                            class="w-full text-sm font-mono font-semibold rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 text-zinc-600 dark:text-zinc-300 cursor-not-allowed"
+                        />
+                    </div>
+
+                    @if ($isGlobalAdmin || ! auth()->user()?->unit_id)
+                        <div>
+                            <x-searchable-select
+                                model="unit_id"
+                                label="Unit Pemohon"
+                                placeholder="Pilih Unit Ruangan..."
+                                :options="$daftarUnit"
+                                required
+                            />
+                        </div>
+                    @else
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Unit Pemohon</label>
+                            <input
+                                type="text"
+                                value="{{ auth()->user()->unit?->nama ?? '-' }}"
+                                disabled
+                                readonly
+                                class="w-full text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 text-zinc-700 dark:text-zinc-300 font-medium cursor-not-allowed"
+                            />
+                        </div>
+                    @endif
+
                     <div>
                         <x-searchable-select
-                            model="unit_id"
-                            label="Unit Pemohon"
-                            placeholder="Pilih Unit Ruangan..."
-                            :options="$daftarUnit"
+                            model="gudang_id"
+                            label="Gudang Tujuan"
+                            placeholder="Pilih Gudang..."
+                            :options="$daftarGudang"
+                            live="true"
                             required
                         />
                     </div>
-                @else
-                    <div>
-                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Unit Pemohon</label>
+                </div>
+
+                {{-- Schedule and notes --}}
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                            Tanggal Permintaan <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" wire:model="tanggal_permintaan" required class="w-full text-sm rounded-lg border {{ $errors->has('tanggal_permintaan') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        @error('tanggal_permintaan') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                            Urgensi <span class="text-red-500">*</span>
+                        </label>
+                        <select wire:model="urgensi" required class="w-full text-sm rounded-lg border {{ $errors->has('urgensi') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <option value="REGULER">REGULER</option>
+                            <option value="CITO">CITO (Darurat)</option>
+                        </select>
+                        @error('urgensi') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="sm:col-span-6">
+                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                            Catatan / Justifikasi <span class="text-zinc-500 dark:text-zinc-400 font-normal">(Opsional)</span>
+                        </label>
                         <input
                             type="text"
-                            value="{{ auth()->user()->unit?->nama ?? '-' }}"
-                            disabled
-                            readonly
-                            class="w-full text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 text-zinc-700 dark:text-zinc-300 font-medium cursor-not-allowed"
+                            wire:model="catatan"
+                            placeholder="Nomor memo atau justifikasi kebutuhan khusus..."
+                            class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                     </div>
-                @endif
-
-                <div>
-                    <x-searchable-select
-                        model="gudang_id"
-                        label="Gudang Tujuan"
-                        placeholder="Pilih Gudang..."
-                        :options="$daftarGudang"
-                        live="true"
-                        required
-                    />
                 </div>
             </div>
-
-            {{-- Schedule and notes --}}
-            <div class="grid grid-cols-12 gap-4 mb-4">
-                <div class="col-span-3">
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Tanggal Permintaan <span class="text-red-500">*</span>
-                    </label>
-                    <input type="date" wire:model="tanggal_permintaan" required class="w-full text-sm rounded-lg border {{ $errors->has('tanggal_permintaan') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                    @error('tanggal_permintaan') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
-                </div>
-
-                <div class="col-span-3">
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Urgensi <span class="text-red-500">*</span>
-                    </label>
-                    <select wire:model="urgensi" required class="w-full text-sm rounded-lg border {{ $errors->has('urgensi') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="REGULER">REGULER</option>
-                        <option value="CITO">CITO (Darurat)</option>
-                    </select>
-                    @error('urgensi') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
-                </div>
-
-                <div class="col-span-6">
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Catatan / Justifikasi <span class="text-zinc-500 dark:text-zinc-400 font-normal">(Opsional)</span>
-                    </label>
-                    <input
-                        type="text"
-                        wire:model="catatan"
-                        placeholder="Nomor memo atau justifikasi kebutuhan khusus..."
-                        class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                </div>
-            </div>
-
             {{-- Requested commodities (1x3 matrix) --}}
-            <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/50 space-y-3">
-                <div class="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-800">
+            {{-- Tahap 2: Rincian Daftar Komoditas Barang yang Diamprah --}}
+            <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-700">
                     <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-                        <span>Daftar Komoditas Diminta</span>
+                        <span>Tahap 2: Daftar Komoditas Barang yang Diamprah</span>
                         <span class="text-red-500">*</span>
                     </div>
                     <flux:button type="button" wire:click="addItem" size="xs" variant="ghost" icon="plus">
@@ -330,10 +337,13 @@
                 <span>Barang yang stok gudangnya kosong atau kurang dari permintaan akan otomatis dicatat sebagai hutang gudang (backorder) dan diterbitkan SPPB susulan saat barang tiba.</span>
             </div>
 
-            <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+                <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">
+                    Batal
+                </flux:button>
                 <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
-                    <span wire:loading.remove wire:target="save">Kirim Permintaan</span>
-                    <span wire:loading wire:target="save">Mengirim...</span>
+                    <span wire:loading.remove wire:target="save">Ajukan Amprah Barang</span>
+                    <span wire:loading wire:target="save">Memproses...</span>
                 </flux:button>
             </div>
         </form>

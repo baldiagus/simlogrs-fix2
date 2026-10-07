@@ -255,8 +255,11 @@
                 </div>
             </div>
 
-            {{-- Dokumen Header Input --}}
-            <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 space-y-4">
+            {{-- Tahap 1: Dokumen Surat Jalan & Gudang Simpan --}}
+            <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-4">
+                <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    Tahap 1: Verifikasi Dokumen Surat Jalan & Fasilitas Gudang Simpan
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
@@ -305,12 +308,12 @@
                 </div>
             </div>
 
-            {{-- Items Card List --}}
+            {{-- Tahap 2: Pemeriksaan Fisik Barang & Alokasi Rak --}}
             @if (count($itemRows) > 0)
-                <div class="space-y-2.5 pt-1">
-                    <div class="flex items-center justify-between pb-1 border-b border-zinc-200 dark:border-zinc-800 text-xs">
+                <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-3">
+                    <div class="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-700 text-xs">
                         <div class="font-semibold text-zinc-700 dark:text-zinc-300">
-                            Daftar Komoditas Diterima ({{ count($itemRows) }} Item)
+                            Tahap 2: Pemeriksaan Fisik Barang, Nomor Batch & Alokasi Rak ({{ count($itemRows) }} Item)
                         </div>
                         <div class="text-zinc-500 dark:text-zinc-400 text-[11px]">
                             Verifikasi data PO &bull; Catat fisik masuk & rak simpan
