@@ -1,10 +1,10 @@
 <div class="space-y-6">
-    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header Halaman --}}
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Digital Forensic Audit Trail</flux:heading>
-                <flux:subheading>Rekaman audit forensik digital perubahan data transaksional sistem (snapshot diff sebelum vs sesudah dalam format JSONB).</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Digital Forensic Audit Trail</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Rekaman audit forensik digital perubahan data transaksional sistem (snapshot diff sebelum vs sesudah dalam format JSONB).</flux:subheading>
             </div>
 
             @if ($filterAksi || $filterEntitas || $filterPenggunaId || $tanggalMulai || $tanggalSelesai || $search)
@@ -16,7 +16,10 @@
 
         {{-- Navigasi Sub-Tab Hub Pengawasan Kepatuhan --}}
         <x-audit-kepatuhan-tabs active="trail" />
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Toolbar Filter & Pencarian --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
             <div>

@@ -1,16 +1,19 @@
 <div class="space-y-6">
-    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header halaman --}}
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">{{ $pageTitle }}</flux:heading>
-                <flux:subheading>Verifikasi, otorisasi persetujuan, dan serah terima fisik sirkulasi aset antar unit atau gudang.</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">{{ $pageTitle }}</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Verifikasi, otorisasi persetujuan, dan serah terima fisik sirkulasi aset antar unit atau gudang.</flux:subheading>
             </div>
         </div>
 
         {{-- Navigasi Sub-Tab Hub Peminjaman --}}
         <x-sirkulasi-peminjaman-tabs active="approval" />
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Toolbar filter dan pencarian --}}
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-1">
             <div class="flex flex-wrap items-center gap-1.5">

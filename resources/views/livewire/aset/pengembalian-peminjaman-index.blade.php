@@ -1,14 +1,12 @@
 <div class="space-y-6">
+    {{-- Header Halaman --}}
+    <div class="space-y-1">
+        <flux:heading size="xl" level="1" class="font-bold tracking-tight">{{ $pageTitle }}</flux:heading>
+        <flux:subheading class="text-zinc-500 dark:text-zinc-400">Inspeksi fisik dan serah terima pengembalian aset inventaris rumah sakit yang sedang dipinjam.</flux:subheading>
+    </div>
+
     {{-- Card 1: Peminjaman Aktif yang Berstatus DIPINJAM --}}
     <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header Halaman --}}
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <flux:heading size="xl" level="1">{{ $pageTitle }}</flux:heading>
-                <flux:subheading>Inspeksi fisik dan serah terima pengembalian aset inventaris rumah sakit yang sedang dipinjam.</flux:subheading>
-            </div>
-        </div>
-
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center gap-3">
             <div class="w-full sm:w-96">

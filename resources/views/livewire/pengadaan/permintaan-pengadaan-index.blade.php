@@ -1,10 +1,10 @@
 <div class="space-y-6">
-    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header & Tombol Tambah --}}
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Permintaan Pengadaan (PR)</flux:heading>
-                <flux:subheading>Kelola permintaan pengadaan barang dari seluruh unit rumah sakit.</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Permintaan Pengadaan (PR)</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Kelola permintaan pengadaan barang dari seluruh unit rumah sakit.</flux:subheading>
             </div>
 
             @can('create_pengadaan::permintaan::pengadaan')
@@ -16,7 +16,10 @@
 
         {{-- Navigasi Sub-Tab Hub Pengadaan --}}
         <x-pengadaan-transaksi-tabs active="pr" />
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center gap-3">
             <div class="w-full sm:w-80">

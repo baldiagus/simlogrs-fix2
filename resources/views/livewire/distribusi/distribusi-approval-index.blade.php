@@ -1,16 +1,19 @@
 <div class="space-y-6">
-    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header Halaman --}}
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Otorisasi Distribusi Logistik (Admin Sentral)</flux:heading>
-                <flux:subheading>Review amprah ruangan yang telah disetujui Karu dan tentukan kuota persetujuan distribusi berdasarkan stok fisik gudang.</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Otorisasi Distribusi Logistik (Admin Sentral)</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Review amprah ruangan yang telah disetujui Karu dan tentukan kuota persetujuan distribusi berdasarkan stok fisik gudang.</flux:subheading>
             </div>
         </div>
 
         {{-- Navigasi Sub-Tab Modul Amprah Ruangan --}}
         <x-distribusi-amprah-tabs active="approval-logistik" />
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center gap-3">
             <div class="w-full sm:w-80">

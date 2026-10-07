@@ -1,10 +1,10 @@
 <div class="space-y-6">
-    <flux:card class="space-y-4 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header --}}
+    {{-- Header Halaman & Tombol Tambah --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Kategori Komoditas</flux:heading>
-                <flux:subheading>Klasifikasi jenis barang rumah sakit (ATK, ART, Cetakan, Sparepart, Elektronik).</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Kategori Komoditas</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Klasifikasi jenis barang rumah sakit (ATK, ART, Cetakan, Sparepart, Elektronik).</flux:subheading>
             </div>
 
             @can('create_master::kategori::barang')
@@ -13,7 +13,10 @@
                 </flux:button>
             @endcan
         </div>
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-4 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Toolbar Pencarian --}}
         <div>
             <flux:input

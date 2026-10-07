@@ -1,10 +1,10 @@
 <div class="space-y-6">
-    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header halaman --}}
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">{{ $pageTitle }}</flux:heading>
-                <flux:subheading>{{ $pageSubtitle }}</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">{{ $pageTitle }}</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">{{ $pageSubtitle }}</flux:subheading>
             </div>
 
             @can('create_layanan_unit::peminjaman::aset')
@@ -18,7 +18,10 @@
 
         {{-- Navigasi Sub-Tab Hub Peminjaman --}}
         <x-sirkulasi-peminjaman-tabs active="pinjam" />
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Navigasi tab --}}
         <flux:tabs class="pt-2">
             <flux:tab

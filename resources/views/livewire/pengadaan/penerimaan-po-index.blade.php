@@ -1,16 +1,19 @@
 <div class="space-y-6">
-    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header --}}
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Penerimaan Barang (Inbound)</flux:heading>
-                <flux:subheading>Pantau status pengiriman PO vendor dan catat penerimaan fisik logistik.</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Penerimaan Barang (Inbound)</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Pantau status pengiriman PO vendor dan catat penerimaan fisik logistik.</flux:subheading>
             </div>
         </div>
 
         {{-- Navigasi Sub-Tab Hub Pengadaan --}}
         <x-pengadaan-transaksi-tabs active="rcv" />
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Tab Switcher (Dual-Mode: Tracking PO & Riwayat RCV) --}}
         <div class="flex border-b border-zinc-200 dark:border-zinc-800 gap-2">
             <button

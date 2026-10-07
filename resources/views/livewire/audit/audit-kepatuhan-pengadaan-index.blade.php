@@ -1,16 +1,19 @@
 <div class="space-y-6">
-    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header Halaman --}}
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Audit Kepatuhan Pengadaan (PO vs PR)</flux:heading>
-                <flux:subheading>Uji kepatuhan silang pengadaan: deteksi PO tanpa PR sah, keterlambatan kirim vendor, dan selisih penerimaan fisik.</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Audit Kepatuhan Pengadaan (PO vs PR)</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Uji kepatuhan silang pengadaan: deteksi PO tanpa PR sah, keterlambatan kirim vendor, dan selisih penerimaan fisik.</flux:subheading>
             </div>
         </div>
 
         {{-- Navigasi Sub-Tab Hub Pengawasan Kepatuhan --}}
         <x-audit-kepatuhan-tabs active="kepatuhan" />
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Navigasi Tab Filter Anomali (Pills) --}}
         <div class="flex flex-wrap items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl w-fit text-xs font-medium border border-zinc-200/60 dark:border-zinc-700/60">
             <button

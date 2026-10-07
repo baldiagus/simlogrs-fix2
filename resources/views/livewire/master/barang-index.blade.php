@@ -1,10 +1,10 @@
 <div class="space-y-6">
-    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header & Tombol Tambah --}}
+    {{-- Header Halaman & Tombol Tambah --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Katalog Master Barang</flux:heading>
-                <flux:subheading>Daftar seluruh komoditas logistik non-medis, persediaan habis pakai, aset inventaris, dan suku cadang.</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Katalog Master Barang</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Daftar seluruh komoditas logistik non-medis, persediaan habis pakai, aset inventaris, dan suku cadang.</flux:subheading>
             </div>
 
             @can('create_master::barang')
@@ -13,7 +13,10 @@
                 </flux:button>
             @endcan
         </div>
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Filter Tipe Komoditas (Pills) --}}
         <div class="flex flex-wrap items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl w-fit text-xs font-medium border border-zinc-200/60 dark:border-zinc-700/60">
             <button

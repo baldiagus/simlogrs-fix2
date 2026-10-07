@@ -1,16 +1,19 @@
 <div class="space-y-6">
-    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header Halaman --}}
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Picking FEFO & Pengeluaran Barang (SPPB)</flux:heading>
-                <flux:subheading>Alokasi pengeluaran stok otomatis berbasis First Expired, First Out (FEFO) dan penerbitan Surat Perintah Pengeluaran Barang (SPPB).</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Picking FEFO & Pengeluaran Barang (SPPB)</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Alokasi pengeluaran stok otomatis berbasis First Expired, First Out (FEFO) dan penerbitan Surat Perintah Pengeluaran Barang (SPPB).</flux:subheading>
             </div>
         </div>
 
         {{-- Navigasi Sub-Tab Penyaluran SPPB --}}
         <x-distribusi-sppb-tabs active="picking" />
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Navigasi Tab --}}
         <div class="flex flex-wrap items-center justify-between gap-4 pt-1">
             <div class="flex items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl text-xs font-medium border border-zinc-200/60 dark:border-zinc-700/60">

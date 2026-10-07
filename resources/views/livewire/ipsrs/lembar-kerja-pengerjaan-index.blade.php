@@ -1,16 +1,19 @@
 <div class="space-y-6">
-    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header Halaman --}}
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Lembar Kerja Pengerjaan IPSRS</flux:heading>
-                <flux:subheading>Pencatatan diagnosis teknis, tindakan perbaikan fasilitas, pemakaian suku cadang FEFO, dan uji fungsi bersama unit.</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Lembar Kerja Pengerjaan IPSRS</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Pencatatan diagnosis teknis, tindakan perbaikan fasilitas, pemakaian suku cadang FEFO, dan uji fungsi bersama unit.</flux:subheading>
             </div>
         </div>
 
         {{-- Navigasi Sub-Tab Hub Servis IPSRS --}}
         <x-ipsrs-servis-tabs active="lk" />
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div class="w-full sm:w-80">

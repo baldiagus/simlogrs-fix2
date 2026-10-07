@@ -1,10 +1,10 @@
 <div class="space-y-6">
-    <flux:card class="space-y-4 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header --}}
+    {{-- Header Halaman & Tombol Tambah --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Pemasok & Rekanan Vendor</flux:heading>
-                <flux:subheading>Daftar mitra penyedia komoditas logistik dan suku cadang rumah sakit.</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Pemasok & Rekanan Vendor</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Daftar mitra penyedia komoditas logistik dan suku cadang rumah sakit.</flux:subheading>
             </div>
 
             @can('create_master::pemasok')
@@ -13,7 +13,10 @@
                 </flux:button>
             @endcan
         </div>
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-4 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Toolbar Pencarian --}}
         <div>
             <flux:input

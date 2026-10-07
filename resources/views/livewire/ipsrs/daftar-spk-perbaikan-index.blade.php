@@ -1,16 +1,19 @@
 <div class="space-y-6">
-    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header Halaman --}}
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Surat Perintah Kerja (SPK) Perbaikan</flux:heading>
-                <flux:subheading>Disposisi penugasan teknisi IPSRS, penerbitan dokumen resmi SPK, dan pemantauan perbaikan fisik sarana.</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Surat Perintah Kerja (SPK) Perbaikan</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Disposisi penugasan teknisi IPSRS, penerbitan dokumen resmi SPK, dan pemantauan perbaikan fisik sarana.</flux:subheading>
             </div>
         </div>
 
         {{-- Navigasi Sub-Tab Hub Servis IPSRS --}}
         <x-ipsrs-servis-tabs active="spk" />
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Navigasi Tab --}}
         <flux:tabs class="pt-2">
             <flux:tab

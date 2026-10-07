@@ -1,16 +1,19 @@
 <div class="space-y-6">
-    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header Halaman --}}
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Buku Rekam Medis Sarana & Aset (IPSRS)</flux:heading>
-                <flux:subheading>Rekam jejak digital siklus hidup pemeliharaan, histori penanganan teknisi, dan akumulasi biaya suku cadang per unit fasilitas.</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Buku Rekam Medis Sarana & Aset (IPSRS)</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Rekam jejak digital siklus hidup pemeliharaan, histori penanganan teknisi, dan akumulasi biaya suku cadang per unit fasilitas.</flux:subheading>
             </div>
         </div>
 
         {{-- Navigasi Sub-Tab Hub Rutin & Rekam Medis --}}
         <x-ipsrs-rutin-tabs active="rekam-medis" />
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div class="w-full sm:w-80">

@@ -1,10 +1,10 @@
 <div class="space-y-6">
-    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header Halaman --}}
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <flux:heading size="xl" level="1">Stock Opname Fisik (Blind Count)</flux:heading>
-                <flux:subheading>Pencocokan saldo buku sistem terhadap perhitungan fisik lapangan di depan rak guna menjamin akurasi persediaan 100%.</flux:subheading>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Stock Opname Fisik (Blind Count)</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Pencocokan saldo buku sistem terhadap perhitungan fisik lapangan di depan rak guna menjamin akurasi persediaan 100%.</flux:subheading>
             </div>
 
             @can('create_gudang_stok::stok::opname')
@@ -16,7 +16,10 @@
 
         {{-- Navigasi Sub-Tab Hub Opname & Penyesuaian --}}
         <x-persediaan-opname-tabs active="opname" />
+    </div>
 
+    {{-- Workspace Card Utama --}}
+    <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div class="w-full sm:w-80">
