@@ -647,26 +647,41 @@ class GudangApiController extends ApiController
             if ($tab === 'otorisasi') {
                 $query->where('status', 'DIAJUKAN')
                     ->where('tipe_asal', 'GUDANG')
-                    ->where('gudang_asal_id', $userGudangId);
+                    ->where('gudang_asal_id', $userGudangId)
+                    ->where(function ($sub) use ($userGudangId, $userId) {
+                        $sub->where('gudang_tujuan_id', '!=', $userGudangId)
+                            ->orWhere('diajukan_oleh', '!=', $userId);
+                    });
+            } elseif ($tab === 'aktif') {
+                $query->whereIn('status', ['DIAJUKAN', 'DISETUJUI'])
+                    ->where(function ($q) use ($userGudangId, $userId) {
+                        $q->where('diajukan_oleh', $userId);
+                        if ($userGudangId) {
+                            $q->orWhere(function ($sub) use ($userGudangId) {
+                                $sub->where('tipe_tujuan', 'GUDANG')
+                                    ->where('gudang_tujuan_id', $userGudangId);
+                            });
+                        }
+                    });
             } else {
-                $query->where(function ($q) use ($userGudangId, $userId) {
-                    $q->where('diajukan_oleh', $userId);
-                    if ($userGudangId) {
-                        $q->orWhere('gudang_asal_id', $userGudangId)
-                          ->orWhere('gudang_tujuan_id', $userGudangId);
-                    }
-                });
+                $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN'])
+                    ->where(function ($q) use ($userGudangId, $userId) {
+                        $q->where('diajukan_oleh', $userId);
+                        if ($userGudangId) {
+                            $q->orWhere('gudang_asal_id', $userGudangId)
+                              ->orWhere('gudang_tujuan_id', $userGudangId);
+                        }
+                    });
+            }
+        } else {
+            if ($tab === 'aktif') {
+                $query->whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
+            } elseif ($tab === 'otorisasi') {
+                $query->where('status', 'DIAJUKAN');
+            } elseif ($tab === 'riwayat') {
+                $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
             }
         }
-
-        if ($tab === 'aktif') {
-            $query->whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
-        } elseif ($tab === 'otorisasi') {
-            $query->where('status', 'DIAJUKAN');
-        } elseif ($tab === 'riwayat') {
-            $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
-        }
-
         $list = $query->get()->map(function ($item) use ($user, $isGlobalAdmin) {
             $namaItem = $item->detail->first()?->barang?->nama ?? 'Komoditas Logistik';
 

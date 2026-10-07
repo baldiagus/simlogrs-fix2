@@ -926,35 +926,67 @@ class AsetApiController extends ApiController
 
             if ($tab === 'otorisasi') {
                 $query->where('status', 'DIAJUKAN')
-                    ->where(function ($q) use ($userUnitId, $userGudangId) {
+                    ->where(function ($q) use ($userUnitId, $userGudangId, $userId) {
                         if ($userUnitId) {
-                            $q->orWhere('unit_asal_id', $userUnitId);
+                            $q->orWhere(function ($sub) use ($userUnitId, $userId) {
+                                $sub->where('tipe_asal', 'RUANGAN')
+                                    ->where('unit_asal_id', $userUnitId)
+                                    ->where(function ($nest) use ($userUnitId, $userId) {
+                                        $nest->where('unit_tujuan_id', '!=', $userUnitId)
+                                             ->orWhere('diajukan_oleh', '!=', $userId);
+                                    });
+                            });
                         }
                         if ($userGudangId) {
-                            $q->orWhere('gudang_asal_id', $userGudangId);
+                            $q->orWhere(function ($sub) use ($userGudangId, $userId) {
+                                $sub->where('tipe_asal', 'GUDANG')
+                                    ->where('gudang_asal_id', $userGudangId)
+                                    ->where(function ($nest) use ($userGudangId, $userId) {
+                                        $nest->where('gudang_tujuan_id', '!=', $userGudangId)
+                                             ->orWhere('diajukan_oleh', '!=', $userId);
+                                    });
+                            });
+                        }
+                    });
+            } elseif ($tab === 'aktif') {
+                $query->whereIn('status', ['DIAJUKAN', 'DISETUJUI'])
+                    ->where(function ($q) use ($userUnitId, $userGudangId, $userId) {
+                        $q->where('diajukan_oleh', $userId);
+                        if ($userUnitId) {
+                            $q->orWhere(function ($sub) use ($userUnitId) {
+                                $sub->where('tipe_tujuan', 'RUANGAN')
+                                    ->where('unit_tujuan_id', $userUnitId);
+                            });
+                        }
+                        if ($userGudangId) {
+                            $q->orWhere(function ($sub) use ($userGudangId) {
+                                $sub->where('tipe_tujuan', 'GUDANG')
+                                    ->where('gudang_tujuan_id', $userGudangId);
+                            });
                         }
                     });
             } else {
-                $query->where(function ($q) use ($userUnitId, $userGudangId, $userId) {
-                    $q->where('diajukan_oleh', $userId);
-                    if ($userUnitId) {
-                        $q->orWhere('unit_asal_id', $userUnitId)
-                          ->orWhere('unit_tujuan_id', $userUnitId);
-                    }
-                    if ($userGudangId) {
-                        $q->orWhere('gudang_asal_id', $userGudangId)
-                          ->orWhere('gudang_tujuan_id', $userGudangId);
-                    }
-                });
+                $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN'])
+                    ->where(function ($q) use ($userUnitId, $userGudangId, $userId) {
+                        $q->where('diajukan_oleh', $userId);
+                        if ($userUnitId) {
+                            $q->orWhere('unit_asal_id', $userUnitId)
+                              ->orWhere('unit_tujuan_id', $userUnitId);
+                        }
+                        if ($userGudangId) {
+                            $q->orWhere('gudang_asal_id', $userGudangId)
+                              ->orWhere('gudang_tujuan_id', $userGudangId);
+                        }
+                    });
             }
-        }
-
-        if ($tab === 'aktif') {
-            $query->whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
-        } elseif ($tab === 'otorisasi') {
-            $query->where('status', 'DIAJUKAN');
-        } elseif ($tab === 'riwayat') {
-            $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
+        } else {
+            if ($tab === 'aktif') {
+                $query->whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
+            } elseif ($tab === 'otorisasi') {
+                $query->where('status', 'DIAJUKAN');
+            } elseif ($tab === 'riwayat') {
+                $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
+            }
         }
 
         $list = $query->get()->map(function ($item) use ($user, $isGlobalAdmin) {
