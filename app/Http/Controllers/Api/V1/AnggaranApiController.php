@@ -38,27 +38,25 @@ class AnggaranApiController extends ApiController
         $ringkasan = $service->getRingkasanEksekutif($tahun);
 
         // 1. Data Tab Unit Ruangan
-        $unitAnggarans = AnggaranPengadaan::with('unit')
-            ->where('tahun', (string) $tahun)
-            ->where('tipe', 'UNIT')
-            ->orderBy('kode')
+        $unitAnggarans = Unit::orderBy('nama')
             ->get()
-            ->map(function ($anggaran) use ($service, $tahun) {
-                $distribusi = $anggaran->unit_id ? $service->hitungBebanDistribusiUnit($anggaran->unit_id, $tahun) : 0;
-                $sparepart = $anggaran->unit_id ? $service->hitungBebanSparepartUnit($anggaran->unit_id, $tahun) : 0;
+            ->map(function ($unit) use ($service, $tahun) {
+                $distribusi = $service->hitungBebanDistribusiUnit($unit->id, $tahun);
+                $sparepart = $service->hitungBebanSparepartUnit($unit->id, $tahun);
+                $total = $distribusi + $sparepart;
 
                 return [
-                    'id'               => $anggaran->id,
-                    'kode'             => $anggaran->kode,
-                    'pos_anggaran'     => $anggaran->pos_anggaran,
-                    'unit_id'          => $anggaran->unit_id,
-                    'unit_nama'        => $anggaran->unit?->nama ?? $anggaran->pos_anggaran,
-                    'unit_kode'        => $anggaran->unit?->kode ?? $anggaran->kode,
-                    'pagu'             => (float) $anggaran->pagu,
-                    'realisasi'        => (float) $anggaran->realisasi,
-                    'sisa'             => (float) $anggaran->sisa,
-                    'serapan'          => (float) $anggaran->serapan,
-                    'status'           => $anggaran->status ?? 'Normal',
+                    'id'               => $unit->id,
+                    'kode'             => $unit->kode,
+                    'pos_anggaran'     => $unit->nama,
+                    'unit_id'          => $unit->id,
+                    'unit_nama'        => $unit->nama,
+                    'unit_kode'        => $unit->kode,
+                    'pagu'             => 0.0,
+                    'realisasi'        => (float) $total,
+                    'sisa'             => 0.0,
+                    'serapan'          => 0.0,
+                    'status'           => 'Normal',
                     'beban_distribusi' => (float) $distribusi,
                     'beban_sparepart'  => (float) $sparepart,
                 ];
@@ -69,16 +67,16 @@ class AnggaranApiController extends ApiController
             ->where('tipe', 'SPAREPART_IPSRS')
             ->first();
 
-        $sparepartAnggaran = $sparepartAnggaranModel ? [
-            'id'           => $sparepartAnggaranModel->id,
-            'kode'         => $sparepartAnggaranModel->kode,
-            'pos_anggaran' => $sparepartAnggaranModel->pos_anggaran,
-            'pagu'         => (float) $sparepartAnggaranModel->pagu,
-            'realisasi'    => (float) $sparepartAnggaranModel->realisasi,
-            'sisa'         => (float) $sparepartAnggaranModel->sisa,
-            'serapan'      => (float) $sparepartAnggaranModel->serapan,
-            'status'       => $sparepartAnggaranModel->status ?? 'Normal',
-        ] : null;
+        $sparepartAnggaran = [
+            'id'           => $sparepartAnggaranModel?->id ?? 0,
+            'kode'         => $sparepartAnggaranModel?->kode ?? 'SPAREPART-IPSRS',
+            'pos_anggaran' => $sparepartAnggaranModel?->pos_anggaran ?? 'Screening Pemeliharaan Sarana & Sparepart IPSRS',
+            'pagu'         => (float) ($sparepartAnggaranModel?->pagu ?? 0),
+            'realisasi'    => (float) ($sparepartAnggaranModel?->realisasi ?? $ringkasan['total_realisasi_sparepart']),
+            'sisa'         => (float) ($sparepartAnggaranModel?->sisa ?? 0),
+            'serapan'      => (float) ($sparepartAnggaranModel?->serapan ?? 0),
+            'status'       => $sparepartAnggaranModel?->status ?? 'Normal',
+        ];
 
         $topAset = $service->getTopAsetBiayaPemeliharaan($tahun, 5)->map(function ($item) {
             return [

@@ -115,15 +115,15 @@
                                 $sparepart = (float) $anggaran->beban_sparepart;
                                 $totalBeban = (float) $anggaran->realisasi;
                             @endphp
-                            <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40" wire:key="unit-pagu-{{ $anggaran->id }}">
+                            <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40" wire:key="unit-row-{{ $anggaran->id }}">
                                 <td class="py-2.5 px-3 font-mono font-semibold text-zinc-800 dark:text-zinc-200 whitespace-nowrap">
-                                    {{ $anggaran->unit?->kode ?? $anggaran->kode }}
+                                    {{ $anggaran->kode }}
                                 </td>
                                 <td class="py-2.5 px-3">
                                     <div class="font-semibold text-zinc-900 dark:text-zinc-100">
-                                        {{ $anggaran->unit?->nama ?? $anggaran->pos_anggaran }}
+                                        {{ $anggaran->nama ?? $anggaran->unit?->nama ?? $anggaran->pos_anggaran }}
                                     </div>
-                                    <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">Pos Ref: {{ $anggaran->kode }}</div>
+                                    <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">Kode: {{ $anggaran->kode }}</div>
                                 </td>
                                 <td class="py-2.5 px-3 font-mono text-right text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">
                                     Rp {{ number_format($distribusi, 0, ',', '.') }}
@@ -161,9 +161,9 @@
     @if ($activeTab === 'sparepart')
         <div class="space-y-6">
             {{-- Banner Total Suku Cadang IPSRS --}}
-            @if ($sparepartAnggaran)
+            @if (isset($ringkasan['total_realisasi_sparepart']))
                 @php
-                    $realisasiSp = (float) $sparepartAnggaran->realisasi;
+                    $realisasiSp = (float) $ringkasan['total_realisasi_sparepart'];
                 @endphp
                 <flux:card class="p-5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 shadow-xs">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -299,23 +299,24 @@
 
     {{-- Modal Drilldown Pengeluaran Unit (SPPB Distribusi & Pemeliharaan Sparepart) --}}
     <flux:modal name="modal-drilldown-unit" wire:model="showDetailModal" class="md:w-[48rem]">
-        @if ($selectedAnggaran)
+        @if ($selectedUnit || $selectedAnggaran)
             @php
-                $totMod = (float) $selectedAnggaran->realisasi;
+                $activeUnit = $selectedUnit ?? $selectedAnggaran;
+                $totMod = (float) ($selectedBebanDistribusi + $selectedBebanSparepart);
             @endphp
             <div class="space-y-4">
                 <div class="flex items-start justify-between gap-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
                     <div>
                         <div class="text-[11px] font-mono text-blue-600 dark:text-blue-400 font-bold uppercase">
-                            Screening Pengeluaran, TA {{ $selectedAnggaran->tahun }}
+                            Screening Pengeluaran, TA {{ $filterTahun }}
                         </div>
                         <flux:heading size="lg" class="mt-0.5">
-                            {{ $selectedAnggaran->unit?->nama ?? $selectedAnggaran->pos_anggaran }}
+                            {{ $activeUnit->nama ?? $activeUnit->unit?->nama ?? $activeUnit->pos_anggaran }}
                         </flux:heading>
                     </div>
                     <div style="margin-right: 2.25rem;">
                         <flux:badge size="sm" color="blue">
-                            Unit Kerja
+                            Unit Kerja ({{ $activeUnit->kode }})
                         </flux:badge>
                     </div>
                 </div>

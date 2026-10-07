@@ -8,6 +8,7 @@ use App\Livewire\Concerns\HasToast;
 use App\Models\AnggaranPengadaan;
 use App\Models\PengirimanBarang;
 use App\Models\SukuCadangMaintenance;
+use App\Models\Unit;
 use App\Services\Anggaran\AnggaranRealtimeService;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -22,6 +23,7 @@ class RealisasiAnggaranIndex extends Component
     #[Url(history: true)]
     public string $activeTab = 'unit'; // 'unit' | 'sparepart'
 
+    public ?int $selectedUnitId = null;
     public ?int $selectedAnggaranId = null;
     public bool $showDetailModal = false;
 
@@ -49,15 +51,20 @@ class RealisasiAnggaranIndex extends Component
 
     public function openDetail(int $id): void
     {
+        $this->selectedUnitId = $id;
         $this->selectedAnggaranId = $id;
         $this->showDetailModal = true;
     }
 
-    public function getSelectedAnggaranProperty(): ?AnggaranPengadaan
+    public function getSelectedUnitProperty(): ?Unit
     {
-        return $this->selectedAnggaranId
-            ? AnggaranPengadaan::with('unit')->find($this->selectedAnggaranId)
-            : null;
+        $id = $this->selectedUnitId ?? $this->selectedAnggaranId;
+        return $id ? Unit::find($id) : null;
+    }
+
+    public function getSelectedAnggaranProperty(): ?Unit
+    {
+        return $this->selectedUnit;
     }
 
     public function render()
@@ -67,22 +74,20 @@ class RealisasiAnggaranIndex extends Component
         $ringkasan = $service->getRingkasanEksekutif($this->filterTahun);
 
         // 1. Data Tab Unit Ruangan
-        $unitQuery = AnggaranPengadaan::with('unit')
-            ->where('tahun', $this->filterTahun)
-            ->where('tipe', 'UNIT');
+        $unitQuery = Unit::query();
 
         if (! empty($this->search)) {
             $unitQuery->where(function ($q) {
-                $q->where('pos_anggaran', 'ilike', "%{$this->search}%")
-                  ->orWhere('kode', 'ilike', "%{$this->search}%")
-                  ->orWhereHas('unit', fn ($u) => $u->where('nama', 'ilike', "%{$this->search}%"));
+                $q->where('nama', 'ilike', "%{$this->search}%")
+                  ->orWhere('kode', 'ilike', "%{$this->search}%");
             });
         }
 
-        $unitAnggarans = $unitQuery->orderBy('kode')->get()->map(function ($anggaran) use ($service) {
-            $anggaran->beban_distribusi = $anggaran->unit_id ? $service->hitungBebanDistribusiUnit($anggaran->unit_id, $this->filterTahun) : 0;
-            $anggaran->beban_sparepart = $anggaran->unit_id ? $service->hitungBebanSparepartUnit($anggaran->unit_id, $this->filterTahun) : 0;
-            return $anggaran;
+        $unitAnggarans = $unitQuery->orderBy('nama')->get()->map(function ($unit) use ($service) {
+            $unit->beban_distribusi = $service->hitungBebanDistribusiUnit($unit->id, $this->filterTahun);
+            $unit->beban_sparepart = $service->hitungBebanSparepartUnit($unit->id, $this->filterTahun);
+            $unit->realisasi = $unit->beban_distribusi + $unit->beban_sparepart;
+            return $unit;
         });
 
         // 2. Data Tab Pos Sparepart IPSRS
@@ -105,8 +110,8 @@ class RealisasiAnggaranIndex extends Component
         $selectedBebanDistribusi = 0;
         $selectedBebanSparepart = 0;
 
-        if ($this->selectedAnggaran && $this->selectedAnggaran->unit_id) {
-            $uId = $this->selectedAnggaran->unit_id;
+        if ($this->selectedUnit) {
+            $uId = $this->selectedUnit->id;
             $selectedBebanDistribusi = $service->hitungBebanDistribusiUnit($uId, $this->filterTahun);
             $selectedBebanSparepart = $service->hitungBebanSparepartUnit($uId, $this->filterTahun);
 
@@ -134,7 +139,8 @@ class RealisasiAnggaranIndex extends Component
             'riwayatSparepartTerbaru' => $riwayatSparepartTerbaru,
             'riwayatSppbUnit'         => $riwayatSppbUnit,
             'riwayatServisUnit'       => $riwayatServisUnit,
-            'selectedAnggaran'        => $this->selectedAnggaran,
+            'selectedUnit'            => $this->selectedUnit,
+            'selectedAnggaran'        => $this->selectedUnit,
             'selectedBebanDistribusi' => $selectedBebanDistribusi,
             'selectedBebanSparepart'  => $selectedBebanSparepart,
         ])->layout('layouts.portal', [
