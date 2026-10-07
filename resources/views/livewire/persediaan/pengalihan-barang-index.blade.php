@@ -120,8 +120,15 @@
             </div>
         </div>
 
-        {{-- Table Pengalihan Barang --}}
-        <flux:table bleed style="--flux-bleed: 1rem;">
+        <style>
+            .pengalihan-table th:first-child, .pengalihan-table td:first-child {
+                padding-left: 24px !important;
+            }
+            .pengalihan-table th:last-child, .pengalihan-table td:last-child {
+                padding-right: 24px !important;
+            }
+        </style>
+        <flux:table class="pengalihan-table">
             <flux:table.columns sticky class="bg-zinc-50/80 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-700">
                 <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-36">Kode Dokumen</flux:table.column>
                 <flux:table.column class="w-48">Asal Mutasi</flux:table.column>
