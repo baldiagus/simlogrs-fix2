@@ -729,6 +729,95 @@ class GudangApiController extends ApiController
     }
 
     /**
+     * Simpan pengajuan pengalihan barang baru.
+     * POST /v1/gudang/pengalihan-barang
+     */
+    public function simpanPengalihanBarang(Request $request, PengalihanBarangService $service): JsonResponse
+    {
+        $user = $request->user();
+
+        $canCreate = $user && (
+            $user->can('create_gudang_stok::pengalihan::barang') ||
+            $user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang', 'petugas_gudang'])
+        );
+
+        if (! $canCreate) {
+            return $this->jsonError('Akses ditolak: Hanya fasilitas gudang logistik yang berwenang mengajukan pengalihan barang.', 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'barang_id'          => 'required|exists:barang,id',
+            'gudang_asal_id'     => 'required|exists:gudang,id',
+            'gudang_tujuan_id'   => 'nullable|exists:gudang,id',
+            'jumlah'             => 'required|integer|min:1',
+            'tanggal_pengalihan' => 'required|date',
+            'alasan'             => 'required|string|min:5|max:1000',
+            'catatan'            => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->jsonError('Validasi data gagal.', 422, $validator->errors());
+        }
+
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik'])));
+        $gudangTujuanId = ! $isGlobalAdmin ? $user->gudang_id : ($request->input('gudang_tujuan_id') ?? $user->gudang_id);
+        $gudangAsalId = (int) $request->input('gudang_asal_id');
+
+        if ($gudangTujuanId && $gudangAsalId === (int) $gudangTujuanId) {
+            return $this->jsonError('Gudang asal dan tujuan pengalihan tidak boleh sama.', 422);
+        }
+
+        $barangId = (int) $request->input('barang_id');
+        $jumlah = (int) $request->input('jumlah');
+
+        // Resolve stok batch jika tidak dikirim dari klien
+        $stokBatchId = $request->input('stok_batch_id');
+        if (! $stokBatchId) {
+            $batch = StokBatch::where('barang_id', $barangId)
+                ->where('gudang_id', $gudangAsalId)
+                ->where('jumlah', '>=', $jumlah)
+                ->where('status', 'AKTIF')
+                ->first();
+
+            if (! $batch) {
+                return $this->jsonError('Stok barang pada gudang asal tidak mencukupi untuk dialihkan.', 422);
+            }
+            $stokBatchId = $batch->id;
+        }
+
+        try {
+            $pengalihan = $service->ajukanPengalihan([
+                'tipe_asal'               => 'GUDANG',
+                'gudang_asal_id'          => $gudangAsalId,
+                'unit_asal_id'            => null,
+                'tipe_tujuan'             => 'GUDANG',
+                'gudang_tujuan_id'        => $gudangTujuanId,
+                'unit_tujuan_id'          => null,
+                'lokasi_gudang_tujuan_id' => $request->input('lokasi_gudang_tujuan_id'),
+                'tanggal_pengalihan'      => $request->input('tanggal_pengalihan'),
+                'alasan'                  => $request->input('alasan'),
+                'catatan'                 => $request->input('catatan'),
+                'diajukan_oleh'           => $user->id,
+                'items'                   => [
+                    [
+                        'barang_id'     => $barangId,
+                        'stok_batch_id' => $stokBatchId,
+                        'jumlah'        => $jumlah,
+                    ],
+                ],
+            ]);
+
+            return $this->jsonSuccess([
+                'id'     => $pengalihan->id,
+                'kode'   => $pengalihan->kode,
+                'status' => $pengalihan->status,
+            ], "Pengalihan barang {$pengalihan->kode} berhasil diajukan.");
+        } catch (\Throwable $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
+    }
+
+    /**
      * Otorisasi pengalihan barang (APPROVE / REJECT).
      * POST /v1/gudang/pengalihan-barang/{id}/otorisasi
      */
