@@ -1126,9 +1126,33 @@ class AsetApiController extends ApiController
         }
 
         $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik'])));
-        $tipeAsal = $request->input('tipe_asal', $user->unit_id ? 'RUANGAN' : ($user->gudang_id ? 'GUDANG' : 'RUANGAN'));
-        $unitAsalId = ! $isGlobalAdmin ? $user->unit_id : $request->input('unit_asal_id', $user->unit_id);
-        $gudangAsalId = ! $isGlobalAdmin ? $user->gudang_id : $request->input('gudang_asal_id', $user->gudang_id);
+
+        // Di sistem SIMLOGRS, pengalihan aset adalah INBOUND (meminta aset dari fasilitas lain masuk ke fasilitas pemohon)
+        if (! $isGlobalAdmin) {
+            $tipeTujuan = $user->unit_id ? 'RUANGAN' : ($user->gudang_id ? 'GUDANG' : 'RUANGAN');
+            $unitTujuanId = $user->unit_id;
+            $gudangTujuanId = $user->gudang_id;
+        } else {
+            $tipeTujuan = $request->input('tipe_tujuan', 'RUANGAN');
+            $unitTujuanId = $request->input('unit_tujuan_id');
+            $gudangTujuanId = $request->input('gudang_tujuan_id');
+        }
+
+        // Resolusi lokasi asal dari aset fisik yang dipilih
+        $firstAsetId = $request->input('aset_ids')[0] ?? null;
+        $firstAset = $firstAsetId ? Aset::find($firstAsetId) : null;
+
+        $tipeAsal = $request->input('tipe_asal') ?? ($firstAset?->unit_id ? 'RUANGAN' : ($firstAset?->gudang_id ? 'GUDANG' : 'RUANGAN'));
+        $unitAsalId = $request->input('unit_asal_id') ?? $firstAset?->unit_id;
+        $gudangAsalId = $request->input('gudang_asal_id') ?? $firstAset?->gudang_id;
+
+        // Anti self-transfer guard
+        if ($tipeAsal === 'RUANGAN' && $tipeTujuan === 'RUANGAN' && (int) $unitAsalId === (int) $unitTujuanId) {
+            return $this->jsonError('Unit asal dan unit tujuan pengalihan tidak boleh sama. Aset sudah berada di unit Anda.', 422);
+        }
+        if ($tipeAsal === 'GUDANG' && $tipeTujuan === 'GUDANG' && (int) $gudangAsalId === (int) $gudangTujuanId) {
+            return $this->jsonError('Gudang asal dan gudang tujuan pengalihan tidak boleh sama.', 422);
+        }
 
         try {
             $pengalihan = $service->ajukanPengalihan([
@@ -1136,9 +1160,9 @@ class AsetApiController extends ApiController
                 'tipe_asal'               => $tipeAsal,
                 'unit_asal_id'            => $unitAsalId,
                 'gudang_asal_id'          => $gudangAsalId,
-                'tipe_tujuan'             => $request->input('tipe_tujuan'),
-                'unit_tujuan_id'          => $request->input('unit_tujuan_id'),
-                'gudang_tujuan_id'        => $request->input('gudang_tujuan_id'),
+                'tipe_tujuan'             => $tipeTujuan,
+                'unit_tujuan_id'          => $unitTujuanId,
+                'gudang_tujuan_id'        => $gudangTujuanId,
                 'lokasi_gudang_tujuan_id' => $request->input('lokasi_gudang_tujuan_id'),
                 'tanggal_pengalihan'      => $request->input('tanggal_pengalihan'),
                 'alasan'                  => $request->input('alasan'),
