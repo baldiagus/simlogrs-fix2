@@ -121,9 +121,9 @@
         </div>
 
         {{-- Table Pengalihan Barang --}}
-        <flux:table bleed container:class="mt-4">
-            <flux:table.columns sticky>
-                <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-36 font-mono">Kode Dokumen</flux:table.column>
+        <flux:table bleed style="--flux-bleed: 1rem;">
+            <flux:table.columns sticky class="bg-zinc-50/80 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-700">
+                <flux:table.column sortable :sorted="$sortBy === 'kode'" :direction="$sortDirection" wire:click="sort('kode')" class="w-36">Kode Dokumen</flux:table.column>
                 <flux:table.column class="w-48">Asal Mutasi</flux:table.column>
                 <flux:table.column class="w-48">Tujuan Mutasi</flux:table.column>
                 <flux:table.column class="w-64">Komoditas & Jumlah</flux:table.column>
