@@ -290,7 +290,7 @@
             @endif
 
             @if ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_any_layanan_unit::approval::peminjaman') || $user->can('view_any_layanan_unit::pengembalian::aset'))
-                <flux:sidebar.group expandable :expanded="$isSirkulasiActive || $user->hasRole(['super_admin', 'admin_logistik'])" heading="Sirkulasi Aset" class="grid">
+                <flux:sidebar.group expandable :expanded="$isSirkulasiActive" heading="Sirkulasi Aset" class="grid">
                     @if ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_any_layanan_unit::approval::peminjaman'))
                         @php
                             $pinjamHref = match(true) {
@@ -314,7 +314,7 @@
 
             {{-- Modul Mandiri: Pengalihan & Mutasi --}}
             @if ($user->can('view_any_pengalihan::barang') || $user->can('view_any_layanan_unit::pengalihan::aset') || $user->can('view_any_pengalihan::aset') || $user->can('page_PengalihanAsetIndex') || $user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang', 'petugas_gudang', 'kepala_unit', 'petugas_unit']))
-                <flux:sidebar.group expandable :expanded="$isPengalihanActive || $user->hasRole(['super_admin', 'admin_logistik'])" heading="Pengalihan & Mutasi" class="grid">
+                <flux:sidebar.group expandable :expanded="$isPengalihanActive" heading="Pengalihan & Mutasi" class="grid">
                     {{-- Gudang dapat melakukan pengalihan barang dan aset; Unit hanya aset --}}
                     @if ($user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang', 'petugas_gudang']) || $user->can('page_Dashboard') || $user->can('view_any_pengalihan::barang'))
                         <flux:sidebar.item icon="cube" href="/{{ $portalKey }}/pengalihan-barang" wire:navigate :current="request()->is('*/pengalihan-barang*')">
