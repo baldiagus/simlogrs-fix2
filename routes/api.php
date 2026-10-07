@@ -49,6 +49,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/gudang/opname-count', [GudangApiController::class, 'opnameCount']);
         Route::get('/gudang/po-inbound', [GudangApiController::class, 'poInbound']);
         Route::post('/gudang/penerimaan-po', [GudangApiController::class, 'simpanPenerimaanPo']);
+        Route::get('/gudang/pengalihan-barang', [GudangApiController::class, 'daftarPengalihanBarang']);
+        Route::post('/gudang/pengalihan-barang', [GudangApiController::class, 'simpanPengalihanBarang']);
+        Route::post('/gudang/pengalihan-barang/{id}/otorisasi', [GudangApiController::class, 'otorisasiPengalihanBarang']);
+        Route::post('/gudang/pengalihan-barang/{id}/serah-terima', [GudangApiController::class, 'serahTerimaPengalihanBarang']);
+        Route::post('/gudang/pengalihan-barang/{id}/batal', [GudangApiController::class, 'batalPengalihanBarang']);
+
 
         // 6. Sirkulasi Aset & Scanner QR
         Route::post('/aset/scan-qr', [AsetApiController::class, 'scanQr']);

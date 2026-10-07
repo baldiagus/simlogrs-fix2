@@ -14,6 +14,8 @@ use App\Models\PesananPembelian;
 use App\Models\StokBatch;
 use App\Models\StokOpname;
 use App\Models\StokOpnameDetail;
+use App\Models\PengalihanBarang;
+use App\Services\Persediaan\PengalihanBarangService;
 use App\Services\Distribusi\DistribusiService;
 use App\Support\Generator\CodeGenerator;
 use Exception;
@@ -622,4 +624,149 @@ class GudangApiController extends ApiController
             return $this->jsonError('Gagal memproses penerimaan barang: ' . $e->getMessage(), 500);
         }
     }
+    /**
+     * Daftar dokumen pengalihan barang antar fasilitas gudang.
+     * GET /v1/gudang/pengalihan-barang?tab=aktif|otorisasi|riwayat
+     */
+    public function daftarPengalihanBarang(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik', 'manajemen'])));
+        $tab = $request->query('tab', 'aktif');
+
+        $query = PengalihanBarang::with([
+            'gudangAsal', 'unitAsal', 'gudangTujuan', 'unitTujuan',
+            'pengaju', 'penyetuju', 'penerima',
+            'detail.barang.satuan',
+        ])->latest('id');
+
+        if (! $isGlobalAdmin) {
+            $userGudangId = $user->gudang_id;
+            $userId = $user->id;
+
+            if ($tab === 'otorisasi') {
+                $query->where('status', 'DIAJUKAN')
+                    ->where('tipe_asal', 'GUDANG')
+                    ->where('gudang_asal_id', $userGudangId);
+            } else {
+                $query->where(function ($q) use ($userGudangId, $userId) {
+                    $q->where('diajukan_oleh', $userId);
+                    if ($userGudangId) {
+                        $q->orWhere('gudang_asal_id', $userGudangId)
+                          ->orWhere('gudang_tujuan_id', $userGudangId);
+                    }
+                });
+            }
+        }
+
+        if ($tab === 'aktif') {
+            $query->whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
+        } elseif ($tab === 'otorisasi') {
+            $query->where('status', 'DIAJUKAN');
+        } elseif ($tab === 'riwayat') {
+            $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
+        }
+
+        $list = $query->get()->map(function ($item) use ($user, $isGlobalAdmin) {
+            $namaItem = $item->detail->first()?->barang?->nama ?? 'Komoditas Logistik';
+
+            $canCancel = $item->status === 'DIAJUKAN' && (
+                $isGlobalAdmin ||
+                (int) $item->diajukan_oleh === (int) $user->id
+            );
+
+            $canApprove = $item->status === 'DIAJUKAN' && (
+                $isGlobalAdmin ||
+                ($user->gudang_id && (int) $user->gudang_id === (int) $item->gudang_asal_id && $user->hasRole(['kepala_gudang', 'super_admin', 'admin_logistik']))
+            );
+
+            $canReceive = $item->status === 'DISETUJUI' && (
+                $isGlobalAdmin ||
+                ($user->gudang_id && (int) $user->gudang_id === (int) $item->gudang_tujuan_id)
+            );
+
+            return [
+                'id'                 => $item->id,
+                'kode'               => $item->kode,
+                'tipe'               => 'BARANG',
+                'tipe_asal'          => $item->tipe_asal,
+                'asal_nama'          => $item->gudangAsal?->nama ?? $item->unitAsal?->nama ?? '-',
+                'gudang_asal_id'     => $item->gudang_asal_id,
+                'tipe_tujuan'        => $item->tipe_tujuan,
+                'tujuan_nama'        => $item->gudangTujuan?->nama ?? $item->unitTujuan?->nama ?? '-',
+                'gudang_tujuan_id'   => $item->gudang_tujuan_id,
+                'status'             => $item->status,
+                'tanggal_pengalihan' => $item->tanggal_pengalihan?->format('Y-m-d') ?? '',
+                'nama_item'          => $namaItem,
+                'jumlah'             => (int) $item->detail->sum('jumlah'),
+                'alasan'             => $item->alasan,
+                'catatan'            => $item->catatan,
+                'pengaju'            => $item->pengaju?->nama ?? 'Staf',
+                'penyetuju'          => $item->penyetuju?->nama,
+                'penerima'           => $item->penerima?->nama,
+                'can_cancel'         => $canCancel,
+                'can_approve'        => $canApprove,
+                'can_receive'        => $canReceive,
+            ];
+        });
+
+        return $this->jsonSuccess($list, 'Daftar pengalihan barang berhasil dimuat.');
+    }
+
+    /**
+     * Otorisasi pengalihan barang (APPROVE / REJECT).
+     * POST /v1/gudang/pengalihan-barang/{id}/otorisasi
+     */
+    public function otorisasiPengalihanBarang(Request $request, int $id, PengalihanBarangService $service): JsonResponse
+    {
+        $user = $request->user();
+        $aksi = strtoupper($request->input('aksi', 'APPROVE'));
+        $catatan = $request->input('catatan');
+
+        try {
+            if ($aksi === 'REJECT') {
+                $pengalihan = $service->tolakPengalihan($id, $user->id, $catatan);
+                return $this->jsonSuccess(['id' => $pengalihan->id, 'status' => 'DITOLAK'], "Pengalihan barang {$pengalihan->kode} berhasil ditolak.");
+            } else {
+                $pengalihan = $service->setujuiPengalihan($id, $user->id, $catatan);
+                return $this->jsonSuccess(['id' => $pengalihan->id, 'status' => 'DISETUJUI'], "Pengalihan barang {$pengalihan->kode} berhasil disetujui.");
+            }
+        } catch (Exception $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
+    }
+
+    /**
+     * Konfirmasi serah terima fisik barang.
+     * POST /v1/gudang/pengalihan-barang/{id}/serah-terima
+     */
+    public function serahTerimaPengalihanBarang(Request $request, int $id, PengalihanBarangService $service): JsonResponse
+    {
+        $user = $request->user();
+
+        try {
+            $pengalihan = $service->eksekusiSerahTerima($id, $user->id);
+            return $this->jsonSuccess(['id' => $pengalihan->id, 'status' => 'SELESAI'], "Serah terima fisik barang {$pengalihan->kode} berhasil selesai.");
+        } catch (Exception $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
+    }
+
+    /**
+     * Batalkan pengalihan barang.
+     * POST /v1/gudang/pengalihan-barang/{id}/batal
+     */
+    public function batalPengalihanBarang(Request $request, int $id, PengalihanBarangService $service): JsonResponse
+    {
+        $user = $request->user();
+        $alasan = $request->input('alasan', 'Dibatalkan oleh pemohon');
+
+        try {
+            $pengalihan = $service->batalkanPengalihan($id, $user->id, $alasan);
+            return $this->jsonSuccess(['id' => $pengalihan->id, 'status' => 'DIBATALKAN'], "Pengalihan barang {$pengalihan->kode} berhasil dibatalkan.");
+        } catch (Exception $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
+    }
+
 }

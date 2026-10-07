@@ -93,6 +93,24 @@
                 {{ $activeTab === 'aktif' ? 'Menampilkan dokumen proses berjalan' : 'Riwayat mutasi selesai & dibatalkan' }}
             </div>
         </div>
+        {{-- Banner Notifikasi Otorisasi Menunggu --}}
+        @if ($activeTab === 'aktif' && $countOtorisasi > 0)
+            <div class="mx-4 mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5">
+                    <flux:icon name="exclamation-circle" class="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>Terdapat <strong>{{ $countOtorisasi }} permohonan pengalihan aset</strong> dari unit lain yang menunggu persetujuan Anda di tab <strong>Menunggu Otorisasi</strong>.</span>
+                </div>
+                <button
+                    type="button"
+                    wire:click="setTab('otorisasi')"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg text-xs transition-colors shrink-0"
+                >
+                    <flux:icon name="check-badge" class="size-3.5" />
+                    <span>Buka Tab Otorisasi ({{ $countOtorisasi }})</span>
+                </button>
+            </div>
+        @endif
+
 
         {{-- Filter & Search Toolbar --}}
         <div class="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -257,13 +275,24 @@
                                 </div>
                                 <div class="text-xs text-zinc-500 max-w-sm">
                                     @if ($activeTab === 'aktif')
-                                        Tidak ada permohonan pengalihan aset yang sedang diproses oleh fasilitas Anda.
+                                        @if ($countOtorisasi > 0)
+                                            Tidak ada permohonan aktif keluar/masuk. Namun ada <strong>{{ $countOtorisasi }} permohonan</strong> dari unit lain yang menunggu persetujuan Anda di tab Menunggu Otorisasi.
+                                        @else
+                                            Tidak ada permohonan pengalihan aset yang sedang diproses oleh fasilitas Anda.
+                                        @endif
                                     @elseif ($activeTab === 'otorisasi')
                                         Saat ini tidak ada unit atau gudang lain yang meminta aset dari fasilitas Anda.
                                     @else
                                         Belum ada riwayat mutasi kepemilikan aset yang telah rampung atau dibatalkan.
                                     @endif
                                 </div>
+                                @if ($activeTab === 'aktif' && $countOtorisasi > 0)
+                                    <div class="pt-2">
+                                        <flux:button size="sm" variant="primary" wire:click="setTab('otorisasi')">
+                                            Buka Tab Menunggu Otorisasi ({{ $countOtorisasi }})
+                                        </flux:button>
+                                    </div>
+                                @endif
                                 @if ($activeTab === 'aktif')
                                     @can('create_layanan_unit::pengalihan::aset')
                                         <div class="pt-2">
