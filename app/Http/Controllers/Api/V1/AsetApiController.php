@@ -9,8 +9,8 @@ use App\Models\PermintaanPeminjamanDetail;
 use App\Models\StokBatch;
 use App\Services\Aset\PeminjamanAsetService;
 use App\Models\PengalihanAset;
+use App\Models\PengalihanAsetDetail;
 use App\Services\Aset\PengalihanAsetService;
-use App\Support\Generator\CodeGenerator;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -74,6 +74,7 @@ class AsetApiController extends ApiController
 
         $latestMaintenance = $aset->permintaanMaintenance()->latest('id')->first();
         $riwayatPeminjaman = $this->getRiwayatPeminjaman($aset->id);
+        $riwayatPengalihan = $this->getRiwayatPengalihan($aset->id);
         return $this->jsonSuccess([
             'id'                   => $aset->id,
             'kode_aset'            => $aset->kode_aset,
@@ -95,7 +96,8 @@ class AsetApiController extends ApiController
             'tanggal_perolehan'    => $aset->tanggal_perolehan?->format('Y-m-d') ?? '-',
             'total_riwayat_servis'     => (int) ($aset->permintaan_maintenance_count ?? 0),
             'total_riwayat_peminjaman' => $riwayatPeminjaman->count(),
-            'servis_terakhir'      => $latestMaintenance ? [
+            'total_riwayat_pengalihan' => $riwayatPengalihan->count(),
+            'servis_terakhir'          => $latestMaintenance ? [
                 'kode'              => $latestMaintenance->kode,
                 'status'            => $latestMaintenance->status,
                 'prioritas'         => $latestMaintenance->prioritas,
@@ -115,6 +117,7 @@ class AsetApiController extends ApiController
             'status_sirkulasi'         => $transaksiPinjam ? $transaksiPinjam->status : $aset->status,
             'antrean_peminjaman'       => $antreanPeminjaman,
             'riwayat_peminjaman'       => $riwayatPeminjaman,
+            'riwayat_pengalihan'       => $riwayatPengalihan,
         ], 'Data aset berhasil ditemukan.');
     }
 
@@ -158,6 +161,7 @@ class AsetApiController extends ApiController
 
         $latestMaintenance = $aset->permintaanMaintenance()->latest('id')->first();
         $riwayatPeminjaman = $this->getRiwayatPeminjaman($aset->id);
+        $riwayatPengalihan = $this->getRiwayatPengalihan($aset->id);
         return $this->jsonSuccess([
             'id'                   => $aset->id,
             'kode_aset'            => $aset->kode_aset,
@@ -179,7 +183,8 @@ class AsetApiController extends ApiController
             'tanggal_perolehan'    => $aset->tanggal_perolehan?->format('Y-m-d') ?? '-',
             'total_riwayat_servis'     => (int) ($aset->permintaan_maintenance_count ?? 0),
             'total_riwayat_peminjaman' => $riwayatPeminjaman->count(),
-            'servis_terakhir'      => $latestMaintenance ? [
+            'total_riwayat_pengalihan' => $riwayatPengalihan->count(),
+            'servis_terakhir'          => $latestMaintenance ? [
                 'kode'              => $latestMaintenance->kode,
                 'status'            => $latestMaintenance->status,
                 'prioritas'         => $latestMaintenance->prioritas,
@@ -199,6 +204,7 @@ class AsetApiController extends ApiController
             'status_sirkulasi'         => $transaksiPinjam ? $transaksiPinjam->status : $aset->status,
             'antrean_peminjaman'       => $antreanPeminjaman,
             'riwayat_peminjaman'       => $riwayatPeminjaman,
+            'riwayat_pengalihan'       => $riwayatPengalihan,
         ], 'Data aset berhasil ditemukan.');
     }
 
@@ -306,6 +312,44 @@ class AsetApiController extends ApiController
             ->values();
     }
 
+    /**
+     * Mengambil riwayat kronologis pengalihan dan mutasi fisik permanen aset.
+     */
+    private function getRiwayatPengalihan(int $asetId)
+    {
+        return PengalihanAsetDetail::where('aset_id', $asetId)
+            ->with([
+                'pengalihanAset.unitAsal',
+                'pengalihanAset.gudangAsal',
+                'pengalihanAset.unitTujuan',
+                'pengalihanAset.gudangTujuan',
+                'pengalihanAset.pengaju',
+                'pengalihanAset.penerima',
+            ])
+            ->whereHas('pengalihanAset', fn ($q) => $q->where('status', 'SELESAI'))
+            ->get()
+            ->sortByDesc(fn ($d) => $d->pengalihanAset?->tanggal_serah_terima ?? $d->pengalihanAset?->dibuat_pada)
+            ->map(function ($d) {
+                $p = $d->pengalihanAset;
+                return [
+                    'id'                   => $d->id,
+                    'pengalihan_id'        => $p?->id,
+                    'kode_pengalihan'      => $p?->kode ?? '-',
+                    'asal_nama'            => $p?->nama_lokasi_asal ?? '-',
+                    'tujuan_nama'          => $p?->nama_lokasi_tujuan ?? '-',
+                    'tanggal_pengalihan'   => $p?->tanggal_pengalihan?->format('Y-m-d') ?? '-',
+                    'tanggal_serah_terima' => $p?->tanggal_serah_terima?->format('Y-m-d H:i') ?? ($p?->tanggal_serah_terima?->format('Y-m-d') ?? '-'),
+                    'status'               => $p?->status ?? 'SELESAI',
+                    'alasan'               => $p?->alasan ?? '-',
+                    'kondisi_sebelum'      => $d->kondisi_sebelum ?? 'BAIK',
+                    'kondisi_saat_diterima'=> $d->kondisi_saat_diterima ?? 'BAIK',
+                    'pengaju'              => $p?->pengaju?->nama ?? '-',
+                    'penerima'             => $p?->penerima?->nama ?? '-',
+                    'catatan'              => $d->catatan ?: $p?->catatan,
+                ];
+            })
+            ->values();
+    }
     /**
      * Riwayat daftar transaksi peminjaman aset unit pengguna.
      * GET /v1/aset/peminjaman
