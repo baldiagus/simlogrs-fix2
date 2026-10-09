@@ -434,6 +434,7 @@ class GudangApiController extends ApiController
         $canReceive = $user->can('create_gudang_stok::penerimaan::po') ||
             $user->hasRole('petugas_gudang') ||
             $user->hasRole('kepala_gudang') ||
+            $user->hasRole('admin_logistik') ||
             $user->hasRole('super_admin');
 
         if (! $canReceive) {
