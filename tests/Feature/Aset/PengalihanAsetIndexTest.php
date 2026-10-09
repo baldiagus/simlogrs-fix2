@@ -96,6 +96,7 @@ class PengalihanAsetIndexTest extends TestCase
 
         // Buat pengalihan selesai
         $service = app(PengalihanAsetService::class);
+        $userStaff = User::where('id', '!=', $this->userAdmin->id)->first() ?? $this->userAdmin;
         $transfer = $service->ajukanPengalihan([
             'tipe_asal' => 'RUANGAN',
             'unit_asal_id' => $this->unit1->id,
@@ -103,7 +104,7 @@ class PengalihanAsetIndexTest extends TestCase
             'unit_tujuan_id' => $this->unit2->id,
             'tanggal_pengalihan' => now()->toDateString(),
             'alasan' => 'Mutasi selesai test',
-            'diajukan_oleh' => $this->userAdmin->id,
+            'diajukan_oleh' => $userStaff->id,
             'aset_ids' => [$this->aset->id],
         ]);
         $service->setujuiPengalihan($transfer->id, $this->userAdmin->id);

@@ -21,6 +21,7 @@ class PengalihanBarangServiceTest extends TestCase
 
     protected User $userPetugas;
     protected User $userKaru;
+    protected User $userKepalaGudang;
     protected Gudang $gudangAsal;
     protected Gudang $gudangTujuan;
     protected Unit $unitTujuan;
@@ -58,6 +59,14 @@ class PengalihanBarangServiceTest extends TestCase
             'status' => 'AKTIF',
         ]);
 
+        $this->userKepalaGudang = User::create([
+            'nama' => 'Kepala Gudang TF',
+            'username' => 'ka_gdg_tf',
+            'email' => 'ka_gdg_tf@simlog.test',
+            'password' => bcrypt('password'),
+            'gudang_id' => $this->gudangAsal->id,
+            'status' => 'AKTIF',
+        ]);
         $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'BOX-TF'], ['nama' => 'Box', 'status' => 'AKTIF'])->id;
         $kategoriId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-BHP-TF'], ['nama' => 'Kategori BHP', 'status' => 'AKTIF'])->id;
         $this->barangBhp = Barang::firstOrCreate(
@@ -137,8 +146,7 @@ class PengalihanBarangServiceTest extends TestCase
                 ],
             ],
         ]);
-
-        $service->setujuiPengalihan($transfer->id, $this->userPetugas->id);
+        $service->setujuiPengalihan($transfer->id, $this->userKepalaGudang->id);
         $service->eksekusiSerahTerima($transfer->id, $this->userKaru->id);
 
         $transfer->refresh();
@@ -182,10 +190,8 @@ class PengalihanBarangServiceTest extends TestCase
                 ],
             ],
         ]);
-
-        $service->setujuiPengalihan($transfer->id, $this->userPetugas->id);
+        $service->setujuiPengalihan($transfer->id, $this->userKepalaGudang->id);
         $service->eksekusiSerahTerima($transfer->id, $this->userPetugas->id);
-
         $transfer->refresh();
         $this->assertEquals('SELESAI', $transfer->status);
 

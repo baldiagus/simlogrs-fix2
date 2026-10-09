@@ -53,6 +53,16 @@ class StokRuanganIndex extends Component
     public int $jumlah_pakai = 1;
     public string $keterangan = '';
 
+    public function mount(): void
+    {
+        $user = auth()->user();
+        if ($user?->unit_id) {
+            $this->filterUnitId = $user->unit_id;
+        } elseif (! $this->filterUnitId && ! (bool) $user?->gudang_id) {
+            $this->filterUnitId = Unit::where('status', 'AKTIF')->orderBy('nama')->first()?->id;
+        }
+    }
+
     public function updatedFilterKondisi(): void
     {
         $this->resetPage();
@@ -382,19 +392,22 @@ class StokRuanganIndex extends Component
         $isWarehouseUser = ! $isGlobalAdmin && (bool) $user?->gudang_id;
         $isRoomUser = ! $isGlobalAdmin && (bool) $user?->unit_id;
 
-        // Target unit query
-        $effectiveUnitId = $isGlobalAdmin ? $this->filterUnitId : $user?->unit_id;
+        // Target unit query: selalu mengarah ke unit tertentu, tidak mencampur seluruh RS
+        $effectiveUnitId = $isRoomUser
+            ? $user->unit_id
+            : ($this->filterUnitId ?: ($user?->unit_id ?: Unit::where('status', 'AKTIF')->orderBy('nama')->first()?->id));
+
+        if (! $this->filterUnitId && ! $isWarehouseUser && $effectiveUnitId) {
+            $this->filterUnitId = $effectiveUnitId;
+        }
 
         // 1. Kueri Persediaan Barang
         if ($isWarehouseUser) {
             $baseQuery = \App\Models\StokBatch::query()
                 ->where('gudang_id', $user->gudang_id);
-        } elseif ($isRoomUser) {
+        } elseif ($effectiveUnitId) {
             $baseQuery = StokRuangan::query()
-                ->where('unit_id', $user->unit_id);
-        } elseif ($isGlobalAdmin) {
-            $baseQuery = StokRuangan::query()
-                ->when($this->filterUnitId, fn ($q) => $q->where('unit_id', $this->filterUnitId));
+                ->where('unit_id', $effectiveUnitId);
         } else {
             $baseQuery = StokRuangan::query()->whereRaw('1 = 0');
         }
@@ -422,13 +435,11 @@ class StokRuanganIndex extends Component
             ->paginate($this->perPage);
 
         // 2. Query Aset Fisik Ruangan / Fasilitas Gudang
-        $baseAsetQuery = Aset::query();
+        $baseAsetQuery = Aset::query()->where('status', '!=', 'DIHAPUSKAN');
         if ($isWarehouseUser) {
-            $baseAsetQuery->where('gudang_id', $user->gudang_id);
-        } elseif ($isRoomUser) {
-            $baseAsetQuery->where('unit_id', $user->unit_id);
-        } elseif ($isGlobalAdmin) {
-            $baseAsetQuery->when($this->filterUnitId, fn ($q) => $q->where('unit_id', $this->filterUnitId));
+            $baseAsetQuery->where('gudang_id', $user->gudang_id)->whereNull('unit_id');
+        } elseif ($effectiveUnitId) {
+            $baseAsetQuery->where('unit_id', $effectiveUnitId)->whereNull('gudang_id');
         } else {
             $baseAsetQuery->whereRaw('1 = 0');
         }
@@ -457,6 +468,7 @@ class StokRuanganIndex extends Component
         $pageTitle = match (true) {
             $isWarehouseUser => "Persediaan Fasilitas Gudang (" . ($user->gudang?->nama ?? 'Gudang Anda') . ")",
             $isRoomUser => "Persediaan Lokal Ruangan (" . ($user->unit?->nama ?? 'Ruangan Anda') . ")",
+            $isGlobalAdmin && $this->filterUnitId => "Persediaan Ruangan (" . ($daftarUnit->firstWhere('id', $this->filterUnitId)?->nama ?? 'Unit Terpilih') . ")",
             default => 'Persediaan Fasilitas & Ruangan',
         };
 

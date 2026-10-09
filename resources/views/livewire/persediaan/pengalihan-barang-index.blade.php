@@ -217,8 +217,14 @@
                                         Lihat Berita Acara / Detail
                                     </flux:menu.item>
 
-                                    @if ($activeTab === 'otorisasi' || ($row->status === 'DIAJUKAN' && (int)$row->gudang_asal_id === (int)auth()->user()?->gudang_id))
-                                        @if (auth()->user()?->can('update_gudang_stok::pengalihan::barang') || auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang']))
+                                    @if ($activeTab === 'otorisasi' && (int)$row->diajukan_oleh !== (int)auth()->user()?->id)
+                                        @php
+                                            $isOriginWarehouseOwner = $row->gudang_asal_id && (int)$row->gudang_asal_id === (int)auth()->user()?->gudang_id;
+                                            $isOriginRoomOwner = $row->unit_asal_id && (int)$row->unit_asal_id === (int)auth()->user()?->unit_id;
+                                            $canApproveRole = auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang', 'kepala_unit']);
+                                            $isGlobalAdmin = auth()->user()?->hasRole(['super_admin', 'admin_logistik']) || auth()->user()?->can('page_Dashboard');
+                                        @endphp
+                                        @if (($isOriginWarehouseOwner || $isOriginRoomOwner || $isGlobalAdmin) && $canApproveRole)
                                             <flux:menu.item icon="check" wire:click="openApprovalModal({{ $row->id }}, 'APPROVE')">
                                                 Setujui Pengalihan
                                             </flux:menu.item>

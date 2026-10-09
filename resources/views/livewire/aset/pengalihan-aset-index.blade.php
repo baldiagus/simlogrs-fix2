@@ -229,8 +229,14 @@
                                         Lihat Berita Acara / Detail
                                     </flux:menu.item>
 
-                                    @if ($activeTab === 'otorisasi' || ($row->status === 'DIAJUKAN' && !auth()->user()?->hasRole(['super_admin', 'admin_logistik']) && ((int)$row->unit_asal_id === (int)auth()->user()?->unit_id || (int)$row->gudang_asal_id === (int)auth()->user()?->gudang_id)))
-                                        @if (auth()->user()?->can('update_layanan_unit::pengalihan::aset') || auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'kepala_gudang']))
+                                    @if ($activeTab === 'otorisasi' && (int)$row->diajukan_oleh !== (int)auth()->user()?->id)
+                                        @php
+                                            $isOriginRoomOwner = $row->unit_asal_id && (int)$row->unit_asal_id === (int)auth()->user()?->unit_id;
+                                            $isOriginWarehouseOwner = $row->gudang_asal_id && (int)$row->gudang_asal_id === (int)auth()->user()?->gudang_id;
+                                            $canApproveRole = auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'kepala_gudang']);
+                                            $isGlobalAdmin = auth()->user()?->hasRole(['super_admin', 'admin_logistik']) || auth()->user()?->can('page_Dashboard');
+                                        @endphp
+                                        @if (($isOriginRoomOwner || $isOriginWarehouseOwner || $isGlobalAdmin) && $canApproveRole)
                                             <flux:menu.item icon="check" wire:click="openApprovalModal({{ $row->id }}, 'APPROVE')">
                                                 Setujui Pengalihan
                                             </flux:menu.item>

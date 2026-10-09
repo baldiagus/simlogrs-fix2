@@ -139,8 +139,7 @@
 
             @if ($isGlobalAdmin && $daftarUnit->isNotEmpty())
                 <div class="w-full sm:w-64">
-                    <select wire:model.live="filterUnitId" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
-                        <option value="">-- Semua Unit / Ruangan --</option>
+                    <select wire:model.live="filterUnitId" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 font-medium">
                         @foreach ($daftarUnit as $u)
                             <option value="{{ $u->id }}">{{ $u->nama }} ({{ $u->kode }})</option>
                         @endforeach
@@ -303,7 +302,7 @@
                             {{-- Unit (Jika Admin) --}}
                             @if ($isGlobalAdmin)
                                 <flux:table.cell class="text-xs text-zinc-600 dark:text-zinc-300">
-                                    {{ $ast->unit?->nama ?? $ast->gudang?->nama ?? '-' }}
+                                    {{ $ast->unit?->nama ?? '-' }}
                                 </flux:table.cell>
                             @endif
 

@@ -339,4 +339,101 @@ class StokRuanganTest extends TestCase
             ->call('openLaporServis', $asetGudang->id)
             ->assertSet('showLaporServisModal', true);
     }
+
+    public function test_room_user_only_sees_assets_from_their_own_unit_excluding_disposed(): void
+    {
+        $unit1 = Unit::where('status', 'AKTIF')->first();
+        $unit2 = Unit::where('status', 'AKTIF')->where('id', '!=', $unit1->id)->first();
+
+        $userRoom1 = User::create([
+            'nama' => 'Petugas Ruang Unit 1',
+            'username' => 'petugas_u1_' . uniqid(),
+            'email' => 'u1_' . uniqid() . '@simlog.test',
+            'password' => bcrypt('password'),
+            'unit_id' => $unit1->id,
+            'status' => 'AKTIF',
+        ]);
+        $userRoom1->givePermissionTo([
+            'view_any_layanan_unit::stok::ruangan',
+            'view_layanan_unit::stok::ruangan',
+            'page_StokRuanganIndex',
+        ]);
+
+        $asetUnit1 = Aset::create([
+            'barang_id' => $this->barang->id,
+            'unit_id' => $unit1->id,
+            'gudang_id' => null,
+            'kode_aset' => 'AST-U1-ACTIVE-' . uniqid(),
+            'nomor_seri' => 'SN-U1-1',
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        $asetUnit1Dihapuskan = Aset::create([
+            'barang_id' => $this->barang->id,
+            'unit_id' => $unit1->id,
+            'gudang_id' => null,
+            'kode_aset' => 'AST-U1-DISPOSED-' . uniqid(),
+            'nomor_seri' => 'SN-U1-DISPOSED',
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'DIHAPUSKAN',
+            'kondisi' => 'DIHAPUSKAN',
+        ]);
+
+        $asetUnit2 = Aset::create([
+            'barang_id' => $this->barang->id,
+            'unit_id' => $unit2->id,
+            'gudang_id' => null,
+            'kode_aset' => 'AST-U2-OTHER-' . uniqid(),
+            'nomor_seri' => 'SN-U2-1',
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        $this->actingAs($userRoom1);
+
+        Livewire::test(StokRuanganIndex::class)
+            ->call('setTab', 'aset')
+            ->assertSee($asetUnit1->kode_aset)
+            ->assertDontSee($asetUnit1Dihapuskan->kode_aset)
+            ->assertDontSee($asetUnit2->kode_aset);
+    }
+
+    public function test_admin_filtering_by_unit_only_shows_assets_of_selected_unit(): void
+    {
+        $unit1 = Unit::where('status', 'AKTIF')->first();
+        $unit2 = Unit::where('status', 'AKTIF')->where('id', '!=', $unit1->id)->first();
+
+        $asetUnit1 = Aset::create([
+            'barang_id' => $this->barang->id,
+            'unit_id' => $unit1->id,
+            'gudang_id' => null,
+            'kode_aset' => 'AST-ADM-U1-' . uniqid(),
+            'nomor_seri' => 'SN-ADM-U1',
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        $asetUnit2 = Aset::create([
+            'barang_id' => $this->barang->id,
+            'unit_id' => $unit2->id,
+            'gudang_id' => null,
+            'kode_aset' => 'AST-ADM-U2-' . uniqid(),
+            'nomor_seri' => 'SN-ADM-U2',
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        $this->actingAs($this->user);
+
+        Livewire::test(StokRuanganIndex::class)
+            ->call('setTab', 'aset')
+            ->set('filterUnitId', $unit1->id)
+            ->assertSee($asetUnit1->kode_aset)
+            ->assertDontSee($asetUnit2->kode_aset);
+    }
 }

@@ -121,6 +121,10 @@ class PengalihanBarangService
                 throw new InvalidArgumentException("Dokumen {$transfer->kode} tidak dalam status DIAJUKAN.");
             }
 
+            if ((int) $transfer->diajukan_oleh === (int) $userId) {
+                throw new InvalidArgumentException('Konflik Kepentingan: Pemohon dilarang menyetujui permohonan pengalihannya sendiri.');
+            }
+
             $transfer->update([
                 'status' => 'DISETUJUI',
                 'disetujui_oleh' => $userId,
@@ -141,6 +145,10 @@ class PengalihanBarangService
 
             if (! in_array($transfer->status, ['DIAJUKAN', 'DISETUJUI'], true)) {
                 throw new InvalidArgumentException("Dokumen {$transfer->kode} tidak dapat ditolak.");
+            }
+
+            if ((int) $transfer->diajukan_oleh === (int) $userId) {
+                throw new InvalidArgumentException('Konflik Kepentingan: Pemohon tidak berwenang menolak permohonan pengalihan; gunakan pembatalan pengajuan.');
             }
 
             // Kembalikan stok ke lokasi asal

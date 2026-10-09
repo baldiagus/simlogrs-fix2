@@ -211,10 +211,18 @@ class AsetApiController extends ApiController
         $user = $request->user();
         $cari = $request->query('cari');
         $tipePenyedia = $request->query('penyedia_tipe'); // RUANGAN atau GUDANG
-
+        $tujuan = $request->query('tujuan');
         $aset = Aset::query()
-            ->where('status', 'TERSEDIA')
-            ->where('kondisi', 'BAIK')
+            ->when($tujuan === 'pengalihan', function ($q) {
+                $q->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+                    ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
+                    ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                        $sub->whereNotIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
+                    });
+            }, function ($q) {
+                $q->where('status', 'TERSEDIA')
+                    ->where('kondisi', 'BAIK');
+            })
             // Kunci integritas: kecualikan aset yang sedang dalam proses pengajuan atau aktif dipinjam
             ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($q) {
                 $q->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
@@ -1049,6 +1057,64 @@ class AsetApiController extends ApiController
         });
 
         return $this->jsonSuccess($list, 'Daftar pengalihan aset berhasil dimuat.');
+    }
+
+    /**
+     * Daftar komoditas dan fasilitas penyedia aset yang siap dialihkan (inbound).
+     * GET /v1/aset/pengalihan/komoditas-tersedia
+     */
+    public function komoditasAsetTersedia(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik', 'manajemen'])));
+        $ownUnitId = ! $isGlobalAdmin ? $user?->unit_id : null;
+        $ownGudangId = ! $isGlobalAdmin ? $user?->gudang_id : null;
+
+        $assets = Aset::with(['barang.kategori', 'barang.satuan', 'unit', 'gudang'])
+            ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+            ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
+            ->whereDoesntHave('permintaanMaintenance', function ($sub) {
+                $sub->whereNotIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
+            })
+            ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
+                $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+            })
+            ->when($ownUnitId, fn ($sub) => $sub->where(fn ($sq) => $sq->where('unit_id', '!=', $ownUnitId)->orWhereNull('unit_id')))
+            ->when($ownGudangId, fn ($sub) => $sub->where(fn ($sq) => $sq->where('gudang_id', '!=', $ownGudangId)->orWhereNull('gudang_id')))
+            ->orderBy('kode_aset')
+            ->get();
+
+        $grouped = $assets->groupBy('barang_id')->map(function ($items, $barangId) {
+            $first = $items->first();
+            $barang = $first->barang;
+
+            $penyediaList = [];
+            foreach ($items->groupBy(fn ($a) => $a->unit_id ? "RUANGAN_{$a->unit_id}" : "GUDANG_{$a->gudang_id}") as $key => $subGroup) {
+                $firstSub = $subGroup->first();
+                $isRuangan = $firstSub->unit_id !== null;
+                $penyediaList[] = [
+                    'key'        => $key,
+                    'tipe'       => $isRuangan ? 'RUANGAN' : 'GUDANG',
+                    'id'         => $isRuangan ? $firstSub->unit_id : $firstSub->gudang_id,
+                    'nama'       => $isRuangan ? ($firstSub->unit?->nama ?? 'Ruangan') : ($firstSub->gudang?->nama ?? 'Gudang'),
+                    'kode'       => $isRuangan ? ($firstSub->unit?->kode ?? '-') : ($firstSub->gudang?->kode ?? '-'),
+                    'jumlah'     => $subGroup->count(),
+                    'aset_ids'   => $subGroup->pluck('id')->values()->toArray(),
+                    'kode_asets' => $subGroup->pluck('kode_aset')->implode(', '),
+                ];
+            }
+
+            return [
+                'barang_id'      => (int) $barangId,
+                'nama_komoditas' => $barang?->nama ?? 'Aset Fisik',
+                'kategori'       => $barang?->kategori?->nama ?? 'Umum',
+                'satuan'         => $barang?->satuan?->nama ?? 'Unit',
+                'total_tersedia' => $items->count(),
+                'penyedia'       => $penyediaList,
+            ];
+        })->values();
+
+        return $this->jsonSuccess($grouped, 'Daftar komoditas aset tersedia untuk pengalihan berhasil diambil.');
     }
 
     /**

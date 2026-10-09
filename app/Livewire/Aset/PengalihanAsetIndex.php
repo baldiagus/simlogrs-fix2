@@ -477,13 +477,24 @@ class PengalihanAsetIndex extends Component
     public function executeApproval(): void
     {
         $user = auth()->user();
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
-        abort_unless(
-            $user?->can('update_layanan_unit::pengalihan::aset') ||
-            $isGlobalAdmin ||
-            $user?->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'kepala_gudang']),
+        $transfer = PengalihanAset::findOrFail($this->actionTransferId);
+
+        // 1. Anti Self-Approval Guard
+        abort_if(
+            (int) $transfer->diajukan_oleh === (int) $user?->id,
             403,
-            'Anda tidak memiliki wewenang untuk menyetujui atau menolak pengalihan aset.'
+            'Konflik Kepentingan: Anda tidak dapat menyetujui atau menolak permohonan pengalihan yang Anda buat sendiri.'
+        );
+
+        // 2. Wewenang Fasilitas Asal Pemilik Aset
+        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
+        $isOriginOwner = ($transfer->tipe_asal === 'RUANGAN' && $user?->unit_id && (int) $user->unit_id === (int) $transfer->unit_asal_id && ($user->can('update_layanan_unit::pengalihan::aset') || $user->hasRole(['kepala_unit', 'super_admin'])))
+            || ($transfer->tipe_asal === 'GUDANG' && $user?->gudang_id && (int) $user->gudang_id === (int) $transfer->gudang_asal_id && ($user->can('update_layanan_unit::pengalihan::aset') || $user->hasRole(['kepala_gudang', 'super_admin'])));
+
+        abort_unless(
+            $isGlobalAdmin || $isOriginOwner,
+            403,
+            'Hanya fasilitas asal pemilik aset yang berhak melakukan otorisasi pelepasan aset.'
         );
 
         $service = app(PengalihanAsetService::class);
