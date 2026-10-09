@@ -667,13 +667,11 @@ class AsetApiController extends ApiController
     {
         $user = $request->user();
 
-        $canApprove = $user->can('layanan_unit::approval::peminjaman') ||
-            $user->can('view_any_layanan_unit::approval::karu') ||
+        $canApprove = $user->can('update_layanan_unit::approval::peminjaman') ||
+            $user->can('layanan_unit::approval::peminjaman') ||
             $user->hasRole('kepala_unit') ||
-                $user->hasRole('auditor') ||
-                $user->hasRole('manajemen') ||
-                $user->hasRole('pengadaan') ||
             $user->hasRole('kepala_gudang') ||
+            $user->hasRole('kepala_teknisi') ||
             $user->hasRole('admin_logistik') ||
             $user->hasRole('super_admin');
 
@@ -681,7 +679,7 @@ class AsetApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengakses otorisasi peminjaman aset.', 403);
         }
 
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('manajemen');
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
 
         $query = PermintaanPeminjaman::query()
             ->whereIn('status', ['DIAJUKAN', 'DISETUJUI'])
@@ -737,13 +735,11 @@ class AsetApiController extends ApiController
     {
         $user = $request->user();
 
-        $canApprove = $user->can('layanan_unit::approval::peminjaman') ||
-            $user->can('view_any_layanan_unit::approval::karu') ||
+        $canApprove = $user->can('update_layanan_unit::approval::peminjaman') ||
+            $user->can('layanan_unit::approval::peminjaman') ||
             $user->hasRole('kepala_unit') ||
-                $user->hasRole('auditor') ||
-                $user->hasRole('manajemen') ||
-                $user->hasRole('pengadaan') ||
             $user->hasRole('kepala_gudang') ||
+            $user->hasRole('kepala_teknisi') ||
             $user->hasRole('admin_logistik') ||
             $user->hasRole('super_admin');
 
@@ -756,7 +752,7 @@ class AsetApiController extends ApiController
             return $this->jsonError('Data peminjaman tidak ditemukan.', 404);
         }
 
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('manajemen');
+        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
         if (! $isGlobalAdmin) {
             if ($pinjam->tipe_penyedia === 'RUANGAN' && (int) $user->unit_id !== (int) $pinjam->unit_penyedia_id) {
                 return $this->jsonError('Anda tidak memiliki wewenang memproses permintaan dari ruangan penyedia ini.', 403);
