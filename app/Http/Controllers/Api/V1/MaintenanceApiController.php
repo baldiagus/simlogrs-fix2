@@ -192,13 +192,14 @@ class MaintenanceApiController extends ApiController
             });
         });
 
-        $tikets = $query->latest('id')->limit(100)->get()->map(function ($item) use ($user, $isGlobalAdmin) {
+        $tikets = $query->latest('id')->limit(100)->get()->map(function ($item) use ($user) {
             $canCancel = $item->status === 'DILAPORKAN' && (
-                $item->dilaporkan_oleh === $user->id ||
-                $user->hasRole('kepala_unit') ||
-                $isGlobalAdmin
+                (int) $item->dilaporkan_oleh === (int) $user->id ||
+                ($user->hasRole('kepala_unit') && (int) $user->unit_id === (int) $item->unit_id) ||
+                ($user->hasRole('kepala_gudang') && (int) $user->gudang_id === (int) $item->aset?->gudang_id) ||
+                $user->hasRole('super_admin') ||
+                $user->hasRole('admin_logistik')
             );
-
             return [
                 'id'                => $item->id,
                 'kode'              => $item->kode,
@@ -290,11 +291,12 @@ class MaintenanceApiController extends ApiController
         if (! $isPrivileged && ! $isUnitOwner) {
             return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat tiket pemeliharaan unit lain.', 403);
         }
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('teknisi') || $user->hasRole('kepala_teknisi');
         $canCancel = $tiket->status === 'DILAPORKAN' && (
-            $tiket->dilaporkan_oleh === $user->id ||
-            $user->hasRole('kepala_unit') ||
-            $isGlobalAdmin
+            (int) $tiket->dilaporkan_oleh === (int) $user->id ||
+            ($user->hasRole('kepala_unit') && (int) $user->unit_id === (int) $tiket->unit_id) ||
+            ($user->hasRole('kepala_gudang') && (int) $user->gudang_id === (int) $tiket->aset?->gudang_id) ||
+            $user->hasRole('super_admin') ||
+            $user->hasRole('admin_logistik')
         );
 
         return $this->jsonSuccess([
