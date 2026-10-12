@@ -124,22 +124,7 @@ class PeminjamanAsetService
                 throw new Exception("Peminjaman {$pinjam->kode} tidak dalam status aktif dipinjam.");
             }
 
-            // Inspeksi harus tepat mencakup setiap aset pada dokumen: tidak ada aset asing, ganda, atau tertinggal.
-            $detailPerId = $pinjam->detail->keyBy('id');
-            $terinspeksi = [];
-            foreach ($inspeksiItems as $item) {
-                $detail = $detailPerId->get((int) ($item['permintaan_peminjaman_detail_id'] ?? 0));
-                if (! $detail || (int) $detail->aset_id !== (int) ($item['aset_id'] ?? 0)) {
-                    throw new Exception('Data inspeksi tidak sesuai dengan rincian aset pada dokumen peminjaman.');
-                }
-                if (isset($terinspeksi[$detail->id])) {
-                    throw new Exception('Satu aset tidak boleh diinspeksi lebih dari sekali dalam satu pengembalian.');
-                }
-                $terinspeksi[$detail->id] = true;
-            }
-            if (count($terinspeksi) !== $detailPerId->count()) {
-                throw new Exception('Seluruh aset pada dokumen peminjaman wajib diinspeksi sebelum pengembalian diselesaikan.');
-            }
+            $this->validasiInspeksi($pinjam, $inspeksiItems);
 
             $kodeKembali = CodeGenerator::generate('RTN', PengembalianPeminjaman::class, 'kode', 'Ym', 3);
 
@@ -172,42 +157,10 @@ class PeminjamanAsetService
                     continue;
                 }
 
-                $updateData = [
-                    'status'  => $kondisi === 'BAIK' ? StatusAset::Tersedia->value : StatusAset::DalamMaintenance->value,
-                    'kondisi' => $kondisi,
-                ];
-
-                if ($pinjam->tipe_penyedia === 'GUDANG') {
-                    $defaultRackId = \App\Models\LokasiGudang::where('gudang_id', $pinjam->gudang_penyedia_id)
-                        ->where('status', 'AKTIF')
-                        ->value('id');
-
-                    $updateData['unit_id']          = null;
-                    $updateData['gudang_id']        = $pinjam->gudang_penyedia_id;
-                    $updateData['lokasi_gudang_id'] = $defaultRackId;
-                } else {
-                    $updateData['unit_id']          = $pinjam->unit_penyedia_id;
-                    $updateData['gudang_id']        = null;
-                    $updateData['lokasi_gudang_id'] = null;
-                }
-
-                $aset->update($updateData);
+                $this->kembalikanAset($aset, $pinjam, $kondisi);
 
                 if ($kondisi !== 'BAIK') {
-                    $prioritas = $kondisi === 'RUSAK_BERAT' ? 'CITO' : 'SEDANG';
-                    $kodeMnt = CodeGenerator::generate('MNT', PermintaanMaintenance::class, 'kode', 'Ym', 3);
-
-                    $ownerUnitId = $pinjam->tipe_penyedia === 'RUANGAN' ? $pinjam->unit_penyedia_id : null;
-                    PermintaanMaintenance::create([
-                        'kode'                              => $kodeMnt,
-                        'aset_id'                           => $aset->id,
-                        'unit_id'                           => $ownerUnitId,
-                        'pengembalian_peminjaman_detail_id' => $kembaliDetail->id,
-                        'dilaporkan_oleh'                   => $actor->id,
-                        'deskripsi_masalah'                 => "Aset dikembalikan pasca-peminjaman ({$pinjam->kode}) dalam kondisi {$kondisi}. " . ($itemCatatan ? "Catatan: {$itemCatatan}" : ''),
-                        'prioritas'                         => $prioritas,
-                        'status'                            => 'DILAPORKAN',
-                    ]);
+                    $this->buatTiketMaintenance($aset, $pinjam, $kembaliDetail, $actor, $kondisi, $itemCatatan);
                 }
             }
 
@@ -217,5 +170,68 @@ class PeminjamanAsetService
 
             return $pengembalian;
         });
+    }
+
+    /** Inspeksi harus tepat mencakup setiap aset pada dokumen: tidak ada aset asing, ganda, atau tertinggal. */
+    private function validasiInspeksi(PermintaanPeminjaman $pinjam, array $inspeksiItems): void
+    {
+        $detailPerId = $pinjam->detail->keyBy('id');
+        $terinspeksi = [];
+        foreach ($inspeksiItems as $item) {
+            $detail = $detailPerId->get((int) ($item['permintaan_peminjaman_detail_id'] ?? 0));
+            if (! $detail || (int) $detail->aset_id !== (int) ($item['aset_id'] ?? 0)) {
+                throw new Exception('Data inspeksi tidak sesuai dengan rincian aset pada dokumen peminjaman.');
+            }
+            if (isset($terinspeksi[$detail->id])) {
+                throw new Exception('Satu aset tidak boleh diinspeksi lebih dari sekali dalam satu pengembalian.');
+            }
+            $terinspeksi[$detail->id] = true;
+        }
+        if (count($terinspeksi) !== $detailPerId->count()) {
+            throw new Exception('Seluruh aset pada dokumen peminjaman wajib diinspeksi sebelum pengembalian diselesaikan.');
+        }
+    }
+
+    /** Kembalikan aset ke lokasi penyedia dengan status/kondisi hasil inspeksi. */
+    private function kembalikanAset(Aset $aset, PermintaanPeminjaman $pinjam, string $kondisi): void
+    {
+        $updateData = [
+            'status'  => $kondisi === 'BAIK' ? StatusAset::Tersedia->value : StatusAset::DalamMaintenance->value,
+            'kondisi' => $kondisi,
+        ];
+
+        if ($pinjam->tipe_penyedia === 'GUDANG') {
+            $defaultRackId = \App\Models\LokasiGudang::where('gudang_id', $pinjam->gudang_penyedia_id)
+                ->where('status', 'AKTIF')
+                ->value('id');
+
+            $updateData['unit_id']          = null;
+            $updateData['gudang_id']        = $pinjam->gudang_penyedia_id;
+            $updateData['lokasi_gudang_id'] = $defaultRackId;
+        } else {
+            $updateData['unit_id']          = $pinjam->unit_penyedia_id;
+            $updateData['gudang_id']        = null;
+            $updateData['lokasi_gudang_id'] = null;
+        }
+
+        $aset->update($updateData);
+    }
+
+    private function buatTiketMaintenance(Aset $aset, PermintaanPeminjaman $pinjam, PengembalianPeminjamanDetail $kembaliDetail, User $actor, string $kondisi, ?string $itemCatatan): void
+    {
+        $prioritas = $kondisi === 'RUSAK_BERAT' ? 'CITO' : 'SEDANG';
+        $kodeMnt = CodeGenerator::generate('MNT', PermintaanMaintenance::class, 'kode', 'Ym', 3);
+
+        $ownerUnitId = $pinjam->tipe_penyedia === 'RUANGAN' ? $pinjam->unit_penyedia_id : null;
+        PermintaanMaintenance::create([
+            'kode'                              => $kodeMnt,
+            'aset_id'                           => $aset->id,
+            'unit_id'                           => $ownerUnitId,
+            'pengembalian_peminjaman_detail_id' => $kembaliDetail->id,
+            'dilaporkan_oleh'                   => $actor->id,
+            'deskripsi_masalah'                 => "Aset dikembalikan pasca-peminjaman ({$pinjam->kode}) dalam kondisi {$kondisi}. " . ($itemCatatan ? "Catatan: {$itemCatatan}" : ''),
+            'prioritas'                         => $prioritas,
+            'status'                            => 'DILAPORKAN',
+        ]);
     }
 }

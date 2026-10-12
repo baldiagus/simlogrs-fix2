@@ -125,6 +125,43 @@ class MasterApiController extends ApiController
             default     => 'Habis Pakai (ATK/ART)',
         };
 
+        [$daftarAset, $daftarBatch, $daftarRuangan] = $this->sebaranFisikBarang($barang);
+        [$stokGudang, $stokRuangan, $totalAset] = $this->hitungStokBarang($barang);
+
+        $data = [
+            'id'                  => $barang->id,
+            'kode'                => $barang->kode,
+            'nama'                => $barang->nama,
+            'spesifikasi'         => $barang->spesifikasi,
+            'tipe'                => $barang->tipe,
+            'tipe_label'          => $tipeLabel,
+            'kategori'            => $barang->kategori?->nama ?? 'Umum',
+            'satuan'              => $barang->satuan?->nama ?? 'Pcs',
+            'simbol_satuan'       => $barang->satuan?->simbol ?? $barang->satuan?->nama ?? 'Pcs',
+            'merek'               => $barang->merek?->nama ?? '-',
+            'pemasok'             => $barang->pemasokDefault?->nama ?? 'Belum ditentukan',
+            'harga_beli_terakhir' => (float) ($barang->harga_beli_terakhir ?? 0),
+            'harga_estimasi'      => (float) ($barang->harga_estimasi ?? 0),
+            'stok_minimum'        => (int) ($barang->stok_minimum ?? 0),
+            'stok_maksimum'       => (int) ($barang->stok_maksimum ?? 0),
+            'titik_pesan'         => (int) ($barang->titik_pesan ?? 0),
+            'status'              => $barang->status,
+            'stok_gudang'         => $stokGudang,
+            'stok_ruangan'        => $stokRuangan,
+            'total_aset'          => $totalAset,
+            'daftar_aset'         => $daftarAset,
+            'daftar_batch'        => $daftarBatch,
+            'daftar_ruangan'      => $daftarRuangan,
+        ];
+
+        return $this->jsonSuccess($data, 'Detail profil komoditas barang berhasil dimuat.');
+    }
+
+    /**
+     * Daftar aset fisik, batch gudang, dan sebaran stok ruangan untuk satu barang.
+     */
+    private function sebaranFisikBarang(Barang $barang): array
+    {
         // Jika Tipe ASET: daftar fisik unit terdaftar
         $daftarAset = [];
         if ($barang->tipe === 'ASET') {
@@ -160,6 +197,15 @@ class MasterApiController extends ApiController
             'unit'   => $sr->unit?->nama ?? 'Ruangan',
             'jumlah' => (int) $sr->jumlah,
         ])->values();
+
+        return [$daftarAset, $daftarBatch, $daftarRuangan];
+    }
+
+    /**
+     * Total stok gudang, stok ruangan, dan jumlah aset terdaftar untuk satu barang.
+     */
+    private function hitungStokBarang(Barang $barang): array
+    {
         $stokGudang = (int) StokBatch::where('barang_id', $barang->id)
             ->where('status', 'AKTIF')
             ->where('jumlah', '>', 0)
@@ -170,33 +216,7 @@ class MasterApiController extends ApiController
             : (int) StokRuangan::where('barang_id', $barang->id)->sum('jumlah');
         $totalAset = (int) Aset::where('barang_id', $barang->id)->count();
 
-        $data = [
-            'id'                  => $barang->id,
-            'kode'                => $barang->kode,
-            'nama'                => $barang->nama,
-            'spesifikasi'         => $barang->spesifikasi,
-            'tipe'                => $barang->tipe,
-            'tipe_label'          => $tipeLabel,
-            'kategori'            => $barang->kategori?->nama ?? 'Umum',
-            'satuan'              => $barang->satuan?->nama ?? 'Pcs',
-            'simbol_satuan'       => $barang->satuan?->simbol ?? $barang->satuan?->nama ?? 'Pcs',
-            'merek'               => $barang->merek?->nama ?? '-',
-            'pemasok'             => $barang->pemasokDefault?->nama ?? 'Belum ditentukan',
-            'harga_beli_terakhir' => (float) ($barang->harga_beli_terakhir ?? 0),
-            'harga_estimasi'      => (float) ($barang->harga_estimasi ?? 0),
-            'stok_minimum'        => (int) ($barang->stok_minimum ?? 0),
-            'stok_maksimum'       => (int) ($barang->stok_maksimum ?? 0),
-            'titik_pesan'         => (int) ($barang->titik_pesan ?? 0),
-            'status'              => $barang->status,
-            'stok_gudang'         => $stokGudang,
-            'stok_ruangan'        => $stokRuangan,
-            'total_aset'          => $totalAset,
-            'daftar_aset'         => $daftarAset,
-            'daftar_batch'        => $daftarBatch,
-            'daftar_ruangan'      => $daftarRuangan,
-        ];
-
-        return $this->jsonSuccess($data, 'Detail profil komoditas barang berhasil dimuat.');
+        return [$stokGudang, $stokRuangan, $totalAset];
     }
 
     /**

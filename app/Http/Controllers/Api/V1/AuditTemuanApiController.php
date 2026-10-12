@@ -125,30 +125,7 @@ class AuditTemuanApiController extends ApiController
 
         $today = now()->toDateString();
 
-        $items = $paginated->getCollection()->map(function ($t) use ($today) {
-            $isOverdue = $t->status_capa !== StatusCapa::Closed->value && $t->due_date_capa && $t->due_date_capa->format('Y-m-d') < $today;
-
-            return [
-                'id'                 => $t->id,
-                'kode'               => $t->kode,
-                'tanggal_audit'      => $t->tanggal_audit?->format('Y-m-d') ?? '-',
-                'objek_audit'        => $t->objek_audit,
-                'ringkasan'          => $t->ringkasan,
-                'tingkat_risiko'     => $t->tingkat_risiko,
-                'due_date_capa'      => $t->due_date_capa?->format('Y-m-d') ?? '-',
-                'status_capa'        => $t->status_capa,
-                'is_overdue'         => $isOverdue,
-                'auditor'            => $t->auditor?->nama ?? 'Auditor SPI',
-                'evaluator'          => $t->evaluator?->nama ?? '-',
-                'unit'               => $t->unit?->nama ?? '-',
-                'gudang'             => $t->gudang?->nama ?? '-',
-                'lokasi_terperiksa'  => $t->unit?->nama ?? ($t->gudang?->nama ?? 'Sentral'),
-                'analisis_penyebab'  => $t->analisis_penyebab,
-                'tindakan_perbaikan' => $t->tindakan_perbaikan,
-                'catatan_evaluasi'   => $t->catatan_evaluasi,
-                'bukti_perbaikan'    => $t->bukti_perbaikan ? (is_array($t->bukti_perbaikan) ? $t->bukti_perbaikan : [$t->bukti_perbaikan]) : [],
-            ];
-        });
+        $items = $paginated->getCollection()->map(fn ($t) => $this->formatTemuan($t, $today));
 
         return $this->jsonSuccess([
             'items'    => $items,
@@ -159,6 +136,32 @@ class AuditTemuanApiController extends ApiController
                 'total_halaman'=> $paginated->lastPage(),
             ],
         ], 'Daftar temuan audit & CAPA berhasil dimuat.');
+    }
+
+    private function formatTemuan($t, string $today): array
+    {
+        $isOverdue = $t->status_capa !== StatusCapa::Closed->value && $t->due_date_capa && $t->due_date_capa->format('Y-m-d') < $today;
+
+        return [
+            'id'                 => $t->id,
+            'kode'               => $t->kode,
+            'tanggal_audit'      => $t->tanggal_audit?->format('Y-m-d') ?? '-',
+            'objek_audit'        => $t->objek_audit,
+            'ringkasan'          => $t->ringkasan,
+            'tingkat_risiko'     => $t->tingkat_risiko,
+            'due_date_capa'      => $t->due_date_capa?->format('Y-m-d') ?? '-',
+            'status_capa'        => $t->status_capa,
+            'is_overdue'         => $isOverdue,
+            'auditor'            => $t->auditor?->nama ?? 'Auditor SPI',
+            'evaluator'          => $t->evaluator?->nama ?? '-',
+            'unit'               => $t->unit?->nama ?? '-',
+            'gudang'             => $t->gudang?->nama ?? '-',
+            'lokasi_terperiksa'  => $t->unit?->nama ?? ($t->gudang?->nama ?? 'Sentral'),
+            'analisis_penyebab'  => $t->analisis_penyebab,
+            'tindakan_perbaikan' => $t->tindakan_perbaikan,
+            'catatan_evaluasi'   => $t->catatan_evaluasi,
+            'bukti_perbaikan'    => $t->bukti_perbaikan ? (is_array($t->bukti_perbaikan) ? $t->bukti_perbaikan : [$t->bukti_perbaikan]) : [],
+        ];
     }
 
     /**

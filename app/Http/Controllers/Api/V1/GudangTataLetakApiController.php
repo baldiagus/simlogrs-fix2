@@ -98,9 +98,35 @@ class GudangTataLetakApiController extends ApiController
             }
         }
 
-        // 1. Stok Batch Barang di Rak ini
-        $barangList = StokBatch::query()
-            ->where('lokasi_gudang_id', $id)
+        $barangList = $this->daftarBatchDiRak($id);
+        $asetList = $this->daftarAsetDiRak($id);
+
+        $data = [
+            'id' => $rak->id,
+            'kode' => $rak->kode,
+            'nama' => $rak->nama,
+            'baris' => $rak->baris,
+            'kolom' => $rak->kolom,
+            'level' => $rak->level,
+            'status' => $rak->status,
+            'gudang_id' => $rak->gudang_id,
+            'nama_gudang' => $rak->gudang?->nama ?? '-',
+            'total_barang' => $barangList->count(),
+            'total_aset' => $asetList->count(),
+            'barang' => $barangList,
+            'aset' => $asetList,
+        ];
+
+        return $this->jsonSuccess($data, 'Detail rak gudang berhasil diambil.');
+    }
+
+    /**
+     * Stok batch barang di rak tertentu (beserta status kedaluwarsa).
+     */
+    private function daftarBatchDiRak(int $rakId)
+    {
+        return StokBatch::query()
+            ->where('lokasi_gudang_id', $rakId)
             ->where('jumlah', '>', 0)
             ->with(['barang.kategori:id,nama', 'barang.satuan:id,nama', 'barang.merek:id,nama'])
             ->get()
@@ -139,10 +165,15 @@ class GudangTataLetakApiController extends ApiController
                     'kuantitas_stok'     => (int) $sb->jumlah,
                 ];
             });
+    }
 
-        // 2. Aset Fisik di Rak ini
-        $asetList = Aset::query()
-            ->where('lokasi_gudang_id', $id)
+    /**
+     * Aset fisik di rak tertentu.
+     */
+    private function daftarAsetDiRak(int $rakId)
+    {
+        return Aset::query()
+            ->where('lokasi_gudang_id', $rakId)
             ->with(['barang.merek:id,nama', 'barang.kategori:id,nama'])
             ->get()
             ->map(fn ($a) => [
@@ -157,24 +188,6 @@ class GudangTataLetakApiController extends ApiController
                 'status_ketersediaan' => $a->status,
                 'kondisi_fisik' => $a->kondisi,
             ]);
-
-        $data = [
-            'id' => $rak->id,
-            'kode' => $rak->kode,
-            'nama' => $rak->nama,
-            'baris' => $rak->baris,
-            'kolom' => $rak->kolom,
-            'level' => $rak->level,
-            'status' => $rak->status,
-            'gudang_id' => $rak->gudang_id,
-            'nama_gudang' => $rak->gudang?->nama ?? '-',
-            'total_barang' => $barangList->count(),
-            'total_aset' => $asetList->count(),
-            'barang' => $barangList,
-            'aset' => $asetList,
-        ];
-
-        return $this->jsonSuccess($data, 'Detail rak gudang berhasil diambil.');
     }
 
     /**
@@ -210,67 +223,77 @@ class GudangTataLetakApiController extends ApiController
 
         // Jika ada permohonan distribusi yang siap dipicking, jalankan picking FEFO
         if ($permintaan && in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN', 'DISETUJUI_KARU'], true)) {
-            try {
-                $gudangId = $request->input('gudang_id') ?: $permintaan->gudang_id;
-                $sppb = $service->eksekusiPickingFefo($permintaan, $user, $gudangId);
-
-                $sppb->load(['detail.barang', 'detail.stokBatch', 'unit']);
-
-                return $this->jsonSuccess([
-                    'sppb_kode'      => $sppb->kode,
-                    'permintaan_id'  => $permintaan->id,
-                    'unit_tujuan'    => $sppb->unit?->nama,
-                    'tanggal_kirim'  => $sppb->tanggal_kirim?->format('Y-m-d'),
-                    'status'         => $sppb->status,
-                    'alokasi_batch'  => $sppb->detail->map(fn ($d) => [
-                        'barang'      => $d->barang?->nama,
-                        'nomor_batch' => $d->stokBatch?->nomor_batch,
-                        'expired'     => $d->stokBatch?->tanggal_kedaluwarsa?->format('Y-m-d'),
-                        'qty_dikirim' => $d->jumlah_dikirim,
-                    ]),
-                ], "Picking FEFO berhasil. SPPB {$sppb->kode} telah diterbitkan.");
-            } catch (Exception $e) {
-                return $this->jsonError($e->getMessage(), 422);
-            }
+            return $this->eksekusiPickingResponse($request, $service, $permintaan, $user);
         }
 
         // Jika tidak ada antrean dokumen distribusi, jalankan verifikasi batch langsung di rak
         if ($barcode !== '') {
-            $batch = StokBatch::with(['barang', 'lokasiGudang'])
-                ->whereRaw('LOWER(nomor_batch) = ?', [strtolower($barcode)])
-                ->orWhereHas('barang', fn ($q) => $q->whereRaw('LOWER(kode) = ?', [strtolower($barcode)]))
-                ->first();
-
-            if ($batch) {
-                $earliest = StokBatch::where('barang_id', $batch->barang_id)
-                    ->where('status', 'AKTIF')
-                    ->where('jumlah', '>', 0)
-                    ->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
-                    ->first();
-
-                $isValid = ($earliest && $earliest->id === $batch->id);
-
-                return $this->jsonSuccess([
-                    'sppb_kode'      => 'VERIFIKASI-FEFO',
-                    'permintaan_id'  => 0,
-                    'unit_tujuan'    => 'Pemeriksaan Rak Gudang',
-                    'tanggal_kirim'  => now()->toDateString(),
-                    'status'         => $isValid ? 'VALID' : 'NON_FEFO',
-                    'alokasi_batch'  => [
-                        [
-                            'barang'      => $batch->barang?->nama,
-                            'nomor_batch' => $batch->nomor_batch,
-                            'expired'     => $batch->tanggal_kedaluwarsa?->format('Y-m-d'),
-                            'qty_dikirim' => $batch->jumlah,
-                        ],
-                    ],
-                ], $isValid ? "Batch '{$batch->nomor_batch}' valid sesuai urutan FEFO." : 'Peringatan: Bukan batch terdekat.');
-            }
-
-            return $this->jsonError("Nomor batch atau barcode '{$barcode}' tidak ditemukan di gudang.", 422);
+            return $this->verifikasiBatchRak($barcode);
         }
 
         return $this->jsonError('Belum ada dokumen permohonan distribusi yang siap dipicking.', 422);
+    }
+
+    private function eksekusiPickingResponse(Request $request, DistribusiService $service, PermintaanDistribusi $permintaan, $user): JsonResponse
+    {
+        try {
+            $gudangId = $request->input('gudang_id') ?: $permintaan->gudang_id;
+            $sppb = $service->eksekusiPickingFefo($permintaan, $user, $gudangId);
+
+            $sppb->load(['detail.barang', 'detail.stokBatch', 'unit']);
+
+            return $this->jsonSuccess([
+                'sppb_kode'      => $sppb->kode,
+                'permintaan_id'  => $permintaan->id,
+                'unit_tujuan'    => $sppb->unit?->nama,
+                'tanggal_kirim'  => $sppb->tanggal_kirim?->format('Y-m-d'),
+                'status'         => $sppb->status,
+                'alokasi_batch'  => $sppb->detail->map(fn ($d) => [
+                    'barang'      => $d->barang?->nama,
+                    'nomor_batch' => $d->stokBatch?->nomor_batch,
+                    'expired'     => $d->stokBatch?->tanggal_kedaluwarsa?->format('Y-m-d'),
+                    'qty_dikirim' => $d->jumlah_dikirim,
+                ]),
+            ], "Picking FEFO berhasil. SPPB {$sppb->kode} telah diterbitkan.");
+        } catch (Exception $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
+    }
+
+    private function verifikasiBatchRak(string $barcode): JsonResponse
+    {
+        $batch = StokBatch::with(['barang', 'lokasiGudang'])
+            ->whereRaw('LOWER(nomor_batch) = ?', [strtolower($barcode)])
+            ->orWhereHas('barang', fn ($q) => $q->whereRaw('LOWER(kode) = ?', [strtolower($barcode)]))
+            ->first();
+
+        if (! $batch) {
+            return $this->jsonError("Nomor batch atau barcode '{$barcode}' tidak ditemukan di gudang.", 422);
+        }
+
+        $earliest = StokBatch::where('barang_id', $batch->barang_id)
+            ->where('status', 'AKTIF')
+            ->where('jumlah', '>', 0)
+            ->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
+            ->first();
+
+        $isValid = ($earliest && $earliest->id === $batch->id);
+
+        return $this->jsonSuccess([
+            'sppb_kode'      => 'VERIFIKASI-FEFO',
+            'permintaan_id'  => 0,
+            'unit_tujuan'    => 'Pemeriksaan Rak Gudang',
+            'tanggal_kirim'  => now()->toDateString(),
+            'status'         => $isValid ? 'VALID' : 'NON_FEFO',
+            'alokasi_batch'  => [
+                [
+                    'barang'      => $batch->barang?->nama,
+                    'nomor_batch' => $batch->nomor_batch,
+                    'expired'     => $batch->tanggal_kedaluwarsa?->format('Y-m-d'),
+                    'qty_dikirim' => $batch->jumlah,
+                ],
+            ],
+        ], $isValid ? "Batch '{$batch->nomor_batch}' valid sesuai urutan FEFO." : 'Peringatan: Bukan batch terdekat.');
     }
 
     /**

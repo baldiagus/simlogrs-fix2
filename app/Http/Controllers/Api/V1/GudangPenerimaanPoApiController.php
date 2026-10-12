@@ -90,23 +90,7 @@ class GudangPenerimaanPoApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang untuk melakukan penerimaan PO gudang.', 403);
         }
 
-        $validator = Validator::make($request->all(), [
-            'pesanan_pembelian_id'              => 'required|exists:pesanan_pembelian,id',
-            'nomor_surat_jalan'                 => 'required|string|max:100',
-            'catatan'                           => 'nullable|string|max:1000',
-            'items'                             => 'required|array|min:1',
-            'items.*.barang_id'                 => 'required|exists:barang,id',
-            'items.*.lokasi_gudang_id'          => 'required|exists:lokasi_gudang,id',
-            'items.*.nomor_batch'               => 'required|string|max:100',
-            'items.*.tanggal_kedaluwarsa'       => 'nullable|date',
-            'items.*.jumlah_diterima'           => 'required|integer|min:0',
-            'items.*.jumlah_rusak'              => 'nullable|integer|min:0',
-        ], [
-            'nomor_surat_jalan.required'        => 'Nomor surat jalan vendor wajib diisi.',
-            'items.required'                    => 'Minimal satu barang harus dicatat penerimaannya.',
-            'items.*.lokasi_gudang_id.required' => 'Rak penyimpanan fisik wajib dipilih.',
-            'items.*.nomor_batch.required'      => 'Nomor batch barang wajib diisi.',
-        ]);
+        $validator = $this->validatorPenerimaanPo($request);
 
         if ($validator->fails()) {
             return $this->jsonError('Validasi data penerimaan gagal.', 422, $validator->errors());
@@ -138,19 +122,10 @@ class GudangPenerimaanPoApiController extends ApiController
             return $this->jsonError('Fasilitas gudang penerima tidak valid atau belum ditentukan.', 422);
         }
 
-        // M-04: Validasi bahwa setiap lokasi_gudang_id (rak) benar-benar berada di dalam $gudangId
-        $itemRackIds = collect($request->input('items'))->pluck('lokasi_gudang_id')->filter()->unique()->toArray();
-        $invalidRacks = \App\Models\LokasiGudang::whereIn('id', $itemRackIds)
-            ->where('gudang_id', '!=', $gudangId)
-            ->with('gudang:id,nama')
-            ->get();
-
-        if ($invalidRacks->isNotEmpty()) {
-            $daftarRakInvalid = $invalidRacks->map(fn ($r) => "{$r->kode} ({$r->nama}) di {$r->gudang?->nama}")->implode(', ');
-
-            return $this->jsonError("Alokasi rak tidak valid: Rak [{$daftarRakInvalid}] bukan bagian dari fasilitas gudang penerima yang ditugaskan.", 422, [
-                'lokasi_gudang_id' => ['Rak penyimpanan fisik wajib berada di dalam fasilitas gudang penerima yang sama.'],
-            ]);
+        // M-04: Validasi rak berada di dalam gudang penerima
+        $errorRak = $this->validasiRakDalamGudang($request, $gudangId);
+        if ($errorRak) {
+            return $errorRak;
         }
         $hasReceived = false;
         foreach ($request->input('items') as $row) {
@@ -183,21 +158,7 @@ class GudangPenerimaanPoApiController extends ApiController
             $kodeRcv = CodeGenerator::generate('RCV', PenerimaanBarang::class, 'kode', 'Ym', 3);
 
             // 1. Update jumlah diterima di pesanan_pembelian_detail
-            foreach ($request->input('items') as $row) {
-                $qty = (int) $row['jumlah_diterima'];
-                if ($qty <= 0) continue;
-
-                $poDetail = $po->detail->firstWhere('barang_id', $row['barang_id']);
-                if ($poDetail) {
-                    $poDetail->increment('jumlah_diterima', $qty);
-
-                    if ((float) $poDetail->harga_satuan > 0) {
-                        Barang::where('id', $row['barang_id'])->update([
-                            'harga_beli_terakhir' => $poDetail->harga_satuan,
-                        ]);
-                    }
-                }
-            }
+            $this->tambahJumlahDiterimaPoDetail($request, $po);
 
             // 2. Evaluasi status PO
             $po->refresh();
@@ -222,55 +183,7 @@ class GudangPenerimaanPoApiController extends ApiController
             ]);
 
             // 4. Catat detail & stok batch
-            foreach ($request->input('items') as $row) {
-                $qty = (int) $row['jumlah_diterima'];
-                $rusak = (int) ($row['jumlah_rusak'] ?? 0);
-                $net = max(0, $qty - $rusak);
-
-                if ($qty <= 0) continue;
-
-                $poDetail = $po->detail->firstWhere('barang_id', $row['barang_id']);
-                $hargaSatuan = $poDetail ? $poDetail->harga_satuan : 0;
-
-                PenerimaanBarangDetail::create([
-                    'penerimaan_barang_id' => $rcv->id,
-                    'barang_id'            => $row['barang_id'],
-                    'lokasi_gudang_id'     => $row['lokasi_gudang_id'],
-                    'nomor_batch'          => $row['nomor_batch'],
-                    'tanggal_kedaluwarsa'  => $row['tanggal_kedaluwarsa'] ?? null,
-                    'jumlah_diterima'      => $qty,
-                    'jumlah_rusak'         => $rusak,
-                    'harga_satuan'         => $hargaSatuan,
-                ]);
-
-                if ($net > 0) {
-                    $batch = StokBatch::create([
-                        'barang_id'           => $row['barang_id'],
-                        'gudang_id'           => $gudangId,
-                        'lokasi_gudang_id'    => $row['lokasi_gudang_id'],
-                        'nomor_batch'         => $row['nomor_batch'],
-                        'tanggal_kedaluwarsa' => $row['tanggal_kedaluwarsa'] ?? null,
-                        'jumlah'              => $net,
-                        'harga_satuan'        => $hargaSatuan,
-                        'status'              => 'AKTIF',
-                    ]);
-
-                    PergerakanStok::create([
-                        'barang_id'        => $row['barang_id'],
-                        'stok_batch_id'    => $batch->id,
-                        'gudang_id'        => $gudangId,
-                        'lokasi_gudang_id' => $row['lokasi_gudang_id'],
-                        'jenis'            => 'MASUK',
-                        'jumlah'           => $net,
-                        'saldo_sebelum'    => 0,
-                        'saldo_sesudah'    => $net,
-                        'referensi_jenis'  => 'PENERIMAAN_PO',
-                        'referensi_id'     => $rcv->id,
-                        'keterangan'       => "Penerimaan PO {$po->kode} - Batch {$row['nomor_batch']}",
-                        'dibuat_oleh'      => $user->id,
-                    ]);
-                }
-            }
+            $this->catatDetailDanStokBatch($request, $user, $po, $rcv, $gudangId);
 
             // 5. Update status PO
             $po->update(['status' => $statusPo]);
@@ -281,5 +194,120 @@ class GudangPenerimaanPoApiController extends ApiController
             }
             return $rcv;
         });
+    }
+
+    protected function tambahJumlahDiterimaPoDetail(Request $request, PesananPembelian $po): void
+    {
+        foreach ($request->input('items') as $row) {
+            $qty = (int) $row['jumlah_diterima'];
+            if ($qty <= 0) continue;
+
+            $poDetail = $po->detail->firstWhere('barang_id', $row['barang_id']);
+            if ($poDetail) {
+                $poDetail->increment('jumlah_diterima', $qty);
+
+                if ((float) $poDetail->harga_satuan > 0) {
+                    Barang::where('id', $row['barang_id'])->update([
+                        'harga_beli_terakhir' => $poDetail->harga_satuan,
+                    ]);
+                }
+            }
+        }
+    }
+
+    protected function catatDetailDanStokBatch(Request $request, User $user, PesananPembelian $po, PenerimaanBarang $rcv, int $gudangId): void
+    {
+        foreach ($request->input('items') as $row) {
+            $qty = (int) $row['jumlah_diterima'];
+            $rusak = (int) ($row['jumlah_rusak'] ?? 0);
+            $net = max(0, $qty - $rusak);
+
+            if ($qty <= 0) continue;
+
+            $poDetail = $po->detail->firstWhere('barang_id', $row['barang_id']);
+            $hargaSatuan = $poDetail ? $poDetail->harga_satuan : 0;
+
+            PenerimaanBarangDetail::create([
+                'penerimaan_barang_id' => $rcv->id,
+                'barang_id'            => $row['barang_id'],
+                'lokasi_gudang_id'     => $row['lokasi_gudang_id'],
+                'nomor_batch'          => $row['nomor_batch'],
+                'tanggal_kedaluwarsa'  => $row['tanggal_kedaluwarsa'] ?? null,
+                'jumlah_diterima'      => $qty,
+                'jumlah_rusak'         => $rusak,
+                'harga_satuan'         => $hargaSatuan,
+            ]);
+
+            if ($net > 0) {
+                $batch = StokBatch::create([
+                    'barang_id'           => $row['barang_id'],
+                    'gudang_id'           => $gudangId,
+                    'lokasi_gudang_id'    => $row['lokasi_gudang_id'],
+                    'nomor_batch'         => $row['nomor_batch'],
+                    'tanggal_kedaluwarsa' => $row['tanggal_kedaluwarsa'] ?? null,
+                    'jumlah'              => $net,
+                    'harga_satuan'        => $hargaSatuan,
+                    'status'              => 'AKTIF',
+                ]);
+
+                PergerakanStok::create([
+                    'barang_id'        => $row['barang_id'],
+                    'stok_batch_id'    => $batch->id,
+                    'gudang_id'        => $gudangId,
+                    'lokasi_gudang_id' => $row['lokasi_gudang_id'],
+                    'jenis'            => 'MASUK',
+                    'jumlah'           => $net,
+                    'saldo_sebelum'    => 0,
+                    'saldo_sesudah'    => $net,
+                    'referensi_jenis'  => 'PENERIMAAN_PO',
+                    'referensi_id'     => $rcv->id,
+                    'keterangan'       => "Penerimaan PO {$po->kode} - Batch {$row['nomor_batch']}",
+                    'dibuat_oleh'      => $user->id,
+                ]);
+            }
+        }
+    }
+
+    private function validatorPenerimaanPo(Request $request): \Illuminate\Validation\Validator
+    {
+        return Validator::make($request->all(), [
+            'pesanan_pembelian_id'              => 'required|exists:pesanan_pembelian,id',
+            'nomor_surat_jalan'                 => 'required|string|max:100',
+            'catatan'                           => 'nullable|string|max:1000',
+            'items'                             => 'required|array|min:1',
+            'items.*.barang_id'                 => 'required|exists:barang,id',
+            'items.*.lokasi_gudang_id'          => 'required|exists:lokasi_gudang,id',
+            'items.*.nomor_batch'               => 'required|string|max:100',
+            'items.*.tanggal_kedaluwarsa'       => 'nullable|date',
+            'items.*.jumlah_diterima'           => 'required|integer|min:0',
+            'items.*.jumlah_rusak'              => 'nullable|integer|min:0',
+        ], [
+            'nomor_surat_jalan.required'        => 'Nomor surat jalan vendor wajib diisi.',
+            'items.required'                    => 'Minimal satu barang harus dicatat penerimaannya.',
+            'items.*.lokasi_gudang_id.required' => 'Rak penyimpanan fisik wajib dipilih.',
+            'items.*.nomor_batch.required'      => 'Nomor batch barang wajib diisi.',
+        ]);
+    }
+
+    /**
+     * M-04: Validasi bahwa setiap lokasi_gudang_id (rak) benar-benar berada di dalam $gudangId.
+     */
+    private function validasiRakDalamGudang(Request $request, int $gudangId): ?JsonResponse
+    {
+        $itemRackIds = collect($request->input('items'))->pluck('lokasi_gudang_id')->filter()->unique()->toArray();
+        $invalidRacks = \App\Models\LokasiGudang::whereIn('id', $itemRackIds)
+            ->where('gudang_id', '!=', $gudangId)
+            ->with('gudang:id,nama')
+            ->get();
+
+        if ($invalidRacks->isEmpty()) {
+            return null;
+        }
+
+        $daftarRakInvalid = $invalidRacks->map(fn ($r) => "{$r->kode} ({$r->nama}) di {$r->gudang?->nama}")->implode(', ');
+
+        return $this->jsonError("Alokasi rak tidak valid: Rak [{$daftarRakInvalid}] bukan bagian dari fasilitas gudang penerima yang ditugaskan.", 422, [
+            'lokasi_gudang_id' => ['Rak penyimpanan fisik wajib berada di dalam fasilitas gudang penerima yang sama.'],
+        ]);
     }
 }

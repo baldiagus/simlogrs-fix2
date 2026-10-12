@@ -8,8 +8,10 @@ use App\Http\Controllers\Api\ApiController;
 use App\Models\Barang;
 use App\Models\Gudang;
 use App\Models\PenyesuaianStok;
+use App\Models\PenyesuaianStokDetail;
 use App\Models\PergerakanStok;
 use App\Models\StokBatch;
+use App\Models\User;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -115,42 +117,7 @@ class PersediaanPenyesuaianApiController extends ApiController
         try {
             DB::transaction(function () use ($adj, $user) {
                 foreach ($adj->detail as $detail) {
-                    $batch = StokBatch::lockForUpdate()->findOrFail($detail->stok_batch_id);
-                    $qty = (int) $detail->jumlah_penyesuaian;
-                    $saldoSebelum = $batch->jumlah;
-
-                    if ($detail->jenis_penyesuaian === 'KURANG') {
-                        $qtyPotong = min($saldoSebelum, $qty);
-                        $saldoSesudah = $saldoSebelum - $qtyPotong;
-                        $batch->update([
-                            'jumlah' => $saldoSesudah,
-                            'status' => $saldoSesudah == 0 ? 'HABIS' : 'AKTIF',
-                        ]);
-                        $qty = $qtyPotong;
-                    } else {
-                        // TAMBAH
-                        $saldoSesudah = $saldoSebelum + $qty;
-                        $batch->update([
-                            'jumlah' => $saldoSesudah,
-                            'status' => 'AKTIF',
-                        ]);
-                    }
-
-                    // Catat mutasi kartu stok jenis PENYESUAIAN
-                    PergerakanStok::create([
-                        'barang_id'        => $detail->barang_id,
-                        'stok_batch_id'    => $batch->id,
-                        'gudang_id'        => $batch->gudang_id,
-                        'lokasi_gudang_id' => $batch->lokasi_gudang_id,
-                        'jenis'            => 'PENYESUAIAN',
-                        'jumlah'           => $qty,
-                        'saldo_sebelum'    => $saldoSebelum,
-                        'saldo_sesudah'    => $saldoSesudah,
-                        'referensi_jenis'  => 'STOCK_OPNAME',
-                        'referensi_id'     => $adj->id,
-                        'keterangan'       => "Otorisasi penyesuaian opname: {$adj->kode} ({$detail->catatan})",
-                        'dibuat_oleh'      => $user->id,
-                    ]);
+                    $this->terapkanDetailPenyesuaian($adj, $detail, $user);
                 }
 
                 // Sahkan status penyesuaian dan sesi opname induk
@@ -171,6 +138,46 @@ class PersediaanPenyesuaianApiController extends ApiController
         } catch (Exception $e) {
             return $this->jsonError($e->getMessage(), 422);
         }
+    }
+
+    private function terapkanDetailPenyesuaian(PenyesuaianStok $adj, PenyesuaianStokDetail $detail, User $user): void
+    {
+        $batch = StokBatch::lockForUpdate()->findOrFail($detail->stok_batch_id);
+        $qty = (int) $detail->jumlah_penyesuaian;
+        $saldoSebelum = $batch->jumlah;
+
+        if ($detail->jenis_penyesuaian === 'KURANG') {
+            $qtyPotong = min($saldoSebelum, $qty);
+            $saldoSesudah = $saldoSebelum - $qtyPotong;
+            $batch->update([
+                'jumlah' => $saldoSesudah,
+                'status' => $saldoSesudah == 0 ? 'HABIS' : 'AKTIF',
+            ]);
+            $qty = $qtyPotong;
+        } else {
+            // TAMBAH
+            $saldoSesudah = $saldoSebelum + $qty;
+            $batch->update([
+                'jumlah' => $saldoSesudah,
+                'status' => 'AKTIF',
+            ]);
+        }
+
+        // Catat mutasi kartu stok jenis PENYESUAIAN
+        PergerakanStok::create([
+            'barang_id'        => $detail->barang_id,
+            'stok_batch_id'    => $batch->id,
+            'gudang_id'        => $batch->gudang_id,
+            'lokasi_gudang_id' => $batch->lokasi_gudang_id,
+            'jenis'            => 'PENYESUAIAN',
+            'jumlah'           => $qty,
+            'saldo_sebelum'    => $saldoSebelum,
+            'saldo_sesudah'    => $saldoSesudah,
+            'referensi_jenis'  => 'STOCK_OPNAME',
+            'referensi_id'     => $adj->id,
+            'keterangan'       => "Otorisasi penyesuaian opname: {$adj->kode} ({$detail->catatan})",
+            'dibuat_oleh'      => $user->id,
+        ]);
     }
 
     /**

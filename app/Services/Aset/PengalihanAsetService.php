@@ -18,18 +18,43 @@ class PengalihanAsetService
      */
     public function ajukanPengalihan(array $data): PengalihanAset
     {
-        $asetIds = $data['aset_ids'] ?? [];
-        if (empty($asetIds)) {
+        $data = $this->validasiAjukan($data);
+
+        return DB::transaction(function () use ($data) {
+            $transfer = $this->buatHeaderPengalihan($data);
+
+            foreach ($data['aset_ids'] as $asetId) {
+                $aset = Aset::lockForUpdate()->findOrFail($asetId);
+                $this->validasiAsetDapatDialihkan($aset, $data);
+
+                PengalihanAsetDetail::create([
+                    'pengalihan_aset_id' => $transfer->id,
+                    'aset_id' => $aset->id,
+                    'kondisi_sebelum' => $aset->kondisi,
+                    'catatan' => $data['catatan_aset'][$asetId] ?? null,
+                ]);
+
+                // Kunci aset selama proses pengalihan berlangsung
+                $aset->update(['status' => StatusAset::DalamPengalihan->value]);
+            }
+
+            return $transfer->load(['detail.aset', 'unitAsal', 'unitTujuan', 'gudangAsal', 'gudangTujuan']);
+        });
+    }
+
+    /** Validasi input pengajuan; mengembalikan $data dengan default tipe_asal/tipe_tujuan terisi. */
+    private function validasiAjukan(array $data): array
+    {
+        if (empty($data['aset_ids'] ?? [])) {
             throw new InvalidArgumentException('Minimal harus memilih 1 aset fisik untuk dialihkan.');
         }
 
-        $tipeAsal = $data['tipe_asal'] ?? 'RUANGAN';
-        $tipeTujuan = $data['tipe_tujuan'] ?? 'RUANGAN';
+        $data['tipe_asal'] = $tipeAsal = $data['tipe_asal'] ?? 'RUANGAN';
+        $data['tipe_tujuan'] = $tipeTujuan = $data['tipe_tujuan'] ?? 'RUANGAN';
         $unitAsalId = $data['unit_asal_id'] ?? null;
         $gudangAsalId = $data['gudang_asal_id'] ?? null;
         $unitTujuanId = $data['unit_tujuan_id'] ?? null;
         $gudangTujuanId = $data['gudang_tujuan_id'] ?? null;
-        $lokasiGudangTujuanId = $data['lokasi_gudang_tujuan_id'] ?? null;
 
         if (! in_array($tipeAsal, ['RUANGAN', 'GUDANG'], true) || ! in_array($tipeTujuan, ['RUANGAN', 'GUDANG'], true)) {
             throw new InvalidArgumentException('Tipe asal dan tipe tujuan pengalihan harus RUANGAN atau GUDANG.');
@@ -46,64 +71,44 @@ class PengalihanAsetService
             throw new InvalidArgumentException('Gudang asal dan gudang tujuan pengalihan tidak boleh sama.');
         }
 
-        return DB::transaction(function () use (
-            $data,
-            $asetIds,
-            $tipeAsal,
-            $tipeTujuan,
-            $unitAsalId,
-            $gudangAsalId,
-            $unitTujuanId,
-            $gudangTujuanId,
-            $lokasiGudangTujuanId
-        ) {
-            $kode = CodeGenerator::generate('TRF', PengalihanAset::class, 'kode', 'Ym', 3);
+        return $data;
+    }
 
-            $transfer = PengalihanAset::create([
-                'kode' => $kode,
-                'tipe_asal' => $tipeAsal,
-                'unit_asal_id' => $tipeAsal === 'RUANGAN' ? $unitAsalId : null,
-                'gudang_asal_id' => $tipeAsal === 'GUDANG' ? $gudangAsalId : null,
-                'tipe_tujuan' => $tipeTujuan,
-                'unit_tujuan_id' => $tipeTujuan === 'RUANGAN' ? $unitTujuanId : null,
-                'gudang_tujuan_id' => $tipeTujuan === 'GUDANG' ? $gudangTujuanId : null,
-                'lokasi_gudang_tujuan_id' => $tipeTujuan === 'GUDANG' ? $lokasiGudangTujuanId : null,
-                'tanggal_pengalihan' => $data['tanggal_pengalihan'] ?? now()->toDateString(),
-                'alasan' => $data['alasan'] ?? '-',
-                'status' => StatusPengalihan::Diajukan->value,
-                'diajukan_oleh' => $data['diajukan_oleh'],
-                'catatan' => $data['catatan'] ?? null,
-            ]);
+    private function buatHeaderPengalihan(array $data): PengalihanAset
+    {
+        $tipeAsal = $data['tipe_asal'];
+        $tipeTujuan = $data['tipe_tujuan'];
 
-            foreach ($asetIds as $asetId) {
-                $aset = Aset::lockForUpdate()->findOrFail($asetId);
+        return PengalihanAset::create([
+            'kode' => CodeGenerator::generate('TRF', PengalihanAset::class, 'kode', 'Ym', 3),
+            'tipe_asal' => $tipeAsal,
+            'unit_asal_id' => $tipeAsal === 'RUANGAN' ? ($data['unit_asal_id'] ?? null) : null,
+            'gudang_asal_id' => $tipeAsal === 'GUDANG' ? ($data['gudang_asal_id'] ?? null) : null,
+            'tipe_tujuan' => $tipeTujuan,
+            'unit_tujuan_id' => $tipeTujuan === 'RUANGAN' ? ($data['unit_tujuan_id'] ?? null) : null,
+            'gudang_tujuan_id' => $tipeTujuan === 'GUDANG' ? ($data['gudang_tujuan_id'] ?? null) : null,
+            'lokasi_gudang_tujuan_id' => $tipeTujuan === 'GUDANG' ? ($data['lokasi_gudang_tujuan_id'] ?? null) : null,
+            'tanggal_pengalihan' => $data['tanggal_pengalihan'] ?? now()->toDateString(),
+            'alasan' => $data['alasan'] ?? '-',
+            'status' => StatusPengalihan::Diajukan->value,
+            'diajukan_oleh' => $data['diajukan_oleh'],
+            'catatan' => $data['catatan'] ?? null,
+        ]);
+    }
 
-                // Validasi lokasi kepemilikan aset
-                if ($tipeAsal === 'RUANGAN' && (int) $aset->unit_id !== (int) $unitAsalId) {
-                    throw new InvalidArgumentException("Aset {$aset->kode_aset} tidak berada di unit asal yang dipilih.");
-                }
-                if ($tipeAsal === 'GUDANG' && (int) $aset->gudang_id !== (int) $gudangAsalId) {
-                    throw new InvalidArgumentException("Aset {$aset->kode_aset} tidak berada di gudang asal yang dipilih.");
-                }
+    /** Validasi lokasi kepemilikan dan status aset terhadap sumber pengalihan. */
+    private function validasiAsetDapatDialihkan(Aset $aset, array $data): void
+    {
+        if ($data['tipe_asal'] === 'RUANGAN' && (int) $aset->unit_id !== (int) ($data['unit_asal_id'] ?? null)) {
+            throw new InvalidArgumentException("Aset {$aset->kode_aset} tidak berada di unit asal yang dipilih.");
+        }
+        if ($data['tipe_asal'] === 'GUDANG' && (int) $aset->gudang_id !== (int) ($data['gudang_asal_id'] ?? null)) {
+            throw new InvalidArgumentException("Aset {$aset->kode_aset} tidak berada di gudang asal yang dipilih.");
+        }
 
-                // Validasi status aset
-                if (! in_array($aset->status, StatusAset::dapatDialihkan(), true) || in_array($aset->kondisi, ['RUSAK_BERAT', 'DIHAPUSKAN'], true)) {
-                    throw new InvalidArgumentException("Aset {$aset->kode_aset} ({$aset->status}) tidak dapat dialihkan.");
-                }
-
-                PengalihanAsetDetail::create([
-                    'pengalihan_aset_id' => $transfer->id,
-                    'aset_id' => $aset->id,
-                    'kondisi_sebelum' => $aset->kondisi,
-                    'catatan' => $data['catatan_aset'][$asetId] ?? null,
-                ]);
-
-                // Kunci aset selama proses pengalihan berlangsung
-                $aset->update(['status' => StatusAset::DalamPengalihan->value]);
-            }
-
-            return $transfer->load(['detail.aset', 'unitAsal', 'unitTujuan', 'gudangAsal', 'gudangTujuan']);
-        });
+        if (! in_array($aset->status, StatusAset::dapatDialihkan(), true) || in_array($aset->kondisi, ['RUSAK_BERAT', 'DIHAPUSKAN'], true)) {
+            throw new InvalidArgumentException("Aset {$aset->kode_aset} ({$aset->status}) tidak dapat dialihkan.");
+        }
     }
 
     /**

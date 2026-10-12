@@ -4,29 +4,26 @@ namespace App\Livewire\Aset;
 
 use App\Enums\StatusAset;
 use App\Enums\StatusPeminjaman;
-use App\Livewire\Concerns\AuthorizesPeminjaman;
+use App\Livewire\Aset\Concerns\HasAksiPeminjaman;
 use App\Livewire\Aset\Concerns\HasPenyediaPeminjaman;
+use App\Livewire\Aset\Concerns\HasFilterPenyediaPeminjaman;
+use App\Livewire\Concerns\AuthorizesPeminjaman;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\Aset;
-use App\Models\Barang;
 use App\Models\Gudang;
 use App\Models\PermintaanPeminjaman;
-use App\Models\PermintaanPeminjamanDetail;
 use App\Models\Unit;
-use App\Support\Generator\CodeGenerator;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class PeminjamanAsetIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, AuthorizesPeminjaman, HasPenyediaPeminjaman;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, AuthorizesPeminjaman, HasPenyediaPeminjaman, HasFilterPenyediaPeminjaman;
+    use HasAksiPeminjaman;
 
     #[Url(history: true)]
     public string $activeTab = 'aktif';
@@ -129,59 +126,10 @@ class PeminjamanAsetIndex extends Component
         return 'Pengawasan perputaran seluruh inventaris dan deteksi keterlambatan se-rumah sakit.';
     }
 
-
-
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
     }
-
-    public function updatedFilterKatalogLokasi(): void
-    {
-        $this->filterKatalogUnitId = null;
-        $this->filterKatalogGudangId = null;
-        $this->resetPage();
-    }
-
-    public function updatedFilterKatalogUnitId(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatedFilterKatalogGudangId(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatedSelectedBarangId(): void
-    {
-        $this->selected_penyedia_key = null;
-        $this->selected_aset_id = null;
-        $this->unit_penyedia_id = null;
-        $this->gudang_penyedia_id = null;
-
-        $providers = $this->getPenyediaAsetList();
-        $validProviders = array_values(array_filter($providers, fn ($p) => ! $p['is_own']));
-        if (count($validProviders) === 1) {
-            $this->selectPenyediaKey($validProviders[0]['key']);
-        }
-    }
-
-    public function updatedSelectedPenyediaKey($value): void
-    {
-        $this->selectPenyediaKey($value);
-    }
-
-    public function updatedQuantity($value): void
-    {
-        $max = $this->maxQuantity;
-        if ((int) $value > $max) {
-            $this->addError('quantity', "Jumlah unit melebihi stok tersedia (maksimal {$max} unit).");
-        } else {
-            $this->resetErrorBag('quantity');
-        }
-    }
-
 
     public function createPinjam(): void
     {
@@ -357,155 +305,6 @@ class PeminjamanAsetIndex extends Component
         ])->findOrFail($id);
 
         $this->showDetailModal = true;
-    }
-
-    public function openPerpanjang(int $id): void
-    {
-        abort_unless(auth()->user()?->can('update_layanan_unit::peminjaman::aset') || auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
-
-        $pinjam = PermintaanPeminjaman::findOrFail($id);
-        if (! in_array($pinjam->status, StatusPeminjaman::aktif(), true)) {
-            $this->toast('Hanya peminjaman aktif yang dapat diperpanjang.', 'error');
-            return;
-        }
-
-        $this->perpanjangId = $pinjam->id;
-        $this->tanggal_kembali_baru = $pinjam->tanggal_kembali_rencana
-            ? $pinjam->tanggal_kembali_rencana->copy()->addDays(7)->toDateString()
-            : date('Y-m-d');
-        $this->alasan_perpanjang = '';
-        $this->showPerpanjangModal = true;
-    }
-
-    public function submitPerpanjang(): void
-    {
-        abort_unless(auth()->user()?->can('update_layanan_unit::peminjaman::aset') || auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
-
-        $this->validate([
-            'tanggal_kembali_baru' => 'required|date',
-            'alasan_perpanjang'    => 'required|string|max:500',
-        ], [
-            'tanggal_kembali_baru.required' => 'Tanggal rencana pengembalian baru wajib diisi.',
-            'alasan_perpanjang.required'    => 'Alasan perpanjangan wajib dicantumkan.',
-        ]);
-
-        $pinjam = PermintaanPeminjaman::findOrFail($this->perpanjangId);
-        $user = auth()->user();
-        $isGlobalAdmin = $user && $user->hasRole(['super_admin', 'admin_logistik']);
-
-        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $pinjam->unit_id) {
-            abort(403, 'Anda tidak berwenang memperpanjang permohonan peminjaman dari unit lain.');
-        }
-
-        if ($this->tanggal_kembali_baru <= $pinjam->tanggal_pinjam->toDateString()) {
-            $this->addError('tanggal_kembali_baru', 'Tanggal kembali baru harus lebih lambat dari tanggal pinjam.');
-            return;
-        }
-
-        $catatanLama = $pinjam->catatan ? $pinjam->catatan . "\n" : '';
-        $user = auth()->user();
-        $logPerpanjangan = '[Perpanjangan ' . now()->format('d/m/Y H:i') . " oleh {$user->nama}]: " .
-            'Rencana kembali diperpanjang dari ' . $pinjam->tanggal_kembali_rencana->format('d/m/Y') .
-            ' menjadi ' . Carbon::parse($this->tanggal_kembali_baru)->format('d/m/Y') .
-            '. Alasan: ' . $this->alasan_perpanjang;
-
-        $pinjam->update([
-            'tanggal_kembali_rencana' => $this->tanggal_kembali_baru,
-            'catatan'                 => $catatanLama . $logPerpanjangan,
-        ]);
-
-        $this->showPerpanjangModal = false;
-        $this->toast("Rencana pengembalian '{$pinjam->kode}' berhasil diperpanjang.", 'success');
-    }
-
-    public function confirmBatal(int $id): void
-    {
-        $pinjam = PermintaanPeminjaman::findOrFail($id);
-        if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
-            $this->toast('Hanya peminjaman berstatus DIAJUKAN yang dapat dibatalkan.', 'error');
-            return;
-        }
-
-        $this->askConfirmation(
-            target: $id,
-            action: 'batalkanPinjam',
-            title: 'Batalkan Pengajuan Peminjaman',
-            description: "Apakah Anda yakin ingin membatalkan pengajuan peminjaman {$pinjam->kode}?",
-            buttonText: 'Ya, Batalkan',
-            variant: 'danger'
-        );
-    }
-
-    public function batalkanPinjam(int $id): void
-    {
-        abort_unless(auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
-
-        $pinjam = PermintaanPeminjaman::findOrFail($id);
-        if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
-            $this->toast('Hanya peminjaman berstatus DIAJUKAN yang dapat dibatalkan.', 'error');
-            return;
-        }
-
-        $user = auth()->user();
-        $isGlobalAdmin = $user && $user->hasRole(['super_admin', 'admin_logistik']);
-
-        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $pinjam->unit_id) {
-            abort(403, 'Anda tidak berwenang membatalkan permohonan peminjaman dari unit lain.');
-        }
-
-        $pinjam->update([
-            'status'  => StatusPeminjaman::Dibatalkan->value,
-            'catatan' => ($pinjam->catatan ? $pinjam->catatan . "\n" : '') . '[Dibatalkan oleh pemohon pada ' . now()->format('d/m/Y H:i') . ']',
-        ]);
-
-        $this->toast("Pengajuan peminjaman '{$pinjam->kode}' berhasil dibatalkan.", 'success');
-    }
-    public function confirmSerahTerima(int $id): void
-    {
-        $pinjam = PermintaanPeminjaman::with(['unitPeminjam', 'detail.aset'])->findOrFail($id);
-        $this->authorizePeminjaman($pinjam, 'serah_terima', 'Hanya fasilitas penyedia dengan izin yang berhak melakukan serah terima fisik.');
-        if ($pinjam->status !== StatusPeminjaman::Disetujui->value) {
-            $this->toast('Hanya peminjaman berstatus DISETUJUI yang dapat diserahterimakan.', 'danger');
-            return;
-        }
-
-        $this->askConfirmation(
-            target: $id,
-            action: 'serahTerima',
-            title: 'Konfirmasi Serah Terima Fisik Aset',
-            description: "Lakukan serah terima fisik aset untuk {$pinjam->kode} ke unit {$pinjam->unitPeminjam?->nama}? Tanggung jawab aset akan beralih ke peminjam dan status menjadi DIPINJAM.",
-            buttonText: 'Ya, Serah Terima Fisik',
-            variant: 'primary'
-        );
-    }
-
-    public function serahTerima(int $id): void
-    {
-        $user = auth()->user();
-        $pinjam = PermintaanPeminjaman::with('detail.aset')->findOrFail($id);
-
-        $this->authorizePeminjaman($pinjam, 'serah_terima', 'Hanya fasilitas penyedia dengan izin yang berhak melakukan serah terima fisik.');
-
-        if ($pinjam->status !== StatusPeminjaman::Disetujui->value) {
-            $this->toast('Hanya peminjaman berstatus DISETUJUI yang dapat diserahterimakan.', 'danger');
-            return;
-        }
-
-        try {
-            app(\App\Services\Aset\PeminjamanAsetService::class)->serahTerimaFisik($pinjam, $user);
-            $this->showDetailModal = false;
-            $this->toast("Serah terima fisik {$pinjam->kode} berhasil. Aset resmi berstatus DIPINJAM.", 'success');
-        } catch (\Throwable $e) {
-            $this->toast($e->getMessage(), 'danger');
-        }
-    }
-
-
-    public function showQr(int $asetId): void
-    {
-        $this->selectedAsetQr = Aset::with(['barang', 'unit', 'gudang'])->findOrFail($asetId);
-        $this->qrCodeSvg = (string) QrCode::size(200)->format('svg')->generate($this->selectedAsetQr->kode_aset);
-        $this->showQrModal = true;
     }
 
     public function render()

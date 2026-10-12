@@ -228,20 +228,7 @@ class DistribusiAmprahApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengajukan amprah barang ruangan.', 403);
         }
 
-        $validator = Validator::make($request->all(), [
-            'gudang_id'        => 'nullable|exists:gudang,id',
-            'urgensi'          => 'required|in:REGULER,CITO',
-            'catatan'          => 'nullable|string|max:1000',
-            'items'            => 'required|array|min:1',
-            'items.*.barang_id'=> 'required|exists:barang,id',
-            'items.*.jumlah'   => 'required|integer|min:1',
-            'items.*.catatan'  => 'nullable|string|max:500',
-        ], [
-            'items.required'            => 'Minimal 1 barang harus dimasukkan ke dalam permohonan amprah.',
-            'items.min'                 => 'Minimal 1 barang harus dimasukkan ke dalam permohonan amprah.',
-            'items.*.barang_id.required'=> 'Barang wajib dipilih.',
-            'items.*.jumlah.min'        => 'Jumlah barang minimal 1 unit.',
-        ]);
+        $validator = $this->validatorAmprah($request);
 
         if ($validator->fails()) {
             return $this->jsonError('Validasi data gagal.', 422, $validator->errors());
@@ -273,33 +260,7 @@ class DistribusiAmprahApiController extends ApiController
         $disetujuiOleh  = $directToGudang ? $user->id : null;
 
         try {
-            $amprah = DB::transaction(function () use ($request, $user, $unitId, $gudangId, $statusAwal, $disetujuiOleh) {
-                $kodeReq = CodeGenerator::generate('REQ', PermintaanDistribusi::class, 'kode', 'Ym', 3);
-
-                $header = PermintaanDistribusi::create([
-                    'kode'               => $kodeReq,
-                    'unit_id'            => $unitId,
-                    'gudang_id'          => $gudangId,
-                    'diajukan_oleh'      => $user->id,
-                    'disetujui_oleh'     => $disetujuiOleh,
-                    'tanggal_permintaan' => now()->toDateString(),
-                    'urgensi'            => $request->input('urgensi'),
-                    'status'             => $statusAwal,
-                    'catatan'            => $request->input('catatan'),
-                ]);
-
-                foreach ($request->input('items') as $row) {
-                    PermintaanDistribusiDetail::create([
-                        'permintaan_distribusi_id' => $header->id,
-                        'barang_id'                => $row['barang_id'],
-                        'jumlah'                   => $row['jumlah'],
-                        'jumlah_disetujui'         => $row['jumlah'],
-                        'catatan'                  => $row['catatan'] ?? null,
-                    ]);
-                }
-
-                return $header;
-            });
+            $amprah = DB::transaction(fn () => $this->buatDokumenAmprah($request, $user, $unitId, $gudangId, $statusAwal, $disetujuiOleh));
 
             return $this->jsonSuccess([
                 'id'      => $amprah->id,
@@ -310,6 +271,53 @@ class DistribusiAmprahApiController extends ApiController
         } catch (\Throwable $e) {
             return $this->jsonError('Gagal mengajukan amprah: ' . $e->getMessage(), 500);
         }
+    }
+
+    private function buatDokumenAmprah(Request $request, $user, $unitId, $gudangId, string $statusAwal, $disetujuiOleh): PermintaanDistribusi
+    {
+        $kodeReq = CodeGenerator::generate('REQ', PermintaanDistribusi::class, 'kode', 'Ym', 3);
+
+        $header = PermintaanDistribusi::create([
+            'kode'               => $kodeReq,
+            'unit_id'            => $unitId,
+            'gudang_id'          => $gudangId,
+            'diajukan_oleh'      => $user->id,
+            'disetujui_oleh'     => $disetujuiOleh,
+            'tanggal_permintaan' => now()->toDateString(),
+            'urgensi'            => $request->input('urgensi'),
+            'status'             => $statusAwal,
+            'catatan'            => $request->input('catatan'),
+        ]);
+
+        foreach ($request->input('items') as $row) {
+            PermintaanDistribusiDetail::create([
+                'permintaan_distribusi_id' => $header->id,
+                'barang_id'                => $row['barang_id'],
+                'jumlah'                   => $row['jumlah'],
+                'jumlah_disetujui'         => $row['jumlah'],
+                'catatan'                  => $row['catatan'] ?? null,
+            ]);
+        }
+
+        return $header;
+    }
+
+    private function validatorAmprah(Request $request): \Illuminate\Validation\Validator
+    {
+        return Validator::make($request->all(), [
+            'gudang_id'        => 'nullable|exists:gudang,id',
+            'urgensi'          => 'required|in:REGULER,CITO',
+            'catatan'          => 'nullable|string|max:1000',
+            'items'            => 'required|array|min:1',
+            'items.*.barang_id'=> 'required|exists:barang,id',
+            'items.*.jumlah'   => 'required|integer|min:1',
+            'items.*.catatan'  => 'nullable|string|max:500',
+        ], [
+            'items.required'            => 'Minimal 1 barang harus dimasukkan ke dalam permohonan amprah.',
+            'items.min'                 => 'Minimal 1 barang harus dimasukkan ke dalam permohonan amprah.',
+            'items.*.barang_id.required'=> 'Barang wajib dipilih.',
+            'items.*.jumlah.min'        => 'Jumlah barang minimal 1 unit.',
+        ]);
     }
 
     /**

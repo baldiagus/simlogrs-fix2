@@ -38,24 +38,12 @@ class DistribusiService
                 throw new Exception("Permintaan {$lockedPermintaan->kode} sudah diproses atau belum disetujui untuk pengeluaran barang.");
             }
 
-            // Hitung total kuantitas yang sudah dikirim sebelumnya pada SPPB aktif
-            $existingShipments = PengirimanBarang::where('permintaan_distribusi_id', $lockedPermintaan->id)
-                ->where('status', '!=', StatusPengirimanBarang::Batal->value)
-                ->pluck('id');
-
-            $alreadySentMap = PengirimanBarangDetail::whereIn('pengiriman_barang_id', $existingShipments)
-                ->groupBy('barang_id')
-                ->selectRaw('barang_id, sum(jumlah_dikirim) as total_sent')
-                ->pluck('total_sent', 'barang_id')
-                ->toArray();
+            $alreadySentMap = $this->petaJumlahSudahDikirim($lockedPermintaan);
 
             // 1. Cek apakah masih ada sisa barang yang belum terpenuhi (terhutang)
             $totalOwed = 0;
             foreach ($lockedPermintaan->detail as $detail) {
-                $approvedQty = $detail->jumlah_disetujui !== null ? (int) $detail->jumlah_disetujui : (int) $detail->jumlah;
-                $alreadySent = (int) ($alreadySentMap[$detail->barang_id] ?? 0);
-                $owed = max(0, $approvedQty - $alreadySent);
-                $totalOwed += $owed;
+                $totalOwed += $this->hitungSisaTerhutang($detail, $alreadySentMap);
             }
 
             if ($totalOwed <= 0) {
@@ -63,52 +51,7 @@ class DistribusiService
             }
 
             // 2. Siapkan alokasi batch FEFO untuk SPPB baru
-            $itemsToDispatch = [];
-
-            // Urut barang_id agar urutan kunci StokBatch konsisten antar transaksi (cegah deadlock).
-            foreach ($lockedPermintaan->detail->sortBy('barang_id') as $detail) {
-                $approvedQty = $detail->jumlah_disetujui !== null ? (int) $detail->jumlah_disetujui : (int) $detail->jumlah;
-                $alreadySent = (int) ($alreadySentMap[$detail->barang_id] ?? 0);
-                $owed = max(0, $approvedQty - $alreadySent);
-
-                if ($owed <= 0) {
-                    continue;
-                }
-
-                // Ambil stok batch aktif, urutkan berdasarkan expired date terdekat (FEFO)
-                $batches = StokBatch::where('barang_id', $detail->barang_id)
-                    ->where('gudang_id', $gudangId)
-                    ->where('status', 'AKTIF')
-                    ->where('jumlah', '>', 0)
-                    ->where(function ($q) {
-                        $q->whereNull('tanggal_kedaluwarsa')
-                            ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
-                    })
-                    ->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
-                    ->lockForUpdate()
-                    ->get();
-
-                $remainingToFulfill = $owed;
-
-                foreach ($batches as $batch) {
-                    if ($remainingToFulfill <= 0) {
-                        break;
-                    }
-
-                    $takeFromBatch = min($batch->jumlah, $remainingToFulfill);
-                    if ($takeFromBatch <= 0) {
-                        continue;
-                    }
-
-                    $itemsToDispatch[] = [
-                        'detail'        => $detail,
-                        'batch'         => $batch,
-                        'takeFromBatch' => $takeFromBatch,
-                    ];
-
-                    $remainingToFulfill -= $takeFromBatch;
-                }
-            }
+            $itemsToDispatch = $this->alokasiBatchFefo($lockedPermintaan, $alreadySentMap, $gudangId);
 
             if (empty($itemsToDispatch)) {
                 throw new Exception("Tidak ada saldo stok fisik tersedia di gudang saat ini. Sisa pesanan tetap terhutang dan akan dikirim saat restok.");
@@ -130,41 +73,7 @@ class DistribusiService
 
             // 4. Potong saldo stok batch dan catat mutasi keluar
             foreach ($itemsToDispatch as $dispatch) {
-                $batch = $dispatch['batch'];
-                $takeFromBatch = $dispatch['takeFromBatch'];
-                $detail = $dispatch['detail'];
-
-                $saldoSebelum = $batch->jumlah;
-                $saldoSesudah = $saldoSebelum - $takeFromBatch;
-
-                $batch->decrement('jumlah', $takeFromBatch);
-                if ($saldoSesudah === 0) {
-                    $batch->update(['status' => 'HABIS']);
-                }
-
-                // Catat detail SPPB
-                PengirimanBarangDetail::create([
-                    'pengiriman_barang_id' => $sppb->id,
-                    'barang_id'            => $detail->barang_id,
-                    'stok_batch_id'        => $batch->id,
-                    'jumlah_dikirim'       => $takeFromBatch,
-                ]);
-
-                // Catat mutasi KELUAR pada kartu pergerakan stok
-                PergerakanStok::create([
-                    'barang_id'        => $detail->barang_id,
-                    'stok_batch_id'    => $batch->id,
-                    'gudang_id'        => $gudangId,
-                    'lokasi_gudang_id' => $batch->lokasi_gudang_id,
-                    'jenis'            => 'KELUAR',
-                    'jumlah'           => $takeFromBatch,
-                    'saldo_sebelum'    => $saldoSebelum,
-                    'saldo_sesudah'    => $saldoSesudah,
-                    'referensi_jenis'  => 'PENGIRIMAN_DISTRIBUSI',
-                    'referensi_id'     => $sppb->id,
-                    'keterangan'       => "Pengeluaran FEFO SPPB {$sppb->kode} untuk {$lockedPermintaan->unit?->nama} (Batch {$batch->nomor_batch})",
-                    'dibuat_oleh'      => $actor->id,
-                ]);
+                $this->potongBatchDanCatatMutasi($dispatch, $sppb, $lockedPermintaan, $gudangId, $actor);
             }
 
             // 5. Update status permintaan distribusi: lunas hanya bila setiap barang terpenuhi, bukan total agregat.
@@ -178,5 +87,129 @@ class DistribusiService
 
             return $sppb;
         });
+    }
+
+    /**
+     * Total jumlah_dikirim per barang pada SPPB aktif (non-batal).
+     */
+    private function petaJumlahSudahDikirim(PermintaanDistribusi $lockedPermintaan): array
+    {
+        $existingShipments = PengirimanBarang::where('permintaan_distribusi_id', $lockedPermintaan->id)
+            ->where('status', '!=', StatusPengirimanBarang::Batal->value)
+            ->pluck('id');
+
+        return PengirimanBarangDetail::whereIn('pengiriman_barang_id', $existingShipments)
+            ->groupBy('barang_id')
+            ->selectRaw('barang_id, sum(jumlah_dikirim) as total_sent')
+            ->pluck('total_sent', 'barang_id')
+            ->toArray();
+    }
+
+    private function hitungSisaTerhutang($detail, array $alreadySentMap): int
+    {
+        $approvedQty = $detail->jumlah_disetujui !== null ? (int) $detail->jumlah_disetujui : (int) $detail->jumlah;
+        $alreadySent = (int) ($alreadySentMap[$detail->barang_id] ?? 0);
+
+        return max(0, $approvedQty - $alreadySent);
+    }
+
+    /**
+     * Alokasi batch FEFO (dengan lockForUpdate) untuk sisa terhutang tiap barang.
+     */
+    private function alokasiBatchFefo(PermintaanDistribusi $lockedPermintaan, array $alreadySentMap, $gudangId): array
+    {
+        $itemsToDispatch = [];
+
+        // Urut barang_id agar urutan kunci StokBatch konsisten antar transaksi (cegah deadlock).
+        foreach ($lockedPermintaan->detail->sortBy('barang_id') as $detail) {
+            $owed = $this->hitungSisaTerhutang($detail, $alreadySentMap);
+
+            if ($owed <= 0) {
+                continue;
+            }
+
+            // Ambil stok batch aktif, urutkan berdasarkan expired date terdekat (FEFO)
+            $batches = StokBatch::where('barang_id', $detail->barang_id)
+                ->where('gudang_id', $gudangId)
+                ->where('status', 'AKTIF')
+                ->where('jumlah', '>', 0)
+                ->where(function ($q) {
+                    $q->whereNull('tanggal_kedaluwarsa')
+                        ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
+                })
+                ->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
+                ->lockForUpdate()
+                ->get();
+
+            $remainingToFulfill = $owed;
+
+            foreach ($batches as $batch) {
+                if ($remainingToFulfill <= 0) {
+                    break;
+                }
+
+                $takeFromBatch = min($batch->jumlah, $remainingToFulfill);
+                if ($takeFromBatch <= 0) {
+                    continue;
+                }
+
+                $itemsToDispatch[] = [
+                    'detail'        => $detail,
+                    'batch'         => $batch,
+                    'takeFromBatch' => $takeFromBatch,
+                ];
+
+                $remainingToFulfill -= $takeFromBatch;
+            }
+        }
+
+        return $itemsToDispatch;
+    }
+
+    /**
+     * Kurangi saldo batch, catat detail SPPB dan kartu pergerakan stok KELUAR.
+     */
+    private function potongBatchDanCatatMutasi(
+        array $dispatch,
+        PengirimanBarang $sppb,
+        PermintaanDistribusi $lockedPermintaan,
+        $gudangId,
+        User $actor
+    ): void {
+        $batch = $dispatch['batch'];
+        $takeFromBatch = $dispatch['takeFromBatch'];
+        $detail = $dispatch['detail'];
+
+        $saldoSebelum = $batch->jumlah;
+        $saldoSesudah = $saldoSebelum - $takeFromBatch;
+
+        $batch->decrement('jumlah', $takeFromBatch);
+        if ($saldoSesudah === 0) {
+            $batch->update(['status' => 'HABIS']);
+        }
+
+        // Catat detail SPPB
+        PengirimanBarangDetail::create([
+            'pengiriman_barang_id' => $sppb->id,
+            'barang_id'            => $detail->barang_id,
+            'stok_batch_id'        => $batch->id,
+            'jumlah_dikirim'       => $takeFromBatch,
+        ]);
+
+        // Catat mutasi KELUAR pada kartu pergerakan stok
+        PergerakanStok::create([
+            'barang_id'        => $detail->barang_id,
+            'stok_batch_id'    => $batch->id,
+            'gudang_id'        => $gudangId,
+            'lokasi_gudang_id' => $batch->lokasi_gudang_id,
+            'jenis'            => 'KELUAR',
+            'jumlah'           => $takeFromBatch,
+            'saldo_sebelum'    => $saldoSebelum,
+            'saldo_sesudah'    => $saldoSesudah,
+            'referensi_jenis'  => 'PENGIRIMAN_DISTRIBUSI',
+            'referensi_id'     => $sppb->id,
+            'keterangan'       => "Pengeluaran FEFO SPPB {$sppb->kode} untuk {$lockedPermintaan->unit?->nama} (Batch {$batch->nomor_batch})",
+            'dibuat_oleh'      => $actor->id,
+        ]);
     }
 }

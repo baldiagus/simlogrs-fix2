@@ -212,16 +212,7 @@ class DistribusiPengirimanApiController extends ApiController
                 }
                 $sppb->update(['status' => StatusPengirimanBarang::Diterima->value]);
 
-                if ($sppb->permintaanDistribusi) {
-                    $permintaan = $sppb->permintaanDistribusi;
-                    $permintaan->load('detail');
-
-                    if ($permintaan->semuaBarangDiterima()) {
-                        $permintaan->update(['status' => StatusPermintaanDistribusi::Selesai->value]);
-                    } else {
-                        $permintaan->update(['status' => StatusPermintaanDistribusi::DikirimSebagian->value]);
-                    }
-                }
+                $this->perbaruiStatusPermintaanSetelahTerima($sppb);
 
                 return $rcv;
             });
@@ -236,6 +227,20 @@ class DistribusiPengirimanApiController extends ApiController
             ], $msg, 201);
         } catch (\Throwable $e) {
             return $this->jsonError('Gagal konfirmasi penerimaan: ' . $e->getMessage(), 500);
+        }
+    }
+
+    private function perbaruiStatusPermintaanSetelahTerima(PengirimanBarang $sppb): void
+    {
+        if ($sppb->permintaanDistribusi) {
+            $permintaan = $sppb->permintaanDistribusi;
+            $permintaan->load('detail');
+
+            if ($permintaan->semuaBarangDiterima()) {
+                $permintaan->update(['status' => StatusPermintaanDistribusi::Selesai->value]);
+            } else {
+                $permintaan->update(['status' => StatusPermintaanDistribusi::DikirimSebagian->value]);
+            }
         }
     }
 

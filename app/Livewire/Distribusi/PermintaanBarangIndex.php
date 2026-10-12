@@ -8,6 +8,7 @@ use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Livewire\Distribusi\Concerns\AuthorizesDistribusiScope;
+use App\Livewire\Distribusi\Concerns\HasDraftAmprah;
 use App\Models\Barang;
 use App\Models\Gudang;
 use App\Models\PermintaanDistribusi;
@@ -23,6 +24,7 @@ use Livewire\Component;
 class PermintaanBarangIndex extends Component
 {
     use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, AuthorizesDistribusiScope;
+    use HasDraftAmprah;
 
     #[Url(history: true)]
     public string $filterStatus = '';
@@ -73,39 +75,6 @@ class PermintaanBarangIndex extends Component
         $this->items = [['barang_id' => null, 'jumlah' => 1, 'catatan' => '']];
         $this->unit_id = $user?->unit_id;
         $this->showModal = true;
-    }
-
-    public function addItem(): void
-    {
-        $this->items[] = ['barang_id' => null, 'jumlah' => 1, 'catatan' => ''];
-    }
-
-    public function removeItem(int $index): void
-    {
-        if (count($this->items) > 1) {
-            unset($this->items[$index]);
-            $this->items = array_values($this->items);
-        }
-    }
-
-    /**
-     * Saat barang dalam daftar item berubah, otomatis arahkan ke gudang yang memiliki stok.
-     */
-    public function updatedItems(): void
-    {
-        $firstBarangId = collect($this->items)->pluck('barang_id')->filter()->first();
-        if ($firstBarangId) {
-            $bestGudang = StokBatch::where('barang_id', $firstBarangId)
-                ->where('status', 'AKTIF')
-                ->where('jumlah', '>', 0)
-                ->groupBy('gudang_id')
-                ->selectRaw('gudang_id, sum(jumlah) as total')
-                ->orderByDesc('total')
-                ->value('gudang_id');
-            if ($bestGudang) {
-                $this->gudang_id = $bestGudang;
-            }
-        }
     }
 
     public function save(): void
@@ -238,27 +207,6 @@ class PermintaanBarangIndex extends Component
             buttonText: 'Ya, Batalkan',
             variant: 'danger'
         );
-    }
-
-    /**
-     * Menghitung saldo stok fisik aktif dan belum kedaluwarsa di gudang terkait.
-     */
-    public function getStokTersedia(int $barangId, ?int $gudangId = null): int
-    {
-        $gid = $gudangId ?: (int) $this->gudang_id;
-        if (! $gid || ! $barangId) {
-            return 0;
-        }
-
-        return (int) StokBatch::where('gudang_id', $gid)
-            ->where('barang_id', $barangId)
-            ->where('status', 'AKTIF')
-            ->where('jumlah', '>', 0)
-            ->where(function ($q) {
-                $q->whereNull('tanggal_kedaluwarsa')
-                    ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
-            })
-            ->sum('jumlah');
     }
 
     public function batal(int $id): void

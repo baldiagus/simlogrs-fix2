@@ -35,46 +35,8 @@ class AnggaranApiController extends ApiController
         $service = app(AnggaranRealtimeService::class);
         $ringkasan = $service->getRingkasanEksekutif($tahun);
 
-        // 1. Data Tab Unit Ruangan
-        $unitAnggarans = Unit::orderBy('nama')
-            ->get()
-            ->map(function ($unit) use ($service, $tahun) {
-                $distribusi = $service->hitungBebanDistribusiUnit($unit->id, $tahun);
-                $sparepart = $service->hitungBebanSparepartUnit($unit->id, $tahun);
-                $total = $distribusi + $sparepart;
-
-                return [
-                    'id'               => $unit->id,
-                    'kode'             => $unit->kode,
-                    'pos_anggaran'     => $unit->nama,
-                    'unit_id'          => $unit->id,
-                    'unit_nama'        => $unit->nama,
-                    'unit_kode'        => $unit->kode,
-                    'pagu'             => 0.0,
-                    'realisasi'        => (float) $total,
-                    'sisa'             => 0.0,
-                    'serapan'          => 0.0,
-                    'status'           => 'Normal',
-                    'beban_distribusi' => (float) $distribusi,
-                    'beban_sparepart'  => (float) $sparepart,
-                ];
-            });
-
-        // 2. Data Pos Sparepart IPSRS
-        $sparepartAnggaranModel = AnggaranPengadaan::where('tahun', (string) $tahun)
-            ->where('tipe', 'SPAREPART_IPSRS')
-            ->first();
-
-        $sparepartAnggaran = [
-            'id'           => $sparepartAnggaranModel?->id ?? 0,
-            'kode'         => $sparepartAnggaranModel?->kode ?? 'SPAREPART-IPSRS',
-            'pos_anggaran' => $sparepartAnggaranModel?->pos_anggaran ?? 'Screening Pemeliharaan Sarana & Sparepart IPSRS',
-            'pagu'         => (float) ($sparepartAnggaranModel?->pagu ?? 0),
-            'realisasi'    => (float) ($sparepartAnggaranModel?->realisasi ?? $ringkasan['total_realisasi_sparepart']),
-            'sisa'         => (float) ($sparepartAnggaranModel?->sisa ?? 0),
-            'serapan'      => (float) ($sparepartAnggaranModel?->serapan ?? 0),
-            'status'       => $sparepartAnggaranModel?->status ?? 'Normal',
-        ];
+        $unitAnggarans = $this->unitAnggarans($service, $tahun);
+        $sparepartAnggaran = $this->sparepartAnggaran($tahun, $ringkasan);
 
         $topAset = $service->getTopAsetBiayaPemeliharaan($tahun, 5)->map(function ($item) {
             return [
@@ -87,24 +49,7 @@ class AnggaranApiController extends ApiController
             ];
         });
 
-        $riwayatSparepart = SukuCadangMaintenance::with(['barang', 'stokBatch', 'permintaanMaintenance.aset', 'permintaanMaintenance.unit'])
-            ->whereYear('dibuat_pada', $tahun)
-            ->latest('id')
-            ->take(10)
-            ->get()
-            ->map(function ($sp) {
-                return [
-                    'id'             => $sp->id,
-                    'spk_kode'       => $sp->permintaanMaintenance?->kode ?? '-',
-                    'aset_nama'      => $sp->permintaanMaintenance?->aset?->nama ?? '-',
-                    'sparepart_nama' => $sp->barang?->nama ?? '-',
-                    'nomor_batch'    => $sp->stokBatch?->nomor_batch ?? '-',
-                    'jumlah'         => (int) $sp->jumlah_digunakan,
-                    'harga_satuan'   => (float) $sp->harga_satuan,
-                    'subtotal'       => (float) ($sp->subtotal ?? ($sp->jumlah_digunakan * $sp->harga_satuan)),
-                    'tanggal'        => $sp->dibuat_pada?->format('Y-m-d H:i') ?? '-',
-                ];
-            });
+        $riwayatSparepart = $this->riwayatSparepart($tahun);
 
         return $this->jsonSuccess([
             'tahun'              => (string) $tahun,
@@ -143,7 +88,27 @@ class AnggaranApiController extends ApiController
         $bebanDistribusi = $service->hitungBebanDistribusiUnit($unitId, $tahun);
         $bebanSparepart = $service->hitungBebanSparepartUnit($unitId, $tahun);
 
-        $riwayatSppb = PengirimanBarang::with(['gudang', 'detail.barang', 'detail.stokBatch'])
+        $riwayatSppb = $this->riwayatSppbUnit($unitId, $tahun);
+        $riwayatServis = $this->riwayatServisUnit($unitId, $tahun);
+
+        return $this->jsonSuccess([
+            'unit' => [
+                'id'   => $unit->id,
+                'kode' => $unit->kode,
+                'nama' => $unit->nama,
+            ],
+            'tahun'             => (string) $tahun,
+            'beban_distribusi'  => (float) $bebanDistribusi,
+            'beban_sparepart'   => (float) $bebanSparepart,
+            'total_pengeluaran' => (float) ($bebanDistribusi + $bebanSparepart),
+            'riwayat_sppb'      => $riwayatSppb,
+            'riwayat_servis'    => $riwayatServis,
+        ], 'Rincian drilldown unit berhasil dimuat.');
+    }
+
+    private function riwayatSppbUnit(int $unitId, $tahun)
+    {
+        return PengirimanBarang::with(['gudang', 'detail.barang', 'detail.stokBatch'])
             ->where('unit_id', $unitId)
             ->whereIn('status', ['DIKIRIM', 'DITERIMA'])
             ->whereYear('tanggal_kirim', $tahun)
@@ -166,8 +131,11 @@ class AnggaranApiController extends ApiController
                     'total_nilai'   => (float) $totalNilai,
                 ];
             });
+    }
 
-        $riwayatServis = SukuCadangMaintenance::with(['barang', 'permintaanMaintenance.aset'])
+    private function riwayatServisUnit(int $unitId, $tahun)
+    {
+        return SukuCadangMaintenance::with(['barang', 'permintaanMaintenance.aset'])
             ->whereHas('permintaanMaintenance', fn ($q) => $q->where('unit_id', $unitId))
             ->whereYear('dibuat_pada', $tahun)
             ->latest('id')
@@ -184,19 +152,72 @@ class AnggaranApiController extends ApiController
                     'tanggal'        => $sp->dibuat_pada?->format('Y-m-d') ?? '-',
                 ];
             });
+    }
 
-        return $this->jsonSuccess([
-            'unit' => [
-                'id'   => $unit->id,
-                'kode' => $unit->kode,
-                'nama' => $unit->nama,
-            ],
-            'tahun'             => (string) $tahun,
-            'beban_distribusi'  => (float) $bebanDistribusi,
-            'beban_sparepart'   => (float) $bebanSparepart,
-            'total_pengeluaran' => (float) ($bebanDistribusi + $bebanSparepart),
-            'riwayat_sppb'      => $riwayatSppb,
-            'riwayat_servis'    => $riwayatServis,
-        ], 'Rincian drilldown unit berhasil dimuat.');
+    private function unitAnggarans(AnggaranRealtimeService $service, $tahun)
+    {
+        return Unit::orderBy('nama')
+            ->get()
+            ->map(function ($unit) use ($service, $tahun) {
+                $distribusi = $service->hitungBebanDistribusiUnit($unit->id, $tahun);
+                $sparepart = $service->hitungBebanSparepartUnit($unit->id, $tahun);
+                $total = $distribusi + $sparepart;
+
+                return [
+                    'id'               => $unit->id,
+                    'kode'             => $unit->kode,
+                    'pos_anggaran'     => $unit->nama,
+                    'unit_id'          => $unit->id,
+                    'unit_nama'        => $unit->nama,
+                    'unit_kode'        => $unit->kode,
+                    'pagu'             => 0.0,
+                    'realisasi'        => (float) $total,
+                    'sisa'             => 0.0,
+                    'serapan'          => 0.0,
+                    'status'           => 'Normal',
+                    'beban_distribusi' => (float) $distribusi,
+                    'beban_sparepart'  => (float) $sparepart,
+                ];
+            });
+    }
+
+    private function sparepartAnggaran($tahun, array $ringkasan): array
+    {
+        $sparepartAnggaranModel = AnggaranPengadaan::where('tahun', (string) $tahun)
+            ->where('tipe', 'SPAREPART_IPSRS')
+            ->first();
+
+        return [
+            'id'           => $sparepartAnggaranModel?->id ?? 0,
+            'kode'         => $sparepartAnggaranModel?->kode ?? 'SPAREPART-IPSRS',
+            'pos_anggaran' => $sparepartAnggaranModel?->pos_anggaran ?? 'Screening Pemeliharaan Sarana & Sparepart IPSRS',
+            'pagu'         => (float) ($sparepartAnggaranModel?->pagu ?? 0),
+            'realisasi'    => (float) ($sparepartAnggaranModel?->realisasi ?? $ringkasan['total_realisasi_sparepart']),
+            'sisa'         => (float) ($sparepartAnggaranModel?->sisa ?? 0),
+            'serapan'      => (float) ($sparepartAnggaranModel?->serapan ?? 0),
+            'status'       => $sparepartAnggaranModel?->status ?? 'Normal',
+        ];
+    }
+
+    private function riwayatSparepart($tahun)
+    {
+        return SukuCadangMaintenance::with(['barang', 'stokBatch', 'permintaanMaintenance.aset', 'permintaanMaintenance.unit'])
+            ->whereYear('dibuat_pada', $tahun)
+            ->latest('id')
+            ->take(10)
+            ->get()
+            ->map(function ($sp) {
+                return [
+                    'id'             => $sp->id,
+                    'spk_kode'       => $sp->permintaanMaintenance?->kode ?? '-',
+                    'aset_nama'      => $sp->permintaanMaintenance?->aset?->nama ?? '-',
+                    'sparepart_nama' => $sp->barang?->nama ?? '-',
+                    'nomor_batch'    => $sp->stokBatch?->nomor_batch ?? '-',
+                    'jumlah'         => (int) $sp->jumlah_digunakan,
+                    'harga_satuan'   => (float) $sp->harga_satuan,
+                    'subtotal'       => (float) ($sp->subtotal ?? ($sp->jumlah_digunakan * $sp->harga_satuan)),
+                    'tanggal'        => $sp->dibuat_pada?->format('Y-m-d H:i') ?? '-',
+                ];
+            });
     }
 }

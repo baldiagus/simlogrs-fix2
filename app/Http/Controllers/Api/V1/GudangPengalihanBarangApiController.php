@@ -32,48 +32,7 @@ class GudangPengalihanBarangApiController extends ApiController
             'detail.barang.satuan',
         ])->latest('id');
 
-        if (! $isGlobalAdmin) {
-            $userGudangId = $user->gudang_id;
-            $userId = $user->id;
-
-            if ($tab === 'otorisasi') {
-                $query->where('status', StatusPengalihan::Diajukan->value)
-                    ->where('tipe_asal', 'GUDANG')
-                    ->where('gudang_asal_id', $userGudangId)
-                    ->where(function ($sub) use ($userGudangId, $userId) {
-                        $sub->where('gudang_tujuan_id', '!=', $userGudangId)
-                            ->orWhere('diajukan_oleh', '!=', $userId);
-                    });
-            } elseif ($tab === 'aktif') {
-                $query->whereIn('status', [StatusPengalihan::Diajukan->value, StatusPengalihan::Disetujui->value])
-                    ->where(function ($q) use ($userGudangId, $userId) {
-                        $q->where('diajukan_oleh', $userId);
-                        if ($userGudangId) {
-                            $q->orWhere(function ($sub) use ($userGudangId) {
-                                $sub->where('tipe_tujuan', 'GUDANG')
-                                    ->where('gudang_tujuan_id', $userGudangId);
-                            });
-                        }
-                    });
-            } else {
-                $query->whereIn('status', [StatusPengalihan::Selesai->value, StatusPengalihan::Ditolak->value, StatusPengalihan::Dibatalkan->value])
-                    ->where(function ($q) use ($userGudangId, $userId) {
-                        $q->where('diajukan_oleh', $userId);
-                        if ($userGudangId) {
-                            $q->orWhere('gudang_asal_id', $userGudangId)
-                              ->orWhere('gudang_tujuan_id', $userGudangId);
-                        }
-                    });
-            }
-        } else {
-            if ($tab === 'aktif') {
-                $query->whereIn('status', [StatusPengalihan::Diajukan->value, StatusPengalihan::Disetujui->value]);
-            } elseif ($tab === 'otorisasi') {
-                $query->where('status', StatusPengalihan::Diajukan->value);
-            } elseif ($tab === 'riwayat') {
-                $query->whereIn('status', [StatusPengalihan::Selesai->value, StatusPengalihan::Ditolak->value, StatusPengalihan::Dibatalkan->value]);
-            }
-        }
+        $this->terapkanFilterTabPengalihan($query, $user, $isGlobalAdmin, $tab);
         $list = $query->get()->map(function ($item) use ($user, $isGlobalAdmin) {
             $namaItem = $item->detail->first()?->barang?->nama ?? 'Komoditas Logistik';
 
@@ -136,15 +95,7 @@ class GudangPengalihanBarangApiController extends ApiController
             return $this->jsonError('Akses ditolak: Hanya fasilitas gudang logistik yang berwenang mengajukan pengalihan barang.', 403);
         }
 
-        $validator = Validator::make($request->all(), [
-            'barang_id'          => 'required|exists:barang,id',
-            'gudang_asal_id'     => 'required|exists:gudang,id',
-            'gudang_tujuan_id'   => 'nullable|exists:gudang,id',
-            'jumlah'             => 'required|integer|min:1',
-            'tanggal_pengalihan' => 'required|date',
-            'alasan'             => 'required|string|min:5|max:1000',
-            'catatan'            => 'nullable|string|max:1000',
-        ]);
+        $validator = Validator::make($request->all(), $this->aturanPengajuanPengalihan());
 
         if ($validator->fails()) {
             return $this->jsonError('Validasi data gagal.', 422, $validator->errors());
@@ -162,18 +113,9 @@ class GudangPengalihanBarangApiController extends ApiController
         $jumlah = (int) $request->input('jumlah');
 
         // Resolve stok batch jika tidak dikirim dari klien
-        $stokBatchId = $request->input('stok_batch_id');
+        $stokBatchId = $request->input('stok_batch_id') ?: $this->cariStokBatchId($barangId, $gudangAsalId, $jumlah);
         if (! $stokBatchId) {
-            $batch = StokBatch::where('barang_id', $barangId)
-                ->where('gudang_id', $gudangAsalId)
-                ->where('jumlah', '>=', $jumlah)
-                ->where('status', 'AKTIF')
-                ->first();
-
-            if (! $batch) {
-                return $this->jsonError('Stok barang pada gudang asal tidak mencukupi untuk dialihkan.', 422);
-            }
-            $stokBatchId = $batch->id;
+            return $this->jsonError('Stok barang pada gudang asal tidak mencukupi untuk dialihkan.', 422);
         }
 
         try {
@@ -205,6 +147,77 @@ class GudangPengalihanBarangApiController extends ApiController
             ], "Pengalihan barang {$pengalihan->kode} berhasil diajukan.");
         } catch (\Throwable $e) {
             return $this->jsonError($e->getMessage(), 422);
+        }
+    }
+
+    private function aturanPengajuanPengalihan(): array
+    {
+        return [
+            'barang_id'          => 'required|exists:barang,id',
+            'gudang_asal_id'     => 'required|exists:gudang,id',
+            'gudang_tujuan_id'   => 'nullable|exists:gudang,id',
+            'jumlah'             => 'required|integer|min:1',
+            'tanggal_pengalihan' => 'required|date',
+            'alasan'             => 'required|string|min:5|max:1000',
+            'catatan'            => 'nullable|string|max:1000',
+        ];
+    }
+
+    private function cariStokBatchId(int $barangId, int $gudangAsalId, int $jumlah): ?int
+    {
+        return StokBatch::where('barang_id', $barangId)
+            ->where('gudang_id', $gudangAsalId)
+            ->where('jumlah', '>=', $jumlah)
+            ->where('status', 'AKTIF')
+            ->first()?->id;
+    }
+
+    /**
+     * Batasi query daftar pengalihan sesuai tab dan cakupan akses pengguna.
+     */
+    private function terapkanFilterTabPengalihan($query, $user, bool $isGlobalAdmin, string $tab): void
+    {
+        if (! $isGlobalAdmin) {
+            $userGudangId = $user->gudang_id;
+            $userId = $user->id;
+
+            if ($tab === 'otorisasi') {
+                $query->where('status', StatusPengalihan::Diajukan->value)
+                    ->where('tipe_asal', 'GUDANG')
+                    ->where('gudang_asal_id', $userGudangId)
+                    ->where(function ($sub) use ($userGudangId, $userId) {
+                        $sub->where('gudang_tujuan_id', '!=', $userGudangId)
+                            ->orWhere('diajukan_oleh', '!=', $userId);
+                    });
+            } elseif ($tab === 'aktif') {
+                $query->whereIn('status', [StatusPengalihan::Diajukan->value, StatusPengalihan::Disetujui->value])
+                    ->where(function ($q) use ($userGudangId, $userId) {
+                        $q->where('diajukan_oleh', $userId);
+                        if ($userGudangId) {
+                            $q->orWhere(function ($sub) use ($userGudangId) {
+                                $sub->where('tipe_tujuan', 'GUDANG')
+                                    ->where('gudang_tujuan_id', $userGudangId);
+                            });
+                        }
+                    });
+            } else {
+                $query->whereIn('status', [StatusPengalihan::Selesai->value, StatusPengalihan::Ditolak->value, StatusPengalihan::Dibatalkan->value])
+                    ->where(function ($q) use ($userGudangId, $userId) {
+                        $q->where('diajukan_oleh', $userId);
+                        if ($userGudangId) {
+                            $q->orWhere('gudang_asal_id', $userGudangId)
+                              ->orWhere('gudang_tujuan_id', $userGudangId);
+                        }
+                    });
+            }
+        } else {
+            if ($tab === 'aktif') {
+                $query->whereIn('status', [StatusPengalihan::Diajukan->value, StatusPengalihan::Disetujui->value]);
+            } elseif ($tab === 'otorisasi') {
+                $query->where('status', StatusPengalihan::Diajukan->value);
+            } elseif ($tab === 'riwayat') {
+                $query->whereIn('status', [StatusPengalihan::Selesai->value, StatusPengalihan::Ditolak->value, StatusPengalihan::Dibatalkan->value]);
+            }
         }
     }
 

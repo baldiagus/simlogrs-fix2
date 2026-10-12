@@ -42,42 +42,80 @@ class MaintenanceTiketApiController extends ApiController
             return $this->jsonError('Validasi formulir gagal.', 422, $e->errors());
         }
 
-        // Resolusi aset berdasarkan id atau kode_aset (QR scanner)
-        $aset = null;
-        if (! empty($validated['aset_id'])) {
-            $aset = Aset::with(['barang', 'unit'])->find($validated['aset_id']);
-        } elseif (! empty($validated['kode_aset'])) {
-            $aset = Aset::with(['barang', 'unit'])->where('kode_aset', trim($validated['kode_aset']))->first();
-        }
+        $aset = $this->resolveAsetLapor($validated);
 
         if (! $aset) {
             return $this->jsonError('Aset sarana tidak ditemukan. Harap sertakan aset_id atau kode_aset yang valid.', 404);
         }
-        $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
-        if (! $isGlobalAdmin) {
-            $isAsetUnitUser = $user->unit_id && (int) $aset->unit_id === (int) $user->unit_id;
-            $isAsetGudangUser = $user->gudang_id && (int) $aset->gudang_id === (int) $user->gudang_id;
-
-            if (! $isAsetUnitUser && ! $isAsetGudangUser) {
-                return $this->jsonError('Anda hanya berhak melaporkan kerusakan untuk aset yang berada di unit atau gudang Anda.', 403);
-            }
+        if (! $this->userBerhakAtasAset($user, $aset)) {
+            return $this->jsonError('Anda hanya berhak melaporkan kerusakan untuk aset yang berada di unit atau gudang Anda.', 403);
         }
 
-        $prioritas = $validated['prioritas'] ?? 'SEDANG';
-        $unitId = $user->unit_id ?: $aset->unit_id;
-
-        // Simpan foto kerusakan fisik jika diunggah
-        $fotoPath = null;
-        $fotoUrl = null;
-        if ($request->hasFile('foto')) {
-            $opt = FileOptimizer::optimizeAndStore($request->file('foto'), 'maintenance/kerusakan');
-            $fotoPath = $opt['path'];
-            $fotoUrl = asset('storage/' . ltrim($fotoPath, '/'));
-        }
+        [$fotoPath, $fotoUrl] = $this->simpanFotoKerusakan($request);
 
         $kodeTiket = CodeGenerator::generateMnt();
 
-        DB::transaction(function () use ($kodeTiket, $aset, $unitId, $user, $validated, $prioritas, $fotoPath, &$tiket) {
+        $tiket = $this->terbitkanTiket($kodeTiket, $aset, $unitId, $user, $validated, $prioritas, $fotoPath);
+
+        return $this->jsonSuccess([
+            'id'                => $tiket->id,
+            'kode'              => $tiket->kode,
+            'status'            => $tiket->status,
+            'prioritas'         => $tiket->prioritas,
+            'deskripsi_masalah' => $tiket->deskripsi_masalah,
+            'foto_url'          => $fotoUrl,
+            'aset'              => [
+                'id'        => $aset->id,
+                'kode_aset' => $aset->kode_aset,
+                'nama'      => $aset->barang?->nama ?? '-',
+            ],
+            'dilaporkan_pada'   => $tiket->dibuat_pada?->toIso8601String(),
+        ], "Laporan kerusakan '{$kodeTiket}' berhasil diterbitkan ke tim IPSRS.", 201);
+    }
+
+    private function resolveAsetLapor(array $validated): ?Aset
+    {
+        // Resolusi aset berdasarkan id atau kode_aset (QR scanner)
+        if (! empty($validated['aset_id'])) {
+            return Aset::with(['barang', 'unit'])->find($validated['aset_id']);
+        }
+        if (! empty($validated['kode_aset'])) {
+            return Aset::with(['barang', 'unit'])->where('kode_aset', trim($validated['kode_aset']))->first();
+        }
+
+        return null;
+    }
+
+    private function userBerhakAtasAset($user, Aset $aset): bool
+    {
+        if ($user->hasRole(['super_admin', 'admin_logistik'])) {
+            return true;
+        }
+
+        $isAsetUnitUser = $user->unit_id && (int) $aset->unit_id === (int) $user->unit_id;
+        $isAsetGudangUser = $user->gudang_id && (int) $aset->gudang_id === (int) $user->gudang_id;
+
+        return $isAsetUnitUser || $isAsetGudangUser;
+    }
+
+    /**
+     * Simpan foto kerusakan fisik jika diunggah.
+     *
+     * @return array{0: ?string, 1: ?string} [path, url]
+     */
+    private function simpanFotoKerusakan(Request $request): array
+    {
+        if (! $request->hasFile('foto')) {
+            return [null, null];
+        }
+        $opt = FileOptimizer::optimizeAndStore($request->file('foto'), 'maintenance/kerusakan');
+
+        return [$opt['path'], asset('storage/' . ltrim($opt['path'], '/'))];
+    }
+
+    private function terbitkanTiket(string $kodeTiket, Aset $aset, $unitId, $user, array $validated, string $prioritas, ?string $fotoPath): PermintaanMaintenance
+    {
+        return DB::transaction(function () use ($kodeTiket, $aset, $unitId, $user, $validated, $prioritas, $fotoPath) {
             $tiket = PermintaanMaintenance::create([
                 'kode'              => $kodeTiket,
                 'aset_id'           => $aset->id,
@@ -96,22 +134,9 @@ class MaintenanceTiketApiController extends ApiController
                     'kondisi' => $prioritas === 'CITO' ? 'RUSAK_BERAT' : 'RUSAK_RINGAN',
                 ]);
             }
-        });
 
-        return $this->jsonSuccess([
-            'id'                => $tiket->id,
-            'kode'              => $tiket->kode,
-            'status'            => $tiket->status,
-            'prioritas'         => $tiket->prioritas,
-            'deskripsi_masalah' => $tiket->deskripsi_masalah,
-            'foto_url'          => $fotoUrl,
-            'aset'              => [
-                'id'        => $aset->id,
-                'kode_aset' => $aset->kode_aset,
-                'nama'      => $aset->barang?->nama ?? '-',
-            ],
-            'dilaporkan_pada'   => $tiket->dibuat_pada?->toIso8601String(),
-        ], "Laporan kerusakan '{$kodeTiket}' berhasil diterbitkan ke tim IPSRS.", 201);
+            return $tiket;
+        });
     }
 
     /**
@@ -133,6 +158,15 @@ class MaintenanceTiketApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang melihat daftar tiket kerusakan.', 403);
         }
 
+        $query = $this->queryTiketUnit($user, $request);
+
+        $tikets = $query->latest('id')->limit(100)->get()->map(fn ($item) => $this->formatTiketUnit($item, $user));
+
+        return $this->jsonSuccess($tikets, 'Daftar tiket kerusakan unit berhasil dimuat.');
+    }
+
+    private function queryTiketUnit($user, Request $request)
+    {
         $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
         $userUnitId = $user->unit_id;
         $userGudangId = $user->gudang_id;
@@ -140,7 +174,7 @@ class MaintenanceTiketApiController extends ApiController
         $filterPrioritas = $request->query('prioritas');
         $cari = $request->query('cari');
 
-        $query = PermintaanMaintenance::with([
+        return PermintaanMaintenance::with([
             'aset.barang',
             'unit',
             'pelapor',
@@ -166,41 +200,41 @@ class MaintenanceTiketApiController extends ApiController
                     });
             });
         });
+    }
 
-        $tikets = $query->latest('id')->limit(100)->get()->map(function ($item) use ($user) {
-            $canCancel = $item->status === StatusMaintenance::Dilaporkan->value && (
-                (int) $item->dilaporkan_oleh === (int) $user->id ||
-                ($user->hasRole('kepala_unit') && (int) $user->unit_id === (int) $item->unit_id) ||
-                ($user->hasRole('kepala_gudang') && (int) $user->gudang_id === (int) $item->aset?->gudang_id) ||
-                $user->hasRole('super_admin') ||
-                $user->hasRole('admin_logistik')
-            );
-            return [
-                'id'                => $item->id,
-                'kode'              => $item->kode,
-                'status'            => $item->status,
-                'prioritas'         => $item->prioritas,
-                'deskripsi_masalah' => $item->deskripsi_masalah,
-                'foto_url'          => $item->foto_kerusakan ? asset('storage/' . ltrim($item->foto_kerusakan, '/')) : null,
-                'dibuat_pada'       => $item->dibuat_pada?->format('d/m/Y H:i'),
-                'unit'              => $item->unit?->nama ?? '-',
-                'pelapor'           => $item->pelapor?->nama ?? '-',
-                'can_cancel'        => $canCancel,
-                'aset'              => [
-                    'id'         => $item->aset?->id,
-                    'kode_aset'  => $item->aset?->kode_aset ?? '-',
-                    'nama'       => $item->aset?->barang?->nama ?? '-',
-                    'nomor_seri' => $item->aset?->nomor_seri ?? '-',
-                ],
-                'penugasan_aktif'   => $item->penugasanAktif ? [
-                    'kode_spk'     => $item->penugasanAktif->kode,
-                    'nama_teknisi' => $item->penugasanAktif->teknisi?->nama ?? '-',
-                    'status_spk'   => $item->penugasanAktif->status,
-                ] : null,
-            ];
-        });
+    private function formatTiketUnit($item, $user): array
+    {
+        $canCancel = $item->status === StatusMaintenance::Dilaporkan->value && (
+            (int) $item->dilaporkan_oleh === (int) $user->id ||
+            ($user->hasRole('kepala_unit') && (int) $user->unit_id === (int) $item->unit_id) ||
+            ($user->hasRole('kepala_gudang') && (int) $user->gudang_id === (int) $item->aset?->gudang_id) ||
+            $user->hasRole('super_admin') ||
+            $user->hasRole('admin_logistik')
+        );
 
-        return $this->jsonSuccess($tikets, 'Daftar tiket kerusakan unit berhasil dimuat.');
+        return [
+            'id'                => $item->id,
+            'kode'              => $item->kode,
+            'status'            => $item->status,
+            'prioritas'         => $item->prioritas,
+            'deskripsi_masalah' => $item->deskripsi_masalah,
+            'foto_url'          => $item->foto_kerusakan ? asset('storage/' . ltrim($item->foto_kerusakan, '/')) : null,
+            'dibuat_pada'       => $item->dibuat_pada?->format('d/m/Y H:i'),
+            'unit'              => $item->unit?->nama ?? '-',
+            'pelapor'           => $item->pelapor?->nama ?? '-',
+            'can_cancel'        => $canCancel,
+            'aset'              => [
+                'id'         => $item->aset?->id,
+                'kode_aset'  => $item->aset?->kode_aset ?? '-',
+                'nama'       => $item->aset?->barang?->nama ?? '-',
+                'nomor_seri' => $item->aset?->nomor_seri ?? '-',
+            ],
+            'penugasan_aktif'   => $item->penugasanAktif ? [
+                'kode_spk'     => $item->penugasanAktif->kode,
+                'nama_teknisi' => $item->penugasanAktif->teknisi?->nama ?? '-',
+                'status_spk'   => $item->penugasanAktif->status,
+            ] : null,
+        ];
     }
 
     /**

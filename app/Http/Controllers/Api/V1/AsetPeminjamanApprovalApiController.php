@@ -115,66 +115,81 @@ class AsetPeminjamanApprovalApiController extends ApiController
         $aksi = $request->input('aksi');
 
         if ($aksi === 'setujui') {
-            if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
-                return $this->jsonError("Hanya permintaan berstatus DIAJUKAN yang dapat disetujui (saat ini: {$pinjam->status}).", 422);
-            }
-
-            // Kunci integritas: periksa apakah ada aset di permohonan ini yang sudah disetujui/dipinjam pada transaksi lain
-            $asetIds = $pinjam->detail->pluck('aset_id')->filter();
-            $konflik = PermintaanPeminjaman::whereIn('status', StatusPeminjaman::mengikatAset())
-                ->where('id', '!=', $pinjam->id)
-                ->whereHas('detail', fn ($d) => $d->whereIn('aset_id', $asetIds))
-                ->first();
-
-            if ($konflik) {
-                return $this->jsonError("Aset pada permohonan ini telah disetujui atau sedang aktif dipinjam pada transaksi {$konflik->kode}.", 422);
-            }
-
-            $pinjam->update([
-                'status'         => StatusPeminjaman::Disetujui->value,
-                'disetujui_oleh' => $user->id,
-            ]);
-            return $this->jsonSuccess([
-                'kode'   => $pinjam->kode,
-                'status' => StatusPeminjaman::Disetujui->value,
-            ], "Permintaan peminjaman {$pinjam->kode} berhasil disetujui, siap diserahterimakan.");
+            return $this->prosesSetujui($pinjam, $user);
         }
 
         if ($aksi === 'tolak') {
-            if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
-                return $this->jsonError("Hanya permintaan berstatus DIAJUKAN yang dapat ditolak (saat ini: {$pinjam->status}).", 422);
-            }
-
-            $pinjam->update([
-                'status'         => StatusPeminjaman::Ditolak->value,
-                'disetujui_oleh' => $user->id,
-                'catatan'        => $request->input('catatan') ?? $pinjam->catatan,
-            ]);
-
-            return $this->jsonSuccess([
-                'kode'   => $pinjam->kode,
-                'status' => StatusPeminjaman::Ditolak->value,
-            ], "Permintaan peminjaman {$pinjam->kode} ditolak.");
+            return $this->prosesTolak($request, $pinjam, $user);
         }
 
         if ($aksi === 'serah_terima') {
-            if ($pinjam->status !== StatusPeminjaman::Disetujui->value) {
-                return $this->jsonError("Hanya peminjaman berstatus DISETUJUI yang dapat diserahterimakan (saat ini: {$pinjam->status}).", 422);
-            }
-
-            try {
-                $service->serahTerimaFisik($pinjam, $user);
-
-                return $this->jsonSuccess([
-                    'kode'   => $pinjam->kode,
-                    'status' => StatusPeminjaman::Dipinjam->value,
-                ], "Serah terima fisik berhasil. Aset resmi berstatus DIPINJAM oleh {$pinjam->unitPeminjam?->nama}.");
-            } catch (Exception $e) {
-                return $this->jsonError($e->getMessage(), 422);
-            }
+            return $this->prosesSerahTerima($pinjam, $user, $service);
         }
 
         return $this->jsonError('Aksi tidak dikenali.', 422);
+    }
+
+    private function prosesSetujui(PermintaanPeminjaman $pinjam, $user): JsonResponse
+    {
+        if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
+            return $this->jsonError("Hanya permintaan berstatus DIAJUKAN yang dapat disetujui (saat ini: {$pinjam->status}).", 422);
+        }
+
+        // Kunci integritas: periksa apakah ada aset di permohonan ini yang sudah disetujui/dipinjam pada transaksi lain
+        $asetIds = $pinjam->detail->pluck('aset_id')->filter();
+        $konflik = PermintaanPeminjaman::whereIn('status', StatusPeminjaman::mengikatAset())
+            ->where('id', '!=', $pinjam->id)
+            ->whereHas('detail', fn ($d) => $d->whereIn('aset_id', $asetIds))
+            ->first();
+
+        if ($konflik) {
+            return $this->jsonError("Aset pada permohonan ini telah disetujui atau sedang aktif dipinjam pada transaksi {$konflik->kode}.", 422);
+        }
+
+        $pinjam->update([
+            'status'         => StatusPeminjaman::Disetujui->value,
+            'disetujui_oleh' => $user->id,
+        ]);
+        return $this->jsonSuccess([
+            'kode'   => $pinjam->kode,
+            'status' => StatusPeminjaman::Disetujui->value,
+        ], "Permintaan peminjaman {$pinjam->kode} berhasil disetujui, siap diserahterimakan.");
+    }
+
+    private function prosesTolak(Request $request, PermintaanPeminjaman $pinjam, $user): JsonResponse
+    {
+        if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
+            return $this->jsonError("Hanya permintaan berstatus DIAJUKAN yang dapat ditolak (saat ini: {$pinjam->status}).", 422);
+        }
+
+        $pinjam->update([
+            'status'         => StatusPeminjaman::Ditolak->value,
+            'disetujui_oleh' => $user->id,
+            'catatan'        => $request->input('catatan') ?? $pinjam->catatan,
+        ]);
+
+        return $this->jsonSuccess([
+            'kode'   => $pinjam->kode,
+            'status' => StatusPeminjaman::Ditolak->value,
+        ], "Permintaan peminjaman {$pinjam->kode} ditolak.");
+    }
+
+    private function prosesSerahTerima(PermintaanPeminjaman $pinjam, $user, PeminjamanAsetService $service): JsonResponse
+    {
+        if ($pinjam->status !== StatusPeminjaman::Disetujui->value) {
+            return $this->jsonError("Hanya peminjaman berstatus DISETUJUI yang dapat diserahterimakan (saat ini: {$pinjam->status}).", 422);
+        }
+
+        try {
+            $service->serahTerimaFisik($pinjam, $user);
+
+            return $this->jsonSuccess([
+                'kode'   => $pinjam->kode,
+                'status' => StatusPeminjaman::Dipinjam->value,
+            ], "Serah terima fisik berhasil. Aset resmi berstatus DIPINJAM oleh {$pinjam->unitPeminjam?->nama}.");
+        } catch (Exception $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
     }
 
     /**

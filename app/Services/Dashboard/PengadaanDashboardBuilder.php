@@ -10,6 +10,7 @@ use App\Models\PermintaanPeminjaman;
 use App\Models\PermintaanPengadaan;
 use App\Models\PesananPembelian;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 class PengadaanDashboardBuilder
 {
@@ -39,7 +40,28 @@ class PengadaanDashboardBuilder
             ],
         ];
 
-        $prList = PermintaanPengadaan::where('status', StatusPermintaanPengadaan::Diajukan->value)
+        $prList = $this->prDiajukanList();
+        $amprahList = $this->amprahDiajukanList();
+        $poList = $this->poInboundList();
+        $pinjamList = $this->pinjamDiajukanList();
+
+        $activities = $prList->concat($amprahList)
+            ->concat($poList)
+            ->concat($pinjamList)
+            ->sortByDesc('timestamp')
+            ->values()
+            ->take(30)
+            ->toArray();
+
+        return [
+            'hero'      => $hero,
+            'aktivitas' => $activities,
+        ];
+    }
+
+    private function prDiajukanList(): Collection
+    {
+        return PermintaanPengadaan::where('status', StatusPermintaanPengadaan::Diajukan->value)
             ->with(['unit', 'gudang', 'pengaju', 'detail'])
             ->latest('id')
             ->take(15)
@@ -54,8 +76,11 @@ class PengadaanDashboardBuilder
                 'waktu_lalu' => $this->diffForHumans($p->dibuat_pada),
                 'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
             ]);
+    }
 
-        $amprahList = PermintaanDistribusi::where('status', StatusPermintaanDistribusi::Diajukan->value)
+    private function amprahDiajukanList(): Collection
+    {
+        return PermintaanDistribusi::where('status', StatusPermintaanDistribusi::Diajukan->value)
             ->with(['unit', 'pengaju', 'detail'])
             ->latest('id')
             ->take(15)
@@ -70,8 +95,11 @@ class PengadaanDashboardBuilder
                 'waktu_lalu' => $this->diffForHumans($a->dibuat_pada),
                 'timestamp'  => $a->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
             ]);
+    }
 
-        $poList = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])
+    private function poInboundList(): Collection
+    {
+        return PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])
             ->with(['pemasok:id,nama', 'detail'])
             ->latest('id')
             ->take(10)
@@ -86,8 +114,11 @@ class PengadaanDashboardBuilder
                 'waktu_lalu' => $this->diffForHumans($p->dibuat_pada),
                 'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
             ]);
+    }
 
-        $pinjamList = PermintaanPeminjaman::where('status', StatusPeminjaman::Diajukan->value)
+    private function pinjamDiajukanList(): Collection
+    {
+        return PermintaanPeminjaman::where('status', StatusPeminjaman::Diajukan->value)
             ->with(['unitPeminjam', 'pengaju', 'detail.aset.barang'])
             ->latest('id')
             ->take(10)
@@ -102,18 +133,5 @@ class PengadaanDashboardBuilder
                 'waktu_lalu' => $this->diffForHumans($pj->dibuat_pada),
                 'timestamp'  => $pj->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
             ]);
-
-        $activities = $prList->concat($amprahList)
-            ->concat($poList)
-            ->concat($pinjamList)
-            ->sortByDesc('timestamp')
-            ->values()
-            ->take(30)
-            ->toArray();
-
-        return [
-            'hero'      => $hero,
-            'aktivitas' => $activities,
-        ];
     }
 }

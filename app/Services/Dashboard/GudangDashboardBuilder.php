@@ -10,6 +10,7 @@ use App\Models\PermintaanDistribusi;
 use App\Models\PermintaanPeminjaman;
 use App\Models\PesananPembelian;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 class GudangDashboardBuilder
 {
@@ -41,56 +42,9 @@ class GudangDashboardBuilder
             ],
         ];
 
-        $amprahList = PermintaanDistribusi::whereIn('status', [StatusPermintaanDistribusi::DisetujuiGudang->value, StatusPermintaanDistribusi::DisetujuiKaru->value])
-            ->when($user->gudang_id, fn ($q) => $q->where('gudang_id', $user->gudang_id))
-            ->with(['unit:id,kode,nama', 'detail'])
-            ->latest('id')
-            ->take(15)
-            ->get()
-            ->map(fn ($a) => [
-                'id'         => $a->id,
-                'tipe'       => 'AMPRAH',
-                'kode'       => $a->kode,
-                'judul'      => 'Picking: ' . ($a->unit?->nama ?? 'Amprah Ruangan'),
-                'subjudul'   => $a->detail->count() . ' item barang • Urgensi: ' . $a->urgensi,
-                'status'     => $a->status,
-                'waktu_lalu' => $this->diffForHumans($a->dibuat_pada),
-                'timestamp'  => $a->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
-            ]);
-
-        $poList = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])
-            ->with(['pemasok:id,nama', 'detail'])
-            ->latest('id')
-            ->take(15)
-            ->get()
-            ->map(fn ($p) => [
-                'id'         => $p->id,
-                'tipe'       => 'PO',
-                'kode'       => $p->kode,
-                'judul'      => 'PO Inbound: ' . ($p->pemasok?->nama ?? 'Vendor'),
-                'subjudul'   => $p->detail->count() . ' item komoditas',
-                'status'     => $p->status,
-                'waktu_lalu' => $this->diffForHumans($p->dibuat_pada),
-                'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
-            ]);
-
-        $pinjamGudang = PermintaanPeminjaman::where('tipe_penyedia', 'GUDANG')
-            ->where('status', StatusPeminjaman::Diajukan->value)
-            ->when($user->gudang_id, fn ($q) => $q->where('gudang_penyedia_id', $user->gudang_id))
-            ->with(['unitPeminjam', 'pengaju', 'detail.aset.barang'])
-            ->latest('id')
-            ->take(10)
-            ->get()
-            ->map(fn ($pj) => [
-                'id'         => $pj->id,
-                'tipe'       => 'PINJAM',
-                'kode'       => $pj->kode,
-                'judul'      => 'Pinjam Gudang: ' . ($pj->detail->first()?->aset?->barang?->nama ?? 'Aset Fisik'),
-                'subjudul'   => 'Pemohon: ' . ($pj->pengaju?->nama ?? 'Staf') . ' • Unit: ' . ($pj->unitPeminjam?->nama ?? '-'),
-                'status'     => $pj->status,
-                'waktu_lalu' => $this->diffForHumans($pj->dibuat_pada),
-                'timestamp'  => $pj->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
-            ]);
+        $amprahList = $this->pickingAmprahList($user);
+        $poList = $this->poInboundList(15, 'item komoditas');
+        $pinjamGudang = $this->pinjamGudangPetugasList($user);
 
         $activities = $amprahList->concat($poList)->concat($pinjamGudang)->sortByDesc('timestamp')->values()->take(30)->toArray();
 
@@ -129,7 +83,83 @@ class GudangDashboardBuilder
             ],
         ];
 
-        $amprahList = PermintaanDistribusi::where('status', StatusPermintaanDistribusi::DisetujuiKaru->value)
+        $amprahList = $this->otorisasiAmprahList($filterGudang);
+        $penyesuaianList = $this->penyesuaianMenungguList();
+        $poList = $this->poInboundList(10, null);
+        $pinjamGudang = $this->pinjamGudangKepalaList($filterGudang);
+
+        $activities = $amprahList->concat($penyesuaianList)->concat($poList)->concat($pinjamGudang)->sortByDesc('timestamp')->values()->take(30)->toArray();
+
+        return [
+            'hero'      => $hero,
+            'aktivitas' => $activities,
+        ];
+    }
+
+    private function pickingAmprahList(User $user): Collection
+    {
+        return PermintaanDistribusi::whereIn('status', [StatusPermintaanDistribusi::DisetujuiGudang->value, StatusPermintaanDistribusi::DisetujuiKaru->value])
+            ->when($user->gudang_id, fn ($q) => $q->where('gudang_id', $user->gudang_id))
+            ->with(['unit:id,kode,nama', 'detail'])
+            ->latest('id')
+            ->take(15)
+            ->get()
+            ->map(fn ($a) => [
+                'id'         => $a->id,
+                'tipe'       => 'AMPRAH',
+                'kode'       => $a->kode,
+                'judul'      => 'Picking: ' . ($a->unit?->nama ?? 'Amprah Ruangan'),
+                'subjudul'   => $a->detail->count() . ' item barang • Urgensi: ' . $a->urgensi,
+                'status'     => $a->status,
+                'waktu_lalu' => $this->diffForHumans($a->dibuat_pada),
+                'timestamp'  => $a->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+            ]);
+    }
+
+    /** PO inbound; $subjudulSuffix null = tampilkan status PO. */
+    private function poInboundList(int $limit, ?string $subjudulSuffix): Collection
+    {
+        return PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])
+            ->with(['pemasok:id,nama', 'detail'])
+            ->latest('id')
+            ->take($limit)
+            ->get()
+            ->map(fn ($p) => [
+                'id'         => $p->id,
+                'tipe'       => 'PO',
+                'kode'       => $p->kode,
+                'judul'      => 'PO Inbound: ' . ($p->pemasok?->nama ?? 'Vendor'),
+                'subjudul'   => $p->detail->count() . ' ' . ($subjudulSuffix ?? 'item • ' . $p->status),
+                'status'     => $p->status,
+                'waktu_lalu' => $this->diffForHumans($p->dibuat_pada),
+                'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+            ]);
+    }
+
+    private function pinjamGudangPetugasList(User $user): Collection
+    {
+        return PermintaanPeminjaman::where('tipe_penyedia', 'GUDANG')
+            ->where('status', StatusPeminjaman::Diajukan->value)
+            ->when($user->gudang_id, fn ($q) => $q->where('gudang_penyedia_id', $user->gudang_id))
+            ->with(['unitPeminjam', 'pengaju', 'detail.aset.barang'])
+            ->latest('id')
+            ->take(10)
+            ->get()
+            ->map(fn ($pj) => [
+                'id'         => $pj->id,
+                'tipe'       => 'PINJAM',
+                'kode'       => $pj->kode,
+                'judul'      => 'Pinjam Gudang: ' . ($pj->detail->first()?->aset?->barang?->nama ?? 'Aset Fisik'),
+                'subjudul'   => 'Pemohon: ' . ($pj->pengaju?->nama ?? 'Staf') . ' • Unit: ' . ($pj->unitPeminjam?->nama ?? '-'),
+                'status'     => $pj->status,
+                'waktu_lalu' => $this->diffForHumans($pj->dibuat_pada),
+                'timestamp'  => $pj->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
+            ]);
+    }
+
+    private function otorisasiAmprahList(array $filterGudang): Collection
+    {
+        return PermintaanDistribusi::where('status', StatusPermintaanDistribusi::DisetujuiKaru->value)
             ->when($filterGudang, fn ($q) => $q->whereIn('gudang_id', $filterGudang))
             ->with(['unit:id,kode,nama', 'detail'])
             ->latest('id')
@@ -145,8 +175,11 @@ class GudangDashboardBuilder
                 'waktu_lalu' => $this->diffForHumans($a->dibuat_pada),
                 'timestamp'  => $a->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
             ]);
+    }
 
-        $penyesuaianList = PenyesuaianStok::where('status', 'MENUNGGU')
+    private function penyesuaianMenungguList(): Collection
+    {
+        return PenyesuaianStok::where('status', 'MENUNGGU')
             ->with(['gudang', 'detail'])
             ->latest('id')
             ->take(10)
@@ -161,24 +194,11 @@ class GudangDashboardBuilder
                 'waktu_lalu' => $this->diffForHumans($ps->dibuat_pada),
                 'timestamp'  => $ps->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
             ]);
+    }
 
-        $poList = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])
-            ->with(['pemasok:id,nama', 'detail'])
-            ->latest('id')
-            ->take(10)
-            ->get()
-            ->map(fn ($p) => [
-                'id'         => $p->id,
-                'tipe'       => 'PO',
-                'kode'       => $p->kode,
-                'judul'      => 'PO Inbound: ' . ($p->pemasok?->nama ?? 'Vendor'),
-                'subjudul'   => $p->detail->count() . ' item • ' . $p->status,
-                'status'     => $p->status,
-                'waktu_lalu' => $this->diffForHumans($p->dibuat_pada),
-                'timestamp'  => $p->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
-            ]);
-
-        $pinjamGudang = PermintaanPeminjaman::where('tipe_penyedia', 'GUDANG')
+    private function pinjamGudangKepalaList(array $filterGudang): Collection
+    {
+        return PermintaanPeminjaman::where('tipe_penyedia', 'GUDANG')
             ->where('status', StatusPeminjaman::Diajukan->value)
             ->when($filterGudang, fn ($q) => $q->whereIn('gudang_penyedia_id', $filterGudang))
             ->with(['unitPeminjam', 'pengaju', 'detail.aset.barang'])
@@ -195,12 +215,5 @@ class GudangDashboardBuilder
                 'waktu_lalu' => $this->diffForHumans($pj->dibuat_pada),
                 'timestamp'  => $pj->dibuat_pada?->toIso8601String() ?? now()->toIso8601String(),
             ]);
-
-        $activities = $amprahList->concat($penyesuaianList)->concat($poList)->concat($pinjamGudang)->sortByDesc('timestamp')->values()->take(30)->toArray();
-
-        return [
-            'hero'      => $hero,
-            'aktivitas' => $activities,
-        ];
     }
 }

@@ -38,7 +38,37 @@ class PersediaanMonitoringApiController extends ApiController
         $date30 = now()->addDays(30)->toDateString();
         $date90 = now()->addDays(90)->toDateString();
 
-        // Metrik Ringkasan FEFO
+        $metrik = $this->hitungMetrikFefo($gudangId, $today, $date30, $date90);
+
+        // Query Daftar Batch FEFO
+        $query = StokBatch::with([
+            'barang.kategori:id,nama',
+            'barang.satuan:id,nama,simbol',
+            'gudang:id,kode,nama',
+            'lokasiGudang:id,kode,nama',
+        ])
+        ->where('status', 'AKTIF')
+        ->where('jumlah', '>', 0)
+        ->when($gudangId, fn ($q) => $q->where('gudang_id', $gudangId));
+
+        $this->terapkanFilterFefo($query, $kategori, $cari, $today, $date30, $date90);
+
+        $batches = $query->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
+            ->limit(100)
+            ->get()
+            ->map(fn ($b) => $this->formatBatchFefo($b, $today));
+
+        return $this->jsonSuccess([
+            'metrik' => $metrik,
+            'items'  => $batches,
+        ], 'Data monitoring FEFO berhasil dimuat.');
+    }
+
+    /**
+     * Metrik Ringkasan FEFO.
+     */
+    private function hitungMetrikFefo($gudangId, string $today, string $date30, string $date90): array
+    {
         $baseMetrics = StokBatch::where('status', 'AKTIF')
             ->where('jumlah', '>', 0)
             ->when($gudangId, fn ($q) => $q->where('gudang_id', $gudangId));
@@ -63,18 +93,20 @@ class PersediaanMonitoringApiController extends ApiController
             ->whereRaw('(SELECT COALESCE(SUM(jumlah), 0) FROM stok_batch WHERE stok_batch.barang_id = barang.id AND stok_batch.status = \'AKTIF\') <= barang.titik_pesan')
             ->count();
 
-        // Query Daftar Batch FEFO
-        $query = StokBatch::with([
-            'barang.kategori:id,nama',
-            'barang.satuan:id,nama,simbol',
-            'gudang:id,kode,nama',
-            'lokasiGudang:id,kode,nama',
-        ])
-        ->where('status', 'AKTIF')
-        ->where('jumlah', '>', 0)
-        ->when($gudangId, fn ($q) => $q->where('gudang_id', $gudangId));
+        return [
+            'count_expired'       => $countExpired,
+            'count_kritis_30'     => $countKritis30,
+            'count_peringatan_90' => $countPeringatan90,
+            'count_rop'           => $countRop,
+            'total_batch_aktif'   => $baseMetrics->count(),
+        ];
+    }
 
-        // Filter Berdasarkan Kategori FEFO
+    /**
+     * Filter kategori FEFO + pencarian kata kunci.
+     */
+    private function terapkanFilterFefo($query, $kategori, $cari, string $today, string $date30, string $date90): void
+    {
         if ($kategori === 'KEDALUWARSA') {
             $query->whereNotNull('tanggal_kedaluwarsa')->where('tanggal_kedaluwarsa', '<', $today);
         } elseif ($kategori === 'KRITIS') {
@@ -88,7 +120,6 @@ class PersediaanMonitoringApiController extends ApiController
             });
         }
 
-        // Pencarian Kata Kunci
         if ($cari) {
             $query->where(function ($sub) use ($cari) {
                 $sub->where('nomor_batch', 'ilike', "%{$cari}%")
@@ -96,59 +127,49 @@ class PersediaanMonitoringApiController extends ApiController
                     ->orWhereHas('lokasiGudang', fn ($lg) => $lg->where('nama', 'ilike', "%{$cari}%"));
             });
         }
+    }
 
-        $batches = $query->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
-            ->limit(100)
-            ->get()
-            ->map(function ($b) use ($today, $date30, $date90) {
-                $ed = $b->tanggal_kedaluwarsa;
-                $sisaHari = null;
-                $statusFefo = 'AMAN'; // AMAN, PERINGATAN, KRITIS, KEDALUWARSA, TANPA_ED
+    /**
+     * Format satu batch FEFO untuk respons.
+     */
+    private function formatBatchFefo($b, string $today): array
+    {
+        $ed = $b->tanggal_kedaluwarsa;
+        $sisaHari = null;
+        $statusFefo = 'AMAN'; // AMAN, PERINGATAN, KRITIS, KEDALUWARSA, TANPA_ED
 
-                if ($ed) {
-                    $sisaHari = Carbon::parse($today)->diffInDays(Carbon::parse($ed), false);
-                    if ($sisaHari < 0) {
-                        $statusFefo = 'KEDALUWARSA';
-                    } elseif ($sisaHari <= 30) {
-                        $statusFefo = 'KRITIS';
-                    } elseif ($sisaHari <= 90) {
-                        $statusFefo = 'PERINGATAN';
-                    }
-                } else {
-                    $statusFefo = 'TANPA_ED';
-                }
+        if ($ed) {
+            $sisaHari = Carbon::parse($today)->diffInDays(Carbon::parse($ed), false);
+            if ($sisaHari < 0) {
+                $statusFefo = 'KEDALUWARSA';
+            } elseif ($sisaHari <= 30) {
+                $statusFefo = 'KRITIS';
+            } elseif ($sisaHari <= 90) {
+                $statusFefo = 'PERINGATAN';
+            }
+        } else {
+            $statusFefo = 'TANPA_ED';
+        }
 
-                $nilaiTotal = (float) $b->jumlah * (float) ($b->harga_satuan ?? 0);
+        $nilaiTotal = (float) $b->jumlah * (float) ($b->harga_satuan ?? 0);
 
-                return [
-                    'id'                  => $b->id,
-                    'nomor_batch'         => $b->nomor_batch,
-                    'barang_id'           => $b->barang_id,
-                    'kode_barang'         => $b->barang?->kode ?? '-',
-                    'nama_barang'         => $b->barang?->nama ?? 'Komoditas',
-                    'kategori'            => $b->barang?->kategori?->nama ?? 'Umum',
-                    'satuan'              => $b->barang?->satuan?->simbol ?? $b->barang?->satuan?->nama ?? 'Pcs',
-                    'gudang'              => $b->gudang?->nama ?? 'Gudang Sentral',
-                    'lokasi_rak'          => $b->lokasiGudang ? "{$b->lokasiGudang->nama} ({$b->lokasiGudang->kode})" : 'Tanpa Rak',
-                    'tanggal_kedaluwarsa' => $ed?->format('Y-m-d'),
-                    'sisa_hari'           => $sisaHari,
-                    'jumlah'              => (int) $b->jumlah,
-                    'harga_satuan'        => (float) ($b->harga_satuan ?? 0),
-                    'nilai_total'         => $nilaiTotal,
-                    'status_fefo'         => $statusFefo,
-                ];
-            });
-
-        return $this->jsonSuccess([
-            'metrik' => [
-                'count_expired'       => $countExpired,
-                'count_kritis_30'     => $countKritis30,
-                'count_peringatan_90' => $countPeringatan90,
-                'count_rop'           => $countRop,
-                'total_batch_aktif'   => $baseMetrics->count(),
-            ],
-            'items'  => $batches,
-        ], 'Data monitoring FEFO berhasil dimuat.');
+        return [
+            'id'                  => $b->id,
+            'nomor_batch'         => $b->nomor_batch,
+            'barang_id'           => $b->barang_id,
+            'kode_barang'         => $b->barang?->kode ?? '-',
+            'nama_barang'         => $b->barang?->nama ?? 'Komoditas',
+            'kategori'            => $b->barang?->kategori?->nama ?? 'Umum',
+            'satuan'              => $b->barang?->satuan?->simbol ?? $b->barang?->satuan?->nama ?? 'Pcs',
+            'gudang'              => $b->gudang?->nama ?? 'Gudang Sentral',
+            'lokasi_rak'          => $b->lokasiGudang ? "{$b->lokasiGudang->nama} ({$b->lokasiGudang->kode})" : 'Tanpa Rak',
+            'tanggal_kedaluwarsa' => $ed?->format('Y-m-d'),
+            'sisa_hari'           => $sisaHari,
+            'jumlah'              => (int) $b->jumlah,
+            'harga_satuan'        => (float) ($b->harga_satuan ?? 0),
+            'nilai_total'         => $nilaiTotal,
+            'status_fefo'         => $statusFefo,
+        ];
     }
 
     /**

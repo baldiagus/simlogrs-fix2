@@ -7,21 +7,23 @@ use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
+use App\Livewire\Master\Concerns\HasScopeAset;
 use App\Models\Aset;
 use App\Models\Barang;
 use App\Models\Gudang;
 use App\Models\LokasiGudang;
 use App\Models\Unit;
 use App\Support\Generator\CodeGenerator;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
-use Illuminate\Support\Facades\Cache;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AsetIndex extends Component
 {
     use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
+    use HasScopeAset;
 
     public bool $showModal = false;
     public bool $showQrModal = false;
@@ -137,51 +139,6 @@ class AsetIndex extends Component
         $this->kondisi = 'BAIK';
         $this->status = StatusAset::Tersedia->value;
         $this->showModal = true;
-    }
-
-    public function canUserEditAset($user, Aset $aset): bool
-    {
-        return $user && $user->can('update_master::aset') && $this->isInUserScope($user, $aset->unit_id, $aset->gudang_id);
-    }
-
-    public function canUserDeleteAset($user, Aset $aset): bool
-    {
-        return $user && $user->can('delete_master::aset') && $this->isInUserScope($user, $aset->unit_id, $aset->gudang_id);
-    }
-
-    /**
-     * Hanya super_admin/admin_logistik lintas scope; pengguna lain dibatasi ke unit/gudang miliknya.
-     */
-    private function isInUserScope($user, ?int $unitId, ?int $gudangId): bool
-    {
-        if (! $user) {
-            return false;
-        }
-
-        if ($user->hasRole(['super_admin', 'admin_logistik'])) {
-            return true;
-        }
-
-        return ($unitId !== null && $user->unit_id && (int) $user->unit_id === (int) $unitId)
-            || ($gudangId !== null && $user->gudang_id && (int) $user->gudang_id === (int) $gudangId);
-    }
-
-    /**
-     * Baca register lintas unit: role global, auditor/manajemen (ADR), dan IPSRS lewat permission
-     * pemeliharaan; selain itu hanya aset di unit/gudang pengguna.
-     */
-    private function hasGlobalRead(): bool
-    {
-        $user = auth()->user();
-
-        return (bool) ($user?->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen'])
-            || $user?->can('view_any_pemeliharaan::spk::perbaikan'));
-    }
-
-    private function authorizeViewAset(Aset $aset): void
-    {
-        abort_unless(auth()->user()?->can('view_any_master::aset') || auth()->user()?->can('view_master::aset'), 403);
-        abort_unless($this->hasGlobalRead() || $this->isInUserScope(auth()->user(), $aset->unit_id, $aset->gudang_id), 403);
     }
 
     public function edit(int $id)

@@ -207,82 +207,100 @@ class PersediaanOpnameApiController extends ApiController
         $finalisasi = $request->boolean('finalisasi', false);
 
         DB::transaction(function () use ($opname, $request, $user, $finalisasi) {
-            $hasSelisih = false;
-            $selisihRows = [];
-
-            foreach ($request->input('items') as $row) {
-                $detail = $opname->detail->firstWhere('id', $row['detail_id']);
-                if (! $detail) continue;
-
-                $fisik = (int) $row['jumlah_fisik'];
-                $sistem = (int) $detail->jumlah_sistem;
-                $selisih = $fisik - $sistem;
-
-                $detail->update([
-                    'jumlah_fisik' => $fisik,
-                    'selisih'      => $selisih,
-                    'catatan'      => $row['catatan'] ?? $detail->catatan,
-                ]);
-
-                if ($selisih !== 0) {
-                    $hasSelisih = true;
-                    $selisihRows[] = [
-                        'barang_id'      => $detail->barang_id,
-                        'stok_batch_id'  => $detail->stok_batch_id,
-                        'jumlah'         => abs($selisih),
-                        'jenis'          => $selisih > 0 ? 'TAMBAH' : 'KURANG',
-                        'harga_satuan'   => $detail->stokBatch?->harga_satuan ?? 0,
-                        'subtotal'       => abs($selisih) * (float) ($detail->stokBatch?->harga_satuan ?? 0),
-                        'catatan'        => $row['catatan'] ?? 'Selisih opname fisik',
-                    ];
-                }
-            }
-
-            if ($finalisasi) {
-                if ($hasSelisih) {
-                    $opname->update(['status' => StatusStokOpname::MenungguApproval->value]);
-
-                    // Buat dokumen PenyesuaianStok jika belum ada
-                    $existingAdj = PenyesuaianStok::where('stok_opname_id', $opname->id)->first();
-                    if (! $existingAdj) {
-                        $kodeAdj = CodeGenerator::generateAdj();
-                        $penyesuaian = PenyesuaianStok::create([
-                            'kode'                => $kodeAdj,
-                            'stok_opname_id'      => $opname->id,
-                            'gudang_id'           => $opname->gudang_id,
-                            'tanggal_penyesuaian' => now()->toDateString(),
-                            'alasan'              => "Selisih perhitungan fisik Stock Opname {$opname->kode}",
-                            'status'              => StatusPenyesuaianStok::Menunggu->value,
-                            'diajukan_oleh'       => $user->id,
-                        ]);
-
-                        foreach ($selisihRows as $sr) {
-                            PenyesuaianStokDetail::create([
-                                'penyesuaian_stok_id' => $penyesuaian->id,
-                                'barang_id'           => $sr['barang_id'],
-                                'stok_batch_id'       => $sr['stok_batch_id'],
-                                'jumlah_penyesuaian'  => $sr['jumlah'],
-                                'jenis_penyesuaian'   => $sr['jenis'],
-                                'harga_satuan'        => $sr['harga_satuan'],
-                                'subtotal_nilai'      => $sr['subtotal'],
-                                'catatan'             => $sr['catatan'],
-                            ]);
-                        }
-                    }
-                } else {
-                    $opname->update([
-                        'status'         => StatusStokOpname::Disetujui->value,
-                        'disetujui_oleh' => $user->id,
-                    ]);
-                }
-            } else {
-                $opname->update(['status' => StatusStokOpname::ProsesCount->value]);
-            }
+            $selisihRows = $this->catatHasilHitung($opname, $request->input('items'));
+            $this->tetapkanStatusOpname($opname, $user, $finalisasi, $selisihRows);
         });
 
         return $this->jsonSuccess([
             'opname_id' => $opname->id,
             'status'    => $opname->fresh()->status,
         ], 'Perhitungan fisik stock opname berhasil dicatat.');
+    }
+
+    /**
+     * Update detail hasil hitung; kembalikan baris selisih (non-nol) untuk dokumen penyesuaian.
+     */
+    private function catatHasilHitung(StokOpname $opname, array $items): array
+    {
+        $selisihRows = [];
+
+        foreach ($items as $row) {
+            $detail = $opname->detail->firstWhere('id', $row['detail_id']);
+            if (! $detail) continue;
+
+            $fisik = (int) $row['jumlah_fisik'];
+            $selisih = $fisik - (int) $detail->jumlah_sistem;
+
+            $detail->update([
+                'jumlah_fisik' => $fisik,
+                'selisih'      => $selisih,
+                'catatan'      => $row['catatan'] ?? $detail->catatan,
+            ]);
+
+            if ($selisih !== 0) {
+                $selisihRows[] = [
+                    'barang_id'      => $detail->barang_id,
+                    'stok_batch_id'  => $detail->stok_batch_id,
+                    'jumlah'         => abs($selisih),
+                    'jenis'          => $selisih > 0 ? 'TAMBAH' : 'KURANG',
+                    'harga_satuan'   => $detail->stokBatch?->harga_satuan ?? 0,
+                    'subtotal'       => abs($selisih) * (float) ($detail->stokBatch?->harga_satuan ?? 0),
+                    'catatan'        => $row['catatan'] ?? 'Selisih opname fisik',
+                ];
+            }
+        }
+
+        return $selisihRows;
+    }
+
+    private function tetapkanStatusOpname(StokOpname $opname, $user, bool $finalisasi, array $selisihRows): void
+    {
+        if (! $finalisasi) {
+            $opname->update(['status' => StatusStokOpname::ProsesCount->value]);
+
+            return;
+        }
+
+        if (empty($selisihRows)) {
+            $opname->update([
+                'status'         => StatusStokOpname::Disetujui->value,
+                'disetujui_oleh' => $user->id,
+            ]);
+
+            return;
+        }
+
+        $opname->update(['status' => StatusStokOpname::MenungguApproval->value]);
+
+        // Buat dokumen PenyesuaianStok jika belum ada
+        if (! PenyesuaianStok::where('stok_opname_id', $opname->id)->exists()) {
+            $this->buatDokumenPenyesuaian($opname, $user, $selisihRows);
+        }
+    }
+
+    private function buatDokumenPenyesuaian(StokOpname $opname, $user, array $selisihRows): void
+    {
+        $penyesuaian = PenyesuaianStok::create([
+            'kode'                => CodeGenerator::generateAdj(),
+            'stok_opname_id'      => $opname->id,
+            'gudang_id'           => $opname->gudang_id,
+            'tanggal_penyesuaian' => now()->toDateString(),
+            'alasan'              => "Selisih perhitungan fisik Stock Opname {$opname->kode}",
+            'status'              => StatusPenyesuaianStok::Menunggu->value,
+            'diajukan_oleh'       => $user->id,
+        ]);
+
+        foreach ($selisihRows as $sr) {
+            PenyesuaianStokDetail::create([
+                'penyesuaian_stok_id' => $penyesuaian->id,
+                'barang_id'           => $sr['barang_id'],
+                'stok_batch_id'       => $sr['stok_batch_id'],
+                'jumlah_penyesuaian'  => $sr['jumlah'],
+                'jenis_penyesuaian'   => $sr['jenis'],
+                'harga_satuan'        => $sr['harga_satuan'],
+                'subtotal_nilai'      => $sr['subtotal'],
+                'catatan'             => $sr['catatan'],
+            ]);
+        }
     }
 }

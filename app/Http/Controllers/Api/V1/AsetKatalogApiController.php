@@ -6,9 +6,7 @@ use App\Enums\StatusAset;
 use App\Enums\StatusPeminjaman;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Aset;
-use App\Models\PengalihanAsetDetail;
 use App\Models\PermintaanPeminjaman;
-use App\Models\PermintaanPeminjamanDetail;
 use App\Models\StokBatch;
 use App\Models\Unit;
 use Illuminate\Http\JsonResponse;
@@ -43,79 +41,7 @@ class AsetKatalogApiController extends ApiController
             return $this->jsonError("Aset dengan kode atau kata kunci '{$query}' tidak ditemukan di sistem.", 404);
         }
 
-        // Lokasi aktif saat ini
-        $lokasiSaatIni = $aset->unit ? $aset->unit->nama : ($aset->gudang ? $aset->gudang->nama . ($aset->lokasiGudang ? " (Rak: {$aset->lokasiGudang->nama})" : '') : '-');
-
-        // Cari transaksi peminjaman aktif (DIPINJAM, atau antrean DIAJUKAN/DISETUJUI)
-        $peminjamanAktif = null;
-        $antreanPeminjaman = null;
-        $transaksiPinjam = PermintaanPeminjaman::whereHas('detail', fn ($q) => $q->where('aset_id', $aset->id))
-            ->whereIn('status', StatusPeminjaman::aktif())
-            ->with(['unitPeminjam', 'pengaju'])
-            ->latest('id')
-            ->first();
-
-        if ($transaksiPinjam) {
-            if ($transaksiPinjam->status === StatusPeminjaman::Dipinjam->value) {
-                $peminjamanAktif = $transaksiPinjam;
-            } else {
-                $antreanPeminjaman = [
-                    'peminjaman_id' => $transaksiPinjam->id,
-                    'kode_pinjam'   => $transaksiPinjam->kode,
-                    'unit_peminjam' => $transaksiPinjam->unitPeminjam?->nama ?? 'Unit Ruangan',
-                    'pengaju'       => $transaksiPinjam->pengaju?->nama ?? 'Staf',
-                    'status'        => $transaksiPinjam->status,
-                ];
-            }
-        }
-
-        $latestMaintenance = $aset->permintaanMaintenance()->latest('id')->first();
-        $riwayatPeminjaman = $this->getRiwayatPeminjaman($aset->id);
-        $riwayatPengalihan = $this->getRiwayatPengalihan($aset->id);
-        return $this->jsonSuccess([
-            'id'                   => $aset->id,
-            'kode_aset'            => $aset->kode_aset,
-            'nomor_seri'           => $aset->nomor_seri ?? '-',
-            'nama_komoditas'       => $aset->barang?->nama ?? '-',
-            'kategori'             => $aset->barang?->kategori?->nama ?? '-',
-            'merek'                => $aset->barang?->merek?->nama ?? '-',
-            'spesifikasi'          => $aset->barang?->spesifikasi ?? '-',
-            'status'               => $aset->status,
-            'kondisi'              => $aset->kondisi,
-            'unit_id'              => $aset->unit_id,
-            'gudang_id'            => $aset->gudang_id,
-            'tipe_penyedia'        => $aset->unit_id ? 'RUANGAN' : 'GUDANG',
-            'penyedia_id'          => $aset->unit_id ?: $aset->gudang_id,
-            'nama_penyedia'        => $aset->unit?->nama ?? $aset->gudang?->nama ?? '-',
-            'lokasi_tercatat'      => $lokasiSaatIni,
-            'penanggung_jawab'     => $peminjamanAktif ? $peminjamanAktif->unitPeminjam?->nama : $lokasiSaatIni,
-            'nilai_perolehan'      => (float) ($aset->nilai_perolehan ?? 0),
-            'tanggal_perolehan'    => $aset->tanggal_perolehan?->format('Y-m-d') ?? '-',
-            'total_riwayat_servis'     => (int) ($aset->permintaan_maintenance_count ?? 0),
-            'total_riwayat_peminjaman' => $riwayatPeminjaman->count(),
-            'total_riwayat_pengalihan' => $riwayatPengalihan->count(),
-            'servis_terakhir'          => $latestMaintenance ? [
-                'kode'              => $latestMaintenance->kode,
-                'status'            => $latestMaintenance->status,
-                'prioritas'         => $latestMaintenance->prioritas,
-                'deskripsi'         => $latestMaintenance->deskripsi_masalah,
-                'tanggal_pengajuan' => $latestMaintenance->dibuat_pada?->format('Y-m-d') ?? '-',
-            ] : null,
-            'peminjaman_aktif'     => $peminjamanAktif ? [
-                'peminjaman_id'           => $peminjamanAktif->id,
-                'peminjaman_detail_id'    => $peminjamanAktif->detail->firstWhere('aset_id', $aset->id)?->id,
-                'kode_pinjam'             => $peminjamanAktif->kode,
-                'unit_peminjam'           => $peminjamanAktif->unitPeminjam?->nama,
-                'tanggal_pinjam'          => $peminjamanAktif->tanggal_pinjam?->format('Y-m-d'),
-                'tanggal_kembali_rencana' => $peminjamanAktif->tanggal_kembali_rencana?->format('Y-m-d'),
-                'is_overdue'              => now()->startOfDay()->gt($peminjamanAktif->tanggal_kembali_rencana),
-            ] : null,
-            'is_sedang_diajukan'       => $antreanPeminjaman !== null,
-            'status_sirkulasi'         => $transaksiPinjam ? $transaksiPinjam->status : $aset->status,
-            'antrean_peminjaman'       => $antreanPeminjaman,
-            'riwayat_peminjaman'       => $riwayatPeminjaman,
-            'riwayat_pengalihan'       => $riwayatPengalihan,
-        ], 'Data aset berhasil ditemukan.');
+        return $this->jsonSuccess($this->payloadAset($aset), 'Data aset berhasil ditemukan.');
     }
 
     /**
@@ -131,6 +57,14 @@ class AsetKatalogApiController extends ApiController
             return $this->jsonError('Data aset tidak ditemukan.', 404);
         }
 
+        return $this->jsonSuccess($this->payloadAset($aset), 'Data aset berhasil ditemukan.');
+    }
+
+    /**
+     * Payload detail aset (lokasi, peminjaman aktif/antrean, riwayat) untuk scanQr & detailAset.
+     */
+    protected function payloadAset(Aset $aset): array
+    {
         $lokasiSaatIni = $aset->unit ? $aset->unit->nama : ($aset->gudang ? $aset->gudang->nama . ($aset->lokasiGudang ? " (Rak: {$aset->lokasiGudang->nama})" : '') : '-');
 
         // Cari transaksi peminjaman aktif (DIPINJAM, atau antrean DIAJUKAN/DISETUJUI)
@@ -146,20 +80,15 @@ class AsetKatalogApiController extends ApiController
             if ($transaksiPinjam->status === StatusPeminjaman::Dipinjam->value) {
                 $peminjamanAktif = $transaksiPinjam;
             } else {
-                $antreanPeminjaman = [
-                    'peminjaman_id' => $transaksiPinjam->id,
-                    'kode_pinjam'   => $transaksiPinjam->kode,
-                    'unit_peminjam' => $transaksiPinjam->unitPeminjam?->nama ?? 'Unit Ruangan',
-                    'pengaju'       => $transaksiPinjam->pengaju?->nama ?? 'Staf',
-                    'status'        => $transaksiPinjam->status,
-                ];
+                $antreanPeminjaman = $this->formatAntreanPeminjaman($transaksiPinjam);
             }
         }
 
         $latestMaintenance = $aset->permintaanMaintenance()->latest('id')->first();
-        $riwayatPeminjaman = $this->getRiwayatPeminjaman($aset->id);
-        $riwayatPengalihan = $this->getRiwayatPengalihan($aset->id);
-        return $this->jsonSuccess([
+        $riwayatPeminjaman = $aset->riwayatPeminjaman();
+        $riwayatPengalihan = $aset->riwayatPengalihan();
+
+        return [
             'id'                   => $aset->id,
             'kode_aset'            => $aset->kode_aset,
             'nomor_seri'           => $aset->nomor_seri ?? '-',
@@ -202,7 +131,18 @@ class AsetKatalogApiController extends ApiController
             'antrean_peminjaman'       => $antreanPeminjaman,
             'riwayat_peminjaman'       => $riwayatPeminjaman,
             'riwayat_pengalihan'       => $riwayatPengalihan,
-        ], 'Data aset berhasil ditemukan.');
+        ];
+    }
+
+    private function formatAntreanPeminjaman(PermintaanPeminjaman $transaksiPinjam): array
+    {
+        return [
+            'peminjaman_id' => $transaksiPinjam->id,
+            'kode_pinjam'   => $transaksiPinjam->kode,
+            'unit_peminjam' => $transaksiPinjam->unitPeminjam?->nama ?? 'Unit Ruangan',
+            'pengaju'       => $transaksiPinjam->pengaju?->nama ?? 'Staf',
+            'status'        => $transaksiPinjam->status,
+        ];
     }
 
     /**
@@ -269,82 +209,5 @@ class AsetKatalogApiController extends ApiController
             });
 
         return $this->jsonSuccess($aset, 'Katalog aset siap pinjam berhasil diambil.');
-    }
-
-    /**
-     * Mengambil riwayat kronologis sirkulasi peminjaman dan pengembalian fisik aset.
-     */
-    private function getRiwayatPeminjaman(int $asetId)
-    {
-        return PermintaanPeminjamanDetail::where('aset_id', $asetId)
-            ->with([
-                'permintaanPeminjaman.unitPeminjam',
-                'permintaanPeminjaman.pengaju',
-                'pengembalianDetail.pengembalianPeminjaman.pemeriksa',
-            ])
-            ->whereHas('permintaanPeminjaman')
-            ->get()
-            ->sortByDesc(fn ($d) => $d->permintaanPeminjaman?->id)
-            ->map(function ($d) {
-                $pinjam = $d->permintaanPeminjaman;
-                $kembali = $d->pengembalianDetail->first();
-                $pengembalianHeader = $kembali?->pengembalianPeminjaman;
-
-                return [
-                    'id'                      => $d->id,
-                    'kode_peminjaman'         => $pinjam?->kode ?? '-',
-                    'unit_peminjam'           => $pinjam?->unitPeminjam?->nama ?? 'Ruangan',
-                    'peminjam'                => $pinjam?->pengaju?->nama ?? '-',
-                    'tanggal_pinjam'          => $pinjam?->tanggal_pinjam?->format('Y-m-d') ?? '-',
-                    'tanggal_kembali_rencana' => $pinjam?->tanggal_kembali_rencana?->format('Y-m-d') ?? '-',
-                    'tanggal_kembali_aktual'  => $pengembalianHeader?->tanggal_kembali_aktual?->format('Y-m-d'),
-                    'status'                  => $pinjam?->status ?? '-',
-                    'keperluan'               => $pinjam?->keperluan ?? '-',
-                    'kondisi_saat_pinjam'     => $d->kondisi_saat_pinjam ?? 'BAIK',
-                    'kondisi_saat_kembali'    => $kembali?->kondisi_saat_kembali,
-                    'catatan_pengembalian'    => $kembali?->catatan,
-                    'pemeriksa_kembali'       => $pengembalianHeader?->pemeriksa?->nama,
-                ];
-            })
-            ->values();
-    }
-
-    /**
-     * Mengambil riwayat kronologis pengalihan dan mutasi fisik permanen aset.
-     */
-    private function getRiwayatPengalihan(int $asetId)
-    {
-        return PengalihanAsetDetail::where('aset_id', $asetId)
-            ->with([
-                'pengalihanAset.unitAsal',
-                'pengalihanAset.gudangAsal',
-                'pengalihanAset.unitTujuan',
-                'pengalihanAset.gudangTujuan',
-                'pengalihanAset.pengaju',
-                'pengalihanAset.penerima',
-            ])
-            ->whereHas('pengalihanAset', fn ($q) => $q->where('status', 'SELESAI'))
-            ->get()
-            ->sortByDesc(fn ($d) => $d->pengalihanAset?->tanggal_serah_terima ?? $d->pengalihanAset?->dibuat_pada)
-            ->map(function ($d) {
-                $p = $d->pengalihanAset;
-                return [
-                    'id'                   => $d->id,
-                    'pengalihan_id'        => $p?->id,
-                    'kode_pengalihan'      => $p?->kode ?? '-',
-                    'asal_nama'            => $p?->nama_lokasi_asal ?? '-',
-                    'tujuan_nama'          => $p?->nama_lokasi_tujuan ?? '-',
-                    'tanggal_pengalihan'   => $p?->tanggal_pengalihan?->format('Y-m-d') ?? '-',
-                    'tanggal_serah_terima' => $p?->tanggal_serah_terima?->format('Y-m-d H:i') ?? ($p?->tanggal_serah_terima?->format('Y-m-d') ?? '-'),
-                    'status'               => $p?->status ?? 'SELESAI',
-                    'alasan'               => $p?->alasan ?? '-',
-                    'kondisi_sebelum'      => $d->kondisi_sebelum ?? 'BAIK',
-                    'kondisi_saat_diterima'=> $d->kondisi_saat_diterima ?? 'BAIK',
-                    'pengaju'              => $p?->pengaju?->nama ?? '-',
-                    'penerima'             => $p?->penerima?->nama ?? '-',
-                    'catatan'              => $d->catatan ?: $p?->catatan,
-                ];
-            })
-            ->values();
     }
 }
