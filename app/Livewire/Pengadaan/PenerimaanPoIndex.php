@@ -8,6 +8,7 @@ use App\Enums\StatusPesananPembelian;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
+use App\Services\Pengadaan\PenerimaanPoService;
 use App\Models\Barang;
 use App\Models\Gudang;
 use App\Models\LokasiGudang;
@@ -224,150 +225,16 @@ class PenerimaanPoIndex extends Component
             return;
         }
 
-        $diterima = DB::transaction(function () {
-            $po = PesananPembelian::with('detail')->lockForUpdate()->findOrFail($this->poId);
-
-            // Status PO dicek ulang saat simpan: bisa berubah sejak modal dibuka (ADR 0002 A5).
-            if (! in_array($po->status, StatusPesananPembelian::bisaDiterima(), true)) {
-                return false;
-            }
-
-            // Baris dari klien tidak dipercaya: barang, harga, dan sisa dinormalisasi dari rincian PO yang terkunci.
-            $rows = [];
-            $terimaPerDetail = [];
-            foreach ($this->itemRows as $row) {
-                $terima = (int) ($row['jumlah_diterima'] ?? 0);
-                if ($terima <= 0) {
-                    continue;
-                }
-
-                $poDetail = $po->detail->firstWhere('id', $row['po_detail_id'] ?? null);
-                if (! $poDetail) {
-                    return 'Baris penerimaan tidak sesuai dengan rincian PO. Muat ulang data PO.';
-                }
-
-                $rusak = (int) ($row['jumlah_rusak'] ?? 0);
-                $terimaPerDetail[$poDetail->id] = ($terimaPerDetail[$poDetail->id] ?? 0) + $terima;
-                $sisaTerkunci = max(0, (int) $poDetail->jumlah_dipesan - (int) $poDetail->jumlah_diterima);
-                if ($rusak < 0 || $rusak > $terima || $terimaPerDetail[$poDetail->id] > $sisaTerkunci) {
-                    return "Jumlah penerimaan {$poDetail->barang?->nama} melebihi sisa pesanan terkini ({$sisaTerkunci}). Muat ulang data PO.";
-                }
-
-                $rows[] = array_merge($row, [
-                    'barang_id'       => $poDetail->barang_id,
-                    'harga_satuan'    => (float) $poDetail->harga_satuan,
-                    'jumlah_diterima' => $terima,
-                    'jumlah_rusak'    => $rusak,
-                ]);
-            }
-
-            // 1. Update jumlah_diterima pada detail PO terlebih dahulu
-            foreach ($rows as $row) {
-                if ($row['jumlah_diterima'] <= 0) {
-                    continue;
-                }
-
-                $netReceived = max(0, (int) ($row['jumlah_diterima'] ?? 0) - (int) ($row['jumlah_rusak'] ?? 0));
-                $poDetail = $po->detail->firstWhere('id', $row['po_detail_id']);
-                if ($poDetail && $netReceived > 0) {
-                    $poDetail->increment('jumlah_diterima', $netReceived);
-                }
-                $verifiedPrice = (float) $row['harga_satuan'];
-
-                if ($verifiedPrice > 0) {
-                    Barang::where('id', $row['barang_id'])->update([
-                        'harga_beli_terakhir' => $verifiedPrice,
-                    ]);
-                }
-            }
-
-            // 2. Evaluasi status pemenuhan PO secara dinamis
-            $po->refresh();
-            $po->load('detail');
-            $allReceived = $po->detail->every(fn ($d) => (int) $d->jumlah_diterima >= (int) $d->jumlah_dipesan);
-            $totalPernahDiterima = (int) $po->detail->sum('jumlah_diterima');
-            $statusRcv = $allReceived ? StatusPenerimaanPo::Lengkap->value : StatusPenerimaanPo::Sebagian->value;
-            $statusPo  = match (true) {
-                $allReceived => StatusPesananPembelian::DiterimaLengkap->value,
-                $totalPernahDiterima > 0 => StatusPesananPembelian::DiterimaSebagian->value,
-                default => $po->status,
-            };
-
-            // 3. Buat dokumen penerimaan dengan status dinamis
-            $penerimaan = PenerimaanBarang::create([
-                'kode'                  => $this->kode,
-                'pesanan_pembelian_id'  => $this->poId,
-                'gudang_id'             => $this->gudang_id,
-                'nomor_surat_jalan'     => $this->nomor_surat_jalan,
-                'tanggal_terima'        => now()->toDateString(),
-                'status'                => $statusRcv,
-                'catatan'               => $this->catatan ?: null,
-                'diterima_oleh'         => auth()->id(),
-            ]);
-
-            // 4. Catat rincian penerimaan dan kartu stok batch
-            foreach ($rows as $row) {
-                if ($row['jumlah_diterima'] <= 0) {
-                    continue;
-                }
-
-                $netReceived = $row['jumlah_diterima'] - $row['jumlah_rusak'];
-
-                $verifiedPrice = (float) $row['harga_satuan'];
-
-                $rackId = ! empty($row['lokasi_gudang_id']) ? $row['lokasi_gudang_id'] : null;
-
-                PenerimaanBarangDetail::create([
-                    'penerimaan_barang_id' => $penerimaan->id,
-                    'barang_id'            => $row['barang_id'],
-                    'lokasi_gudang_id'     => $rackId,
-                    'nomor_batch'          => $row['nomor_batch'],
-                    'tanggal_kedaluwarsa'  => $row['tanggal_kedaluwarsa'] ?: null,
-                    'jumlah_diterima'      => $row['jumlah_diterima'],
-                    'jumlah_rusak'         => $row['jumlah_rusak'],
-                    'harga_satuan'         => $verifiedPrice,
-                ]);
-
-                if ($netReceived > 0) {
-                    $batch = StokBatch::create([
-                        'barang_id'           => $row['barang_id'],
-                        'gudang_id'           => $this->gudang_id,
-                        'lokasi_gudang_id'    => $rackId,
-                        'nomor_batch'         => $row['nomor_batch'],
-                        'tanggal_kedaluwarsa' => $row['tanggal_kedaluwarsa'] ?: null,
-                        'jumlah'              => $netReceived,
-                        'harga_satuan'        => $verifiedPrice,
-                        'status'              => 'AKTIF',
-                    ]);
-
-                    PergerakanStok::create([
-                        'barang_id'        => $row['barang_id'],
-                        'stok_batch_id'    => $batch->id,
-                        'gudang_id'        => $this->gudang_id,
-                        'lokasi_gudang_id' => $rackId,
-                        'jenis'            => 'MASUK',
-                        'jumlah'           => $netReceived,
-                        'saldo_sebelum'    => 0,
-                        'saldo_sesudah'    => $netReceived,
-                        'referensi_jenis'  => 'PENERIMAAN_PO',
-                        'referensi_id'     => $penerimaan->id,
-                        'keterangan'       => "Penerimaan PO {$po->kode} - Batch {$row['nomor_batch']}",
-                        'dibuat_oleh'      => auth()->id(),
-                    ]);
-                }
-            }
-
-            // 5. Update status PO resmi
-            $po->update(['status' => $statusPo]);
-
-            // 6. Jika seluruh barang PO telah diterima lengkap, update status PR induk menjadi SELESAI
-            if ($statusPo === StatusPesananPembelian::DiterimaLengkap->value && $po->permintaan_pengadaan_id) {
-                $po->permintaanPengadaan()->update(['status' => StatusPermintaanPengadaan::Selesai->value]);
-            }
-
-            return true;
-        });
-
+        $service = app(PenerimaanPoService::class);
+        $diterima = $service->prosesPenerimaan(
+            $this->poId,
+            $this->gudang_id,
+            $this->nomor_surat_jalan,
+            $this->kode,
+            $this->catatan ?: null,
+            $this->itemRows,
+            auth()->user()
+        );
         if (is_string($diterima)) {
             $this->toast($diterima, 'danger');
             return;
@@ -418,49 +285,16 @@ class PenerimaanPoIndex extends Component
         ]);
         $this->authorizeGudangPenerima();
 
-        $ditolak = DB::transaction(function () {
-            $po = PesananPembelian::with('detail')->lockForUpdate()->findOrFail($this->poId);
+        $service = app(PenerimaanPoService::class);
+        $rcvKode = $service->tolakKiriman(
+            $this->poId,
+            $this->gudang_id,
+            $this->nomor_surat_jalan,
+            $this->alasan_penolakan,
+            auth()->user()
+        );
 
-            // Status PO dicek ulang di bawah kunci: PO yang sudah dibatalkan/selesai tidak boleh menerima dokumen penolakan.
-            if (! in_array($po->status, StatusPesananPembelian::bisaDiterima(), true)) {
-                return false;
-            }
-
-            $rcvKode = CodeGenerator::generate('RCV', PenerimaanBarang::class, 'kode', 'Ym', 3);
-
-            // Buat dokumen penerimaan berstatus DITOLAK
-            $penerimaan = PenerimaanBarang::create([
-                'kode'                 => $rcvKode,
-                'pesanan_pembelian_id' => $this->poId,
-                'gudang_id'            => $this->gudang_id,
-                'nomor_surat_jalan'    => $this->nomor_surat_jalan,
-                'tanggal_terima'       => now()->toDateString(),
-                'status'               => StatusPenerimaanPo::Ditolak->value,
-                'catatan'              => '[DITOLAK PETUGAS GUDANG]: ' . trim($this->alasan_penolakan),
-                'diterima_oleh'        => auth()->id(),
-            ]);
-
-            // Catat detail komoditas yang ditolak (kuantitas diterima = 0), diambil dari rincian PO terkunci
-            foreach ($po->detail as $d) {
-                PenerimaanBarangDetail::create([
-                    'penerimaan_barang_id' => $penerimaan->id,
-                    'barang_id'            => $d->barang_id,
-                    'lokasi_gudang_id'     => null,
-                    'nomor_batch'          => 'REJECTED',
-                    'tanggal_kedaluwarsa'  => null,
-                    'jumlah_diterima'      => 0,
-                    'jumlah_rusak'         => max(0, (int) $d->jumlah_dipesan - (int) $d->jumlah_diterima),
-                    'harga_satuan'         => (float) $d->harga_satuan,
-                ]);
-            }
-
-            // PO status tetap dipertahankan pada status aktifnya (DIKIRIM_VENDOR atau DITERIMA_SEBAGIAN)
-            // agar vendor tetap berkewajiban mengirimkan barang pengganti
-
-            return true;
-        });
-
-        if (! $ditolak) {
+        if (! $rcvKode) {
             $this->showRejectModal = false;
             $this->showModal = false;
             $this->toast('Pesanan pembelian sudah tidak dalam status yang dapat menerima dokumen penolakan. Muat ulang data PO.', 'danger');

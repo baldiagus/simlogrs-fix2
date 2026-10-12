@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use App\Models\PermintaanPeminjamanDetail;
 
 class PeminjamanAsetService
 {
@@ -67,6 +68,41 @@ class PeminjamanAsetService
                 ]);
             }
         });
+    }
+
+    /**
+     * Pengajuan transaksi peminjaman aset baru beserta rincian aset teralokasi.
+     */
+    public function ajukanPeminjaman(array $data, User $actor, iterable $allocatedAssets): string
+    {
+        $kode = CodeGenerator::generate('PINJ', PermintaanPeminjaman::class, 'kode', 'Y', 3);
+
+        DB::transaction(function () use ($kode, $data, $actor, $allocatedAssets) {
+            $pinjam = PermintaanPeminjaman::create([
+                'kode'                    => $kode,
+                'tipe_penyedia'           => $data['tipe_penyedia'],
+                'unit_penyedia_id'        => $data['tipe_penyedia'] === 'RUANGAN' ? $data['unit_penyedia_id'] : null,
+                'gudang_penyedia_id'      => $data['tipe_penyedia'] === 'GUDANG' ? $data['gudang_penyedia_id'] : null,
+                'unit_id'                 => $data['unit_id'],
+                'diajukan_oleh'           => $actor->id,
+                'tanggal_pinjam'          => $data['tanggal_pinjam'],
+                'tanggal_kembali_rencana' => $data['tanggal_kembali_rencana'],
+                'keperluan'               => $data['keperluan'],
+                'status'                  => StatusPeminjaman::Diajukan->value,
+                'catatan'                 => $data['catatan'] ?? null,
+            ]);
+
+            foreach ($allocatedAssets as $ast) {
+                PermintaanPeminjamanDetail::create([
+                    'permintaan_peminjaman_id' => $pinjam->id,
+                    'aset_id'                  => $ast->id,
+                    'kondisi_saat_pinjam'      => $ast->kondisi,
+                    'catatan'                  => $data['catatan'] ?? null,
+                ]);
+            }
+        });
+
+        return $kode;
     }
 
     /**

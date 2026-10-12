@@ -8,6 +8,7 @@ use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\Gudang;
 use App\Models\Unit;
+use App\Services\User\PenggunaService;
 use App\Models\User;
 use App\Models\LogAudit;
 use Illuminate\Support\Facades\DB;
@@ -241,87 +242,10 @@ class PenggunaIndex extends Component
                 return;
             }
 
-            $oldData = [
-                'nama'       => $user->nama,
-                'nip'        => $user->nip,
-                'username'   => $user->username,
-                'email'      => $user->email,
-                'no_telepon' => $user->no_telepon,
-                'unit_id'    => $user->unit_id,
-                'gudang_id'  => $user->gudang_id,
-                'status'     => $user->status,
-                'roles'      => $user->getRoleNames()->toArray(),
-            ];
-
-            // Mutasi akun, peran, dan audit dalam satu transaksi (ADR 0002 B)
-            DB::transaction(function () use ($user, $payload, $oldData) {
-                $user->update($payload);
-
-                if ($this->status === 'NONAKTIF') {
-                    $user->tokens()->delete();
-                }
-
-                $user->syncRoles([$this->selectedRole, 'panel_user']);
-
-                $newData = [
-                    'nama'       => $user->nama,
-                    'nip'        => $user->nip,
-                    'username'   => $user->username,
-                    'email'      => $user->email,
-                    'no_telepon' => $user->no_telepon,
-                    'unit_id'    => $user->unit_id,
-                    'gudang_id'  => $user->gudang_id,
-                    'status'     => $user->status,
-                    'roles'      => [$this->selectedRole, 'panel_user'],
-                ];
-
-                LogAudit::create([
-                    'pengguna_id'     => auth()->id(),
-                    'peran_id'        => auth()->user()?->roles?->first()?->id,
-                    'referensi_jenis' => 'User',
-                    'referensi_id'    => $user->id,
-                    'aksi'            => ($oldData['roles'] !== $newData['roles']) ? 'RBAC_MUTATION' : 'UBAH',
-                    'data_sebelum'    => $oldData,
-                    'data_sesudah'    => $newData,
-                    'ip_address'      => request()->ip(),
-                    'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
-                    'dibuat_pada'     => now(),
-                ]);
-            });
-
+            app(PenggunaService::class)->updatePengguna($user, $payload, $this->selectedRole, auth()->user());
             $this->toast("Data pegawai {$user->nama} berhasil diperbarui.", 'success');
         } else {
-            // Pembuatan akun, penetapan peran, dan audit dalam satu transaksi (ADR 0002 B)
-            $user = DB::transaction(function () use ($payload) {
-                $user = User::create($payload);
-                $user->assignRole([$this->selectedRole, 'panel_user']);
-
-                LogAudit::create([
-                    'pengguna_id'     => auth()->id(),
-                    'peran_id'        => auth()->user()?->roles?->first()?->id,
-                    'referensi_jenis' => 'User',
-                    'referensi_id'    => $user->id,
-                    'aksi'            => 'TAMBAH',
-                    'data_sebelum'    => null,
-                    'data_sesudah'    => [
-                        'nama'       => $user->nama,
-                        'nip'        => $user->nip,
-                        'username'   => $user->username,
-                        'email'      => $user->email,
-                        'no_telepon' => $user->no_telepon,
-                        'unit_id'    => $user->unit_id,
-                        'gudang_id'  => $user->gudang_id,
-                        'status'     => $user->status,
-                        'roles'      => [$this->selectedRole, 'panel_user'],
-                    ],
-                    'ip_address'      => request()->ip(),
-                    'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
-                    'dibuat_pada'     => now(),
-                ]);
-
-                return $user;
-            });
-
+            $user = app(PenggunaService::class)->createPengguna($payload, $this->selectedRole, auth()->user());
             $this->toast("Akun pegawai {$user->nama} berhasil dibuat.", 'success');
         }
 
@@ -373,43 +297,7 @@ class PenggunaIndex extends Component
             return;
         }
 
-        $tempPassword = Str::password(10, true, true, false);
-        $wajibGantiSebelum = (bool) $user->wajib_ganti_password;
-
-        // Reset sandi, pencabutan token, dan audit dalam satu transaksi (ADR 0002 B)
-        DB::transaction(function () use ($user, $tempPassword, $wajibGantiSebelum) {
-            $user->update([
-                'password'             => Hash::make($tempPassword),
-                'wajib_ganti_password' => true,
-            ]);
-
-            // Revoke seluruh token / sesi mobile lama
-            $user->tokens()->delete();
-
-            LogAudit::create([
-                'pengguna_id'     => auth()->id(),
-                'peran_id'        => auth()->user()?->roles?->first()?->id,
-                'referensi_jenis' => 'User',
-                'referensi_id'    => $user->id,
-                'aksi'            => 'RESET_PASSWORD',
-                'data_sebelum'    => [
-                    'user_id'              => $user->id,
-                    'username'             => $user->username,
-                    'nama'                 => $user->nama,
-                    'wajib_ganti_password' => $wajibGantiSebelum,
-                ],
-                'data_sesudah'    => [
-                    'user_id'              => $user->id,
-                    'username'             => $user->username,
-                    'nama'                 => $user->nama,
-                    'wajib_ganti_password' => true,
-                    'direset_oleh'         => auth()->user()?->username,
-                ],
-                'ip_address'      => request()->ip(),
-                'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
-                'dibuat_pada'     => now(),
-            ]);
-        });
+        $tempPassword = app(PenggunaService::class)->resetPassword($user, auth()->user());
 
         // JANGAN tampilkan sandi di Toast! Simpan ke modal aman satu kali tampil
         $this->tempPasswordData = [
@@ -473,40 +361,7 @@ class PenggunaIndex extends Component
             return;
         }
 
-        $oldStatus = $user->status;
-        $newStatus = $user->status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF';
-
-        // Mutasi status, pencabutan token, dan audit dalam satu transaksi (ADR 0002 B)
-        DB::transaction(function () use ($user, $oldStatus, $newStatus) {
-            $user->update(['status' => $newStatus]);
-
-            if ($newStatus === 'NONAKTIF') {
-                $user->tokens()->delete();
-            }
-
-            LogAudit::create([
-                'pengguna_id'     => auth()->id(),
-                'peran_id'        => auth()->user()?->roles?->first()?->id,
-                'referensi_jenis' => 'User',
-                'referensi_id'    => $user->id,
-                'aksi'            => 'STATUS_MUTATION',
-                'data_sebelum'    => [
-                    'user_id'  => $user->id,
-                    'username' => $user->username,
-                    'nama'     => $user->nama,
-                    'status'   => $oldStatus,
-                ],
-                'data_sesudah'    => [
-                    'user_id'  => $user->id,
-                    'username' => $user->username,
-                    'nama'     => $user->nama,
-                    'status'   => $newStatus,
-                ],
-                'ip_address'      => request()->ip(),
-                'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
-                'dibuat_pada'     => now(),
-            ]);
-        });
+        $newStatus = app(PenggunaService::class)->toggleStatus($user, auth()->user());
 
         $this->toast("Status akun {$user->nama} diubah menjadi {$newStatus}.", 'info');
     }
@@ -576,34 +431,7 @@ class PenggunaIndex extends Component
         }
 
         $namaUser = $user->nama;
-        $userData = [
-            'id'       => $user->id,
-            'nama'     => $user->nama,
-            'username' => $user->username,
-            'email'    => $user->email,
-            'roles'    => $user->getRoleNames()->toArray(),
-        ];
-
-        // Pencabutan token, audit, dan penghapusan akun dalam satu transaksi (ADR 0002 B)
-        DB::transaction(function () use ($user, $userData) {
-            // Revoke token sebelum delete
-            $user->tokens()->delete();
-
-            LogAudit::create([
-                'pengguna_id'     => auth()->id(),
-                'peran_id'        => auth()->user()?->roles?->first()?->id,
-                'referensi_jenis' => 'User',
-                'referensi_id'    => $user->id,
-                'aksi'            => 'HAPUS',
-                'data_sebelum'    => $userData,
-                'data_sesudah'    => null,
-                'ip_address'      => request()->ip(),
-                'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
-                'dibuat_pada'     => now(),
-            ]);
-
-            $user->delete();
-        });
+        app(PenggunaService::class)->deletePengguna($user, auth()->user());
 
         $this->toast("Akun pegawai {$namaUser} berhasil dihapus.", 'success');
     }
