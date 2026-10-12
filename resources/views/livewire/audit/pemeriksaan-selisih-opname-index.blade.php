@@ -1,6 +1,16 @@
 <div class="space-y-6">
-    {{-- Navigasi Sub-Tab Hub Pengawasan Kepatuhan --}}
-    <x-audit-kepatuhan-tabs active="selisih" />
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Pemeriksaan Selisih Opname (Audit)</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Pengawasan independen uji petik fisik barang di rak gudang terhadap pencatatan saldo sistem dan tindak lanjut CAPA.</flux:subheading>
+            </div>
+        </div>
+
+        {{-- Navigasi Sub-Tab Hub Pengawasan Kepatuhan --}}
+        <x-audit-kepatuhan-tabs active="selisih" />
+    </div>
 
     {{-- Ringkasan Metrik Pengawasan Opname Fisik --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -37,13 +47,6 @@
 
     {{-- Kartu Utama Tabel Pemeriksaan Selisih --}}
     <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <flux:heading size="xl" level="1">Pemeriksaan Selisih Opname (Audit)</flux:heading>
-                <flux:subheading>Pengawasan independen uji petik fisik barang di rak gudang terhadap pencatatan saldo sistem dan tindak lanjut CAPA.</flux:subheading>
-            </div>
-        </div>
-
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center gap-3">
             <div class="w-full sm:w-72">
