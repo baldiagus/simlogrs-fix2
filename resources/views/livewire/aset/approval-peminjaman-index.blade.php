@@ -51,19 +51,8 @@
         </flux:tabs>
 
         {{-- Toolbar pencarian rata kanan --}}
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 pt-1">
-            @if ($filterStatus !== '' || $search !== '')
-                <flux:button
-                    wire:click="resetFilters"
-                    size="sm"
-                    variant="ghost"
-                    class="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-                >
-                    Reset Filter
-                </flux:button>
-            @endif
-
-            <div class="w-full sm:w-72 md:w-80">
+        <div class="flex justify-end pt-1">
+            <div class="w-full sm:w-72 md:w-80 ml-auto">
                 <flux:input
                     wire:model.live.debounce.300ms="search"
                     placeholder="Cari kode PINJ, aset, peminjam..."
