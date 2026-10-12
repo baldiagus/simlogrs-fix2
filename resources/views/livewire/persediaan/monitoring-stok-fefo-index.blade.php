@@ -1,6 +1,16 @@
 <div class="space-y-6">
-    {{-- Navigasi Sub-Tab Hub Monitoring Persediaan --}}
-    <x-persediaan-monitoring-tabs active="fefo" />
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <flux:heading size="xl" level="1" class="font-bold tracking-tight">Monitoring Kedaluwarsa Persediaan (FEFO)</flux:heading>
+                <flux:subheading class="text-zinc-500 dark:text-zinc-400">Pengawasan masa simpan fisik batch di rak gudang guna mencegah kerugian obat/barang kedaluwarsa.</flux:subheading>
+            </div>
+        </div>
+
+        {{-- Navigasi Sub-Tab Hub Monitoring Persediaan --}}
+        <x-persediaan-monitoring-tabs active="fefo" />
+    </div>
 
     {{-- Kartu Metrik Monitoring FEFO --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -51,14 +61,6 @@
 
     {{-- Tabel Utama Monitoring FEFO --}}
     <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header Halaman --}}
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <flux:heading size="xl" level="1">Monitoring Kedaluwarsa Persediaan (FEFO)</flux:heading>
-                <flux:subheading>Pengawasan masa simpan fisik batch di rak gudang guna mencegah kerugian obat/barang kedaluwarsa.</flux:subheading>
-            </div>
-        </div>
-
         {{-- Navigasi Tab Filter Cepat --}}
         <div class="flex flex-wrap items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/60 rounded-xl w-fit text-xs font-medium border border-zinc-200/60 dark:border-zinc-700/60">
             <button
