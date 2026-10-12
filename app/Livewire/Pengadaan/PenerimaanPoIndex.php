@@ -2,6 +2,9 @@
 
 namespace App\Livewire\Pengadaan;
 
+use App\Enums\StatusPenerimaanPo;
+use App\Enums\StatusPermintaanPengadaan;
+use App\Enums\StatusPesananPembelian;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
@@ -60,6 +63,39 @@ class PenerimaanPoIndex extends Component
         $this->resetPage();
     }
 
+    /**
+     * Bypass scope gudang penerima hanya untuk role global operasional.
+     */
+    private function isGlobalAdmin(): bool
+    {
+        return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik']);
+    }
+
+    /**
+     * Baca riwayat penerimaan lintas gudang: role global serta auditor/manajemen
+     * (yang tetap wajib lolos permission view).
+     */
+    private function hasGlobalRead(): bool
+    {
+        return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']);
+    }
+
+    private function ownsGudang(?int $gudangId): bool
+    {
+        $userGudangId = auth()->user()?->gudang_id;
+
+        return $gudangId && $userGudangId && (int) $userGudangId === (int) $gudangId;
+    }
+
+    private function authorizeGudangPenerima(): void
+    {
+        abort_unless(
+            $this->isGlobalAdmin() || $this->ownsGudang($this->gudang_id),
+            403,
+            'Anda hanya dapat mencatat penerimaan ke gudang Anda sendiri.'
+        );
+    }
+
     public function updatedGudangId(): void
     {
         foreach ($this->itemRows as $idx => $row) {
@@ -72,7 +108,7 @@ class PenerimaanPoIndex extends Component
         abort_unless(auth()->user()?->can('create_gudang_stok::penerimaan::po'), 403);
 
         $po = PesananPembelian::with(['detail.barang', 'pemasok'])
-            ->whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])
+            ->whereIn('status', StatusPesananPembelian::bisaDiterima())
             ->findOrFail($poId);
 
         $this->poId = $po->id;
@@ -81,9 +117,14 @@ class PenerimaanPoIndex extends Component
         $this->nomor_surat_jalan = '';
         $this->catatan = '';
         $userGudangId = auth()->user()->gudang_id;
-        $this->gudang_id = ($userGudangId && Gudang::where('id', $userGudangId)->where('status', 'AKTIF')->exists())
-            ? $userGudangId
-            : Gudang::where('status', 'AKTIF')->value('id');
+        if (! $this->isGlobalAdmin()) {
+            abort_unless($userGudangId, 403, 'Akun Anda tidak terhubung ke gudang penerima.');
+            $this->gudang_id = (int) $userGudangId;
+        } else {
+            $this->gudang_id = ($userGudangId && Gudang::where('id', $userGudangId)->where('status', 'AKTIF')->exists())
+                ? $userGudangId
+                : Gudang::where('status', 'AKTIF')->value('id');
+        }
 
         $this->itemRows = $po->detail->map(fn ($d) => [
             'po_detail_id'       => $d->id,
@@ -117,6 +158,7 @@ class PenerimaanPoIndex extends Component
             'nomor_surat_jalan.min'      => 'Nomor surat jalan minimal 3 karakter.',
             'gudang_id.required'         => 'Gudang penerima logistik wajib dipilih.',
         ]);
+        $this->authorizeGudangPenerima();
 
         $hasReceived = false;
         $totalNetReceived = 0;
@@ -182,8 +224,13 @@ class PenerimaanPoIndex extends Component
             return;
         }
 
-        DB::transaction(function () {
-            $po = PesananPembelian::with('detail')->findOrFail($this->poId);
+        $diterima = DB::transaction(function () {
+            $po = PesananPembelian::with('detail')->lockForUpdate()->findOrFail($this->poId);
+
+            // Status PO dicek ulang saat simpan: bisa berubah sejak modal dibuka (ADR 0002 A5).
+            if (! in_array($po->status, StatusPesananPembelian::bisaDiterima(), true)) {
+                return false;
+            }
 
             // 1. Update jumlah_diterima pada detail PO terlebih dahulu
             foreach ($this->itemRows as $row) {
@@ -212,10 +259,10 @@ class PenerimaanPoIndex extends Component
             $po->load('detail');
             $allReceived = $po->detail->every(fn ($d) => (int) $d->jumlah_diterima >= (int) $d->jumlah_dipesan);
             $totalPernahDiterima = (int) $po->detail->sum('jumlah_diterima');
-            $statusRcv = $allReceived ? 'LENGKAP' : 'SEBAGIAN';
+            $statusRcv = $allReceived ? StatusPenerimaanPo::Lengkap->value : StatusPenerimaanPo::Sebagian->value;
             $statusPo  = match (true) {
-                $allReceived => 'DITERIMA_LENGKAP',
-                $totalPernahDiterima > 0 => 'DITERIMA_SEBAGIAN',
+                $allReceived => StatusPesananPembelian::DiterimaLengkap->value,
+                $totalPernahDiterima > 0 => StatusPesananPembelian::DiterimaSebagian->value,
                 default => $po->status,
             };
 
@@ -290,10 +337,18 @@ class PenerimaanPoIndex extends Component
             $po->update(['status' => $statusPo]);
 
             // 6. Jika seluruh barang PO telah diterima lengkap, update status PR induk menjadi SELESAI
-            if ($statusPo === 'DITERIMA_LENGKAP' && $po->permintaan_pengadaan_id) {
-                $po->permintaanPengadaan()->update(['status' => 'SELESAI']);
+            if ($statusPo === StatusPesananPembelian::DiterimaLengkap->value && $po->permintaan_pengadaan_id) {
+                $po->permintaanPengadaan()->update(['status' => StatusPermintaanPengadaan::Selesai->value]);
             }
+
+            return true;
         });
+
+        if (! $diterima) {
+            $this->showModal = false;
+            $this->toast('Pesanan pembelian sudah tidak dalam status yang dapat diterima. Muat ulang data dan periksa status PO.', 'danger');
+            return;
+        }
 
         $this->showModal = false;
         $this->toast("Penerimaan barang {$this->kode} berhasil disimpan.", 'success');
@@ -311,16 +366,11 @@ class PenerimaanPoIndex extends Component
             'nomor_surat_jalan.min'      => 'Nomor surat jalan minimal 3 karakter.',
             'gudang_id.required'         => 'Gudang penerima logistik wajib dipilih.',
         ]);
+        $this->authorizeGudangPenerima();
 
         $this->alasan_penolakan = '';
         $this->showModal = false;
         $this->showRejectModal = true;
-    }
-
-    public function cancelReject(): void
-    {
-        $this->showRejectModal = false;
-        $this->showModal = true;
     }
 
     public function executeTolakKiriman(): void
@@ -337,6 +387,7 @@ class PenerimaanPoIndex extends Component
             'alasan_penolakan.required'  => 'Alasan penolakan barang wajib dijelaskan.',
             'alasan_penolakan.min'       => 'Alasan penolakan minimal 5 karakter.',
         ]);
+        $this->authorizeGudangPenerima();
 
         $rcvKode = CodeGenerator::generate('RCV', PenerimaanBarang::class, 'kode', 'Ym', 3);
 
@@ -350,7 +401,7 @@ class PenerimaanPoIndex extends Component
                 'gudang_id'            => $this->gudang_id,
                 'nomor_surat_jalan'    => $this->nomor_surat_jalan,
                 'tanggal_terima'       => now()->toDateString(),
-                'status'               => 'DITOLAK',
+                'status'               => StatusPenerimaanPo::Ditolak->value,
                 'catatan'              => '[DITOLAK PETUGAS GUDANG]: ' . trim($this->alasan_penolakan),
                 'diterima_oleh'        => auth()->id(),
             ]);
@@ -386,8 +437,15 @@ class PenerimaanPoIndex extends Component
     {
         abort_unless(auth()->user()?->can('view_any_gudang_stok::penerimaan::po') || auth()->user()?->can('view_gudang_stok::penerimaan::po'), 403);
 
-        $this->selectedPenerimaan = PenerimaanBarang::with(['pesananPembelian.pemasok', 'gudang', 'penerima', 'detail.barang', 'detail.lokasiGudang'])
+        $penerimaan = PenerimaanBarang::with(['pesananPembelian.pemasok', 'gudang', 'penerima', 'detail.barang', 'detail.lokasiGudang'])
             ->findOrFail($id);
+        abort_unless(
+            $this->hasGlobalRead() || $this->ownsGudang($penerimaan->gudang_id),
+            403,
+            'Anda tidak memiliki akses ke penerimaan gudang lain.'
+        );
+
+        $this->selectedPenerimaan = $penerimaan;
         $this->showDetailModal = true;
     }
 
@@ -404,8 +462,9 @@ class PenerimaanPoIndex extends Component
     {
         abort_unless(auth()->user()?->can('view_any_gudang_stok::penerimaan::po') || auth()->user()?->can('view_gudang_stok::penerimaan::po'), 403);
 
-        $countTracking = PesananPembelian::whereIn('status', ['DITERBITKAN', 'DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])->count();
-        $countRiwayat  = PenerimaanBarang::count();
+        $countTracking = PesananPembelian::whereIn('status', StatusPesananPembelian::aktif())->count();
+        $scopeRiwayat = fn ($q) => $q->when(! $this->hasGlobalRead(), fn ($s) => $s->where('gudang_id', auth()->user()?->gudang_id));
+        $countRiwayat  = $scopeRiwayat(PenerimaanBarang::query())->count();
 
         if ($this->activeTab === 'tracking') {
             $poSortColumns = ['kode', 'tanggal_po', 'total_biaya', 'status'];
@@ -413,7 +472,7 @@ class PenerimaanPoIndex extends Component
             $sortDirection = in_array(strtolower($this->sortDirection), ['asc', 'desc'], true) ? strtolower($this->sortDirection) : 'desc';
 
             $items = PesananPembelian::with(['pemasok', 'detail.barang'])
-                ->whereIn('status', ['DITERBITKAN', 'DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])
+                ->whereIn('status', StatusPesananPembelian::aktif())
                 ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
                 ->when($this->search, function ($q) {
                     $q->where(function ($sub) {
@@ -428,7 +487,7 @@ class PenerimaanPoIndex extends Component
             $sortColumn = in_array($this->sortBy, $rcvSortColumns, true) ? $this->sortBy : 'tanggal_terima';
             $sortDirection = in_array(strtolower($this->sortDirection), ['asc', 'desc'], true) ? strtolower($this->sortDirection) : 'desc';
 
-            $items = PenerimaanBarang::with(['pesananPembelian', 'gudang', 'penerima'])
+            $items = $scopeRiwayat(PenerimaanBarang::with(['pesananPembelian', 'gudang', 'penerima']))
                 ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
                 ->when($this->search, function ($q) {
                     $q->where(function ($sub) {
@@ -441,7 +500,9 @@ class PenerimaanPoIndex extends Component
                 ->paginate($this->perPage);
         }
 
-        $daftarGudang = Gudang::where('status', 'AKTIF')->orderBy('nama')->get();
+        $daftarGudang = Gudang::where('status', 'AKTIF')
+            ->when(! $this->isGlobalAdmin(), fn ($q) => $q->where('id', auth()->user()?->gudang_id))
+            ->orderBy('nama')->get();
         $daftarLokasiGudang = $this->gudang_id
             ? LokasiGudang::where('gudang_id', $this->gudang_id)->where('status', 'AKTIF')->orderBy('nama')->get()
             : collect();

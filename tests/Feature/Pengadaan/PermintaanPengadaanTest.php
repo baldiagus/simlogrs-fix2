@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Pengadaan;
 
+use App\Enums\StatusPermintaanPengadaan;
 use App\Livewire\Pengadaan\PermintaanPengadaanIndex;
 use App\Models\Barang;
 use App\Models\PermintaanPengadaan;
@@ -47,7 +48,7 @@ class PermintaanPengadaanTest extends TestCase
             'diajukan_oleh' => $unassignedUser->id,
             'tanggal_permintaan' => now()->toDateString(),
             'urgensi' => 'REGULER',
-            'status' => PermintaanPengadaan::STATUS_DIAJUKAN,
+            'status' => StatusPermintaanPengadaan::Diajukan->value,
         ]);
 
         PermintaanPengadaanDetail::create([
@@ -63,7 +64,7 @@ class PermintaanPengadaanTest extends TestCase
 
         // Pastikan status PR tetap DIAJUKAN
         $pr->refresh();
-        $this->assertEquals(PermintaanPengadaan::STATUS_DIAJUKAN, $pr->status);
+        $this->assertEquals(StatusPermintaanPengadaan::Diajukan->value, $pr->status);
     }
 
     public function test_pr_submitted_by_kepala_gudang_or_unit_leader_is_automatically_forwarded_to_pengadaan(): void
@@ -89,7 +90,7 @@ class PermintaanPengadaanTest extends TestCase
         $latestPrGudang = PermintaanPengadaan::where('gudang_id', $gudang->id)->latest('id')->first();
         $this->assertNotNull($latestPrGudang);
         // Status HARUS LANGSUNG DITERUSKAN_KE_PENGADAAN (tidak perlu Setujui Karu lagi)
-        $this->assertEquals(PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN, $latestPrGudang->status);
+        $this->assertEquals(StatusPermintaanPengadaan::DiteruskanKePengadaan->value, $latestPrGudang->status);
         $this->assertEquals($kepalaGudang->id, $latestPrGudang->disetujui_oleh);
 
         // 2. Kepala Unit mengajukan PR kebutuhan ruangan
@@ -108,7 +109,7 @@ class PermintaanPengadaanTest extends TestCase
 
         $latestPrUnit = PermintaanPengadaan::where('unit_id', $unit->id)->latest('id')->first();
         $this->assertNotNull($latestPrUnit);
-        $this->assertEquals(PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN, $latestPrUnit->status);
+        $this->assertEquals(StatusPermintaanPengadaan::DiteruskanKePengadaan->value, $latestPrUnit->status);
         $this->assertEquals($kepalaUnit->id, $latestPrUnit->disetujui_oleh);
     }
 
@@ -132,7 +133,7 @@ class PermintaanPengadaanTest extends TestCase
         $latestPrStaff = PermintaanPengadaan::where('unit_id', $unit->id)->latest('id')->first();
         $this->assertNotNull($latestPrStaff);
         // Staf bawahan mengajukan -> Status tetap DIAJUKAN menunggu otorisasi pimpinan
-        $this->assertEquals(PermintaanPengadaan::STATUS_DIAJUKAN, $latestPrStaff->status);
+        $this->assertEquals(StatusPermintaanPengadaan::Diajukan->value, $latestPrStaff->status);
         $this->assertNull($latestPrStaff->disetujui_oleh);
     }
 }

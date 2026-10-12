@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Pengadaan;
 
+use App\Enums\StatusPermintaanPengadaan;
+use App\Enums\StatusPesananPembelian;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -12,6 +14,7 @@ use App\Models\PermintaanPengadaan;
 use App\Models\PermintaanPengadaanDetail;
 use App\Models\Unit;
 use App\Support\Generator\CodeGenerator;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class PermintaanPengadaanIndex extends Component
@@ -65,6 +68,59 @@ class PermintaanPengadaanIndex extends Component
     {
         $this->unit_id = null;
         $this->gudang_id = null;
+    }
+
+    /**
+     * Bypass scope operasional (buat/otorisasi lintas unit & gudang) hanya untuk role global.
+     */
+    private function isGlobalAdmin(): bool
+    {
+        return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik']);
+    }
+
+    /**
+     * Baca lintas unit: role global, pembaca global (auditor/manajemen), dan bagian pengadaan
+     * yang memproses PR terusan seluruh unit. Permission view tetap dicek terpisah.
+     */
+    private function hasGlobalRead(): bool
+    {
+        return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen', 'pengadaan']);
+    }
+
+    private function ownsScope(?int $unitId, ?int $gudangId): bool
+    {
+        $user = auth()->user();
+
+        return ($unitId && $user?->unit_id && (int) $user->unit_id === (int) $unitId)
+            || ($gudangId && $user?->gudang_id && (int) $user->gudang_id === (int) $gudangId);
+    }
+
+    private function canReadPr(PermintaanPengadaan $pr): bool
+    {
+        return $this->hasGlobalRead()
+            || $this->ownsScope($pr->unit_id, $pr->gudang_id)
+            || (int) $pr->diajukan_oleh === (int) auth()->id();
+    }
+
+    /**
+     * Tahap otorisasi kepala: role jabatan yang sesuai pada unit/gudang pemohon miliknya.
+     */
+    private function isWorkflowLeaderFor(?int $unitId, ?int $gudangId): bool
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        if ($gudangId) {
+            return $user->hasRole('kepala_gudang') && $user->gudang_id && (int) $user->gudang_id === (int) $gudangId;
+        }
+
+        if ($unitId) {
+            return $user->hasRole(['kepala_unit', 'kepala_teknisi']) && $user->unit_id && (int) $user->unit_id === (int) $unitId;
+        }
+
+        return false;
     }
 
     public function updatedFilterStatus(): void
@@ -128,40 +184,45 @@ class PermintaanPengadaanIndex extends Component
         $kodeFinal = $this->kode ?: CodeGenerator::generatePr();
 
         $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+        $isGlobalAdmin = $this->isGlobalAdmin();
 
-        $isLeader = false;
-        if ($isGlobalAdmin) {
-            $isLeader = true;
-        } elseif ($this->gudang_id && $user->hasRole('kepala_gudang')) {
-            $isLeader = (int) $user->gudang_id === (int) $this->gudang_id;
-        } elseif ($this->unit_id && $user->hasRole(['kepala_unit', 'kepala_teknisi'])) {
-            $isLeader = (int) $user->unit_id === (int) $this->unit_id;
-        }
+        // Pemohon non-global hanya boleh mengajukan atas nama unit/gudang miliknya sendiri.
+        abort_unless(
+            $isGlobalAdmin || $this->ownsScope($this->unit_id, $this->gudang_id),
+            403,
+            'Anda hanya dapat mengajukan permintaan pengadaan untuk unit/gudang Anda sendiri.'
+        );
 
-        $initialStatus = $isLeader ? PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN : PermintaanPengadaan::STATUS_DIAJUKAN;
+        // Auto-otorisasi tahap kepala membutuhkan permission otorisasi DAN role jabatan yang sesuai.
+        $isLeader = $user->can('update_pengadaan::permintaan::pengadaan')
+            && ($isGlobalAdmin || $this->isWorkflowLeaderFor($this->unit_id, $this->gudang_id));
+
+        $initialStatus = $isLeader ? StatusPermintaanPengadaan::DiteruskanKePengadaan->value : StatusPermintaanPengadaan::Diajukan->value;
         $disetujuiOleh = $isLeader ? $user->id : null;
 
-        $pr = PermintaanPengadaan::create([
-            'kode'               => $kodeFinal,
-            'unit_id'            => $this->unit_id,
-            'gudang_id'          => $this->gudang_id,
-            'diajukan_oleh'      => $user->id,
-            'disetujui_oleh'     => $disetujuiOleh,
-            'tanggal_permintaan' => now()->toDateString(),
-            'urgensi'            => $this->urgensi,
-            'status'             => $initialStatus,
-            'catatan'            => $this->catatan ?: null,
-        ]);
-
-        foreach ($this->items as $item) {
-            PermintaanPengadaanDetail::create([
-                'permintaan_pengadaan_id' => $pr->id,
-                'barang_id'              => $item['barang_id'],
-                'jumlah'                 => $item['jumlah'],
-                'jumlah_disetujui'       => $isLeader ? $item['jumlah'] : null,
+        // Header dan detail PR satu transaksi (ADR 0002 B).
+        DB::transaction(function () use ($kodeFinal, $user, $disetujuiOleh, $initialStatus, $isLeader) {
+            $pr = PermintaanPengadaan::create([
+                'kode'               => $kodeFinal,
+                'unit_id'            => $this->unit_id,
+                'gudang_id'          => $this->gudang_id,
+                'diajukan_oleh'      => $user->id,
+                'disetujui_oleh'     => $disetujuiOleh,
+                'tanggal_permintaan' => now()->toDateString(),
+                'urgensi'            => $this->urgensi,
+                'status'             => $initialStatus,
+                'catatan'            => $this->catatan ?: null,
             ]);
-        }
+
+            foreach ($this->items as $item) {
+                PermintaanPengadaanDetail::create([
+                    'permintaan_pengadaan_id' => $pr->id,
+                    'barang_id'              => $item['barang_id'],
+                    'jumlah'                 => $item['jumlah'],
+                    'jumlah_disetujui'       => $isLeader ? $item['jumlah'] : null,
+                ]);
+            }
+        });
 
         $this->showModal = false;
         $toastMsg = $isLeader
@@ -172,7 +233,12 @@ class PermintaanPengadaanIndex extends Component
 
     public function showDetail(int $id)
     {
-        $this->selectedPr = PermintaanPengadaan::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang'])->findOrFail($id);
+        abort_unless(auth()->user()?->can('view_any_pengadaan::permintaan::pengadaan') || auth()->user()?->can('view_pengadaan::permintaan::pengadaan'), 403);
+
+        $pr = PermintaanPengadaan::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang'])->findOrFail($id);
+        abort_unless($this->canReadPr($pr), 403, 'Anda tidak memiliki akses ke permintaan pengadaan unit lain.');
+
+        $this->selectedPr = $pr;
         $this->showDetailModal = true;
     }
 
@@ -183,22 +249,9 @@ class PermintaanPengadaanIndex extends Component
             return false;
         }
 
-        // Pengguna dengan akses admin global dapat mengotorisasi seluruh PR
-        if ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik'])) {
-            return true;
-        }
-
-        // Kepala Ruangan / Unit hanya boleh otorisasi jika unit_id cocok
-        if ($item->unit_id) {
-            return (int) $user->unit_id === (int) $item->unit_id;
-        }
-
-        // Kepala Gudang hanya boleh otorisasi jika gudang_id cocok
-        if ($item->gudang_id) {
-            return (int) $user->gudang_id === (int) $item->gudang_id;
-        }
-
-        return false;
+        // Role global (super_admin/admin_logistik) dapat mengotorisasi PR seluruh unit;
+        // selain itu wajib kepala unit/gudang pemohon (role jabatan + unit/gudang cocok).
+        return $this->isGlobalAdmin() || $this->isWorkflowLeaderFor($item->unit_id, $item->gudang_id);
     }
 
     public function confirmApprove(int $id): void
@@ -227,18 +280,6 @@ class PermintaanPengadaanIndex extends Component
         );
     }
 
-    public function confirmTeruskan(int $id): void
-    {
-        $pr = PermintaanPengadaan::findOrFail($id);
-        $this->askConfirmation(
-            target: $id,
-            action: 'teruskan',
-            title: 'Konfirmasi Teruskan ke Pengadaan',
-            description: "Teruskan permohonan {$pr->kode} ke Bagian Pengadaan untuk penerbitan PO?",
-            buttonText: 'Ya, Teruskan',
-            variant: 'primary'
-        );
-    }
 
     public function approve(int $id)
     {
@@ -250,17 +291,19 @@ class PermintaanPengadaanIndex extends Component
             abort(403, 'Anda tidak memiliki wewenang mengesahkan permohonan dari unit ini.');
         }
 
-        if ($pr->status !== PermintaanPengadaan::STATUS_DIAJUKAN) {
+        if ($pr->status !== StatusPermintaanPengadaan::Diajukan->value) {
             $this->toast('Hanya PR berstatus DIAJUKAN yang dapat disetujui.', 'danger');
             return;
         }
-        $pr->update([
-            'status'         => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN,
-            'disetujui_oleh' => auth()->id(),
-        ]);
+        DB::transaction(function () use ($pr) {
+            $pr->update([
+                'status'         => StatusPermintaanPengadaan::DiteruskanKePengadaan->value,
+                'disetujui_oleh' => auth()->id(),
+            ]);
 
-        // Default full approval for each detail
-        $pr->detail()->update(['jumlah_disetujui' => \Illuminate\Support\Facades\DB::raw('jumlah')]);
+            // Default full approval for each detail
+            $pr->detail()->update(['jumlah_disetujui' => DB::raw('jumlah')]);
+        });
 
         $this->toast("PR '{$pr->kode}' telah disetujui dan diteruskan ke bagian pengadaan.", 'success');
     }
@@ -275,48 +318,30 @@ class PermintaanPengadaanIndex extends Component
             abort(403, 'Anda tidak memiliki wewenang menolak permohonan dari unit ini.');
         }
 
-        if ($pr->status !== PermintaanPengadaan::STATUS_DIAJUKAN) {
+        if ($pr->status !== StatusPermintaanPengadaan::Diajukan->value) {
             $this->toast('Hanya PR berstatus DIAJUKAN yang dapat ditolak.', 'danger');
             return;
         }
         $pr->update([
-            'status'         => PermintaanPengadaan::STATUS_DITOLAK,
+            'status'         => StatusPermintaanPengadaan::Ditolak->value,
             'disetujui_oleh' => auth()->id(),
         ]);
 
         $this->toast("PR '{$pr->kode}' telah ditolak.", 'info');
     }
 
-    public function teruskan(int $id)
-    {
-        abort_unless(auth()->user()?->can('update_pengadaan::permintaan::pengadaan'), 403);
-
-        $pr = PermintaanPengadaan::findOrFail($id);
-
-        if (! $this->canUserApprovePr($pr)) {
-            abort(403, 'Anda tidak memiliki wewenang meneruskan permohonan dari unit ini.');
-        }
-
-        if ($pr->status !== PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN && $pr->status !== 'DISETUJUI') {
-            $this->toast('Permohonan tidak dapat diteruskan.', 'danger');
-            return;
-        }
-        $pr->update(['status' => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN]);
-
-        $this->toast("PR '{$pr->kode}' diteruskan ke bagian pengadaan.", 'success');
-    }
     public function openRejectPengadaan(int $id): void
     {
         abort_unless(auth()->user()?->can('create_pengadaan::pesanan::pembelian'), 403);
         $pr = PermintaanPengadaan::findOrFail($id);
 
-        if ($pr->status !== PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN) {
+        if ($pr->status !== StatusPermintaanPengadaan::DiteruskanKePengadaan->value) {
             $this->toast('Hanya PR berstatus DITERUSKAN KE PENGADAAN yang dapat ditolak oleh bagian pengadaan.', 'danger');
             return;
         }
 
         $hasPo = \App\Models\PesananPembelian::where('permintaan_pengadaan_id', $id)
-            ->where('status', '!=', 'DIBATALKAN')
+            ->where('status', '!=', StatusPesananPembelian::Dibatalkan->value)
             ->exists();
         if ($hasPo) {
             $this->toast('PR ini sudah diproses ke Pesanan Pembelian (PO) aktif dan tidak dapat ditolak.', 'danger');
@@ -340,9 +365,14 @@ class PermintaanPengadaanIndex extends Component
         ]);
 
         $pr = PermintaanPengadaan::findOrFail($this->rejectPrId);
+        if ($pr->status !== StatusPermintaanPengadaan::DiteruskanKePengadaan->value) {
+            $this->toast('Hanya PR berstatus DITERUSKAN KE PENGADAAN yang dapat ditolak oleh bagian pengadaan.', 'danger');
+            return;
+        }
+
         $catatanAwal = $pr->catatan ? $pr->catatan . "\n" : '';
         $pr->update([
-            'status' => PermintaanPengadaan::STATUS_DITOLAK,
+            'status' => StatusPermintaanPengadaan::Ditolak->value,
             'catatan' => $catatanAwal . '[Ditolak Pengadaan]: ' . trim($this->alasanPenolakanPengadaan),
             'disetujui_oleh' => auth()->id(),
         ]);
@@ -357,9 +387,15 @@ class PermintaanPengadaanIndex extends Component
         abort_unless(auth()->user()?->can('view_any_pengadaan::permintaan::pengadaan') || auth()->user()?->can('view_pengadaan::permintaan::pengadaan'), 403);
 
         $user = auth()->user();
+        $isGlobalAdmin = $this->isGlobalAdmin();
         $daftarBarang = Barang::where('status', 'AKTIF')->get();
-        $daftarUnit   = Unit::where('status', 'AKTIF')->orderBy('nama')->get();
-        $daftarGudang = Gudang::where('status', 'AKTIF')->orderBy('nama')->get();
+        // Pilihan pemohon non-global dibatasi ke unit/gudang miliknya sendiri.
+        $daftarUnit   = Unit::where('status', 'AKTIF')
+            ->when(! $isGlobalAdmin, fn ($q) => $q->where('id', $user?->unit_id))
+            ->orderBy('nama')->get();
+        $daftarGudang = Gudang::where('status', 'AKTIF')
+            ->when(! $isGlobalAdmin, fn ($q) => $q->where('id', $user?->gudang_id))
+            ->orderBy('nama')->get();
 
         $query = PermintaanPengadaan::with(['unit', 'gudang', 'pengaju', 'detail'])
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
@@ -372,16 +408,8 @@ class PermintaanPengadaanIndex extends Component
                 });
             });
 
-        $isCrossUnitViewer = $user && (
-            $user->can('page_PengadaanDashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_Dashboard') ||
-            $user->can('page_ManajemenDashboard') ||
-            $user->can('page_AuditorDashboard')
-        );
-
-        // Batasi data hanya untuk unit atau gudang dinas milik pengguna (kecuali tim pengadaan/admin global)
-        if (! $isCrossUnitViewer) {
+        // Batasi data hanya untuk unit atau gudang dinas milik pengguna (kecuali pembaca global)
+        if (! $this->hasGlobalRead()) {
             $query->where(function ($q) use ($user) {
                 if ($user->unit_id && $user->gudang_id) {
                     $q->where('unit_id', $user->unit_id)
@@ -405,7 +433,7 @@ class PermintaanPengadaanIndex extends Component
             'daftarBarang'     => $daftarBarang,
             'daftarUnit'       => $daftarUnit,
             'daftarGudang'     => $daftarGudang,
-            'isGlobalApprover' => $isCrossUnitViewer,
+            'isGlobalApprover' => $isGlobalAdmin,
             'userUnitId'       => $user?->unit_id,
             'userGudangId'     => $user?->gudang_id,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Permintaan Pengadaan (PR)']);

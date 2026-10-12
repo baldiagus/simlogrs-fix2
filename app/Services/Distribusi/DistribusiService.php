@@ -2,6 +2,8 @@
 
 namespace App\Services\Distribusi;
 
+use App\Enums\StatusPermintaanDistribusi;
+use App\Enums\StatusPengirimanBarang;
 use App\Models\PengirimanBarang;
 use App\Models\PengirimanBarangDetail;
 use App\Models\PergerakanStok;
@@ -32,13 +34,13 @@ class DistribusiService
             $lockedPermintaan = PermintaanDistribusi::lockForUpdate()->with(['detail', 'unit'])->findOrFail($permintaan->id);
 
             // Validasi status permintaan dari database terkunci
-            if (! in_array($lockedPermintaan->status, ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN', 'DISETUJUI_KARU'])) {
+            if (! in_array($lockedPermintaan->status, StatusPermintaanDistribusi::dapatDikirim())) {
                 throw new Exception("Permintaan {$lockedPermintaan->kode} sudah diproses atau belum disetujui untuk pengeluaran barang.");
             }
 
             // Hitung total kuantitas yang sudah dikirim sebelumnya pada SPPB aktif
             $existingShipments = PengirimanBarang::where('permintaan_distribusi_id', $lockedPermintaan->id)
-                ->where('status', '!=', 'BATAL')
+                ->where('status', '!=', StatusPengirimanBarang::Batal->value)
                 ->pluck('id');
 
             $alreadySentMap = PengirimanBarangDetail::whereIn('pengiriman_barang_id', $existingShipments)
@@ -120,7 +122,7 @@ class DistribusiService
                 'gudang_id'                => $gudangId,
                 'unit_id'                  => $lockedPermintaan->unit_id,
                 'tanggal_kirim'            => now()->toDateString(),
-                'status'                   => 'DIKIRIM',
+                'status'                   => StatusPengirimanBarang::Dikirim->value,
                 'catatan'                  => $lockedPermintaan->catatan,
                 'dikirim_oleh'             => $actor->id,
             ]);
@@ -166,7 +168,7 @@ class DistribusiService
 
             // 5. Update status permintaan distribusi (SEDANG_DIKIRIM jika lunas, DIKIRIM_SEBAGIAN jika masih ada hutang)
             $allShipments = PengirimanBarang::where('permintaan_distribusi_id', $lockedPermintaan->id)
-                ->where('status', '!=', 'BATAL')
+                ->where('status', '!=', StatusPengirimanBarang::Batal->value)
                 ->pluck('id');
 
             $totalSentAfterThis = PengirimanBarangDetail::whereIn('pengiriman_barang_id', $allShipments)
@@ -174,7 +176,7 @@ class DistribusiService
 
             $totalRequested = $lockedPermintaan->detail->sum(fn ($d) => $d->jumlah_disetujui !== null ? $d->jumlah_disetujui : $d->jumlah);
 
-            $newStatus = ($totalSentAfterThis >= $totalRequested) ? 'SEDANG_DIKIRIM' : 'DIKIRIM_SEBAGIAN';
+            $newStatus = ($totalSentAfterThis >= $totalRequested) ? StatusPermintaanDistribusi::SedangDikirim->value : StatusPermintaanDistribusi::DikirimSebagian->value;
 
             $lockedPermintaan->update([
                 'status'         => $newStatus,

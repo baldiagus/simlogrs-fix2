@@ -1,3 +1,5 @@
+@use('App\Enums\StatusPermintaanDistribusi')
+@use('App\Enums\StatusPengirimanBarang')
 <div class="space-y-6">
     {{-- Header Halaman & Sub-Navigasi --}}
     <div class="space-y-3">
@@ -28,11 +30,11 @@
             <div class="w-full sm:w-56">
                 <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 font-medium">
                     <option value="">Semua Status Terkait</option>
-                    <option value="DISETUJUI_KARU">DISETUJUI KARU (Perlu Review)</option>
-                    <option value="DISETUJUI_GUDANG">DISETUJUI GUDANG</option>
-                    <option value="SEDANG_DIKIRIM">SEDANG DIKIRIM</option>
-                    <option value="SELESAI">SELESAI</option>
-                    <option value="DITOLAK">DITOLAK</option>
+                    <option value="{{ StatusPermintaanDistribusi::DisetujuiKaru->value }}">DISETUJUI KARU (Perlu Review)</option>
+                    <option value="{{ StatusPermintaanDistribusi::DisetujuiGudang->value }}">DISETUJUI GUDANG</option>
+                    <option value="{{ StatusPermintaanDistribusi::SedangDikirim->value }}">SEDANG DIKIRIM</option>
+                    <option value="{{ StatusPermintaanDistribusi::Selesai->value }}">SELESAI</option>
+                    <option value="{{ StatusPermintaanDistribusi::Ditolak->value }}">DITOLAK</option>
                 </select>
             </div>
 
@@ -83,7 +85,7 @@
                                         Periksa Dokumen
                                     </flux:menu.item>
 
-                                    @if ($item->status === 'DISETUJUI_KARU')
+                                    @if ($item->status === StatusPermintaanDistribusi::DisetujuiKaru->value && $canApproveGudang && ($isGlobalAdmin || in_array((int) $item->gudang_id, $approvableGudangIds, true)))
                                         <flux:menu.item wire:click="openReview({{ $item->id }})" icon="clipboard-document-check" class="text-blue-600 dark:text-blue-400">
                                             Review &amp; Setujui
                                         </flux:menu.item>
@@ -286,7 +288,7 @@
                     </div>
                 @endif
 
-                @if ($selectedPermintaan->status === 'DIKIRIM_SEBAGIAN')
+                @if ($selectedPermintaan->status === StatusPermintaanDistribusi::DikirimSebagian->value)
                     <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2">
                         <flux:icon name="clock" class="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
                         <span>Permintaan ini telah dikirim sebagian. Sisa barang yang terhutang akan otomatis diprioritaskan saat gudang menerima restok barang dari vendor.</span>
@@ -309,7 +311,7 @@
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @php
                                 $shipmentDetails = $selectedPermintaan->pengiriman
-                                    ? $selectedPermintaan->pengiriman->where('status', '!=', 'BATAL')->flatMap->detail
+                                    ? $selectedPermintaan->pengiriman->where('status', '!=', StatusPengirimanBarang::Batal->value)->flatMap->detail
                                     : collect();
                             @endphp
                             @foreach ($selectedPermintaan->detail as $detail)
@@ -342,7 +344,7 @@
                                         {{ number_format($terkirim, 0, ',', '.') }}
                                     </td>
                                     <td class="py-2.5 px-3 text-right font-mono tabular-nums">
-                                        @if ($selectedPermintaan->status === 'DIAJUKAN' || $detail->jumlah_disetujui === null)
+                                        @if ($selectedPermintaan->status === StatusPermintaanDistribusi::Diajukan->value || $detail->jumlah_disetujui === null)
                                             <span class="text-zinc-400 italic text-xs font-sans">-</span>
                                         @elseif ($sisaHutang > 0)
                                             <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">

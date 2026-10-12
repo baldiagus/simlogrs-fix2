@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Persediaan;
 
+use App\Enums\StatusPengalihan;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -59,7 +60,7 @@ class PengalihanBarangIndex extends Component
     {
         $this->tanggal_pengalihan = now()->toDateString();
         $user = auth()->user();
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
 
         if (! $isGlobalAdmin) {
             if ($user?->gudang_id) {
@@ -94,11 +95,7 @@ class PengalihanBarangIndex extends Component
     public function openCreateModal(): void
     {
         $user = auth()->user();
-        $canCreate = $user && (
-            $user->can('create_gudang_stok::pengalihan::barang') ||
-            $user->can('page_PengalihanBarangIndex') ||
-            $user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang', 'petugas_gudang'])
-        );
+        $canCreate = $user && $user->can('create_gudang_stok::pengalihan::barang');
 
         abort_unless($canCreate, 403, 'Akses ditolak: Hanya fasilitas gudang logistik yang berwenang mengajukan pengalihan barang.');
 
@@ -110,7 +107,7 @@ class PengalihanBarangIndex extends Component
         $this->alasan = '';
         $this->catatan = '';
 
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
         if (! $isGlobalAdmin) {
             if ($user?->gudang_id) {
                 $this->tipe_tujuan = 'GUDANG';
@@ -176,15 +173,11 @@ class PengalihanBarangIndex extends Component
     public function submitPengalihan(): void
     {
         $user = auth()->user();
-        $canCreate = $user && (
-            $user->can('create_gudang_stok::pengalihan::barang') ||
-            $user->can('page_PengalihanBarangIndex') ||
-            $user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang', 'petugas_gudang'])
-        );
+        $canCreate = $user && $user->can('create_gudang_stok::pengalihan::barang');
 
         abort_unless($canCreate, 403, 'Akses ditolak.');
 
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
         if (! $isGlobalAdmin) {
             if ($user?->gudang_id) {
                 $this->tipe_tujuan = 'GUDANG';
@@ -284,9 +277,9 @@ class PengalihanBarangIndex extends Component
         );
 
         // 2. Wewenang Pimpinan Fasilitas Asal Pemilik Barang
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
-        $isOriginOwner = ($transfer->tipe_asal === 'GUDANG' && $user?->gudang_id && (int) $user->gudang_id === (int) $transfer->gudang_asal_id && $user->hasRole(['kepala_gudang', 'super_admin']))
-            || ($transfer->tipe_asal === 'RUANGAN' && $user?->unit_id && (int) $user->unit_id === (int) $transfer->unit_asal_id && $user->hasRole(['kepala_unit', 'super_admin']));
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
+        $isOriginOwner = ($transfer->tipe_asal === 'GUDANG' && $user?->gudang_id && (int) $user->gudang_id === (int) $transfer->gudang_asal_id && $user->hasRole('kepala_gudang') && $user->can('update_gudang_stok::pengalihan::barang'))
+            || ($transfer->tipe_asal === 'RUANGAN' && $user?->unit_id && (int) $user->unit_id === (int) $transfer->unit_asal_id && $user->hasRole('kepala_unit') && $user->can('update_gudang_stok::pengalihan::barang'));
 
         abort_unless(
             $isGlobalAdmin || $isOriginOwner,
@@ -316,7 +309,7 @@ class PengalihanBarangIndex extends Component
         $user = auth()->user();
         abort_unless(
             $user?->can('update_gudang_stok::pengalihan::barang') ||
-            $user?->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang', 'petugas_gudang', 'kepala_unit', 'petugas_unit']),
+            ($user && $user->hasRole(['super_admin', 'admin_logistik'])),
             403
         );
 
@@ -346,11 +339,11 @@ class PengalihanBarangIndex extends Component
     public function render()
     {
         $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard'));
+        $isGlobalAdmin = $user && $user->hasRole(['super_admin', 'admin_logistik']);
 
-        // Guard Utama: Unit Ruangan DIBLOKIR dari mengakses Pengalihan Barang
-        $isWarehouseOrAdmin = $isGlobalAdmin || $user?->hasRole(['kepala_gudang', 'petugas_gudang']) || $user?->gudang_id;
-        abort_unless($isWarehouseOrAdmin, 403, 'Akses ditolak: Hanya fasilitas gudang logistik yang berwenang mengakses modul Pengalihan Barang.');
+        // Unit Ruangan remains out of scope for warehouse goods transfers.
+        $isWarehouseOrAdmin = $isGlobalAdmin || $user?->gudang_id;
+        abort_unless($isWarehouseOrAdmin && ($user->can('view_any_gudang_stok::pengalihan::barang') || $user->can('view_gudang_stok::pengalihan::barang')), 403, 'Akses ditolak: Hanya fasilitas gudang logistik yang berwenang mengakses modul Pengalihan Barang.');
 
         $query = PengalihanBarang::with([
             'gudangAsal', 'unitAsal', 'gudangTujuan', 'unitTujuan',
@@ -366,7 +359,7 @@ class PengalihanBarangIndex extends Component
                       ->orWhere('diajukan_oleh', $user->id);
                 });
             }
-            $query->whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
+            $query->whereIn('status', StatusPengalihan::aktif());
         }
         // 2. Tab Otorisasi: Pengajuan dari gudang/unit LAIN yang meminta stok dari gudang pengguna
         elseif ($this->activeTab === 'otorisasi') {
@@ -378,7 +371,7 @@ class PengalihanBarangIndex extends Component
                               ->orWhere('gudang_tujuan_id', '!=', $user->gudang_id);
                       });
             }
-            $query->where('status', 'DIAJUKAN');
+            $query->where('status', StatusPengalihan::Diajukan->value);
         }
         // 3. Tab Riwayat: Selesai, Ditolak, Dibatalkan
         else {
@@ -388,7 +381,7 @@ class PengalihanBarangIndex extends Component
                       ->orWhere(fn ($sub) => $sub->where('tipe_tujuan', 'GUDANG')->where('gudang_tujuan_id', $user->gudang_id));
                 });
             }
-            $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
+            $query->whereIn('status', StatusPengalihan::riwayat());
         }
 
         if ($this->filterStatus) {
@@ -409,7 +402,7 @@ class PengalihanBarangIndex extends Component
         $items = $query->orderBy($this->getValidatedSortColumn(['kode', 'status', 'tanggal_pengalihan']), $this->getValidatedSortDirection())->paginate($this->perPage);
 
         // Hitungan Tab & KPI yang disinkronkan ke gudang pengguna (mencegah kebocoran angka global)
-        $countAktifQuery = PengalihanBarang::whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
+        $countAktifQuery = PengalihanBarang::whereIn('status', StatusPengalihan::aktif());
         if (! $isGlobalAdmin && $user?->gudang_id) {
             $countAktifQuery->where(function ($q) use ($user) {
                 $q->where(fn ($sub) => $sub->where('tipe_tujuan', 'GUDANG')->where('gudang_tujuan_id', $user->gudang_id))
@@ -418,7 +411,7 @@ class PengalihanBarangIndex extends Component
         }
         $countAktif = $countAktifQuery->count();
 
-        $countOtorisasiQuery = PengalihanBarang::where('status', 'DIAJUKAN');
+        $countOtorisasiQuery = PengalihanBarang::where('status', StatusPengalihan::Diajukan->value);
         if (! $isGlobalAdmin && $user?->gudang_id) {
             $countOtorisasiQuery->where('tipe_asal', 'GUDANG')
                 ->where('gudang_asal_id', $user->gudang_id)
@@ -430,9 +423,9 @@ class PengalihanBarangIndex extends Component
         $countOtorisasi = $countOtorisasiQuery->count();
 
         $kpiBerjalan = $countAktif;
-        $kpiMenungguTerima = (clone $countAktifQuery)->where('status', 'DISETUJUI')->count();
+        $kpiMenungguTerima = (clone $countAktifQuery)->where('status', StatusPengalihan::Disetujui->value)->count();
 
-        $riwayatQuery = PengalihanBarang::where('status', 'SELESAI');
+        $riwayatQuery = PengalihanBarang::where('status', StatusPengalihan::Selesai->value);
         if (! $isGlobalAdmin && $user?->gudang_id) {
             $riwayatQuery->where(function ($q) use ($user) {
                 $q->where(fn ($sub) => $sub->where('tipe_asal', 'GUDANG')->where('gudang_asal_id', $user->gudang_id))
@@ -445,7 +438,7 @@ class PengalihanBarangIndex extends Component
             ->count();
 
         $kpiTotalItem = \App\Models\PengalihanBarangDetail::whereHas('pengalihanBarang', function ($q) use ($isGlobalAdmin, $user) {
-            $q->where('status', 'SELESAI');
+            $q->where('status', StatusPengalihan::Selesai->value);
             if (! $isGlobalAdmin && $user?->gudang_id) {
                 $q->where(function ($sub) use ($user) {
                     $sub->where(fn ($s) => $s->where('tipe_asal', 'GUDANG')->where('gudang_asal_id', $user->gudang_id))

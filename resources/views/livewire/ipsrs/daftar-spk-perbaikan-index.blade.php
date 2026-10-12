@@ -49,10 +49,10 @@
                 <div class="w-full sm:w-48">
                     <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                         <option value="">Semua Status SPK</option>
-                        <option value="DITUGASKAN">DITUGASKAN</option>
-                        <option value="DITERIMA">DITERIMA</option>
-                        <option value="SELESAI">SELESAI</option>
-                        <option value="DIBATALKAN">DIBATALKAN</option>
+                        <option value="{{ \App\Enums\StatusSpk::Ditugaskan->value }}">DITUGASKAN</option>
+                        <option value="{{ \App\Enums\StatusSpk::Diterima->value }}">DITERIMA</option>
+                        <option value="{{ \App\Enums\StatusSpk::Selesai->value }}">SELESAI</option>
+                        <option value="{{ \App\Enums\StatusSpk::Dibatalkan->value }}">DIBATALKAN</option>
                     </select>
                 </div>
             @endif
@@ -135,11 +135,11 @@
                                 <flux:dropdown position="bottom" align="end">
                                     <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
                                     <flux:menu class="min-w-44">
-                                        @can('create_pemeliharaan::spk::perbaikan')
+                                        @if ($this->canTerbitkanSpk())
                                             <flux:menu.item wire:click="openTerbitkanSpk({{ $tiket->id }})" icon="clipboard-document-check" class="text-emerald-600 dark:text-emerald-400">
                                                 Disposisi SPK
                                             </flux:menu.item>
-                                        @endcan
+                                        @endif
                                     </flux:menu>
                                 </flux:dropdown>
                             </flux:table.cell>

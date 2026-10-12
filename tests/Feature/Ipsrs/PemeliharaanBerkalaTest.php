@@ -39,6 +39,8 @@ class PemeliharaanBerkalaTest extends TestCase
             'password' => bcrypt('password'),
             'status' => 'AKTIF',
         ]);
+        // Penerbitan SPK adalah tahap workflow Koordinator IPSRS: role + permission.
+        $this->userKoordinator->assignRole('kepala_teknisi');
         $this->userKoordinator->givePermissionTo([
             'create_pemeliharaan::spk::perbaikan',
             'create_pemeliharaan::pemeliharaan::berkala',

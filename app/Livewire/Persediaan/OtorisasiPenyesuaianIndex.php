@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Persediaan;
 
+use App\Enums\StatusPenyesuaianStok;
+use App\Enums\StatusStokOpname;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -21,7 +23,7 @@ class OtorisasiPenyesuaianIndex extends Component
     use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
 
     #[Url(history: true)]
-    public string $filterStatus = 'MENUNGGU'; // 'MENUNGGU', 'DISETUJUI', 'DITOLAK', 'SEMUA'
+    public string $filterStatus = StatusPenyesuaianStok::Menunggu->value; // nilai StatusPenyesuaianStok atau 'SEMUA'
 
     #[Url(history: true)]
     public ?int $filterGudangId = null;
@@ -31,6 +33,8 @@ class OtorisasiPenyesuaianIndex extends Component
 
     public function showDetail(int $id): void
     {
+        $this->authorizeView();
+
         $this->selectedPenyesuaian = PenyesuaianStok::with([
             'stokOpname',
             'gudang',
@@ -39,20 +43,15 @@ class OtorisasiPenyesuaianIndex extends Component
             'detail.barang.satuan',
             'detail.stokBatch.lokasiGudang',
         ])->findOrFail($id);
+        abort_unless($this->canViewGudang((int) $this->selectedPenyesuaian->gudang_id), 403);
 
         $this->showDetailModal = true;
     }
 
     public function confirmApprove(int $id): void
     {
-        abort_unless(
-            auth()->user()?->can('update_gudang_stok::otorisasi::penyesuaian') ||
-            auth()->user()?->can('page_KepalaGudangDashboard') ||
-            auth()->user()?->can('page_Dashboard'),
-            403
-        );
-
         $adj = PenyesuaianStok::with(['gudang', 'detail.barang'])->findOrFail($id);
+        $this->authorizeOtorisasi($adj);
 
         $totalItem = $adj->detail->count();
         $this->askConfirmation(
@@ -67,16 +66,10 @@ class OtorisasiPenyesuaianIndex extends Component
 
     public function approvePenyesuaian(int $id): void
     {
-        abort_unless(
-            auth()->user()?->can('update_gudang_stok::otorisasi::penyesuaian') ||
-            auth()->user()?->can('page_KepalaGudangDashboard') ||
-            auth()->user()?->can('page_Dashboard'),
-            403
-        );
-
         $adj = PenyesuaianStok::with(['stokOpname', 'detail.stokBatch', 'detail.barang'])->findOrFail($id);
+        $this->authorizeOtorisasi($adj);
 
-        if ($adj->status !== 'MENUNGGU') {
+        if (! StatusPenyesuaianStok::tryFrom((string) $adj->status)?->bolehKe(StatusPenyesuaianStok::Disetujui)) {
             $this->toast("Dokumen penyesuaian telah diproses sebelumnya dengan status {$adj->status}.", 'danger');
             return;
         }
@@ -128,13 +121,13 @@ class OtorisasiPenyesuaianIndex extends Component
 
                 // Sahkan status penyesuaian dan sesi opname induk
                 $adj->update([
-                    'status'        => 'DISETUJUI',
+                    'status'        => StatusPenyesuaianStok::Disetujui->value,
                     'disetujui_oleh'=> $user->id,
                 ]);
 
                 if ($adj->stokOpname) {
                     $adj->stokOpname->update([
-                        'status'        => 'DISETUJUI',
+                        'status'        => StatusStokOpname::Disetujui->value,
                         'disetujui_oleh'=> $user->id,
                     ]);
                 }
@@ -151,14 +144,8 @@ class OtorisasiPenyesuaianIndex extends Component
 
     public function confirmReject(int $id): void
     {
-        abort_unless(
-            auth()->user()?->can('update_gudang_stok::otorisasi::penyesuaian') ||
-            auth()->user()?->can('page_KepalaGudangDashboard') ||
-            auth()->user()?->can('page_Dashboard'),
-            403
-        );
-
         $adj = PenyesuaianStok::findOrFail($id);
+        $this->authorizeOtorisasi($adj);
 
         $this->askConfirmation(
             target: $id,
@@ -172,25 +159,24 @@ class OtorisasiPenyesuaianIndex extends Component
 
     public function rejectPenyesuaian(int $id): void
     {
-        abort_unless(
-            auth()->user()?->can('update_gudang_stok::otorisasi::penyesuaian') ||
-            auth()->user()?->can('page_KepalaGudangDashboard') ||
-            auth()->user()?->can('page_Dashboard'),
-            403
-        );
-
         $adj = PenyesuaianStok::with('stokOpname')->findOrFail($id);
+        $this->authorizeOtorisasi($adj);
+
+        if (! StatusPenyesuaianStok::tryFrom((string) $adj->status)?->bolehKe(StatusPenyesuaianStok::Ditolak)) {
+            $this->toast("Dokumen penyesuaian telah diproses sebelumnya dengan status {$adj->status}.", 'danger');
+            return;
+        }
 
         $user = auth()->user();
         DB::transaction(function () use ($adj, $user) {
             $adj->update([
-                'status'        => 'DITOLAK',
+                'status'        => StatusPenyesuaianStok::Ditolak->value,
                 'disetujui_oleh'=> $user->id,
             ]);
 
             if ($adj->stokOpname) {
                 $adj->stokOpname->update([
-                    'status' => 'DITOLAK',
+                    'status' => StatusStokOpname::Ditolak->value,
                 ]);
             }
         });
@@ -201,7 +187,28 @@ class OtorisasiPenyesuaianIndex extends Component
         $this->toast("Penyesuaian stok {$adj->kode} telah ditolak.", 'info');
     }
 
-    public function render()
+    /**
+     * Otorisasi penyesuaian adalah tahap workflow kepala gudang: butuh permission aksi
+     * dan role kepala_gudang pada gudangnya sendiri; hanya role global yang lintas gudang.
+     */
+    private function authorizeOtorisasi(PenyesuaianStok $adj): void
+    {
+        abort_unless($this->canOtorisasi($adj), 403);
+    }
+
+    public function canOtorisasi(PenyesuaianStok $adj): bool
+    {
+        $user = auth()->user();
+        $hasPermission = (bool) $user?->can('update_gudang_stok::otorisasi::penyesuaian');
+        $isGlobalAdmin = (bool) $user?->hasRole(['super_admin', 'admin_logistik']);
+        $isKepalaGudangPemilik = (bool) ($user?->hasRole('kepala_gudang')
+            && $user->gudang_id
+            && (int) $user->gudang_id === (int) $adj->gudang_id);
+
+        return $hasPermission && ($isGlobalAdmin || $isKepalaGudangPemilik);
+    }
+
+    private function authorizeView(): void
     {
         abort_unless(
             auth()->user()?->can('view_any_gudang_stok::otorisasi::penyesuaian') ||
@@ -209,10 +216,29 @@ class OtorisasiPenyesuaianIndex extends Component
             auth()->user()?->can('view_gudang_stok::otorisasi::penyesuaian'),
             403
         );
+    }
+
+    private function hasGlobalRead(): bool
+    {
+        // Auditor/manajemen membaca global hanya lewat permission view yang sudah dicek di render().
+        return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']);
+    }
+
+    private function canViewGudang(int $gudangId): bool
+    {
+        $user = auth()->user();
+
+        return $this->hasGlobalRead() || ($user?->gudang_id && (int) $user->gudang_id === $gudangId);
+    }
+
+    public function render()
+    {
+        $this->authorizeView();
 
         $query = PenyesuaianStok::with(['gudang', 'pengaju', 'penyetuju', 'stokOpname', 'detail'])
             ->withCount('detail')
-            ->when($this->filterStatus !== 'SEMUA', fn ($q) => $q->where('status', $this->filterStatus ?: 'MENUNGGU'))
+            ->when($this->filterStatus !== 'SEMUA', fn ($q) => $q->where('status', $this->filterStatus ?: StatusPenyesuaianStok::Menunggu->value))
+            ->when(! $this->hasGlobalRead(), fn ($q) => $q->where('gudang_id', auth()->user()?->gudang_id))
             ->when($this->filterGudangId, fn ($q) => $q->where('gudang_id', $this->filterGudangId))
             ->when($this->search, function ($q) {
                 $q->where(function ($sub) {
@@ -224,7 +250,7 @@ class OtorisasiPenyesuaianIndex extends Component
 
         $items = $query->orderBy('id', 'desc')->paginate($this->perPage);
 
-        $daftarGudang = Cache::remember('dropdown_gudang_aktif', 60, fn () => Gudang::where('status', 'AKTIF')->orderBy('nama')->get());
+        $daftarGudang = Cache::remember('dropdown_gudang_aktif', config('simlog.cache.dropdown_ttl'), fn () => Gudang::where('status', 'AKTIF')->orderBy('nama')->get());
 
         return view('livewire.persediaan.otorisasi-penyesuaian-index', [
             'items'        => $items,

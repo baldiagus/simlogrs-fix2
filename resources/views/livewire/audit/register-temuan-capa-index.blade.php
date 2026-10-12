@@ -86,9 +86,9 @@
                 <div class="w-44">
                     <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                         <option value="">Semua Status CAPA</option>
-                        <option value="In Progress">In Progress (Tindakan Unit)</option>
-                        <option value="In Review">In Review (Evaluasi SPI)</option>
-                        <option value="Closed">Closed (Selesai Resmi)</option>
+                        <option value="{{ \App\Enums\StatusCapa::InProgress->value }}">In Progress (Tindakan Unit)</option>
+                        <option value="{{ \App\Enums\StatusCapa::InReview->value }}">In Review (Evaluasi SPI)</option>
+                        <option value="{{ \App\Enums\StatusCapa::Closed->value }}">Closed (Selesai Resmi)</option>
                     </select>
                 </div>
             </div>
@@ -109,7 +109,7 @@
             <flux:table.rows>
                 @forelse ($items as $item)
                     @php
-                        $isOverdue = ($item->status_capa !== 'Closed' && $item->due_date_capa && now()->startOfDay()->gt($item->due_date_capa));
+                        $isOverdue = ($item->status_capa !== \App\Enums\StatusCapa::Closed->value && $item->due_date_capa && now()->startOfDay()->gt($item->due_date_capa));
                         $risikoColor = match($item->tingkat_risiko) {
                             'Mayor'   => 'rose',
                             'Moderat' => 'amber',
@@ -117,9 +117,9 @@
                             default   => 'zinc',
                         };
                         $statusColor = match($item->status_capa) {
-                            'In Progress' => 'amber',
-                            'In Review'   => 'blue',
-                            'Closed'      => 'emerald',
+                            \App\Enums\StatusCapa::InProgress->value => 'amber',
+                            \App\Enums\StatusCapa::InReview->value   => 'blue',
+                            \App\Enums\StatusCapa::Closed->value      => 'emerald',
                             default       => 'zinc',
                         };
                     @endphp
@@ -188,22 +188,22 @@
                             <flux:dropdown position="bottom" align="end">
                                 <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
                                 <flux:menu class="min-w-44">
-                                    @if ($item->status_capa === 'Closed')
+                                    @if ($item->status_capa === \App\Enums\StatusCapa::Closed->value)
                                         <flux:menu.item wire:click="openEvaluasiClosing({{ $item->id }})" icon="eye">
                                             Rincian Evaluasi Closing
                                         </flux:menu.item>
                                     @endif
-                                    @if ($item->status_capa === 'In Progress')
+                                    @if ($item->status_capa === \App\Enums\StatusCapa::InProgress->value)
                                         <flux:menu.item wire:click="openTindakLanjut({{ $item->id }})" icon="arrow-up-tray" class="text-blue-600 dark:text-blue-400">
                                             Unggah Tindak Lanjut
                                         </flux:menu.item>
                                     @endif
-                                    @if ($item->status_capa === 'In Review' && $canEvaluate)
+                                    @if ($item->status_capa === \App\Enums\StatusCapa::InReview->value && $canEvaluate)
                                         <flux:menu.item wire:click="openEvaluasiClosing({{ $item->id }})" icon="check-badge" class="text-emerald-600 dark:text-emerald-400">
                                             Evaluasi &amp; Closing SPI
                                         </flux:menu.item>
                                     @endif
-                                    @if ($item->status_capa === 'In Review' && ! $canEvaluate)
+                                    @if ($item->status_capa === \App\Enums\StatusCapa::InReview->value && ! $canEvaluate)
                                         <flux:menu.item wire:click="openTindakLanjut({{ $item->id }})" icon="eye">
                                             Lihat Tindak Lanjut
                                         </flux:menu.item>
@@ -424,9 +424,9 @@
                     </div>
                     @php
                         $cColor = match($selectedTemuan->status_capa) {
-                            'In Progress' => 'amber',
-                            'In Review'   => 'blue',
-                            'Closed'      => 'emerald',
+                            \App\Enums\StatusCapa::InProgress->value => 'amber',
+                            \App\Enums\StatusCapa::InReview->value   => 'blue',
+                            \App\Enums\StatusCapa::Closed->value      => 'emerald',
                             default       => 'zinc',
                         };
                     @endphp
@@ -478,8 +478,8 @@
                         required
                         class="w-full h-9 text-xs rounded-lg border {{ $errors->has('hasil_evaluasi') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     >
-                        <option value="Closed">Closed (Tindakan perbaikan terbukti valid dan tuntas)</option>
-                        <option value="In Progress">Kembalikan ke In Progress (Bukti belum memadai / perlu revisi)</option>
+                        <option value="{{ \App\Enums\StatusCapa::Closed->value }}">Closed (Tindakan perbaikan terbukti valid dan tuntas)</option>
+                        <option value="{{ \App\Enums\StatusCapa::InProgress->value }}">Kembalikan ke In Progress (Bukti belum memadai / perlu revisi)</option>
                     </select>
                 </div>
 

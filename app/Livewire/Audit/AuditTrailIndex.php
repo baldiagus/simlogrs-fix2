@@ -48,8 +48,7 @@ class AuditTrailIndex extends Component
     {
         abort_unless(
             auth()->user()?->can('view_any_audit_manajemen::audit::trail') ||
-            auth()->user()?->can('view_audit_manajemen::audit::trail') ||
-            auth()->user()?->can('page_Dashboard'),
+            auth()->user()?->can('view_audit_manajemen::audit::trail'),
             403
         );
 
@@ -70,12 +69,12 @@ class AuditTrailIndex extends Component
         $items = $query->orderBy('id', 'desc')->paginate($this->perPage);
 
         // Daftar entitas unik untuk filter
-        $daftarEntitas = Cache::remember('audit_daftar_entitas', 60, function () {
+        $daftarEntitas = Cache::remember('audit_daftar_entitas', config('simlog.cache.dropdown_ttl'), function () {
             return LogAudit::select('referensi_jenis')->distinct()->pluck('referensi_jenis')->toArray();
         });
 
         // Daftar pengguna untuk filter
-        $daftarPengguna = Cache::remember('audit_daftar_pengguna', 60, function () {
+        $daftarPengguna = Cache::remember('audit_daftar_pengguna', config('simlog.cache.dropdown_ttl'), function () {
             return User::select('id', 'nama')->where('status', 'AKTIF')->orderBy('nama')->get();
         });
 

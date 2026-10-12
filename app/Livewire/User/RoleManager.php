@@ -9,6 +9,7 @@ use Livewire\Component;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use App\Models\LogAudit;
+use Illuminate\Support\Facades\DB;
 
 class RoleManager extends Component
 {
@@ -111,27 +112,6 @@ class RoleManager extends Component
         }
     }
 
-    public function toggleViewAny(string $entityKey)
-    {
-        if (! $this->canManageSelectedRole()) {
-            return;
-        }
-
-        $role = Role::find($this->selectedRoleId);
-        if ($role && $role->name === 'super_admin' && in_array($entityKey, ['user::role', 'user::pengguna'])) {
-            return; // Anti self-lockout
-        }
-
-        $current = ! empty($this->state['view_any'][$entityKey]);
-        $newStatus = ! $current;
-        $this->state['view_any'][$entityKey] = $newStatus;
-
-        if (! $newStatus) {
-            $this->state['create'][$entityKey] = false;
-            $this->state['update'][$entityKey] = false;
-            $this->state['delete'][$entityKey] = false;
-        }
-    }
 
 
     /**
@@ -277,45 +257,51 @@ class RoleManager extends Component
         $nonMatrixPermissions = PagePermissionRegistry::getNonMatrixPermissions($role);
         $finalPermissions = array_values(array_unique(array_merge($matrixPermissions, $nonMatrixPermissions)));
 
-        // Pastikan semua permissions terdaftar di Spatie DB
-        $existing = Permission::whereIn('name', $finalPermissions)->pluck('name')->toArray();
-        $missing = array_diff($finalPermissions, $existing);
-        foreach ($missing as $newPerm) {
-            Permission::findOrCreate($newPerm, 'web');
+        // Registrasi izin, sinkronisasi wewenang, dan audit dalam satu transaksi (ADR 0002 B)
+        try {
+            DB::transaction(function () use ($role, $finalPermissions) {
+                // Pastikan semua permissions terdaftar di Spatie DB
+                $existing = Permission::whereIn('name', $finalPermissions)->pluck('name')->toArray();
+                $missing = array_diff($finalPermissions, $existing);
+                foreach ($missing as $newPerm) {
+                    Permission::findOrCreate($newPerm, 'web');
+                }
+                $oldPermissions = $role->permissions()->pluck('name')->sort()->values()->toArray();
+
+                $role->syncPermissions($finalPermissions);
+
+                $newPermissions = collect($finalPermissions)->sort()->values()->toArray();
+                $addedPermissions = array_values(array_diff($newPermissions, $oldPermissions));
+                $removedPermissions = array_values(array_diff($oldPermissions, $newPermissions));
+
+                LogAudit::create([
+                    'pengguna_id'     => auth()->id(),
+                    'peran_id'        => auth()->user()?->roles?->first()?->id,
+                    'referensi_jenis' => 'Role',
+                    'referensi_id'    => $role->id,
+                    'aksi'            => 'RBAC_MUTATION',
+                    'data_sebelum'    => [
+                        'role_name'        => $role->name,
+                        'permission_count' => count($oldPermissions),
+                        'permissions'      => $oldPermissions,
+                    ],
+                    'data_sesudah'    => [
+                        'role_name'        => $role->name,
+                        'permission_count' => count($newPermissions),
+                        'permissions'      => $newPermissions,
+                        'added'            => $addedPermissions,
+                        'removed'          => $removedPermissions,
+                    ],
+                    'ip_address'      => request()->ip(),
+                    'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
+                    'dibuat_pada'     => now(),
+                ]);
+            });
+        } finally {
+            // Reset cache permission Spatie (juga saat rollback agar cache tidak memuat state yang dibatalkan)
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
         }
-        $oldPermissions = $role->permissions()->pluck('name')->sort()->values()->toArray();
 
-        $role->syncPermissions($finalPermissions);
-
-        // Reset cache permission Spatie
-        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
-
-        $newPermissions = collect($finalPermissions)->sort()->values()->toArray();
-        $addedPermissions = array_values(array_diff($newPermissions, $oldPermissions));
-        $removedPermissions = array_values(array_diff($oldPermissions, $newPermissions));
-
-        LogAudit::create([
-            'pengguna_id'     => auth()->id(),
-            'peran_id'        => auth()->user()?->roles?->first()?->id,
-            'referensi_jenis' => 'Role',
-            'referensi_id'    => $role->id,
-            'aksi'            => 'RBAC_MUTATION',
-            'data_sebelum'    => [
-                'role_name'        => $role->name,
-                'permission_count' => count($oldPermissions),
-                'permissions'      => $oldPermissions,
-            ],
-            'data_sesudah'    => [
-                'role_name'        => $role->name,
-                'permission_count' => count($newPermissions),
-                'permissions'      => $newPermissions,
-                'added'            => $addedPermissions,
-                'removed'          => $removedPermissions,
-            ],
-            'ip_address'      => request()->ip(),
-            'device'          => substr(request()->userAgent() ?? 'Web Browser', 0, 255),
-            'dibuat_pada'     => now(),
-        ]);
         $this->toast("Wewenang untuk peran '{$role->name}' berhasil diperbarui.", 'success');
     }
 

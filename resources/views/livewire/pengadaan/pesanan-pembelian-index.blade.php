@@ -43,11 +43,11 @@
             <div class="w-full sm:w-56">
                 <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status</option>
-                    <option value="DITERBITKAN">DITERBITKAN</option>
-                    <option value="DIKIRIM_VENDOR">DIKIRIM VENDOR</option>
-                    <option value="DITERIMA_SEBAGIAN">DITERIMA SEBAGIAN</option>
-                    <option value="DITERIMA_LENGKAP">DITERIMA LENGKAP</option>
-                    <option value="DIBATALKAN">DIBATALKAN</option>
+                    <option value="{{ \App\Enums\StatusPesananPembelian::Diterbitkan->value }}">DITERBITKAN</option>
+                    <option value="{{ \App\Enums\StatusPesananPembelian::DikirimVendor->value }}">DIKIRIM VENDOR</option>
+                    <option value="{{ \App\Enums\StatusPesananPembelian::DiterimaSebagian->value }}">DITERIMA SEBAGIAN</option>
+                    <option value="{{ \App\Enums\StatusPesananPembelian::DiterimaLengkap->value }}">DITERIMA LENGKAP</option>
+                    <option value="{{ \App\Enums\StatusPesananPembelian::Dibatalkan->value }}">DIBATALKAN</option>
                 </select>
             </div>
             @if ($search || $filterStatus)
@@ -98,7 +98,7 @@
                                             Detail Kontrak PO
                                         </flux:menu.item>
                                     @endcan
-                                    @if ($item->status === 'DITERBITKAN')
+                                    @if ($item->status === \App\Enums\StatusPesananPembelian::Diterbitkan->value)
                                         @can('update_pengadaan::pesanan::pembelian')
                                             <flux:menu.item wire:click="confirmUpdateStatusKirim({{ $item->id }})" icon="truck">
                                                 Tandai Dikirim Vendor

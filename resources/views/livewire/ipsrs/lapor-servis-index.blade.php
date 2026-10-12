@@ -34,13 +34,13 @@
             <div class="w-full sm:w-52">
                 <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status</option>
-                    <option value="DILAPORKAN">DILAPORKAN</option>
-                    <option value="DITUGASKAN">DITUGASKAN (SPK)</option>
-                    <option value="SEDANG_DIKERJAKAN">SEDANG DIKERJAKAN</option>
-                    <option value="MENUNGGU_SPAREPART">MENUNGGU SPAREPART</option>
-                    <option value="UJI_FUNGSI">UJI FUNGSI</option>
-                    <option value="SELESAI">SELESAI</option>
-                    <option value="DIBATALKAN">DIBATALKAN</option>
+                    <option value="{{ \App\Enums\StatusMaintenance::Dilaporkan->value }}">DILAPORKAN</option>
+                    <option value="{{ \App\Enums\StatusMaintenance::Ditugaskan->value }}">DITUGASKAN (SPK)</option>
+                    <option value="{{ \App\Enums\StatusMaintenance::SedangDikerjakan->value }}">SEDANG DIKERJAKAN</option>
+                    <option value="{{ \App\Enums\StatusMaintenance::MenungguSparepart->value }}">MENUNGGU SPAREPART</option>
+                    <option value="{{ \App\Enums\StatusMaintenance::UjiFungsi->value }}">UJI FUNGSI</option>
+                    <option value="{{ \App\Enums\StatusMaintenance::Selesai->value }}">SELESAI</option>
+                    <option value="{{ \App\Enums\StatusMaintenance::Dibatalkan->value }}">DIBATALKAN</option>
                 </select>
             </div>
 
@@ -153,7 +153,7 @@
                                     <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
                                         Lihat Tiket Kerusakan
                                     </flux:menu.item>
-                                    @if ($item->status === 'DILAPORKAN' && (auth()->user()?->id === $item->dilaporkan_oleh || auth()->user()?->can('page_Dashboard')))
+                                    @if ($item->status === \App\Enums\StatusMaintenance::Dilaporkan->value && $this->canBatal($item))
                                         <flux:menu.separator />
                                         <flux:menu.item wire:click="confirmBatal({{ $item->id }})" icon="x-mark" variant="danger">
                                             Batalkan Laporan

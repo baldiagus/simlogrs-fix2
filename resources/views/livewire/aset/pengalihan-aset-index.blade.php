@@ -233,8 +233,8 @@
                                         @php
                                             $isOriginRoomOwner = $row->unit_asal_id && (int)$row->unit_asal_id === (int)auth()->user()?->unit_id;
                                             $isOriginWarehouseOwner = $row->gudang_asal_id && (int)$row->gudang_asal_id === (int)auth()->user()?->gudang_id;
-                                            $canApproveRole = auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'kepala_gudang']);
-                                            $isGlobalAdmin = auth()->user()?->hasRole(['super_admin', 'admin_logistik']) || auth()->user()?->can('page_Dashboard');
+                                            $canApproveRole = auth()->user()?->hasRole(['super_admin', 'admin_logistik']) || (auth()->user()?->hasRole('kepala_unit') && auth()->user()?->can('update_layanan_unit::pengalihan::aset')) || (auth()->user()?->hasRole('kepala_gudang') && auth()->user()?->can('update_layanan_unit::pengalihan::aset'));
+                                            $isGlobalAdmin = auth()->user()?->hasRole(['super_admin', 'admin_logistik']);
                                         @endphp
                                         @if (($isOriginRoomOwner || $isOriginWarehouseOwner || $isGlobalAdmin) && $canApproveRole)
                                             <flux:menu.item icon="check" wire:click="openApprovalModal({{ $row->id }}, 'APPROVE')">

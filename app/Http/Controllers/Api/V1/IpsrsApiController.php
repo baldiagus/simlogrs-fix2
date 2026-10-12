@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\StatusMaintenance;
+use App\Enums\StatusSpk;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Aset;
 use App\Models\JadwalMaintenance;
@@ -116,10 +118,7 @@ class IpsrsApiController extends ApiController
         $user = $request->user();
 
         $canExecute = $user && (
-            $user->hasRole('teknisi') ||
-            $user->hasRole('kepala_teknisi') ||
-            $user->hasRole('admin_logistik') ||
-            $user->hasRole('super_admin') ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             $user->can('create_pemeliharaan::spk::perbaikan')
         );
 
@@ -146,7 +145,7 @@ class IpsrsApiController extends ApiController
                     'dilaporkan_oleh'   => $user->id,
                     'deskripsi_masalah' => "Servis preventif berkala: {$jadwal->jenis_maintenance} (Sesuai agenda {$jadwal->kode})",
                     'prioritas'         => 'SEDANG',
-                    'status'            => 'DITUGASKAN',
+                    'status'            => StatusMaintenance::Ditugaskan->value,
                 ]);
 
                 // 2. Buat Dokumen SPK Ditugaskan Langsung ke Teknisi Jadwal
@@ -158,7 +157,7 @@ class IpsrsApiController extends ApiController
                     'tanggal_penugasan'         => now()->toDateString(),
                     'target_selesai'            => now()->addDays(2)->toDateString(),
                     'instruksi_khusus'          => "Servis preventif berkala rutin sesuai jadwal {$jadwal->kode}. " . ($jadwal->catatan ?: ''),
-                    'status'                    => 'DITUGASKAN',
+                    'status'                    => StatusSpk::Ditugaskan->value,
                 ]);
 
                 // 3. Catat tanggal eksekusi terakhir dan majukan tanggal berikutnya
@@ -187,9 +186,8 @@ class IpsrsApiController extends ApiController
         $user = $request->user();
 
         $canCreate = $user && (
-            $user->can('create_pemeliharaan::pemeliharaan::berkala') ||
-            $user->hasRole('kepala_teknisi') ||
-            $user->hasRole('super_admin')
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
+            $user->can('create_pemeliharaan::pemeliharaan::berkala')
         );
 
         if (! $canCreate) {

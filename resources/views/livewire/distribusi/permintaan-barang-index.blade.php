@@ -1,3 +1,5 @@
+@use('App\Enums\StatusPermintaanDistribusi')
+@use('App\Enums\StatusPengirimanBarang')
 <div class="space-y-6">
     {{-- Header Halaman & Sub-Navigasi --}}
     <div class="space-y-3">
@@ -34,12 +36,12 @@
             <div class="w-full sm:w-56">
                 <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status</option>
-                    <option value="DIAJUKAN">DIAJUKAN</option>
-                    <option value="DISETUJUI_KARU">DISETUJUI KARU</option>
-                    <option value="DISETUJUI_GUDANG">DISETUJUI GUDANG</option>
-                    <option value="SEDANG_DIKIRIM">SEDANG DIKIRIM</option>
-                    <option value="SELESAI">SELESAI</option>
-                    <option value="DITOLAK">DITOLAK</option>
+                    <option value="{{ StatusPermintaanDistribusi::Diajukan->value }}">DIAJUKAN</option>
+                    <option value="{{ StatusPermintaanDistribusi::DisetujuiKaru->value }}">DISETUJUI KARU</option>
+                    <option value="{{ StatusPermintaanDistribusi::DisetujuiGudang->value }}">DISETUJUI GUDANG</option>
+                    <option value="{{ StatusPermintaanDistribusi::SedangDikirim->value }}">SEDANG DIKIRIM</option>
+                    <option value="{{ StatusPermintaanDistribusi::Selesai->value }}">SELESAI</option>
+                    <option value="{{ StatusPermintaanDistribusi::Ditolak->value }}">DITOLAK</option>
                 </select>
             </div>
 
@@ -110,13 +112,13 @@
                                     <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
                                         Detail Amprah
                                     </flux:menu.item>
-                                    @if (in_array($item->status, ['DIAJUKAN', 'DISETUJUI_KARU']) && ($isGlobalAdmin || (int) $userUnitId === (int) $item->unit_id))
+                                    @if (in_array($item->status, StatusPermintaanDistribusi::dapatDibatalkan()) && $canRequesterAct && ($isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $item->unit_id)))
                                         <flux:menu.separator />
                                         <flux:menu.item wire:click="confirmBatal({{ $item->id }})" icon="x-mark" variant="danger">
                                             Batalkan Permintaan
                                         </flux:menu.item>
                                     @endif
-                                    @if ($item->status === 'DIKIRIM_SEBAGIAN' && ($isGlobalAdmin || (int) $userUnitId === (int) $item->unit_id))
+                                    @if ($item->status === StatusPermintaanDistribusi::DikirimSebagian->value && $canRequesterAct && ($isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $item->unit_id)))
                                         <flux:menu.separator />
                                         <flux:menu.item wire:click="confirmTutupSisaHutang({{ $item->id }})" icon="check-circle" class="text-blue-600">
                                             Tutup Sisa Hutang
@@ -165,7 +167,7 @@
                         />
                     </div>
 
-                    @if ($isGlobalAdmin || ! auth()->user()?->unit_id)
+                    @if ($isGlobalAdmin)
                         <div>
                             <x-searchable-select
                                 model="unit_id"
@@ -398,7 +400,7 @@
                     </div>
                 @endif
 
-                @if ($selectedPermintaan->status === 'DIKIRIM_SEBAGIAN')
+                @if ($selectedPermintaan->status === StatusPermintaanDistribusi::DikirimSebagian->value)
                     <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2">
                         <flux:icon name="clock" class="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
                         <span>Permintaan ini telah dikirim sebagian. Sisa barang yang terhutang akan otomatis diprioritaskan saat gudang menerima restok barang dari vendor.</span>
@@ -425,7 +427,7 @@
                             <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
                                 @php
                                     $shipmentDetails = $selectedPermintaan->pengiriman
-                                        ? $selectedPermintaan->pengiriman->where('status', '!=', 'BATAL')->flatMap->detail
+                                        ? $selectedPermintaan->pengiriman->where('status', '!=', StatusPengirimanBarang::Batal->value)->flatMap->detail
                                         : collect();
                                 @endphp
                                 @forelse ($selectedPermintaan->detail as $detail)
@@ -459,7 +461,7 @@
                                             {{ number_format($terkirim, 0, ',', '.') }}
                                         </td>
                                         <td class="px-3 py-2 text-right font-mono tabular-nums">
-                                            @if ($selectedPermintaan->status === 'DIAJUKAN' || $detail->jumlah_disetujui === null)
+                                            @if ($selectedPermintaan->status === StatusPermintaanDistribusi::Diajukan->value || $detail->jumlah_disetujui === null)
                                                 <span class="text-zinc-400 italic text-xs font-sans">-</span>
                                             @elseif ($sisaHutang > 0)
                                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Audit;
 
+use App\Enums\StatusCapa;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
@@ -44,8 +45,7 @@ class AuditKepatuhanPengadaanIndex extends Component
     {
         abort_unless(
             auth()->user()?->can('view_any_audit_manajemen::kepatuhan::pengadaan') ||
-            auth()->user()?->can('page_AuditorDashboard') ||
-            auth()->user()?->can('page_Dashboard'),
+            auth()->user()?->can('view_audit_manajemen::kepatuhan::pengadaan'),
             403,
             'Akses ditolak: Anda tidak memiliki wewenang mengakses Audit Kepatuhan Pengadaan.'
         );
@@ -59,10 +59,9 @@ class AuditKepatuhanPengadaanIndex extends Component
     public function openTerbitkanCapa(int $poId, string $tipeAnomali): void
     {
         abort_unless(
-            auth()->user()?->can('create_audit_manajemen::temuan::capa') ||
-            auth()->user()?->hasRole(['auditor', 'super_admin']),
+            auth()->user()?->hasRole('auditor') && auth()->user()?->can('create_audit_manajemen::temuan::capa'),
             403,
-            'Hanya Auditor SPI yang berwenang menerbitkan temuan audit kepatuhan.'
+            'Hanya Auditor SPI dengan izin yang berwenang menerbitkan temuan audit kepatuhan.'
         );
 
         $this->selectedPo = PesananPembelian::with(['pemasok', 'permintaanPengadaan'])->findOrFail($poId);
@@ -89,10 +88,9 @@ class AuditKepatuhanPengadaanIndex extends Component
     public function saveCapa(): void
     {
         abort_unless(
-            auth()->user()?->can('create_audit_manajemen::temuan::capa') ||
-            auth()->user()?->hasRole(['auditor', 'super_admin']),
+            auth()->user()?->hasRole('auditor') && auth()->user()?->can('create_audit_manajemen::temuan::capa'),
             403,
-            'Hanya Auditor SPI yang berwenang menerbitkan temuan audit kepatuhan.'
+            'Hanya Auditor SPI dengan izin yang berwenang menerbitkan temuan audit kepatuhan.'
         );
 
         $this->validate();
@@ -107,7 +105,7 @@ class AuditKepatuhanPengadaanIndex extends Component
             'ringkasan'      => $this->ringkasan,
             'tingkat_risiko' => $this->tingkat_risiko,
             'due_date_capa'  => $this->due_date_capa,
-            'status_capa'    => 'In Progress',
+            'status_capa'    => StatusCapa::InProgress->value,
             'auditor_id'     => $user->id,
             'unit_id'        => $this->selectedPo?->permintaanPengadaan?->unit_id,
         ]);
@@ -121,8 +119,7 @@ class AuditKepatuhanPengadaanIndex extends Component
     {
         abort_unless(
             auth()->user()?->can('view_any_audit_manajemen::kepatuhan::pengadaan') ||
-            auth()->user()?->can('view_audit_manajemen::kepatuhan::pengadaan') ||
-            auth()->user()?->can('page_Dashboard'),
+            auth()->user()?->can('view_audit_manajemen::kepatuhan::pengadaan'),
             403
         );
 
@@ -154,7 +151,7 @@ class AuditKepatuhanPengadaanIndex extends Component
 
         $items = $query->orderBy('id', 'desc')->paginate($this->perPage);
 
-        $daftarPemasok = Cache::remember('dropdown_pemasok_aktif', 60, fn () => Pemasok::where('status', 'AKTIF')->orderBy('nama')->get());
+        $daftarPemasok = Cache::remember('dropdown_pemasok_aktif', config('simlog.cache.dropdown_ttl'), fn () => Pemasok::where('status', 'AKTIF')->orderBy('nama')->get());
 
         return view('livewire.audit.audit-kepatuhan-pengadaan-index', [
             'items'         => $items,

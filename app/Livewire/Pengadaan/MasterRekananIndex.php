@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pengadaan;
 
+use App\Enums\StatusPesananPembelian;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
@@ -21,23 +22,15 @@ class MasterRekananIndex extends Component
     public ?int $selectedPemasokId = null;
     public bool $showDetailModal = false;
 
+    /**
+     * Dijalankan pada setiap request (render awal maupun aksi). Data rekanan bersifat
+     * katalog vendor global, sehingga tidak ada pembatasan scope unit/gudang.
+     */
     public function boot(): void
     {
+        $user = auth()->user();
         abort_unless(
-            auth()->user()?->can('page_MasterRekananIndex') ||
-            auth()->user()?->can('view_any_pengadaan::master::rekanan') ||
-            auth()->user()?->can('page_ManajemenDashboard'),
-            403,
-            'Akses ditolak: Anda tidak memiliki wewenang melihat Evaluasi Rekanan Vendor.'
-        );
-    }
-
-    public function mount(): void
-    {
-        abort_unless(
-            auth()->user()?->can('page_MasterRekananIndex') ||
-            auth()->user()?->can('view_any_pengadaan::master::rekanan') ||
-            auth()->user()?->can('page_ManajemenDashboard'),
+            $user?->can('view_any_pengadaan::master::rekanan') || $user?->can('view_pengadaan::master::rekanan'),
             403,
             'Akses ditolak: Anda tidak memiliki wewenang melihat Evaluasi Rekanan Vendor.'
         );
@@ -60,8 +53,8 @@ class MasterRekananIndex extends Component
 
     public function render()
     {
-        $query = Pemasok::withCount(['pesananPembelian' => fn ($q) => $q->where('status', '!=', 'DIBATALKAN')])
-            ->withSum(['pesananPembelian' => fn ($q) => $q->where('status', '!=', 'DIBATALKAN')], 'total_biaya');
+        $query = Pemasok::withCount(['pesananPembelian' => fn ($q) => $q->where('status', '!=', StatusPesananPembelian::Dibatalkan->value)])
+            ->withSum(['pesananPembelian' => fn ($q) => $q->where('status', '!=', StatusPesananPembelian::Dibatalkan->value)], 'total_biaya');
 
         if (! empty($this->search)) {
             $query->where(function ($q) {
@@ -79,7 +72,7 @@ class MasterRekananIndex extends Component
 
         $totalRekanan = Pemasok::count();
         $rekananAktif = Pemasok::where('status', 'AKTIF')->count();
-        $totalBelanjaVendor = (float) PesananPembelian::whereIn('status', ['DITERBITKAN', 'DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN', 'DITERIMA_LENGKAP'])->sum('total_biaya');
+        $totalBelanjaVendor = (float) PesananPembelian::whereIn('status', StatusPesananPembelian::tidakDibatalkan())->sum('total_biaya');
 
         return view('livewire.pengadaan.master-rekanan-index', [
             'items' => $items,

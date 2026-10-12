@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Ipsrs;
 
+use App\Enums\StatusMaintenance;
+use App\Enums\StatusSpk;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -63,7 +65,7 @@ class DaftarSpkPerbaikanIndex extends Component
 
     public function openTerbitkanSpk(int $tiketId): void
     {
-        abort_unless(auth()->user()?->can('create_pemeliharaan::spk::perbaikan'), 403);
+        abort_unless($this->canTerbitkanSpk(), 403);
 
         $this->selected_tiket_id = $tiketId;
         $this->selectedTiketForSpk = PermintaanMaintenance::with(['aset.barang', 'unit', 'pelapor'])->findOrFail($tiketId);
@@ -78,7 +80,7 @@ class DaftarSpkPerbaikanIndex extends Component
 
     public function saveSpk(): void
     {
-        abort_unless(auth()->user()?->can('create_pemeliharaan::spk::perbaikan'), 403);
+        abort_unless($this->canTerbitkanSpk(), 403);
         $this->validate();
 
         $user = auth()->user();
@@ -88,13 +90,13 @@ class DaftarSpkPerbaikanIndex extends Component
         DB::transaction(function () use ($user, $kodeSpk, &$success) {
             $tiket = PermintaanMaintenance::lockForUpdate()->with('aset')->findOrFail($this->selected_tiket_id);
 
-            if ($tiket->status !== 'DILAPORKAN') {
+            if ($tiket->status !== StatusMaintenance::Dilaporkan->value) {
                 $this->toast("Tiket {$tiket->kode} sudah diproses sebelumnya (Status: {$tiket->status}).", 'warning');
                 return;
             }
 
             $alreadyHasSpk = PenugasanMaintenance::where('permintaan_maintenance_id', $tiket->id)
-                ->where('status', '!=', 'DIBATALKAN')
+                ->where('status', '!=', StatusSpk::Dibatalkan->value)
                 ->exists();
             if ($alreadyHasSpk) {
                 $this->toast("Tiket {$tiket->kode} sudah memiliki SPK aktif.", 'warning');
@@ -109,10 +111,10 @@ class DaftarSpkPerbaikanIndex extends Component
                 'tanggal_penugasan'         => $this->tanggal_penugasan,
                 'target_selesai'            => $this->target_selesai,
                 'instruksi_khusus'          => $this->instruksi_khusus,
-                'status'                    => 'DITUGASKAN',
+                'status'                    => StatusSpk::Ditugaskan->value,
             ]);
 
-            $tiket->update(['status' => 'DITUGASKAN']);
+            $tiket->update(['status' => StatusMaintenance::Ditugaskan->value]);
 
             // Pastikan aset masuk ke status DALAM_MAINTENANCE
             if ($tiket->aset && $tiket->aset->status !== 'DALAM_MAINTENANCE') {
@@ -138,6 +140,8 @@ class DaftarSpkPerbaikanIndex extends Component
 
     public function showDetailSpk(int $id): void
     {
+        $this->authorizeView();
+
         $this->selectedSpk = PenugasanMaintenance::with([
             'permintaanMaintenance.aset.barang',
             'permintaanMaintenance.unit',
@@ -147,24 +151,54 @@ class DaftarSpkPerbaikanIndex extends Component
             'logMaintenance.teknisi',
             'logMaintenance.sukuCadang.barang',
         ])->findOrFail($id);
+        abort_unless(! $this->isOwnSpkOnly() || (int) $this->selectedSpk->teknisi_id === (int) auth()->id(), 403);
 
         $this->showDetailModal = true;
     }
 
-    public function render()
+    /**
+     * Penerbitan SPK adalah tahap disposisi Koordinator IPSRS: role kepala_teknisi
+     * (atau role global) dan permission aksi.
+     */
+    public function canTerbitkanSpk(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) ($user?->can('create_pemeliharaan::spk::perbaikan')
+            && $user->hasRole(['kepala_teknisi', 'super_admin', 'admin_logistik']));
+    }
+
+    /**
+     * Teknisi hanya melihat SPK yang ditugaskan kepadanya; koordinator, role global,
+     * dan auditor/manajemen membaca seluruh departemen.
+     */
+    private function isOwnSpkOnly(): bool
+    {
+        return ! auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_teknisi', 'auditor', 'manajemen']);
+    }
+
+    private function authorizeView(): void
     {
         abort_unless(
             auth()->user()?->can('view_any_pemeliharaan::spk::perbaikan') ||
             auth()->user()?->can('view_pemeliharaan::spk::perbaikan'),
             403
         );
+    }
 
-        $countAntrean = PermintaanMaintenance::where('status', 'DILAPORKAN')->count();
-        $countSpkAktif = PenugasanMaintenance::whereIn('status', ['DITUGASKAN', 'DITERIMA'])->count();
+    public function render()
+    {
+        $this->authorizeView();
+
+        $ownSpkOnly = $this->isOwnSpkOnly();
+        $countAntrean = PermintaanMaintenance::where('status', StatusMaintenance::Dilaporkan->value)->count();
+        $countSpkAktif = PenugasanMaintenance::whereIn('status', StatusSpk::aktif())
+            ->when($ownSpkOnly, fn ($q) => $q->where('teknisi_id', auth()->id()))
+            ->count();
 
         if ($this->activeTab === 'antrean') {
             $query = PermintaanMaintenance::with(['aset.barang', 'unit', 'pelapor'])
-                ->where('status', 'DILAPORKAN')
+                ->where('status', StatusMaintenance::Dilaporkan->value)
                 ->when($this->search, function ($q) {
                     $q->where(function ($sub) {
                         $sub->where('kode', 'ilike', "%{$this->search}%")
@@ -188,6 +222,7 @@ class DaftarSpkPerbaikanIndex extends Component
                 'teknisi',
                 'penugast',
             ])
+            ->when($ownSpkOnly, fn ($q) => $q->where('teknisi_id', auth()->id()))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->search, function ($q) {
                 $q->where(function ($sub) {

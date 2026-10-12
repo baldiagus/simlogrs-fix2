@@ -219,12 +219,13 @@
 
                                     @if ($activeTab === 'otorisasi' && (int)$row->diajukan_oleh !== (int)auth()->user()?->id)
                                         @php
-                                            $isOriginWarehouseOwner = $row->gudang_asal_id && (int)$row->gudang_asal_id === (int)auth()->user()?->gudang_id;
-                                            $isOriginRoomOwner = $row->unit_asal_id && (int)$row->unit_asal_id === (int)auth()->user()?->unit_id;
-                                            $canApproveRole = auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang', 'kepala_unit']);
-                                            $isGlobalAdmin = auth()->user()?->hasRole(['super_admin', 'admin_logistik']) || auth()->user()?->can('page_Dashboard');
+                                            $approver = auth()->user();
+                                            $canApprovePermission = (bool) $approver?->can('update_gudang_stok::pengalihan::barang');
+                                            $isOriginWarehouseHead = $row->tipe_asal === 'GUDANG' && $approver?->gudang_id && (int)$row->gudang_asal_id === (int)$approver->gudang_id && $approver->hasRole('kepala_gudang');
+                                            $isOriginRoomHead = $row->tipe_asal === 'RUANGAN' && $approver?->unit_id && (int)$row->unit_asal_id === (int)$approver->unit_id && $approver->hasRole('kepala_unit');
+                                            $isGlobalAdmin = (bool) $approver?->hasRole(['super_admin', 'admin_logistik']);
                                         @endphp
-                                        @if (($isOriginWarehouseOwner || $isOriginRoomOwner || $isGlobalAdmin) && $canApproveRole)
+                                        @if ($isGlobalAdmin || (($isOriginWarehouseHead || $isOriginRoomHead) && $canApprovePermission))
                                             <flux:menu.item icon="check" wire:click="openApprovalModal({{ $row->id }}, 'APPROVE')">
                                                 Setujui Pengalihan
                                             </flux:menu.item>

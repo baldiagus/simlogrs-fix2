@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Master;
 
+use App\Enums\StatusAset;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -71,7 +72,7 @@ class AsetIndex extends Component
     public string $kondisi = 'BAIK';
 
     #[Validate('required|in:TERSEDIA,DIGUNAKAN,DIPINJAM,DALAM_MAINTENANCE,DIHAPUSKAN')]
-    public string $status = 'TERSEDIA';
+    public string $status = StatusAset::Tersedia->value;
 
     public function mount()
     {
@@ -134,23 +135,53 @@ class AsetIndex extends Component
         $this->gudang_id = null;
         $this->tanggal_perolehan = date('Y-m-d');
         $this->kondisi = 'BAIK';
-        $this->status = 'TERSEDIA';
+        $this->status = StatusAset::Tersedia->value;
         $this->showModal = true;
     }
 
     public function canUserEditAset($user, Aset $aset): bool
     {
-        if (! $user || ! $user->can('update_master::aset')) {
+        return $user && $user->can('update_master::aset') && $this->isInUserScope($user, $aset->unit_id, $aset->gudang_id);
+    }
+
+    public function canUserDeleteAset($user, Aset $aset): bool
+    {
+        return $user && $user->can('delete_master::aset') && $this->isInUserScope($user, $aset->unit_id, $aset->gudang_id);
+    }
+
+    /**
+     * Hanya super_admin/admin_logistik lintas scope; pengguna lain dibatasi ke unit/gudang miliknya.
+     */
+    private function isInUserScope($user, ?int $unitId, ?int $gudangId): bool
+    {
+        if (! $user) {
             return false;
         }
 
-        // Super Admin & Admin Logistik memiliki akses penuh untuk seluruh aset RS
-        if ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_AdminLogistikDashboard')) {
+        if ($user->hasRole(['super_admin', 'admin_logistik'])) {
             return true;
         }
 
-        // Pengguna unit hanya berhak mengedit aset yang terdaftar pada unit/ruangannya sendiri
-        return $aset->unit_id !== null && (int) $user->unit_id === (int) $aset->unit_id;
+        return ($unitId !== null && $user->unit_id && (int) $user->unit_id === (int) $unitId)
+            || ($gudangId !== null && $user->gudang_id && (int) $user->gudang_id === (int) $gudangId);
+    }
+
+    /**
+     * Baca register lintas unit: role global, auditor/manajemen (ADR), dan IPSRS lewat permission
+     * pemeliharaan; selain itu hanya aset di unit/gudang pengguna.
+     */
+    private function hasGlobalRead(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) ($user?->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen'])
+            || $user?->can('view_any_pemeliharaan::spk::perbaikan'));
+    }
+
+    private function authorizeViewAset(Aset $aset): void
+    {
+        abort_unless(auth()->user()?->can('view_any_master::aset') || auth()->user()?->can('view_master::aset'), 403);
+        abort_unless($this->hasGlobalRead() || $this->isInUserScope(auth()->user(), $aset->unit_id, $aset->gudang_id), 403);
     }
 
     public function edit(int $id)
@@ -196,7 +227,7 @@ class AsetIndex extends Component
             'tanggal_perolehan' => 'required|date',
             'nilai_perolehan'   => 'required|numeric|min:0',
             'kondisi'           => 'required|in:BAIK,RUSAK_RINGAN,RUSAK_BERAT',
-            'status'            => 'required|in:TERSEDIA,DIGUNAKAN,DIPINJAM,DALAM_MAINTENANCE,DIHAPUSKAN',
+            'status'            => 'required|in:' . implode(',', StatusAset::dapatDiaturManual()),
         ], [
             'barang_id.required'         => 'Komoditas barang tipe aset wajib dipilih.',
             'lokasi_tipe.required'       => 'Tipe penempatan fisik wajib dipilih.',
@@ -233,7 +264,7 @@ class AsetIndex extends Component
             : CodeGenerator::generate('AST', Aset::class, 'kode_aset');
 
         $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_AdminLogistikDashboard'));
+        $isGlobalAdmin = (bool) $user?->hasRole(['super_admin', 'admin_logistik']);
 
         if ($this->editingId) {
             $existing = Aset::findOrFail($this->editingId);
@@ -252,6 +283,7 @@ class AsetIndex extends Component
             }
         } else {
             abort_unless($user?->can('create_master::aset'), 403);
+            abort_unless($this->isInUserScope($user, $unitId, $gudangId), 403, 'Akses ditolak: Anda hanya berhak mendaftarkan aset di unit/gudang Anda.');
         }
 
         $data = [
@@ -281,6 +313,7 @@ class AsetIndex extends Component
     public function showQr(int $id)
     {
         $this->selectedAset = Aset::with(['barang', 'unit', 'gudang'])->findOrFail($id);
+        $this->authorizeViewAset($this->selectedAset);
         $this->qrCodeSvg = QrCode::size(200)
             ->format('svg')
             ->generate($this->selectedAset->kode_aset);
@@ -299,6 +332,7 @@ class AsetIndex extends Component
         ])
             ->withCount('permintaanMaintenance')
             ->findOrFail($id);
+        $this->authorizeViewAset($this->selectedAset);
         $this->showDetailModal = true;
     }
     public function openSirkulasiModal(int $id): void
@@ -314,12 +348,14 @@ class AsetIndex extends Component
         ])
             ->withCount('permintaanMaintenance')
             ->findOrFail($id);
+        $this->authorizeViewAset($this->selectedAset);
         $this->showSirkulasiModal = true;
     }
 
     public function confirmDelete(int $id): void
     {
         $aset = Aset::with('barang')->findOrFail($id);
+        abort_unless($this->canUserDeleteAset(auth()->user(), $aset), 403, 'Anda tidak memiliki hak akses menghapus register aset.');
 
         $this->askConfirmation(
             target: $id,
@@ -333,13 +369,12 @@ class AsetIndex extends Component
 
     public function delete(int $id)
     {
-        abort_unless(auth()->user()?->can('delete_master::aset') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus register aset.');
-
         $aset = Aset::findOrFail($id);
+        abort_unless($this->canUserDeleteAset(auth()->user(), $aset), 403, 'Anda tidak memiliki hak akses menghapus register aset.');
 
         $hasDependencies = $aset->peminjamanDetail()->exists()
             || $aset->permintaanMaintenance()->exists()
-            || $aset->status === 'DIPINJAM';
+            || $aset->status === StatusAset::Dipinjam->value;
 
         if ($hasDependencies) {
             $this->toast("Aset '{$aset->kode_aset}' tidak dapat dihapus karena memiliki riwayat sirkulasi/pemeliharaan atau sedang aktif dipinjam. Silakan ubah status menjadi DIHAPUSKAN.", 'danger');
@@ -356,14 +391,20 @@ class AsetIndex extends Component
     {
         abort_unless(auth()->user()?->can('view_any_master::aset') || auth()->user()?->can('view_master::aset'), 403);
 
-        $daftarBarangAset = Cache::remember('dropdown_barang_aset_aktif', 60, fn () => Barang::where('tipe', 'ASET')->where('status', 'AKTIF')->get());
-        $daftarUnit = Cache::remember('dropdown_unit_aktif', 60, fn () => Unit::where('status', 'AKTIF')->get());
-        $daftarGudang = Cache::remember('dropdown_gudang_aktif', 60, fn () => Gudang::where('status', 'AKTIF')->get());
+        $daftarBarangAset = Cache::remember('dropdown_barang_aset_aktif', config('simlog.cache.dropdown_ttl'), fn () => Barang::where('tipe', 'ASET')->where('status', 'AKTIF')->get());
+        $daftarUnit = Cache::remember('dropdown_unit_aktif', config('simlog.cache.dropdown_ttl'), fn () => Unit::where('status', 'AKTIF')->get());
+        $daftarGudang = Cache::remember('dropdown_gudang_aktif', config('simlog.cache.dropdown_ttl'), fn () => Gudang::where('status', 'AKTIF')->get());
         $daftarRak = $this->gudang_id
             ? LokasiGudang::where('gudang_id', $this->gudang_id)->where('status', 'AKTIF')->get()
             : collect();
 
+        $user = auth()->user();
         $items = Aset::with(['barang', 'unit', 'gudang', 'lokasiGudang'])
+            ->when(! $this->hasGlobalRead(), fn ($q) => $q->where(function ($scope) use ($user) {
+                $scope->whereRaw('1 = 0')
+                    ->when($user?->unit_id, fn ($s) => $s->orWhere('unit_id', $user->unit_id))
+                    ->when($user?->gudang_id, fn ($s) => $s->orWhere('gudang_id', $user->gudang_id));
+            }))
             ->when($this->filterLokasi === 'RUANGAN', fn ($q) => $q->whereNotNull('unit_id'))
             ->when($this->filterLokasi === 'GUDANG', fn ($q) => $q->whereNotNull('gudang_id'))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))

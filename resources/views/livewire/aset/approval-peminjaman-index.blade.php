@@ -25,9 +25,9 @@
                     Semua
                 </flux:button>
                 <flux:button
-                    wire:click="$set('filterStatus', 'DIAJUKAN')"
+                    wire:click="$set('filterStatus', '{{ \App\Enums\StatusPeminjaman::Diajukan->value }}')"
                     size="xs"
-                    :variant="$filterStatus === 'DIAJUKAN' ? 'primary' : 'ghost'"
+                    :variant="$filterStatus === \App\Enums\StatusPeminjaman::Diajukan->value ? 'primary' : 'ghost'"
                 >
                     Menunggu Otorisasi
                     @if ($countMenunggu > 0)
@@ -37,9 +37,9 @@
                     @endif
                 </flux:button>
                 <flux:button
-                    wire:click="$set('filterStatus', 'DISETUJUI')"
+                    wire:click="$set('filterStatus', '{{ \App\Enums\StatusPeminjaman::Disetujui->value }}')"
                     size="xs"
-                    :variant="$filterStatus === 'DISETUJUI' ? 'primary' : 'ghost'"
+                    :variant="$filterStatus === \App\Enums\StatusPeminjaman::Disetujui->value ? 'primary' : 'ghost'"
                 >
                     Siap Serah Terima
                     @if ($countSiapSerahTerima > 0)
@@ -49,9 +49,9 @@
                     @endif
                 </flux:button>
                 <flux:button
-                    wire:click="$set('filterStatus', 'DIPINJAM')"
+                    wire:click="$set('filterStatus', '{{ \App\Enums\StatusPeminjaman::Dipinjam->value }}')"
                     size="xs"
-                    :variant="$filterStatus === 'DIPINJAM' ? 'primary' : 'ghost'"
+                    :variant="$filterStatus === \App\Enums\StatusPeminjaman::Dipinjam->value ? 'primary' : 'ghost'"
                 >
                     Sedang Dipinjam
                     @if ($countDipinjam > 0)
@@ -78,12 +78,9 @@
                         class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100"
                     >
                         <option value="">Semua Status</option>
-                        <option value="DIAJUKAN">DIAJUKAN</option>
-                        <option value="DISETUJUI">DISETUJUI</option>
-                        <option value="DIPINJAM">DIPINJAM</option>
-                        <option value="SELESAI">SELESAI</option>
-                        <option value="DITOLAK">DITOLAK</option>
-                        <option value="DIBATALKAN">DIBATALKAN</option>
+                        @foreach (\App\Enums\StatusPeminjaman::cases() as $statusPinjam)
+                            <option value="{{ $statusPinjam->value }}">{{ $statusPinjam->value }}</option>
+                        @endforeach
                     </select>
                 </div>
             </div>
@@ -153,7 +150,7 @@
                                     <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
                                         Detail Permintaan
                                     </flux:menu.item>
-                                    @if ($item->status === 'DIAJUKAN' && $canManageItem)
+                                    @if ($item->status === \App\Enums\StatusPeminjaman::Diajukan->value && $canManageItem)
                                         <flux:menu.item wire:click="confirmApprove({{ $item->id }})" icon="check-circle" class="text-emerald-600 dark:text-emerald-400">
                                             Setujui
                                         </flux:menu.item>
@@ -161,7 +158,7 @@
                                             Tolak
                                         </flux:menu.item>
                                     @endif
-                                    @if ($item->status === 'DISETUJUI' && $canManageItem)
+                                    @if ($item->status === \App\Enums\StatusPeminjaman::Disetujui->value && $canManageItem)
                                         <flux:menu.item wire:click="confirmSerahTerima({{ $item->id }})" icon="arrow-right-start-on-rectangle">
                                             Serah Terima
                                         </flux:menu.item>
@@ -319,7 +316,7 @@
 
                 @if ($canManageSelected)
                     <div class="flex items-center justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                        @if ($selectedPinjam->status === 'DIAJUKAN')
+                        @if ($selectedPinjam->status === \App\Enums\StatusPeminjaman::Diajukan->value)
                             <flux:button
                                 wire:click="confirmReject({{ $selectedPinjam->id }})"
                                 variant="danger"
@@ -337,7 +334,7 @@
                             >
                                 Setujui Permintaan
                             </flux:button>
-                        @elseif ($selectedPinjam->status === 'DISETUJUI')
+                        @elseif ($selectedPinjam->status === \App\Enums\StatusPeminjaman::Disetujui->value)
                             <flux:button
                                 wire:click="confirmSerahTerima({{ $selectedPinjam->id }})"
                                 variant="primary"

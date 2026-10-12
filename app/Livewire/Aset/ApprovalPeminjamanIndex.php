@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Aset;
 
+use App\Enums\StatusAset;
+use App\Enums\StatusPeminjaman;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -36,16 +38,12 @@ class ApprovalPeminjamanIndex extends Component
         $user = auth()->user();
         abort_unless(
             $user && (
-                $user->can('page_ApprovalPeminjamanIndex') ||
                 $user->can('update_layanan_unit::approval::peminjaman') ||
                 $user->can('view_any_layanan_unit::approval::peminjaman') ||
                 $user->can('update_layanan_unit::approval::karu') ||
                 $user->can('view_any_layanan_unit::approval::karu') ||
                 $user->can('view_any_layanan_unit::peminjaman::aset') ||
-                $user->can('update_layanan_unit::peminjaman::aset') ||
-                $user->can('page_Dashboard') ||
-                $user->can('page_AdminLogistikDashboard') ||
-                $user->can('page_SuperAdminDashboard')
+                $user->can('update_layanan_unit::peminjaman::aset')
             ),
             403,
             'Anda tidak memiliki wewenang untuk mengakses halaman Otorisasi Peminjaman Aset.'
@@ -59,12 +57,7 @@ class ApprovalPeminjamanIndex extends Component
     {
         $user = auth()->user();
 
-        return (bool) ($user && (
-            $user->can('page_Dashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_SuperAdminDashboard') ||
-            $user->can('manage_all')
-        ));
+        return (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
     }
 
     /**
@@ -162,15 +155,6 @@ class ApprovalPeminjamanIndex extends Component
     }
 
     /**
-     * Tutup modal rincian peminjaman.
-     */
-    public function closeDetail(): void
-    {
-        $this->showDetailModal = false;
-        $this->selectedPinjam = null;
-    }
-
-    /**
      * Minta konfirmasi persetujuan peminjaman.
      */
     public function confirmApprove(int $id): void
@@ -178,7 +162,7 @@ class ApprovalPeminjamanIndex extends Component
         $pinjam = PermintaanPeminjaman::with('unitPeminjam')->findOrFail($id);
         $this->authorizeAction($pinjam);
 
-        if ($pinjam->status !== 'DIAJUKAN') {
+        if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
             $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat disetujui.', 'danger');
             return;
         }
@@ -206,7 +190,7 @@ class ApprovalPeminjamanIndex extends Component
             $pinjam = PermintaanPeminjaman::lockForUpdate()->with('detail')->findOrFail($id);
             $this->authorizeAction($pinjam);
 
-            if ($pinjam->status !== 'DIAJUKAN') {
+            if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
                 $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat disetujui.', 'danger');
                 return;
             }
@@ -217,7 +201,7 @@ class ApprovalPeminjamanIndex extends Component
             // Kunci baris aset fisik untuk mencegah race condition / double approval
             Aset::whereIn('id', $asetIds)->lockForUpdate()->get();
 
-            $konflik = PermintaanPeminjaman::whereIn('status', ['DISETUJUI', 'DIPINJAM'])
+            $konflik = PermintaanPeminjaman::whereIn('status', StatusPeminjaman::mengikatAset())
                 ->where('id', '!=', $pinjam->id)
                 ->whereHas('detail', fn ($d) => $d->whereIn('aset_id', $asetIds))
                 ->first();
@@ -229,7 +213,7 @@ class ApprovalPeminjamanIndex extends Component
             // Kunci integritas: periksa apakah ada aset di permohonan ini yang sedang dalam perbaikan IPSRS
             $isMaintenance = \App\Models\PermintaanMaintenance::whereIn('aset_id', $asetIds)
                 ->whereNotIn('status', ['SELESAI', 'DIBATALKAN'])
-                ->exists() || Aset::whereIn('id', $asetIds)->where('status', 'DALAM_MAINTENANCE')->exists();
+                ->exists() || Aset::whereIn('id', $asetIds)->where('status', StatusAset::DalamMaintenance->value)->exists();
 
             if ($isMaintenance) {
                 $this->toast('Aset pada permohonan ini sedang dalam penanganan perbaikan/pemeliharaan IPSRS dan tidak dapat disetujui.', 'danger');
@@ -237,7 +221,7 @@ class ApprovalPeminjamanIndex extends Component
             }
 
             $pinjam->update([
-                'status'         => 'DISETUJUI',
+                'status'         => StatusPeminjaman::Disetujui->value,
                 'disetujui_oleh' => $user?->id,
             ]);
 
@@ -253,7 +237,7 @@ class ApprovalPeminjamanIndex extends Component
         $pinjam = PermintaanPeminjaman::with('unitPeminjam')->findOrFail($id);
         $this->authorizeAction($pinjam);
 
-        if ($pinjam->status !== 'DIAJUKAN') {
+        if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
             $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat ditolak.', 'danger');
             return;
         }
@@ -278,13 +262,13 @@ class ApprovalPeminjamanIndex extends Component
         $pinjam = PermintaanPeminjaman::findOrFail($id);
         $this->authorizeAction($pinjam);
 
-        if ($pinjam->status !== 'DIAJUKAN') {
+        if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
             $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat ditolak.', 'danger');
             return;
         }
 
         $pinjam->update([
-            'status'         => 'DITOLAK',
+            'status'         => StatusPeminjaman::Ditolak->value,
             'disetujui_oleh' => auth()->id(),
         ]);
 
@@ -299,7 +283,7 @@ class ApprovalPeminjamanIndex extends Component
         $pinjam = PermintaanPeminjaman::with('unitPeminjam')->findOrFail($id);
         $this->authorizeAction($pinjam);
 
-        if ($pinjam->status !== 'DISETUJUI') {
+        if ($pinjam->status !== StatusPeminjaman::Disetujui->value) {
             $this->toast('Hanya peminjaman berstatus DISETUJUI yang dapat diserahterimakan.', 'danger');
             return;
         }
@@ -324,7 +308,7 @@ class ApprovalPeminjamanIndex extends Component
         $pinjam = PermintaanPeminjaman::with('detail.aset')->findOrFail($id);
         $this->authorizeAction($pinjam);
 
-        if ($pinjam->status !== 'DISETUJUI') {
+        if ($pinjam->status !== StatusPeminjaman::Disetujui->value) {
             $this->toast('Hanya peminjaman berstatus DISETUJUI yang dapat diserahterimakan.', 'danger');
             return;
         }
@@ -364,9 +348,9 @@ class ApprovalPeminjamanIndex extends Component
         $baseCountQuery = PermintaanPeminjaman::query();
         $this->applyScope($baseCountQuery);
 
-        $countMenunggu = (clone $baseCountQuery)->where('status', 'DIAJUKAN')->count();
-        $countSiapSerahTerima = (clone $baseCountQuery)->where('status', 'DISETUJUI')->count();
-        $countDipinjam = (clone $baseCountQuery)->where('status', 'DIPINJAM')->count();
+        $countMenunggu = (clone $baseCountQuery)->where('status', StatusPeminjaman::Diajukan->value)->count();
+        $countSiapSerahTerima = (clone $baseCountQuery)->where('status', StatusPeminjaman::Disetujui->value)->count();
+        $countDipinjam = (clone $baseCountQuery)->where('status', StatusPeminjaman::Dipinjam->value)->count();
 
         $query = PermintaanPeminjaman::with([
             'unitPeminjam',

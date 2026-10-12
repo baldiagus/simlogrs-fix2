@@ -68,31 +68,34 @@ class AnggaranRealtimeService
      */
     public function syncRealisasiAnggaran(string|int $tahun = '2026'): void
     {
-        $daftarAnggaran = AnggaranPengadaan::where('tahun', (string) $tahun)->get();
+        // Satu transaksi: jika audit salah satu anggaran gagal, seluruh sinkronisasi dibatalkan (ADR 0002 B).
+        DB::transaction(function () use ($tahun) {
+            $daftarAnggaran = AnggaranPengadaan::where('tahun', (string) $tahun)->get();
 
-        foreach ($daftarAnggaran as $anggaran) {
-            if ($anggaran->tipe === 'UNIT' && $anggaran->unit_id) {
-                $bebanDistribusi = $this->hitungBebanDistribusiUnit($anggaran->unit_id, $tahun);
-                $bebanSparepart = $this->hitungBebanSparepartUnit($anggaran->unit_id, $tahun);
-                $realisasi = $bebanDistribusi + $bebanSparepart;
-            } elseif ($anggaran->tipe === 'SPAREPART_IPSRS') {
-                $realisasi = $this->hitungTotalBebanSparepartIpsrs($tahun);
-            } else {
-                continue;
+            foreach ($daftarAnggaran as $anggaran) {
+                if ($anggaran->tipe === 'UNIT' && $anggaran->unit_id) {
+                    $bebanDistribusi = $this->hitungBebanDistribusiUnit($anggaran->unit_id, $tahun);
+                    $bebanSparepart = $this->hitungBebanSparepartUnit($anggaran->unit_id, $tahun);
+                    $realisasi = $bebanDistribusi + $bebanSparepart;
+                } elseif ($anggaran->tipe === 'SPAREPART_IPSRS') {
+                    $realisasi = $this->hitungTotalBebanSparepartIpsrs($tahun);
+                } else {
+                    continue;
+                }
+
+                $pagu = (float) $anggaran->pagu;
+                $sisa = max(0, $pagu - $realisasi);
+                $serapan = $pagu > 0 ? round(($realisasi / $pagu) * 100, 2) : 0;
+                $status = $serapan > 100 ? 'Over-Budget' : ($serapan > 75 ? 'Waspada' : 'Normal');
+
+                $anggaran->update([
+                    'realisasi' => $realisasi,
+                    'sisa'      => $sisa,
+                    'serapan'   => $serapan,
+                    'status'    => $status,
+                ]);
             }
-
-            $pagu = (float) $anggaran->pagu;
-            $sisa = max(0, $pagu - $realisasi);
-            $serapan = $pagu > 0 ? round(($realisasi / $pagu) * 100, 2) : 0;
-            $status = $serapan > 100 ? 'Over-Budget' : ($serapan > 75 ? 'Waspada' : 'Normal');
-
-            $anggaran->update([
-                'realisasi' => $realisasi,
-                'sisa'      => $sisa,
-                'serapan'   => $serapan,
-                'status'    => $status,
-            ]);
-        }
+        });
     }
 
     /**

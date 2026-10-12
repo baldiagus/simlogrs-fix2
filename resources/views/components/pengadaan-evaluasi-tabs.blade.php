@@ -4,8 +4,11 @@
     $portalKey = \App\Support\Portal\PortalResolver::resolve();
     $user = auth()->user();
 
-    $canAnggaran = $user?->can('view_any_pengadaan::realisasi::anggaran');
-    $canRekanan = $user?->can('view_any_pengadaan::master::rekanan');
+    // Visibilitas tab = guard halaman: page_* rute DAN view_any_* / view_* modul.
+    $canAnggaran = $user?->can('page_RealisasiAnggaranIndex')
+        && ($user->can('view_any_pengadaan::realisasi::anggaran') || $user->can('view_pengadaan::realisasi::anggaran'));
+    $canRekanan = $user?->can('page_MasterRekananIndex')
+        && ($user->can('view_any_pengadaan::master::rekanan') || $user->can('view_pengadaan::master::rekanan'));
 
     $totalTabs = ($canAnggaran ? 1 : 0) + ($canRekanan ? 1 : 0);
 @endphp

@@ -266,7 +266,7 @@ class ShieldRolePermissionSeeder extends Seeder
             'view_any_layanan_unit::lapor::servis',
             'view_layanan_unit::lapor::servis',
         ]);
-        // 12. Role: manajemen
+        // 12. Role: manajemen — global read access only; no role-granted mutations.
         $givePermissions('manajemen', [
             'page_ManajemenDashboard',
             'view_any_master::%',
@@ -281,21 +281,13 @@ class ShieldRolePermissionSeeder extends Seeder
             'view_gudang_stok::%',
             'view_pemeliharaan::%',
             'view_audit_manajemen::%',
-            // Create layanan unit (selaras DB aktual: manajemen boleh meminjam/mengajukan)
-            'create_layanan_unit::approval::peminjaman',
-            'create_layanan_unit::lapor::servis',
-            'create_layanan_unit::peminjaman::aset',
-            'create_layanan_unit::penerimaan::barang',
-            'create_layanan_unit::pengembalian::aset',
-            'create_layanan_unit::permintaan::barang',
-            'create_layanan_unit::stok::ruangan',
-            'create_layanan_unit::pengalihan::aset',
         ]);
 
-        // 13. Role: auditor
+        // 13. Role: auditor — global read access only; no role-granted mutations.
         $givePermissions('auditor', [
             'page_AuditorDashboard',
-            '%_audit_manajemen::%',
+            'view_any_audit_manajemen::%',
+            'view_audit_manajemen::%',
             'view_any_master::%',
             'view_any_pengadaan::%',
             'view_any_layanan_unit::%',
@@ -306,15 +298,8 @@ class ShieldRolePermissionSeeder extends Seeder
             'view_layanan_unit::%',
             'view_gudang_stok::%',
             'view_pemeliharaan::%',
-            // Create layanan unit (selaras DB aktual: auditor boleh meminjam/mengajukan)
-            'create_layanan_unit::approval::peminjaman',
-            'create_layanan_unit::lapor::servis',
-            'create_layanan_unit::peminjaman::aset',
-            'create_layanan_unit::penerimaan::barang',
-            'create_layanan_unit::pengembalian::aset',
-            'create_layanan_unit::permintaan::barang',
-            'create_layanan_unit::stok::ruangan',
         ]);
+
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

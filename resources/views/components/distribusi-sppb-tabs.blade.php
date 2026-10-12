@@ -1,25 +1,40 @@
+@use('App\Enums\StatusPermintaanDistribusi')
+@use('App\Enums\StatusPengirimanBarang')
 @props(['active' => 'picking'])
 
 @php
     $portalKey = \App\Support\Portal\PortalResolver::resolve();
     $user = auth()->user();
-    $canPicking = $user?->can('view_any_gudang_stok::picking::distribusi');
-    $canTerima = $user?->can('view_any_layanan_unit::penerimaan::barang');
+    // Visibilitas tab memakai permission yang sama dengan guard halaman
+    $canPicking = (bool) $user?->canAny(['view_any_gudang_stok::picking::distribusi', 'view_gudang_stok::picking::distribusi']);
+    $canTerima = (bool) $user?->canAny(['view_any_layanan_unit::penerimaan::barang', 'view_layanan_unit::penerimaan::barang']);
 
-    $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+    // Scope ADR 0001: hanya super_admin/admin_logistik global; selain itu unit/gudang miliknya (termasuk yang dikepalai)
+    $isGlobalAdmin = (bool) $user?->hasRole(['super_admin', 'admin_logistik']);
+    $ownUnitIds = $user ? \App\Models\Unit::where('kepala_unit_id', $user->id)->pluck('id')->push($user->unit_id)->filter()->unique()->values()->all() : [];
+    $ownGudangIds = $user ? \App\Models\Gudang::where('kepala_gudang_id', $user->id)->pluck('id')->push($user->gudang_id)->filter()->unique()->values()->all() : [];
+    $applyScope = function ($q, $unitColumn = 'unit_id', $gudangColumn = 'gudang_id') use ($isGlobalAdmin, $ownUnitIds, $ownGudangIds) {
+        if ($isGlobalAdmin) {
+            return $q;
+        }
+        if ($unitColumn && $ownUnitIds) {
+            return $q->whereIn($unitColumn, $ownUnitIds);
+        }
+        if ($gudangColumn && $ownGudangIds) {
+            return $q->whereIn($gudangColumn, $ownGudangIds);
+        }
+
+        return ($ownUnitIds || $ownGudangIds) ? $q->whereRaw('1 = 0') : $q;
+    };
 
     $siapPickingCount = 0;
     if ($canPicking) {
-        $siapPickingCount = \App\Models\PermintaanDistribusi::where('status', 'DISETUJUI_GUDANG')
-            ->when(! $isGlobalAdmin && $user?->gudang_id, fn ($q) => $q->where('gudang_id', $user->gudang_id))
-            ->count();
+        $siapPickingCount = $applyScope(\App\Models\PermintaanDistribusi::where('status', StatusPermintaanDistribusi::DisetujuiGudang->value), null, 'gudang_id')->count();
     }
 
     $sedangDikirimCount = 0;
     if ($canTerima) {
-        $sedangDikirimCount = \App\Models\PengirimanBarang::where('status', 'DIKIRIM')
-            ->when(! $isGlobalAdmin && $user?->unit_id, fn ($q) => $q->where('unit_id', $user->unit_id))
-            ->count();
+        $sedangDikirimCount = $applyScope(\App\Models\PengirimanBarang::where('status', StatusPengirimanBarang::Dikirim->value))->count();
     }
 
     $totalTabs = ($canPicking ? 1 : 0) + ($canTerima ? 1 : 0);

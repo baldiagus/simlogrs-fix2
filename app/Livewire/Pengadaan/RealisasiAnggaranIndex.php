@@ -29,28 +29,34 @@ class RealisasiAnggaranIndex extends Component
 
     public function boot(): void
     {
+        $user = auth()->user();
         abort_unless(
-            auth()->user()?->can('page_RealisasiAnggaranIndex') ||
-            auth()->user()?->can('view_any_pengadaan::realisasi::anggaran') ||
-            auth()->user()?->can('page_ManajemenDashboard'),
+            $user?->can('view_any_pengadaan::realisasi::anggaran') || $user?->can('view_pengadaan::realisasi::anggaran'),
             403,
             'Akses ditolak: Anda tidak memiliki wewenang melihat Pagu & Realisasi Anggaran.'
         );
     }
 
-    public function mount(): void
+    /**
+     * Baca lintas unit hanya untuk role global operasional serta pembaca global
+     * (auditor, manajemen, bagian pengadaan) yang sudah lolos permission view.
+     */
+    private function hasGlobalRead(): bool
     {
-        abort_unless(
-            auth()->user()?->can('page_RealisasiAnggaranIndex') ||
-            auth()->user()?->can('view_any_pengadaan::realisasi::anggaran') ||
-            auth()->user()?->can('page_ManajemenDashboard'),
-            403,
-            'Akses ditolak: Anda tidak memiliki wewenang melihat Pagu & Realisasi Anggaran.'
-        );
+        return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen', 'pengadaan']);
+    }
+
+    private function canReadUnit(int $unitId): bool
+    {
+        $userUnitId = auth()->user()?->unit_id;
+
+        return $this->hasGlobalRead() || ($userUnitId && (int) $userUnitId === $unitId);
     }
 
     public function openDetail(int $id): void
     {
+        abort_unless($this->canReadUnit($id), 403, 'Akses ditolak: Anda hanya dapat melihat realisasi anggaran unit Anda sendiri.');
+
         $this->selectedUnitId = $id;
         $this->selectedAnggaranId = $id;
         $this->showDetailModal = true;
@@ -59,7 +65,11 @@ class RealisasiAnggaranIndex extends Component
     public function getSelectedUnitProperty(): ?Unit
     {
         $id = $this->selectedUnitId ?? $this->selectedAnggaranId;
-        return $id ? Unit::find($id) : null;
+        if (! $id || ! $this->canReadUnit((int) $id)) {
+            return null;
+        }
+
+        return Unit::find($id);
     }
 
     public function getSelectedAnggaranProperty(): ?Unit
@@ -74,7 +84,8 @@ class RealisasiAnggaranIndex extends Component
         $ringkasan = $service->getRingkasanEksekutif($this->filterTahun);
 
         // 1. Data Tab Unit Ruangan
-        $unitQuery = Unit::query();
+        $unitQuery = Unit::query()
+            ->when(! $this->hasGlobalRead(), fn ($q) => $q->where('id', auth()->user()?->unit_id));
 
         if (! empty($this->search)) {
             $unitQuery->where(function ($q) {
@@ -100,6 +111,7 @@ class RealisasiAnggaranIndex extends Component
 
         $riwayatSparepartTerbaru = SukuCadangMaintenance::with(['barang', 'stokBatch', 'permintaanMaintenance.aset', 'permintaanMaintenance.unit'])
             ->whereYear('dibuat_pada', $this->filterTahun)
+            ->when(! $this->hasGlobalRead(), fn ($q) => $q->whereHas('permintaanMaintenance', fn ($m) => $m->where('unit_id', auth()->user()?->unit_id)))
             ->latest('id')
             ->take(10)
             ->get();

@@ -2,7 +2,7 @@
 
 namespace App\Services\Persediaan;
 
-use App\Models\Barang;
+use App\Enums\StatusPengalihan;
 use App\Models\PengalihanBarang;
 use App\Models\PengalihanBarangDetail;
 use App\Models\PergerakanStok;
@@ -64,7 +64,7 @@ class PengalihanBarangService
                 'lokasi_gudang_tujuan_id' => $tipeTujuan === 'GUDANG' ? $lokasiGudangTujuanId : null,
                 'tanggal_pengalihan' => $data['tanggal_pengalihan'] ?? now()->toDateString(),
                 'alasan' => $data['alasan'] ?? '-',
-                'status' => 'DIAJUKAN',
+                'status' => StatusPengalihan::Diajukan->value,
                 'diajukan_oleh' => $data['diajukan_oleh'],
                 'catatan' => $data['catatan'] ?? null,
             ]);
@@ -117,7 +117,7 @@ class PengalihanBarangService
         return DB::transaction(function () use ($pengalihanId, $userId, $catatan) {
             $transfer = PengalihanBarang::lockForUpdate()->findOrFail($pengalihanId);
 
-            if ($transfer->status !== 'DIAJUKAN') {
+            if ($transfer->status !== StatusPengalihan::Diajukan->value) {
                 throw new InvalidArgumentException("Dokumen {$transfer->kode} tidak dalam status DIAJUKAN.");
             }
 
@@ -126,7 +126,7 @@ class PengalihanBarangService
             }
 
             $transfer->update([
-                'status' => 'DISETUJUI',
+                'status' => StatusPengalihan::Disetujui->value,
                 'disetujui_oleh' => $userId,
                 'catatan' => $catatan ?: $transfer->catatan,
             ]);
@@ -143,7 +143,7 @@ class PengalihanBarangService
         return DB::transaction(function () use ($pengalihanId, $userId, $alasan) {
             $transfer = PengalihanBarang::with('detail')->lockForUpdate()->findOrFail($pengalihanId);
 
-            if (! in_array($transfer->status, ['DIAJUKAN', 'DISETUJUI'], true)) {
+            if (! in_array($transfer->status, StatusPengalihan::aktif(), true)) {
                 throw new InvalidArgumentException("Dokumen {$transfer->kode} tidak dapat ditolak.");
             }
 
@@ -165,7 +165,7 @@ class PengalihanBarangService
             }
 
             $transfer->update([
-                'status' => 'DITOLAK',
+                'status' => StatusPengalihan::Ditolak->value,
                 'disetujui_oleh' => $userId,
                 'catatan' => $alasan ?: $transfer->catatan,
             ]);
@@ -182,7 +182,7 @@ class PengalihanBarangService
         return DB::transaction(function () use ($pengalihanId, $userId, $alasan) {
             $transfer = PengalihanBarang::with('detail')->lockForUpdate()->findOrFail($pengalihanId);
 
-            if ($transfer->status !== 'DIAJUKAN') {
+            if ($transfer->status !== StatusPengalihan::Diajukan->value) {
                 throw new InvalidArgumentException("Hanya pengalihan berstatus DIAJUKAN yang dapat dibatalkan.");
             }
 
@@ -200,7 +200,7 @@ class PengalihanBarangService
             }
 
             $transfer->update([
-                'status' => 'DIBATALKAN',
+                'status' => StatusPengalihan::Dibatalkan->value,
                 'catatan' => $alasan ?: $transfer->catatan,
             ]);
 
@@ -219,7 +219,7 @@ class PengalihanBarangService
                 ->lockForUpdate()
                 ->findOrFail($pengalihanId);
 
-            if ($transfer->status !== 'DISETUJUI') {
+            if ($transfer->status !== StatusPengalihan::Disetujui->value) {
                 throw new InvalidArgumentException("Dokumen {$transfer->kode} belum disetujui atau sudah selesai diproses.");
             }
 
@@ -297,7 +297,7 @@ class PengalihanBarangService
             }
 
             $transfer->update([
-                'status' => 'SELESAI',
+                'status' => StatusPengalihan::Selesai->value,
                 'diterima_oleh' => $userId,
                 'tanggal_serah_terima' => now(),
             ]);

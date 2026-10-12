@@ -44,10 +44,10 @@
                 <div class="w-44">
                     <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                         <option value="">Semua Status</option>
-                        <option value="BERJALAN">BERJALAN (Hitung Fisik)</option>
-                        <option value="MENUNGGU_APPROVAL">MENUNGGU APPROVAL</option>
-                        <option value="DISETUJUI">DISETUJUI (Selesai)</option>
-                        <option value="DITOLAK">DITOLAK</option>
+                        <option value="{{ \App\Enums\StatusStokOpname::Berjalan->value }}">BERJALAN (Hitung Fisik)</option>
+                        <option value="{{ \App\Enums\StatusStokOpname::MenungguApproval->value }}">MENUNGGU APPROVAL</option>
+                        <option value="{{ \App\Enums\StatusStokOpname::Disetujui->value }}">DISETUJUI (Selesai)</option>
+                        <option value="{{ \App\Enums\StatusStokOpname::Ditolak->value }}">DITOLAK</option>
                     </select>
                 </div>
             </div>
@@ -120,8 +120,8 @@
                                     <flux:menu.item wire:click="showDetail({{ $opn->id }})" icon="eye">
                                         Rincian Sesi Opname
                                     </flux:menu.item>
-                                    @if ($opn->status === 'BERJALAN')
-                                        @canany(['update_gudang_stok::stok::opname', 'create_gudang_stok::stok::opname', 'page_KepalaGudangDashboard', 'page_Dashboard'])
+                                    @if ($opn->status === \App\Enums\StatusStokOpname::Berjalan->value)
+                                        @canany(['update_gudang_stok::stok::opname', 'create_gudang_stok::stok::opname'])
                                             <flux:menu.separator />
                                             <flux:menu.item wire:click="openHitungFisik({{ $opn->id }})" icon="clipboard-document-list" class="text-blue-600 dark:text-blue-400">
                                                 Input Hitung Fisik

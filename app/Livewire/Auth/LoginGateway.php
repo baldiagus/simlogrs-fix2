@@ -22,9 +22,9 @@ class LoginGateway extends Component
     {
         $this->validate();
 
-        // 1. Rate Limiting: Maksimal 5 percobaan gagal per menit per kombinasi email + IP
+        // 1. Rate Limiting: Maksimal simlog.auth.max_login_attempts (default 5) percobaan gagal per menit per kombinasi email + IP
         $throttleKey = strtolower($this->email) . '|' . request()->ip();
-        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+        if (RateLimiter::tooManyAttempts($throttleKey, (int) config('simlog.auth.max_login_attempts'))) {
             $seconds = RateLimiter::availableIn($throttleKey);
             throw ValidationException::withMessages([
                 'email' => "Terlalu banyak percobaan masuk. Silakan coba lagi dalam {$seconds} detik.",

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\StatusPenyesuaianStok;
+use App\Enums\StatusStokOpname;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Barang;
 use App\Models\Gudang;
@@ -29,13 +31,8 @@ class PersediaanApiController extends ApiController
     {
         $user = $request->user();
         $isGlobal = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
-            $user->can('view_any_gudang_stok::monitoring::fefo') ||
-            $user->can('page_KepalaGudangDashboard') ||
-            $user->can('page_GudangDashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_AuditorDashboard') ||
-            $user->can('page_ManajemenDashboard')
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
+            $user->can('view_any_gudang_stok::monitoring::fefo')
         );
 
         $hasWarehouseAccess = $isGlobal || ($user && $user->gudang_id);
@@ -172,13 +169,8 @@ class PersediaanApiController extends ApiController
     {
         $user = $request->user();
         $isGlobal = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
-            $user->can('view_any_gudang_stok::buku::mutasi') ||
-            $user->can('page_KepalaGudangDashboard') ||
-            $user->can('page_GudangDashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_AuditorDashboard') ||
-            $user->can('page_ManajemenDashboard')
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
+            $user->can('view_any_gudang_stok::buku::mutasi')
         );
 
         $hasWarehouseAccess = $isGlobal || ($user && $user->gudang_id);
@@ -250,13 +242,8 @@ class PersediaanApiController extends ApiController
     {
         $user = $request->user();
         $isGlobal = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
-            $user->can('view_any_gudang_stok::stok::opname') ||
-            $user->can('page_KepalaGudangDashboard') ||
-            $user->can('page_GudangDashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_AuditorDashboard') ||
-            $user->can('page_ManajemenDashboard')
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
+            $user->can('view_any_gudang_stok::stok::opname')
         );
 
         $hasWarehouseAccess = $isGlobal || ($user && $user->gudang_id);
@@ -324,7 +311,7 @@ class PersediaanApiController extends ApiController
         $user = $request->user();
         $canInitiate = $user && (
             $user->can('create_gudang_stok::stok::opname') ||
-            $user->hasRole(['kepala_gudang', 'admin_logistik', 'super_admin'])
+            $user->hasRole(['super_admin', 'admin_logistik'])
         );
 
         if (! $canInitiate) {
@@ -361,7 +348,7 @@ class PersediaanApiController extends ApiController
                 'kode'           => $kodeOpn,
                 'gudang_id'      => $gudang->id,
                 'tanggal_opname' => $request->input('tanggal_opname'),
-                'status'         => 'BERJALAN',
+                'status'         => StatusStokOpname::Berjalan->value,
                 'catatan'        => $request->input('catatan'),
                 'dibuat_oleh'    => $user->id,
             ]);
@@ -404,7 +391,7 @@ class PersediaanApiController extends ApiController
         $canCount = $user && (
             $user->can('update_gudang_stok::stok::opname') ||
             $user->can('create_gudang_stok::stok::opname') ||
-            $user->hasRole(['petugas_gudang', 'kepala_gudang', 'admin_logistik', 'super_admin'])
+            $user->hasRole(['super_admin', 'admin_logistik'])
         );
 
         if (! $canCount) {
@@ -415,7 +402,7 @@ class PersediaanApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang memproses opname di fasilitas gudang ini.', 403);
         }
 
-        if (! in_array($opname->status, ['BERJALAN', 'PROSES_COUNT', 'MENUNGGU_APPROVAL'])) {
+        if (! in_array($opname->status, StatusStokOpname::bisaDihitung())) {
             return $this->jsonError("Sesi opname telah ditutup dengan status {$opname->status}.", 422);
         }
 
@@ -467,7 +454,7 @@ class PersediaanApiController extends ApiController
 
             if ($finalisasi) {
                 if ($hasSelisih) {
-                    $opname->update(['status' => 'MENUNGGU_APPROVAL']);
+                    $opname->update(['status' => StatusStokOpname::MenungguApproval->value]);
 
                     // Buat dokumen PenyesuaianStok jika belum ada
                     $existingAdj = PenyesuaianStok::where('stok_opname_id', $opname->id)->first();
@@ -479,7 +466,7 @@ class PersediaanApiController extends ApiController
                             'gudang_id'           => $opname->gudang_id,
                             'tanggal_penyesuaian' => now()->toDateString(),
                             'alasan'              => "Selisih perhitungan fisik Stock Opname {$opname->kode}",
-                            'status'              => 'MENUNGGU',
+                            'status'              => StatusPenyesuaianStok::Menunggu->value,
                             'diajukan_oleh'       => $user->id,
                         ]);
 
@@ -498,12 +485,12 @@ class PersediaanApiController extends ApiController
                     }
                 } else {
                     $opname->update([
-                        'status'         => 'DISETUJUI',
+                        'status'         => StatusStokOpname::Disetujui->value,
                         'disetujui_oleh' => $user->id,
                     ]);
                 }
             } else {
-                $opname->update(['status' => 'PROSES_COUNT']);
+                $opname->update(['status' => StatusStokOpname::ProsesCount->value]);
             }
         });
 
@@ -522,14 +509,14 @@ class PersediaanApiController extends ApiController
         $user = $request->user();
         $canView = $user && (
             $user->can('view_any_gudang_stok::otorisasi::penyesuaian') ||
-            $user->can('update_gudang_stok::otorisasi::penyesuaian') ||
-            $user->hasRole(['kepala_gudang', 'admin_logistik', 'super_admin', 'auditor', 'manajemen'])
+            $user->can('view_gudang_stok::otorisasi::penyesuaian') ||
+            $user->hasRole(['super_admin', 'admin_logistik'])
         );
 
         if (! $canView) {
             return $this->jsonError('Anda tidak memiliki wewenang melihat daftar otorisasi penyesuaian stok.', 403);
         }
-        $status = $request->query('status', 'MENUNGGU');
+        $status = $request->query('status', StatusPenyesuaianStok::Menunggu->value);
         $gudangId = $request->query('gudang_id');
 
         $query = PenyesuaianStok::with([
@@ -593,7 +580,7 @@ class PersediaanApiController extends ApiController
         }
         $canAuthorize = $user && (
             $user->can('update_gudang_stok::otorisasi::penyesuaian') ||
-            $user->hasRole(['kepala_gudang', 'admin_logistik', 'super_admin'])
+            $user->hasRole(['super_admin', 'admin_logistik'])
         );
 
         if (! $canAuthorize) {
@@ -604,7 +591,7 @@ class PersediaanApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang mengesahkan penyesuaian stok untuk fasilitas gudang ini.', 403);
         }
 
-        if ($adj->status !== 'MENUNGGU') {
+        if ($adj->status !== StatusPenyesuaianStok::Menunggu->value) {
             return $this->jsonError("Dokumen telah diproses sebelumnya dengan status {$adj->status}.", 422);
         }
 
@@ -651,13 +638,13 @@ class PersediaanApiController extends ApiController
 
                 // Sahkan status penyesuaian dan sesi opname induk
                 $adj->update([
-                    'status'         => 'DISETUJUI',
+                    'status'         => StatusPenyesuaianStok::Disetujui->value,
                     'disetujui_oleh' => $user->id,
                 ]);
 
                 if ($adj->stokOpname) {
                     $adj->stokOpname->update([
-                        'status'         => 'DISETUJUI',
+                        'status'         => StatusStokOpname::Disetujui->value,
                         'disetujui_oleh' => $user->id,
                     ]);
                 }
@@ -683,7 +670,7 @@ class PersediaanApiController extends ApiController
         }
         $canAuthorize = $user && (
             $user->can('update_gudang_stok::otorisasi::penyesuaian') ||
-            $user->hasRole(['kepala_gudang', 'admin_logistik', 'super_admin'])
+            $user->hasRole(['super_admin', 'admin_logistik'])
         );
 
         if (! $canAuthorize) {
@@ -694,7 +681,7 @@ class PersediaanApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang menolak penyesuaian stok untuk fasilitas gudang ini.', 403);
         }
 
-        if ($adj->status !== 'MENUNGGU') {
+        if ($adj->status !== StatusPenyesuaianStok::Menunggu->value) {
             return $this->jsonError("Dokumen telah diproses sebelumnya dengan status {$adj->status}.", 422);
         }
 
@@ -702,14 +689,14 @@ class PersediaanApiController extends ApiController
 
         DB::transaction(function () use ($adj, $user, $alasan) {
             $adj->update([
-                'status'         => 'DITOLAK',
+                'status'         => StatusPenyesuaianStok::Ditolak->value,
                 'disetujui_oleh' => $user->id,
                 'alasan'         => $adj->alasan . " [DITOLAK: {$alasan}]",
             ]);
 
             if ($adj->stokOpname) {
                 $adj->stokOpname->update([
-                    'status' => 'DIBATALKAN',
+                    'status' => StatusStokOpname::Ditolak->value,
                 ]);
             }
         });

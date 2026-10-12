@@ -54,23 +54,23 @@
                         Semua
                     </button>
                     <button
-                        wire:click="$set('filterStatus', 'DITERBITKAN')"
+                        wire:click="$set('filterStatus', '{{ \App\Enums\StatusPesananPembelian::Diterbitkan->value }}')"
                         type="button"
-                        class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterStatus === 'DITERBITKAN' ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                        class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterStatus === \App\Enums\StatusPesananPembelian::Diterbitkan->value ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
                     >
                         Diterbitkan
                     </button>
                     <button
-                        wire:click="$set('filterStatus', 'DIKIRIM_VENDOR')"
+                        wire:click="$set('filterStatus', '{{ \App\Enums\StatusPesananPembelian::DikirimVendor->value }}')"
                         type="button"
-                        class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterStatus === 'DIKIRIM_VENDOR' ? 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                        class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterStatus === \App\Enums\StatusPesananPembelian::DikirimVendor->value ? 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
                     >
                         Dikirim Vendor
                     </button>
                     <button
-                        wire:click="$set('filterStatus', 'DITERIMA_SEBAGIAN')"
+                        wire:click="$set('filterStatus', '{{ \App\Enums\StatusPesananPembelian::DiterimaSebagian->value }}')"
                         type="button"
-                        class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterStatus === 'DITERIMA_SEBAGIAN' ? 'bg-white dark:bg-zinc-900 text-amber-600 dark:text-amber-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                        class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterStatus === \App\Enums\StatusPesananPembelian::DiterimaSebagian->value ? 'bg-white dark:bg-zinc-900 text-amber-600 dark:text-amber-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
                     >
                         Diterima Sebagian
                     </button>
@@ -83,23 +83,23 @@
                         Semua
                     </button>
                     <button
-                        wire:click="$set('filterStatus', 'LENGKAP')"
+                        wire:click="$set('filterStatus', '{{ \App\Enums\StatusPenerimaanPo::Lengkap->value }}')"
                         type="button"
-                        class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterStatus === 'LENGKAP' ? 'bg-white dark:bg-zinc-900 text-emerald-600 dark:text-emerald-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                        class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterStatus === \App\Enums\StatusPenerimaanPo::Lengkap->value ? 'bg-white dark:bg-zinc-900 text-emerald-600 dark:text-emerald-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
                     >
                         Lengkap
                     </button>
                     <button
-                        wire:click="$set('filterStatus', 'SEBAGIAN')"
+                        wire:click="$set('filterStatus', '{{ \App\Enums\StatusPenerimaanPo::Sebagian->value }}')"
                         type="button"
-                        class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterStatus === 'SEBAGIAN' ? 'bg-white dark:bg-zinc-900 text-amber-600 dark:text-amber-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                        class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterStatus === \App\Enums\StatusPenerimaanPo::Sebagian->value ? 'bg-white dark:bg-zinc-900 text-amber-600 dark:text-amber-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
                     >
                         Sebagian
                     </button>
                     <button
-                        wire:click="$set('filterStatus', 'DITOLAK')"
+                        wire:click="$set('filterStatus', '{{ \App\Enums\StatusPenerimaanPo::Ditolak->value }}')"
                         type="button"
-                        class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterStatus === 'DITOLAK' ? 'bg-white dark:bg-zinc-900 text-red-600 dark:text-red-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+                        class="px-3.5 py-1.5 rounded-lg transition-colors {{ $filterStatus === \App\Enums\StatusPenerimaanPo::Ditolak->value ? 'bg-white dark:bg-zinc-900 text-red-600 dark:text-red-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
                     >
                         Ditolak
                     </button>
@@ -136,7 +136,7 @@
                         @php
                             $isLate = $item->estimasi_tanggal_kirim
                                 && $item->estimasi_tanggal_kirim->isPast()
-                                && $item->status !== 'DITERIMA_LENGKAP';
+                                && $item->status !== \App\Enums\StatusPesananPembelian::DiterimaLengkap->value;
                         @endphp
                         <flux:table.row :key="'po-' . $item->id">
                             <flux:table.cell class="font-mono font-semibold text-xs">{{ $item->kode }}</flux:table.cell>
@@ -166,7 +166,7 @@
                                         Lihat Detail PO
                                     </flux:menu.item>
                                     @can('create_gudang_stok::penerimaan::po')
-                                        @if (in_array($item->status, ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN']))
+                                        @if (in_array($item->status, \App\Enums\StatusPesananPembelian::bisaDiterima()))
                                             <flux:menu.separator />
                                             <flux:menu.item wire:click="terima({{ $item->id }})" icon="inbox-arrow-down" class="text-emerald-600 dark:text-emerald-400">
                                                 Terima Kiriman PO
@@ -214,7 +214,7 @@
                                             Detail RCV
                                         </flux:menu.item>
                                         @can('create_gudang_stok::penerimaan::po')
-                                            @if ($item->pesananPembelian && $item->pesananPembelian->status === 'DITERIMA_SEBAGIAN')
+                                            @if ($item->pesananPembelian && $item->pesananPembelian->status === \App\Enums\StatusPesananPembelian::DiterimaSebagian->value)
                                                 <flux:menu.separator />
                                                 <flux:menu.item wire:click="terima({{ $item->pesanan_pembelian_id }})" icon="plus" class="text-blue-600 dark:text-blue-400">
                                                     Terima Sisa Barang
@@ -538,7 +538,7 @@
                 @php
                     $isLate = $selectedPo->estimasi_tanggal_kirim
                         && $selectedPo->estimasi_tanggal_kirim->isPast()
-                        && $selectedPo->status !== 'DITERIMA_LENGKAP';
+                        && $selectedPo->status !== \App\Enums\StatusPesananPembelian::DiterimaLengkap->value;
                 @endphp
                 @if ($isLate)
                     <div class="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300">
@@ -616,7 +616,7 @@
                 @endif
 
                 @can('create_gudang_stok::penerimaan::po')
-                    @if (in_array($selectedPo->status, ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN']))
+                    @if (in_array($selectedPo->status, \App\Enums\StatusPesananPembelian::bisaDiterima()))
                         <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
                             <flux:button
                                 type="button"
@@ -662,7 +662,7 @@
                     </div>
                 </div>
 
-                @if ($selectedPenerimaan->status === 'DITOLAK')
+                @if ($selectedPenerimaan->status === \App\Enums\StatusPenerimaanPo::Ditolak->value)
                     <div class="p-3.5 bg-red-50 dark:bg-red-950/40 rounded-xl border border-red-200 dark:border-red-800 text-xs text-red-800 dark:text-red-300 space-y-1">
                         <div class="font-bold flex items-center gap-1.5 text-sm text-red-700 dark:text-red-400">
                             <flux:icon.no-symbol class="size-4 shrink-0" />

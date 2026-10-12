@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Ipsrs;
 
+use App\Enums\StatusMaintenance;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -41,11 +42,7 @@ class LaporServisIndex extends Component
     ])]
     public string $deskripsi_masalah = '';
 
-    #[Validate('nullable|image|mimes:jpg,jpeg,png,webp|max:10240', message: [
-        'image' => 'Berkas harus berupa gambar.',
-        'mimes' => 'Format gambar yang didukung: JPG, PNG, WEBP.',
-        'max'   => 'Ukuran foto maksimal adalah 10 MB.',
-    ])]
+    // Aturan validasi `foto` ada di rules(): atribut #[Validate] tidak dapat memanggil config().
     public $foto = null;
 
     #[Url(history: true)]
@@ -53,6 +50,28 @@ class LaporServisIndex extends Component
 
     #[Url(history: true)]
     public string $filterPrioritas = '';
+
+    protected function rules(): array
+    {
+        return [
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:' . config('simlog.upload.max_kb'),
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'foto.image' => 'Berkas harus berupa gambar.',
+            'foto.mimes' => 'Format gambar yang didukung: JPG, PNG, WEBP.',
+            'foto.max'   => 'Ukuran foto maksimal adalah 10 MB.',
+        ];
+    }
+
+    // Mempertahankan validasi real-time yang sebelumnya diberikan atribut #[Validate].
+    public function updatedFoto(): void
+    {
+        $this->validateOnly('foto');
+    }
 
     public function create(): void
     {
@@ -70,6 +89,7 @@ class LaporServisIndex extends Component
 
         $user = auth()->user();
         $aset = Aset::with(['barang', 'unit', 'gudang'])->findOrFail($this->aset_id);
+        abort_unless($this->canAccessUnit($aset->unit_id), 403, 'Anda hanya berhak melaporkan kerusakan aset di unit Anda.');
 
         if (! $aset->barang || $aset->barang->status !== 'AKTIF') {
             $this->addError('aset_id', 'Komoditas aset yang dipilih sudah berstatus nonaktif.');
@@ -93,27 +113,30 @@ class LaporServisIndex extends Component
             $fotoPath = $opt['path'];
         }
 
-        $tiket = PermintaanMaintenance::create([
-            'kode'              => $kode,
-            'aset_id'           => $aset->id,
-            'unit_id'           => $aset->unit_id ?: $user->unit_id,
-            'dilaporkan_oleh'   => $user->id,
-            'deskripsi_masalah' => $this->deskripsi_masalah,
-            'foto_kerusakan'    => $fotoPath,
-            'prioritas'         => $this->prioritas,
-            'status'            => 'DILAPORKAN',
-        ]);
+        // Tiket dan status aset satu transaksi agar kegagalan audit membatalkan keduanya (ADR 0002 B).
+        DB::transaction(function () use ($kode, $aset, $user, $fotoPath) {
+            PermintaanMaintenance::create([
+                'kode'              => $kode,
+                'aset_id'           => $aset->id,
+                'unit_id'           => $aset->unit_id ?: $user->unit_id,
+                'dilaporkan_oleh'   => $user->id,
+                'deskripsi_masalah' => $this->deskripsi_masalah,
+                'foto_kerusakan'    => $fotoPath,
+                'prioritas'         => $this->prioritas,
+                'status'            => StatusMaintenance::Dilaporkan->value,
+            ]);
 
-        $kondisiAset = match ($this->prioritas) {
-            'CITO'   => 'RUSAK_BERAT',
-            'TINGGI' => 'RUSAK_RINGAN',
-            default  => in_array($aset->kondisi, ['RUSAK_RINGAN', 'RUSAK_BERAT']) ? $aset->kondisi : 'RUSAK_RINGAN',
-        };
+            $kondisiAset = match ($this->prioritas) {
+                'CITO'   => 'RUSAK_BERAT',
+                'TINGGI' => 'RUSAK_RINGAN',
+                default  => in_array($aset->kondisi, ['RUSAK_RINGAN', 'RUSAK_BERAT']) ? $aset->kondisi : 'RUSAK_RINGAN',
+            };
 
-        $aset->update([
-            'status'  => 'DALAM_MAINTENANCE',
-            'kondisi' => $kondisiAset,
-        ]);
+            $aset->update([
+                'status'  => 'DALAM_MAINTENANCE',
+                'kondisi' => $kondisiAset,
+            ]);
+        });
 
         $this->showModal = false;
         $this->reset(['aset_id', 'prioritas', 'deskripsi_masalah', 'foto']);
@@ -136,29 +159,17 @@ class LaporServisIndex extends Component
             'logMaintenance.teknisi',
             'sukuCadang.barang',
         ])->findOrFail($id);
+        abort_unless($this->canAccessUnit($this->selectedTiket->unit_id), 403);
 
         $this->showDetailModal = true;
     }
 
     public function confirmBatal(int $id): void
     {
-        $tiket = PermintaanMaintenance::findOrFail($id);
-        $user = auth()->user();
-        $isGlobalViewer = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_Dashboard')
-        );
+        $tiket = PermintaanMaintenance::with('aset')->findOrFail($id);
+        abort_unless($this->canBatal($tiket), 403, 'Anda tidak berwenang membatalkan laporan kerusakan ini.');
 
-        if (! $isGlobalViewer) {
-            $isOwner = (int) $user?->id === (int) $tiket->dilaporkan_oleh;
-            $isSameUnit = $user?->unit_id && (int) $user->unit_id === (int) $tiket->unit_id;
-            if (! $isOwner && ! $isSameUnit) {
-                abort(403, 'Anda tidak berwenang membatalkan laporan kerusakan dari unit lain.');
-            }
-        }
-
-        if ($tiket->status !== 'DILAPORKAN') {
+        if ($tiket->status !== StatusMaintenance::Dilaporkan->value) {
             $this->toast('Hanya tiket berstatus DILAPORKAN yang dapat dibatalkan.', 'danger');
             return;
         }
@@ -176,34 +187,21 @@ class LaporServisIndex extends Component
     public function batal(int $id): void
     {
         $tiket = PermintaanMaintenance::with('aset')->findOrFail($id);
-        $user = auth()->user();
-        $isGlobalViewer = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_Dashboard')
-        );
+        abort_unless($this->canBatal($tiket), 403, 'Anda tidak berwenang membatalkan laporan kerusakan ini.');
 
-        if (! $isGlobalViewer) {
-            $isOwner = (int) $user?->id === (int) $tiket->dilaporkan_oleh;
-            $isSameUnit = $user?->unit_id && (int) $user->unit_id === (int) $tiket->unit_id;
-            if (! $isOwner && ! $isSameUnit) {
-                abort(403, 'Anda tidak berwenang membatalkan laporan kerusakan dari unit lain.');
-            }
-        }
-
-        if ($tiket->status !== 'DILAPORKAN') {
+        if ($tiket->status !== StatusMaintenance::Dilaporkan->value) {
             $this->toast('Hanya tiket berstatus DILAPORKAN yang dapat dibatalkan.', 'danger');
             return;
         }
 
         DB::transaction(function () use ($tiket) {
-            $tiket->update(['status' => 'DIBATALKAN']);
+            $tiket->update(['status' => StatusMaintenance::Dibatalkan->value]);
 
             // Jika aset terkunci dalam maintenance akibat tiket ini dan tidak ada tiket aktif lain
             if ($tiket->aset && $tiket->aset->status === 'DALAM_MAINTENANCE') {
                 $hasOtherActiveTicket = PermintaanMaintenance::where('aset_id', $tiket->aset_id)
                     ->where('id', '!=', $tiket->id)
-                    ->whereIn('status', ['DILAPORKAN', 'DITUGASKAN', 'SEDANG_DIKERJAKAN', 'MENUNGGU_SPAREPART', 'UJI_FUNGSI'])
+                    ->whereIn('status', StatusMaintenance::aktif())
                     ->exists();
 
                 if (! $hasOtherActiveTicket) {
@@ -219,6 +217,57 @@ class LaporServisIndex extends Component
         $this->toast("Laporan kerusakan '{$tiket->kode}' berhasil dibatalkan.", 'info');
     }
 
+    /**
+     * Pelapor membatalkan laporannya sendiri dengan permission lapor; selain itu pembatalan
+     * adalah tahap pimpinan unit/gudang pemilik aset (role + permission) atau role global.
+     */
+    public function canBatal(PermintaanMaintenance $tiket): bool
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        if ((int) $user->id === (int) $tiket->dilaporkan_oleh) {
+            return $user->can('create_layanan_unit::lapor::servis');
+        }
+
+        if (! $user->can('update_layanan_unit::lapor::servis')) {
+            return false;
+        }
+
+        return $user->hasRole(['super_admin', 'admin_logistik'])
+            || ($user->hasRole('kepala_unit') && $user->unit_id && (int) $user->unit_id === (int) $tiket->unit_id)
+            || ($user->hasRole('kepala_gudang') && $user->gudang_id && (int) $user->gudang_id === (int) $tiket->aset?->gudang_id);
+    }
+
+    /**
+     * Pengguna unit dibatasi ke unit_id-nya; IPSRS (permission pemeliharaan) dan auditor/manajemen
+     * tanpa unit membaca lintas unit.
+     */
+    private function hasDepartmentWideRead(): bool
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole(['super_admin', 'admin_logistik'])) {
+            return true;
+        }
+
+        return ! $user->unit_id
+            && ($user->can('view_any_pemeliharaan::spk::perbaikan') || $user->hasRole(['auditor', 'manajemen']));
+    }
+
+    private function canAccessUnit(?int $unitId): bool
+    {
+        $user = auth()->user();
+
+        return $this->hasDepartmentWideRead()
+            || ($user?->unit_id && (int) $user->unit_id === (int) $unitId);
+    }
+
     public function render()
     {
         abort_unless(
@@ -229,14 +278,10 @@ class LaporServisIndex extends Component
 
         $user = auth()->user();
         $userUnitId = $user?->unit_id;
-        $isGlobalViewer = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik', 'teknisi', 'kepala_teknisi', 'auditor', 'manajemen']) ||
-            $user->can('view_any_pemeliharaan::spk::perbaikan') ||
-            $user->can('page_AdminLogistikDashboard')
-        );
+        $isDepartmentWide = $this->hasDepartmentWideRead();
 
         $query = PermintaanMaintenance::with(['aset.barang', 'unit', 'pelapor', 'penugasanAktif.teknisi'])
-            ->when($userUnitId && ! $isGlobalViewer, fn ($q) => $q->where('unit_id', $userUnitId))
+            ->when(! $isDepartmentWide, fn ($q) => $userUnitId ? $q->where('unit_id', $userUnitId) : $q->whereRaw('1 = 0'))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterPrioritas, fn ($q) => $q->where('prioritas', $this->filterPrioritas))
             ->when($this->search, function ($q) {
@@ -258,6 +303,7 @@ class LaporServisIndex extends Component
         // Aset yang dapat dipilih untuk dilaporkan: aset di unit bersangkutan (atau semua aset jika tanpa unit)
         $daftarAsetTersedia = Aset::with('barang')
             ->whereHas('barang', fn ($b) => $b->where('status', 'AKTIF'))
+            ->when(! $isDepartmentWide && ! $userUnitId, fn ($q) => $q->whereRaw('1 = 0'))
             ->when($userUnitId, fn ($q) => $q->where('unit_id', $userUnitId), fn ($q) => $q->where(function ($sub) {
                 $sub->whereNull('unit_id')
                     ->orWhereHas('unit', fn ($u) => $u->where('status', 'AKTIF'));

@@ -1,25 +1,41 @@
+@use('App\Enums\StatusPermintaanDistribusi')
 @props(['active' => 'permintaan'])
 
 @php
     $portalKey = \App\Support\Portal\PortalResolver::resolve();
     $user = auth()->user();
-    $canPermintaan = $user?->can('view_any_layanan_unit::permintaan::barang');
-    $canApprovalKaru = $user?->can('view_any_layanan_unit::approval::karu');
-    $canApprovalLogistik = $user?->can('view_any_gudang_stok::distribusi::approval');
+    // Visibilitas tab memakai permission yang sama dengan guard halaman
+    $canPermintaan = (bool) $user?->canAny(['view_any_layanan_unit::permintaan::barang', 'view_layanan_unit::permintaan::barang']);
+    $canApprovalKaru = (bool) $user?->canAny(['view_any_layanan_unit::approval::karu', 'view_layanan_unit::approval::karu']);
+    $canApprovalLogistik = (bool) $user?->canAny(['view_any_gudang_stok::distribusi::approval', 'view_gudang_stok::distribusi::approval']);
 
-    $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+    // Scope ADR 0001: hanya super_admin/admin_logistik global; selain itu unit/gudang miliknya (termasuk yang dikepalai)
+    $isGlobalAdmin = (bool) $user?->hasRole(['super_admin', 'admin_logistik']);
+    $ownUnitIds = $user ? \App\Models\Unit::where('kepala_unit_id', $user->id)->pluck('id')->push($user->unit_id)->filter()->unique()->values()->all() : [];
+    $ownGudangIds = $user ? \App\Models\Gudang::where('kepala_gudang_id', $user->id)->pluck('id')->push($user->gudang_id)->filter()->unique()->values()->all() : [];
+    $applyScope = function ($q, $unitColumn = 'unit_id', $gudangColumn = 'gudang_id') use ($isGlobalAdmin, $ownUnitIds, $ownGudangIds) {
+        if ($isGlobalAdmin) {
+            return $q;
+        }
+        if ($unitColumn && $ownUnitIds) {
+            return $q->whereIn($unitColumn, $ownUnitIds);
+        }
+        if ($gudangColumn && $ownGudangIds) {
+            return $q->whereIn($gudangColumn, $ownGudangIds);
+        }
+
+        return ($ownUnitIds || $ownGudangIds) ? $q->whereRaw('1 = 0') : $q;
+    };
 
     // Hitung antrean tertunda jika berhak
     $pendingKaruCount = 0;
     if ($canApprovalKaru) {
-        $pendingKaruCount = \App\Models\PermintaanDistribusi::where('status', 'DIAJUKAN')
-            ->when(! $isGlobalAdmin && $user?->unit_id, fn ($q) => $q->where('unit_id', $user->unit_id))
-            ->count();
+        $pendingKaruCount = $applyScope(\App\Models\PermintaanDistribusi::where('status', StatusPermintaanDistribusi::Diajukan->value))->count();
     }
 
     $pendingLogistikCount = 0;
     if ($canApprovalLogistik) {
-        $pendingLogistikCount = \App\Models\PermintaanDistribusi::where('status', 'DISETUJUI_KARU')->count();
+        $pendingLogistikCount = $applyScope(\App\Models\PermintaanDistribusi::where('status', StatusPermintaanDistribusi::DisetujuiKaru->value))->count();
     }
 
     $totalTabs = ($canPermintaan ? 1 : 0) + ($canApprovalKaru ? 1 : 0) + ($canApprovalLogistik ? 1 : 0);

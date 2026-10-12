@@ -20,6 +20,12 @@ class RekamMedisAsetIndex extends Component
 
     public function showBukuRiwayat(int $asetId): void
     {
+        abort_unless(
+            auth()->user()?->can('view_any_pemeliharaan::rekam::medis::aset') ||
+            auth()->user()?->can('view_pemeliharaan::rekam::medis::aset'),
+            403
+        );
+
         $this->selectedAset = Aset::with([
             'barang',
             'unit',

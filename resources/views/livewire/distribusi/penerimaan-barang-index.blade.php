@@ -1,3 +1,4 @@
+@use('App\Enums\StatusPengirimanBarang')
 <div class="space-y-6">
     {{-- Header Halaman & Sub-Navigasi --}}
     <div class="space-y-3">
@@ -28,9 +29,9 @@
             <div class="w-full sm:w-56">
                 <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status</option>
-                    <option value="DIKIRIM">DIKIRIM (Menunggu Penerimaan)</option>
-                    <option value="DITERIMA">DITERIMA (Sudah Masuk Stok)</option>
-                    <option value="BATAL">BATAL (Dibatalkan)</option>
+                    <option value="{{ StatusPengirimanBarang::Dikirim->value }}">DIKIRIM (Menunggu Penerimaan)</option>
+                    <option value="{{ StatusPengirimanBarang::Diterima->value }}">DITERIMA (Sudah Masuk Stok)</option>
+                    <option value="{{ StatusPengirimanBarang::Batal->value }}">BATAL (Dibatalkan)</option>
                 </select>
             </div>
         </div>
@@ -98,7 +99,7 @@
                         {{-- Aksi --}}
                         <flux:table.cell class="text-right w-16">
                             @php
-                                $canConfirmThis = $isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $item->unit_id);
+                                $canConfirmThis = $canTerima && ($isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $item->unit_id));
                             @endphp
                             <flux:dropdown position="bottom" align="end">
                                 <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
@@ -107,7 +108,7 @@
                                         Periksa Surat Jalan
                                     </flux:menu.item>
 
-                                    @if ($item->status === 'DIKIRIM' && $canConfirmThis)
+                                    @if ($item->status === StatusPengirimanBarang::Dikirim->value && $canConfirmThis)
                                         <flux:menu.separator />
                                         <flux:menu.item wire:click="confirmTerima({{ $item->id }})" icon="inbox" class="text-emerald-600 dark:text-emerald-400">
                                             Konfirmasi Terima Fisik
@@ -256,10 +257,10 @@
                 </div>
 
                 @php
-                    $canConfirmThisModal = $isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $selectedSppb->unit_id);
+                    $canConfirmThisModal = $canTerima && ($isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $selectedSppb->unit_id));
                 @endphp
 
-                @if ($selectedSppb->status === 'DIKIRIM' && $canConfirmThisModal)
+                @if ($selectedSppb->status === StatusPengirimanBarang::Dikirim->value && $canConfirmThisModal)
                     <div class="flex items-center justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
                         <flux:button
                             wire:click="confirmTerima({{ $selectedSppb->id }})"

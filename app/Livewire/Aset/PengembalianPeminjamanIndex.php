@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Aset;
 
+use App\Enums\StatusPeminjaman;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -39,14 +40,10 @@ class PengembalianPeminjamanIndex extends Component
         $user = auth()->user();
         abort_unless(
             $user && (
-                $user->can('page_PengembalianPeminjamanIndex') ||
-                $user->can('layanan_unit::pengembalian::aset') ||
-                $user->can('layanan_unit::peminjaman::aset') ||
                 $user->can('view_any_layanan_unit::peminjaman::aset') ||
                 $user->can('view_layanan_unit::peminjaman::aset') ||
-                $user->can('page_Dashboard') ||
-                $user->can('page_AdminLogistikDashboard') ||
-                $user->can('page_SuperAdminDashboard')
+                $user->can('view_any_layanan_unit::pengembalian::aset') ||
+                $user->can('view_layanan_unit::pengembalian::aset')
             ),
             403,
             'Anda tidak memiliki wewenang untuk mengakses halaman Pengembalian & Inspeksi Fisik Aset.'
@@ -59,11 +56,7 @@ class PengembalianPeminjamanIndex extends Component
     protected function authorizeProviderAccess(PermintaanPeminjaman $pinjam): void
     {
         $user = auth()->user();
-        $isGlobalAdmin = $user && (
-            $user->can('page_Dashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_SuperAdminDashboard')
-        );
+        $isGlobalAdmin = $user && $user->hasRole(['super_admin', 'admin_logistik']);
 
         if (! $isGlobalAdmin) {
             if ($pinjam->tipe_penyedia === 'RUANGAN' && (! $user?->unit_id || (int) $user->unit_id !== (int) $pinjam->unit_penyedia_id)) {
@@ -88,7 +81,7 @@ class PengembalianPeminjamanIndex extends Component
         ])->findOrFail($id);
         $this->authorizeProviderAccess($pinjam);
 
-        if ($pinjam->status !== 'DIPINJAM') {
+        if ($pinjam->status !== StatusPeminjaman::Dipinjam->value) {
             $this->toast('Hanya peminjaman berstatus DIPINJAM yang dapat diproses pengembalian.', 'warning');
             return;
         }
@@ -160,7 +153,7 @@ class PengembalianPeminjamanIndex extends Component
         $pinjam = PermintaanPeminjaman::findOrFail($this->selectedPinjamId);
         $this->authorizeProviderAccess($pinjam);
 
-        if ($pinjam->status !== 'DIPINJAM') {
+        if ($pinjam->status !== StatusPeminjaman::Dipinjam->value) {
             $this->toast('Status transaksi peminjaman sudah tidak aktif dipinjam.', 'warning');
             $this->closePengembalianModal();
             return;
@@ -220,24 +213,11 @@ class PengembalianPeminjamanIndex extends Component
     }
 
     /**
-     * Tutup modal rincian riwayat pengembalian.
-     */
-    public function closeDetailPengembalianModal(): void
-    {
-        $this->showDetailPengembalianModal = false;
-        $this->selectedPengembalian = null;
-    }
-
-    /**
      * Filter data peminjaman sesuai wewenang unit dan gudang pengguna.
      */
     protected function applyScope($query, $user, string $peminjamanRelation = '')
     {
-        $isGlobalAdmin = $user && (
-            $user->can('page_Dashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_SuperAdminDashboard')
-        );
+        $isGlobalAdmin = $user && $user->hasRole(['super_admin', 'admin_logistik']);
 
         if ($isGlobalAdmin) {
             return $query;
@@ -280,11 +260,7 @@ class PengembalianPeminjamanIndex extends Component
         $this->checkAccess();
 
         $user = auth()->user();
-        $isGlobalAdmin = (bool) ($user && (
-            $user->can('page_Dashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_SuperAdminDashboard')
-        ));
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
         // Kueri peminjaman aktif berstatus DIPINJAM
         $activeLoansQuery = PermintaanPeminjaman::query()
             ->with([
@@ -295,7 +271,7 @@ class PengembalianPeminjamanIndex extends Component
                 'detail.aset.barang',
             ])
             ->withCount('detail')
-            ->where('status', 'DIPINJAM');
+            ->where('status', StatusPeminjaman::Dipinjam->value);
 
         $this->applyScope($activeLoansQuery, $user);
 

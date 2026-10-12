@@ -2,23 +2,23 @@
 
 namespace App\Livewire\Distribusi;
 
+use App\Enums\StatusPermintaanDistribusi;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
+use App\Livewire\Distribusi\Concerns\AuthorizesDistribusiScope;
 use App\Models\PermintaanDistribusi;
-use App\Models\Gudang;
-use App\Models\Unit;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class ApprovalPermintaanIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, AuthorizesDistribusiScope;
 
     #[Url(history: true)]
-    public string $filterStatus = 'DIAJUKAN';
+    public string $filterStatus = StatusPermintaanDistribusi::Diajukan->value;
 
     #[Url(history: true)]
     public string $filterUrgensi = '';
@@ -41,7 +41,7 @@ class ApprovalPermintaanIndex extends Component
         $permintaan = PermintaanDistribusi::with('unit')->findOrFail($id);
         $this->authorizeAction($permintaan);
 
-        if ($permintaan->status !== 'DIAJUKAN') {
+        if ($permintaan->status !== StatusPermintaanDistribusi::Diajukan->value) {
             $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat disetujui.', 'danger');
             return;
         }
@@ -66,13 +66,13 @@ class ApprovalPermintaanIndex extends Component
             $permintaan = PermintaanDistribusi::lockForUpdate()->findOrFail($id);
             $this->authorizeAction($permintaan);
 
-            if ($permintaan->status !== 'DIAJUKAN') {
+            if ($permintaan->status !== StatusPermintaanDistribusi::Diajukan->value) {
                 $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat disetujui.', 'danger');
                 return;
             }
 
             $permintaan->update([
-                'status'         => 'DISETUJUI_KARU',
+                'status'         => StatusPermintaanDistribusi::DisetujuiKaru->value,
                 'disetujui_oleh' => $user->id,
             ]);
 
@@ -89,7 +89,7 @@ class ApprovalPermintaanIndex extends Component
         $permintaan = PermintaanDistribusi::with('unit')->findOrFail($id);
         $this->authorizeAction($permintaan);
 
-        if ($permintaan->status !== 'DIAJUKAN') {
+        if ($permintaan->status !== StatusPermintaanDistribusi::Diajukan->value) {
             $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat ditolak.', 'danger');
             return;
         }
@@ -114,13 +114,13 @@ class ApprovalPermintaanIndex extends Component
             $permintaan = PermintaanDistribusi::lockForUpdate()->findOrFail($id);
             $this->authorizeAction($permintaan);
 
-            if ($permintaan->status !== 'DIAJUKAN') {
+            if ($permintaan->status !== StatusPermintaanDistribusi::Diajukan->value) {
                 $this->toast('Hanya permintaan berstatus DIAJUKAN yang dapat ditolak.', 'danger');
                 return;
             }
 
             $permintaan->update([
-                'status'         => 'DITOLAK',
+                'status'         => StatusPermintaanDistribusi::Ditolak->value,
                 'disetujui_oleh' => $user->id,
             ]);
 
@@ -130,96 +130,52 @@ class ApprovalPermintaanIndex extends Component
 
     public function showDetail(int $id): void
     {
+        $this->authorizeView();
+
         $permintaan = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang.satuan', 'pengiriman.detail'])->findOrFail($id);
+        $this->authorizeReadScoped($permintaan->unit_id, $permintaan->gudang_id);
 
-        $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
-
-        if (! $isGlobalAdmin) {
-            // Karu: hanya boleh lihat amprah dari unit yang dia kepalai
-            if ($user?->unit_id) {
-                $unitIds = Unit::where('kepala_unit_id', $user->id)->pluck('id');
-                if ($unitIds->isNotEmpty() && ! $unitIds->contains($permintaan->unit_id)) {
-                    abort(403, 'Anda tidak memiliki wewenang untuk melihat permohonan dari unit ini.');
-                } elseif ($unitIds->isEmpty() && (int) $user->unit_id !== (int) $permintaan->unit_id) {
-                    abort(403, 'Anda tidak memiliki wewenang untuk melihat permohonan dari unit ini.');
-                }
-            }
-            if ($user?->gudang_id) {
-                $gudangIds = Gudang::where('kepala_gudang_id', $user->id)->pluck('id');
-                if ($gudangIds->isNotEmpty() && ! $gudangIds->contains($permintaan->gudang_id)) {
-                    abort(403, 'Anda tidak memiliki wewenang untuk melihat permohonan ke gudang ini.');
-                } elseif ($gudangIds->isEmpty() && (int) $user->gudang_id !== (int) $permintaan->gudang_id) {
-                    abort(403, 'Anda tidak memiliki wewenang untuk melihat permohonan ke gudang ini.');
-                }
-            }
-        }
         $this->selectedPermintaan = $permintaan;
         $this->showDetailModal = true;
     }
 
-    protected function authorizeAction(PermintaanDistribusi $permintaan): void
+    protected function authorizeView(): void
+    {
+        abort_unless(
+            auth()->user()?->canAny(['view_any_layanan_unit::approval::karu', 'view_layanan_unit::approval::karu']),
+            403
+        );
+    }
+
+    /**
+     * Tahap Meja 1 (Kepala Ruangan): role kepala_unit dan permission update; super_admin/admin_logistik global.
+     */
+    protected function canApproveKaru(): bool
     {
         $user = auth()->user();
-        abort_unless(
-            $user && (
-                $user->can('update_layanan_unit::approval::karu') ||
-                $user->can('layanan_unit::approval::karu') ||
-                $user->can('page_ApprovalPermintaanIndex') ||
-                $user->can('page_Dashboard') ||
-                $user->can('page_AdminLogistikDashboard')
-            ),
-            403,
-            'Anda tidak memiliki wewenang untuk memproses otorisasi amprah ruangan.'
-        );
 
-        $isGlobalAdmin = $user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard');
-        if (! $isGlobalAdmin) {
-            if ($user?->unit_id) {
-                $unitIds = Unit::where('kepala_unit_id', $user->id)->pluck('id');
-                if ($unitIds->isNotEmpty() && ! $unitIds->contains($permintaan->unit_id)) {
-                    abort(403, 'Anda tidak memiliki wewenang untuk memproses permohonan dari unit ini.');
-                } elseif ($unitIds->isEmpty() && (int) $user->unit_id !== (int) $permintaan->unit_id) {
-                    abort(403, 'Anda tidak memiliki wewenang untuk memproses permohonan dari unit ini.');
-                }
-            }
-            if ($user?->gudang_id) {
-                $gudangIds = Gudang::where('kepala_gudang_id', $user->id)->pluck('id');
-                if ($gudangIds->isNotEmpty() && ! $gudangIds->contains($permintaan->gudang_id)) {
-                    abort(403, 'Anda tidak memiliki wewenang untuk memproses permohonan ke gudang ini.');
-                } elseif ($gudangIds->isEmpty() && (int) $user->gudang_id !== (int) $permintaan->gudang_id) {
-                    abort(403, 'Anda tidak memiliki wewenang untuk memproses permohonan ke gudang ini.');
-                }
-            }
-        }
+        return (bool) ($user
+            && $user->can('update_layanan_unit::approval::karu')
+            && ($this->isGlobalOperator() || $user->hasRole('kepala_unit')));
+    }
+
+    protected function authorizeAction(PermintaanDistribusi $permintaan): void
+    {
+        abort_unless($this->canApproveKaru(), 403, 'Anda tidak memiliki wewenang untuk memproses otorisasi amprah ruangan.');
+        abort_unless($this->inUnitScope($permintaan->unit_id), 403, 'Anda tidak memiliki wewenang untuk memproses permohonan dari unit ini.');
     }
 
     public function render()
     {
-        abort_unless(
-            auth()->user()?->can('page_ApprovalPermintaanIndex') ||
-            auth()->user()?->can('view_any_layanan_unit::approval::karu') ||
-            auth()->user()?->can('view_layanan_unit::approval::karu') ||
-            auth()->user()?->can('layanan_unit::approval::karu') ||
-            auth()->user()?->can('page_Dashboard') ||
-            auth()->user()?->can('page_AdminLogistikDashboard'),
-            403
-        );
+        $this->authorizeView();
 
         $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
+        $isGlobalAdmin = $this->isGlobalOperator();
+        $canApproveKaru = $this->canApproveKaru();
 
         $query = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang.satuan'])
             ->withCount('detail')
-            ->when(! $isGlobalAdmin, function ($q) use ($user) {
-                if ($user?->unit_id) {
-                    $unitIds = Unit::where('kepala_unit_id', $user->id)->pluck('id');
-                    $q->whereIn('unit_id', $unitIds->isNotEmpty() ? $unitIds : [$user->unit_id]);
-                } elseif ($user?->gudang_id) {
-                    $gudangIds = Gudang::where('kepala_gudang_id', $user->id)->pluck('id');
-                    $q->whereIn('gudang_id', $gudangIds->isNotEmpty() ? $gudangIds : [$user->gudang_id]);
-                }
-            })
+            ->tap(fn ($q) => $this->applyReadScope($q))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterUrgensi, fn ($q) => $q->where('urgensi', $this->filterUrgensi))
             ->when($this->search, function ($q) {
@@ -239,6 +195,8 @@ class ApprovalPermintaanIndex extends Component
         return view('livewire.distribusi.approval-permintaan-index', [
             'daftarPermintaan' => $daftarPermintaan,
             'isGlobalAdmin'    => $isGlobalAdmin,
+            'canApproveKaru'   => $canApproveKaru,
+            'approvableUnitIds' => $canApproveKaru ? $this->ownUnitIds() : [],
             'userUnitId'       => $user?->unit_id,
             'pageTitle'        => $pageTitle,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => $pageTitle]);

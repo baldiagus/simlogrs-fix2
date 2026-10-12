@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Pengadaan;
 
+use App\Enums\StatusPermintaanPengadaan;
 use App\Livewire\Pengadaan\PesananPembelianIndex;
 use App\Models\Barang;
 use App\Models\Pemasok;
@@ -42,7 +43,7 @@ class PesananPembelianTest extends TestCase
             'diajukan_oleh' => $this->user->id,
             'tanggal_permintaan' => now()->toDateString(),
             'urgensi' => 'REGULER',
-            'status' => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN,
+            'status' => StatusPermintaanPengadaan::DiteruskanKePengadaan->value,
         ]);
 
         PermintaanPengadaanDetail::create([
@@ -76,7 +77,7 @@ class PesananPembelianTest extends TestCase
 
         // Assert status PR berubah menjadi DIPROSES
         $pr->refresh();
-        $this->assertEquals(PermintaanPengadaan::STATUS_DIPROSES, $pr->status);
+        $this->assertEquals(StatusPermintaanPengadaan::Diproses->value, $pr->status);
 
         // 3. Coba buat PO kedua untuk PR yang sama -> harus ditolak
         $component2 = Livewire::test(PesananPembelianIndex::class)
@@ -107,7 +108,7 @@ class PesananPembelianTest extends TestCase
             'diajukan_oleh' => $this->user->id,
             'tanggal_permintaan' => now()->toDateString(),
             'urgensi' => 'REGULER',
-            'status' => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN,
+            'status' => StatusPermintaanPengadaan::DiteruskanKePengadaan->value,
         ]);
 
         PermintaanPengadaanDetail::create([

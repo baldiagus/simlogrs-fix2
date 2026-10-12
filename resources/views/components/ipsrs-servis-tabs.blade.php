@@ -4,21 +4,21 @@
     $portalKey = \App\Support\Portal\PortalResolver::resolve();
     $user = auth()->user();
 
-    $canLapor = $user?->can('view_any_layanan_unit::lapor::servis');
-    $canSpk = $user?->can('view_any_pemeliharaan::spk::perbaikan');
-    $canLk = $user?->can('view_any_pemeliharaan::lembar::kerja');
+    $canLapor = $user?->can('view_any_layanan_unit::lapor::servis') || $user?->can('view_layanan_unit::lapor::servis');
+    $canSpk = $user?->can('view_any_pemeliharaan::spk::perbaikan') || $user?->can('view_pemeliharaan::spk::perbaikan');
+    $canLk = $user?->can('view_any_pemeliharaan::lembar::kerja') || $user?->can('view_pemeliharaan::lembar::kerja');
 
-    $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+    $isDepartmentWide = $user && $user->hasRole(['super_admin', 'admin_logistik', 'kepala_teknisi', 'auditor', 'manajemen']);
 
     $pendingTiketCount = 0;
     if ($canSpk) {
-        $pendingTiketCount = \App\Models\PermintaanMaintenance::where('status', 'DILAPORKAN')->count();
+        $pendingTiketCount = \App\Models\PermintaanMaintenance::where('status', \App\Enums\StatusMaintenance::Dilaporkan->value)->count();
     }
 
     $spkAktifCount = 0;
     if ($canLk) {
-        $spkAktifQuery = \App\Models\PenugasanMaintenance::where('status', 'DITUGASKAN');
-        if (! $isGlobalAdmin && ! $user->hasRole('kepala_teknisi')) {
+        $spkAktifQuery = \App\Models\PenugasanMaintenance::where('status', \App\Enums\StatusSpk::Ditugaskan->value);
+        if (! $isDepartmentWide) {
             $spkAktifQuery->where('teknisi_id', $user->id);
         }
         $spkAktifCount = $spkAktifQuery->count();

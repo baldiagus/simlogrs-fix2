@@ -37,9 +37,9 @@
 
                 <div class="w-44">
                     <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
-                        <option value="MENUNGGU">Menunggu Persetujuan</option>
-                        <option value="DISETUJUI">Telah Disahkan (DISETUJUI)</option>
-                        <option value="DITOLAK">Ditolak (DITOLAK)</option>
+                        <option value="{{ \App\Enums\StatusPenyesuaianStok::Menunggu->value }}">Menunggu Persetujuan</option>
+                        <option value="{{ \App\Enums\StatusPenyesuaianStok::Disetujui->value }}">Telah Disahkan (DISETUJUI)</option>
+                        <option value="{{ \App\Enums\StatusPenyesuaianStok::Ditolak->value }}">Ditolak (DITOLAK)</option>
                         <option value="SEMUA">Semua Status</option>
                     </select>
                 </div>
@@ -123,15 +123,13 @@
                                     <flux:menu.item wire:click="showDetail({{ $adj->id }})" icon="eye">
                                         Rincian Selisih
                                     </flux:menu.item>
-                                    @if ($adj->status === 'MENUNGGU')
-                                        @can('update_gudang_stok::otorisasi::penyesuaian')
+                                    @if ($adj->status === \App\Enums\StatusPenyesuaianStok::Menunggu->value && $this->canOtorisasi($adj))
                                             <flux:menu.item wire:click="confirmApprove({{ $adj->id }})" icon="check-circle" class="text-emerald-600 dark:text-emerald-400">
                                                 Sahkan Penyesuaian
                                             </flux:menu.item>
                                             <flux:menu.item wire:click="confirmReject({{ $adj->id }})" icon="x-circle" variant="danger">
                                                 Tolak Penyesuaian
                                             </flux:menu.item>
-                                        @endcan
                                     @endif
                                 </flux:menu>
                             </flux:dropdown>
@@ -239,8 +237,7 @@
                     </table>
                 </div>
 
-                @if ($selectedPenyesuaian->status === 'MENUNGGU')
-                    @can('update_gudang_stok::otorisasi::penyesuaian')
+                @if ($selectedPenyesuaian->status === \App\Enums\StatusPenyesuaianStok::Menunggu->value && $this->canOtorisasi($selectedPenyesuaian))
                         <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
                             <flux:button
                                 wire:click="confirmReject({{ $selectedPenyesuaian->id }})"
@@ -258,7 +255,6 @@
                                 Sahkan Penyesuaian Stok
                             </flux:button>
                         </div>
-                    @endcan
                 @endif
             </div>
         @endif

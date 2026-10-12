@@ -61,12 +61,9 @@
                             class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100"
                         >
                             <option value="">Semua Status</option>
-                            <option value="DIAJUKAN">DIAJUKAN</option>
-                            <option value="DISETUJUI">DISETUJUI</option>
-                            <option value="DIPINJAM">DIPINJAM</option>
-                            <option value="SELESAI">SELESAI</option>
-                            <option value="DITOLAK">DITOLAK</option>
-                            <option value="DIBATALKAN">DIBATALKAN</option>
+                            @foreach (\App\Enums\StatusPeminjaman::cases() as $statusPinjam)
+                                <option value="{{ $statusPinjam->value }}">{{ $statusPinjam->value }}</option>
+                            @endforeach
                         </select>
                     </div>
 
@@ -140,7 +137,7 @@
                 <flux:table.rows>
                     @forelse ($daftarPeminjaman as $item)
                         @php
-                            $isOverdue = ($item->status === 'DIPINJAM' && now()->startOfDay()->gt($item->tanggal_kembali_rencana));
+                            $isOverdue = ($item->status === \App\Enums\StatusPeminjaman::Dipinjam->value && now()->startOfDay()->gt($item->tanggal_kembali_rencana));
                         @endphp
                         <flux:table.row :key="$item->id">
                             {{-- Kode PINJ --}}
@@ -210,13 +207,13 @@
                                                 ($item->tipe_penyedia === 'RUANGAN' && (int) $userUnitId === (int) $item->unit_penyedia_id) ||
                                                 ($item->tipe_penyedia === 'GUDANG' && (int) $userGudangId === (int) $item->gudang_penyedia_id);
                                         @endphp
-                                        @if ($item->status === 'DISETUJUI' && $canSerahTerima)
+                                        @if ($item->status === \App\Enums\StatusPeminjaman::Disetujui->value && $canSerahTerima)
                                             <flux:menu.item wire:click="confirmSerahTerima({{ $item->id }})" icon="arrow-right-start-on-rectangle">
                                                 Serah Terima
                                             </flux:menu.item>
                                         @endif
 
-                                        @if (in_array($item->status, ['DIPINJAM'], true))
+                                        @if (in_array($item->status, [\App\Enums\StatusPeminjaman::Dipinjam->value], true))
                                             @can('update_layanan_unit::peminjaman::aset')
                                                 <flux:menu.item wire:click="openPerpanjang({{ $item->id }})" icon="calendar-days">
                                                     Perpanjang
@@ -224,7 +221,7 @@
                                             @endcan
                                         @endif
 
-                                        @if ($item->status === 'DIAJUKAN')
+                                        @if ($item->status === \App\Enums\StatusPeminjaman::Diajukan->value)
                                             @can('create_layanan_unit::peminjaman::aset')
                                                 <flux:menu.separator />
                                                 <flux:menu.item wire:click="confirmBatal({{ $item->id }})" icon="x-mark" variant="danger">
@@ -707,7 +704,7 @@
                         ($selectedPinjam->tipe_penyedia === 'GUDANG' && (int) $userGudangId === (int) $selectedPinjam->gudang_penyedia_id);
                 @endphp
 
-                @if ($selectedPinjam->status === 'DISETUJUI' && $canSerahTerimaModal)
+                @if ($selectedPinjam->status === \App\Enums\StatusPeminjaman::Disetujui->value && $canSerahTerimaModal)
                     <div class="flex items-center justify-end pt-3 border-t border-zinc-200 dark:border-zinc-700">
                         <flux:button
                             wire:click="confirmSerahTerima({{ $selectedPinjam->id }})"

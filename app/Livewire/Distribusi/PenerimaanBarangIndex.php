@@ -2,10 +2,13 @@
 
 namespace App\Livewire\Distribusi;
 
+use App\Enums\StatusPermintaanDistribusi;
+use App\Enums\StatusPengirimanBarang;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
+use App\Livewire\Distribusi\Concerns\AuthorizesDistribusiScope;
 use App\Models\PenerimaanDistribusi;
 use App\Models\PenerimaanDistribusiDetail;
 use App\Models\PengirimanBarang;
@@ -18,10 +21,10 @@ use Livewire\Component;
 
 class PenerimaanBarangIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, AuthorizesDistribusiScope;
 
     #[Url(history: true)]
-    public string $filterStatus = 'DIKIRIM';
+    public string $filterStatus = StatusPengirimanBarang::Dikirim->value;
 
     public bool $showDetailModal = false;
     public ?PengirimanBarang $selectedSppb = null;
@@ -43,12 +46,8 @@ class PenerimaanBarangIndex extends Component
             'penerimaan.penerima',
         ])->findOrFail($sppbId);
 
-        $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
-
-        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $sppb->unit_id) {
-            abort(403, 'Anda tidak memiliki wewenang untuk melihat data pengiriman unit ini.');
-        }
+        $this->authorizeView();
+        $this->authorizeReadScoped($sppb->unit_id, $sppb->gudang_id);
 
         $this->selectedSppb = $sppb;
         $this->showDetailModal = true;
@@ -62,7 +61,7 @@ class PenerimaanBarangIndex extends Component
 
         $this->validateUnitAccess($sppb);
 
-        if ($sppb->status !== 'DIKIRIM') {
+        if ($sppb->status !== StatusPengirimanBarang::Dikirim->value) {
             $this->toast('Hanya pengiriman dengan status DIKIRIM yang dapat dikonfirmasi penerimaannya.', 'danger');
             return;
         }
@@ -86,7 +85,7 @@ class PenerimaanBarangIndex extends Component
 
         $this->validateUnitAccess($sppb);
 
-        if ($sppb->status !== 'DIKIRIM') {
+        if ($sppb->status !== StatusPengirimanBarang::Dikirim->value) {
             $this->toast('Hanya pengiriman dengan status DIKIRIM yang dapat dikonfirmasi penerimaannya.', 'danger');
             return;
         }
@@ -96,7 +95,7 @@ class PenerimaanBarangIndex extends Component
                 $sppb = PengirimanBarang::lockForUpdate()->with(['permintaanDistribusi', 'unit', 'gudang', 'detail.barang', 'detail.stokBatch'])
                     ->findOrFail($sppbId);
 
-                if ($sppb->status !== 'DIKIRIM') {
+                if ($sppb->status !== StatusPengirimanBarang::Dikirim->value) {
                     throw new \Exception("Pengiriman {$sppb->kode} telah diproses sebelumnya (Status: {$sppb->status}).");
                 }
 
@@ -193,7 +192,7 @@ class PenerimaanBarangIndex extends Component
                 }
 
                 // Update status SPPB
-                $sppb->update(['status' => 'DITERIMA']);
+                $sppb->update(['status' => StatusPengirimanBarang::Diterima->value]);
 
                 // Evaluasi apakah permohonan amprah sudah selesai 100% atau masih ada sisa yang ditunggu
                 if ($sppb->permintaanDistribusi) {
@@ -207,9 +206,9 @@ class PenerimaanBarangIndex extends Component
                     $totalDiminta = $permintaan->detail->sum(fn ($d) => $d->jumlah_disetujui !== null ? $d->jumlah_disetujui : $d->jumlah);
 
                     if ($totalDiterima >= $totalDiminta) {
-                        $permintaan->update(['status' => 'SELESAI']);
+                        $permintaan->update(['status' => StatusPermintaanDistribusi::Selesai->value]);
                     } else {
-                        $permintaan->update(['status' => 'DIKIRIM_SEBAGIAN']);
+                        $permintaan->update(['status' => StatusPermintaanDistribusi::DikirimSebagian->value]);
                     }
                 }
             });
@@ -227,46 +226,40 @@ class PenerimaanBarangIndex extends Component
         $this->toast($msg, 'success');
     }
 
+    protected function authorizeView(): void
+    {
+        abort_unless(
+            auth()->user()?->canAny(['view_any_layanan_unit::penerimaan::barang', 'view_layanan_unit::penerimaan::barang']),
+            403,
+            'Anda tidak memiliki akses ke halaman konfirmasi penerimaan barang.'
+        );
+    }
+
+    protected function canTerima(): bool
+    {
+        return (bool) auth()->user()?->can('update_layanan_unit::penerimaan::barang');
+    }
+
     protected function authorizePenerimaan(): void
     {
-        $user = auth()->user();
-        abort_unless(
-            $user && (
-                $user->can('update_layanan_unit::penerimaan::barang') ||
-                $user->can('create_layanan_unit::penerimaan::barang') ||
-                $user->can('page_PenerimaanBarangIndex') ||
-                $user->can('page_Dashboard') ||
-                $user->can('page_AdminLogistikDashboard')
-            ),
-            403,
-            'Anda tidak memiliki wewenang untuk memproses penerimaan barang.'
-        );
+        abort_unless($this->canTerima(), 403, 'Anda tidak memiliki wewenang untuk memproses penerimaan barang.');
     }
 
     protected function validateUnitAccess(PengirimanBarang $sppb): void
     {
         $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
 
-        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $sppb->unit_id) {
+        if (! $this->isGlobalOperator() && (! $user?->unit_id || (int) $user->unit_id !== (int) $sppb->unit_id)) {
             abort(403, 'Anda tidak memiliki wewenang untuk memproses pengiriman unit ini.');
         }
     }
 
     public function render()
     {
-        abort_unless(
-            auth()->user()?->can('page_PenerimaanBarangIndex') ||
-            auth()->user()?->can('view_any_layanan_unit::penerimaan::barang') ||
-            auth()->user()?->can('view_layanan_unit::penerimaan::barang') ||
-            auth()->user()?->can('page_Dashboard') ||
-            auth()->user()?->can('page_AdminLogistikDashboard'),
-            403,
-            'Anda tidak memiliki akses ke halaman konfirmasi penerimaan barang.'
-        );
+        $this->authorizeView();
 
         $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
+        $isGlobalAdmin = $this->isGlobalOperator();
 
         $query = PengirimanBarang::with([
             'permintaanDistribusi',
@@ -277,7 +270,7 @@ class PenerimaanBarangIndex extends Component
             'detail.stokBatch',
         ])
         ->withCount('detail')
-        ->when(! $isGlobalAdmin, fn ($q) => $q->where('unit_id', $user?->unit_id))
+        ->tap(fn ($q) => $this->applyReadScope($q))
         ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
         ->when($this->search, function ($q) {
             $q->where(function ($sub) {
@@ -295,6 +288,7 @@ class PenerimaanBarangIndex extends Component
         return view('livewire.distribusi.penerimaan-barang-index', [
             'daftarPengiriman' => $daftarPengiriman,
             'isGlobalAdmin'    => $isGlobalAdmin,
+            'canTerima'        => $this->canTerima(),
             'userUnitId'       => $user?->unit_id,
         ])->layout('layouts.portal', [
             'portal' => $this->getPortalName(),

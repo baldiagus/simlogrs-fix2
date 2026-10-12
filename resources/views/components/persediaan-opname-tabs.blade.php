@@ -4,15 +4,17 @@
     $portalKey = \App\Support\Portal\PortalResolver::resolve();
     $user = auth()->user();
 
-    $canOpname = $user?->can('view_any_gudang_stok::stok::opname');
-    $canPenyesuaian = $user?->can('view_any_gudang_stok::otorisasi::penyesuaian');
+    $canOpname = $user?->can('view_any_gudang_stok::stok::opname') || $user?->can('view_gudang_stok::stok::opname');
+    $canPenyesuaian = $user?->can('view_any_gudang_stok::otorisasi::penyesuaian')
+        || $user?->can('view_any_audit_manajemen::selisih::opname')
+        || $user?->can('view_gudang_stok::otorisasi::penyesuaian');
 
-    $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+    $hasGlobalRead = $user && $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']);
 
     $pendingPenyesuaianCount = 0;
     if ($canPenyesuaian) {
-        $pendingPenyesuaianCount = \App\Models\PenyesuaianStok::where('status', 'MENUNGGU')
-            ->when(! $isGlobalAdmin && $user?->gudang_id, fn ($q) => $q->where('gudang_id', $user->gudang_id))
+        $pendingPenyesuaianCount = \App\Models\PenyesuaianStok::where('status', \App\Enums\StatusPenyesuaianStok::Menunggu->value)
+            ->when(! $hasGlobalRead, fn ($q) => $q->where('gudang_id', $user?->gudang_id))
             ->count();
     }
 

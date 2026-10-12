@@ -2,18 +2,16 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\StatusCapa;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\LogAudit;
-use App\Models\Pemasok;
 use App\Models\PenyesuaianStok;
 use App\Models\PesananPembelian;
 use App\Models\StokOpname;
-use App\Models\StokOpnameDetail;
 use App\Models\TemuanAudit;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class AuditApiController extends ApiController
@@ -25,12 +23,9 @@ class AuditApiController extends ApiController
     {
         $user = $request->user();
         $canAccess = $user && (
-            $user->hasRole(['auditor', 'super_admin', 'manajemen']) ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             $user->can('view_any_audit_manajemen::audit::trail') ||
-            $user->can('view_audit_manajemen::audit::trail') ||
-            $user->can('page_AuditorDashboard') ||
-            $user->can('page_ManajemenDashboard') ||
-            $user->can('page_Dashboard')
+            $user->can('view_audit_manajemen::audit::trail')
         );
 
         if (! $canAccess) {
@@ -52,9 +47,9 @@ class AuditApiController extends ApiController
         $today = now()->toDateString();
 
         $totalTemuan = TemuanAudit::count();
-        $totalClosed = TemuanAudit::where('status_capa', 'Closed')->count();
-        $totalMayorOpen = TemuanAudit::where('tingkat_risiko', 'Mayor')->where('status_capa', '!=', 'Closed')->count();
-        $totalOverdue = TemuanAudit::where('status_capa', '!=', 'Closed')->where('due_date_capa', '<', $today)->count();
+        $totalClosed = TemuanAudit::where('status_capa', StatusCapa::Closed->value)->count();
+        $totalMayorOpen = TemuanAudit::where('tingkat_risiko', 'Mayor')->where('status_capa', '!=', StatusCapa::Closed->value)->count();
+        $totalOverdue = TemuanAudit::where('status_capa', '!=', StatusCapa::Closed->value)->where('due_date_capa', '<', $today)->count();
         $closingRate = $totalTemuan > 0 ? round(($totalClosed / $totalTemuan) * 100, 1) : 100.0;
 
         // Anomali Kepatuhan Pengadaan
@@ -80,8 +75,8 @@ class AuditApiController extends ApiController
             'capa' => [
                 'total_temuan'      => $totalTemuan,
                 'total_closed'      => $totalClosed,
-                'total_in_progress' => TemuanAudit::where('status_capa', 'In Progress')->count(),
-                'total_in_review'   => TemuanAudit::where('status_capa', 'In Review')->count(),
+                'total_in_progress' => TemuanAudit::where('status_capa', StatusCapa::InProgress->value)->count(),
+                'total_in_review'   => TemuanAudit::where('status_capa', StatusCapa::InReview->value)->count(),
                 'mayor_open'        => $totalMayorOpen,
                 'overdue'           => $totalOverdue,
                 'closing_rate'      => $closingRate,
@@ -285,7 +280,7 @@ class AuditApiController extends ApiController
     {
         $user = $request->user();
         $canCreateTemuan = $user && (
-            $user->hasRole(['auditor', 'super_admin']) ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             $user->can('create_audit_manajemen::temuan::capa')
         );
         if (! $canCreateTemuan) {
@@ -330,7 +325,7 @@ class AuditApiController extends ApiController
             'ringkasan'      => $ringkasan,
             'tingkat_risiko' => $request->input('tingkat_risiko', 'Mayor'),
             'due_date_capa'  => $request->input('due_date_capa'),
-            'status_capa'    => 'In Progress',
+            'status_capa'    => StatusCapa::InProgress->value,
             'auditor_id'     => $user->id,
             'unit_id'        => $po->permintaanPengadaan?->unit_id,
         ]);
@@ -473,9 +468,8 @@ class AuditApiController extends ApiController
         ->latest('id');
         $user = $request->user();
         $isGlobalAuditor = $user && (
-            $user->hasRole(['auditor', 'super_admin', 'manajemen']) ||
-            $user->can('view_any_audit_manajemen::temuan::capa') ||
-            $user->can('page_AuditorDashboard')
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
+            $user->can('view_any_audit_manajemen::temuan::capa')
         );
 
         if (! $isGlobalAuditor) {
@@ -493,7 +487,7 @@ class AuditApiController extends ApiController
         $today = now()->toDateString();
 
         $items = $paginated->getCollection()->map(function ($t) use ($today) {
-            $isOverdue = $t->status_capa !== 'Closed' && $t->due_date_capa && $t->due_date_capa->format('Y-m-d') < $today;
+            $isOverdue = $t->status_capa !== StatusCapa::Closed->value && $t->due_date_capa && $t->due_date_capa->format('Y-m-d') < $today;
 
             return [
                 'id'                 => $t->id,
@@ -536,7 +530,7 @@ class AuditApiController extends ApiController
     {
         $user = $request->user();
         $canCreateTemuan = $user && (
-            $user->hasRole(['auditor', 'super_admin']) ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             $user->can('create_audit_manajemen::temuan::capa')
         );
         if (! $canCreateTemuan) {
@@ -566,7 +560,7 @@ class AuditApiController extends ApiController
             'ringkasan'      => $request->input('ringkasan'),
             'tingkat_risiko' => $request->input('tingkat_risiko'),
             'due_date_capa'  => $request->input('due_date_capa'),
-            'status_capa'    => 'In Progress',
+            'status_capa'    => StatusCapa::InProgress->value,
             'auditor_id'     => $user->id,
             'unit_id'        => $request->input('unit_id'),
             'gudang_id'      => $request->input('gudang_id'),
@@ -593,7 +587,7 @@ class AuditApiController extends ApiController
         }
         $user = $request->user();
         $isTargetAuditee = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik', 'auditor']) ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             ($temuan->unit_id && (int) $user->unit_id === (int) $temuan->unit_id) ||
             ($temuan->gudang_id && (int) $user->gudang_id === (int) $temuan->gudang_id)
         );
@@ -615,7 +609,7 @@ class AuditApiController extends ApiController
             'analisis_penyebab'  => $request->input('analisis_penyebab'),
             'tindakan_perbaikan' => $request->input('tindakan_perbaikan'),
             'bukti_perbaikan'    => $request->input('bukti_perbaikan') ? [$request->input('bukti_perbaikan')] : $temuan->bukti_perbaikan,
-            'status_capa'        => 'In Review',
+            'status_capa'        => StatusCapa::InReview->value,
         ]);
 
         return $this->jsonSuccess([
@@ -638,7 +632,7 @@ class AuditApiController extends ApiController
             return $this->jsonError('Temuan audit tidak ditemukan.', 404);
         }
         $canEvaluate = $user && (
-            $user->hasRole(['auditor', 'super_admin']) ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             $user->can('update_audit_manajemen::temuan::capa')
         );
         if (! $canEvaluate) {
@@ -646,7 +640,7 @@ class AuditApiController extends ApiController
         }
 
         $validator = Validator::make($request->all(), [
-            'hasil_evaluasi'   => 'required|in:Closed,In Progress',
+            'hasil_evaluasi'   => ['required', \Illuminate\Validation\Rule::in(StatusCapa::hasilEvaluasi())],
             'catatan_evaluasi' => 'required|string|min:5',
         ]);
 

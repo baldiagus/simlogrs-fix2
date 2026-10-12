@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Audit;
 
+use App\Enums\StatusCapa;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -13,6 +14,7 @@ use App\Support\File\FileOptimizer;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -65,7 +67,7 @@ class RegisterTemuanCapaIndex extends Component
     public bool $showEvaluasiModal = false;
 
     #[Validate('required|in:Closed,In Progress')]
-    public string $hasil_evaluasi = 'Closed';
+    public string $hasil_evaluasi = StatusCapa::Closed->value;
 
     #[Validate('required|string|min:5')]
     public string $catatan_evaluasi = '';
@@ -78,11 +80,7 @@ class RegisterTemuanCapaIndex extends Component
 
     public function openCreate(): void
     {
-        abort_unless(
-            auth()->user()?->can('create_audit_manajemen::temuan::capa') ||
-            auth()->user()?->can('page_Dashboard'),
-            403
-        );
+        abort_unless(auth()->user()?->can('create_audit_manajemen::temuan::capa'), 403);
 
         $this->reset(['objek_audit', 'ringkasan', 'unit_id', 'gudang_id']);
         $this->tingkat_risiko = 'Moderat';
@@ -93,11 +91,7 @@ class RegisterTemuanCapaIndex extends Component
 
     public function saveCreate(): void
     {
-        abort_unless(
-            auth()->user()?->can('create_audit_manajemen::temuan::capa') ||
-            auth()->user()?->can('page_Dashboard'),
-            403
-        );
+        abort_unless(auth()->user()?->can('create_audit_manajemen::temuan::capa'), 403);
 
         $this->validate([
             'objek_audit'    => 'required|string|min:5|max:150',
@@ -124,7 +118,7 @@ class RegisterTemuanCapaIndex extends Component
             'ringkasan'      => $this->ringkasan,
             'tingkat_risiko' => $this->tingkat_risiko,
             'due_date_capa'  => $this->due_date_capa,
-            'status_capa'    => 'In Progress',
+            'status_capa'    => StatusCapa::InProgress->value,
             'auditor_id'     => $user->id,
             'unit_id'        => $this->unit_id ?: null,
             'gudang_id'      => $this->gudang_id ?: null,
@@ -145,10 +139,8 @@ class RegisterTemuanCapaIndex extends Component
     {
         $user = auth()->user();
         $isAuthorized = $user && (
-            $user->hasRole(['super_admin', 'auditor', 'admin_logistik']) ||
-            $user->can('page_Dashboard') ||
-            ($temuan->unit_id && (int) $user->unit_id === (int) $temuan->unit_id) ||
-            ($temuan->gudang_id && (int) $user->gudang_id === (int) $temuan->gudang_id)
+            ($user->can('update_audit_manajemen::temuan::capa') && $temuan->unit_id && (int) $user->unit_id === (int) $temuan->unit_id) ||
+            ($user->can('update_audit_manajemen::temuan::capa') && $temuan->gudang_id && (int) $user->gudang_id === (int) $temuan->gudang_id)
         );
 
         abort_unless($isAuthorized, 403, 'Anda tidak memiliki wewenang mengelola tindak lanjut temuan audit unit ini.');
@@ -174,7 +166,7 @@ class RegisterTemuanCapaIndex extends Component
         $this->validate([
             'analisis_penyebab'  => 'required|string|min:10',
             'tindakan_perbaikan' => 'required|string|min:10',
-            'fileBuktiList.*'    => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf,xlsx,docx|max:10240',
+            'fileBuktiList.*'    => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf,xlsx,docx|max:' . config('simlog.upload.max_kb'),
         ], [
             'analisis_penyebab.required'  => 'Analisis akar penyebab masalah wajib diisi.',
             'analisis_penyebab.min'       => 'Analisis penyebab minimal 10 karakter.',
@@ -199,7 +191,7 @@ class RegisterTemuanCapaIndex extends Component
             'analisis_penyebab'  => $this->analisis_penyebab,
             'tindakan_perbaikan' => $this->tindakan_perbaikan,
             'bukti_perbaikan'    => $existingBukti,
-            'status_capa'        => 'In Review',
+            'status_capa'        => StatusCapa::InReview->value,
         ]);
 
         $this->fileBuktiList = [];
@@ -235,33 +227,25 @@ class RegisterTemuanCapaIndex extends Component
 
     public function openEvaluasiClosing(int $id): void
     {
-        abort_unless(
-            auth()->user()?->can('update_audit_manajemen::temuan::capa') ||
-            auth()->user()?->can('page_Dashboard'),
-            403
-        );
+        abort_unless(auth()->user()?->can('update_audit_manajemen::temuan::capa'), 403);
 
         $this->selectedTemuanId = $id;
         $temuan = TemuanAudit::findOrFail($id);
-        $this->hasil_evaluasi = 'Closed';
+        $this->hasil_evaluasi = StatusCapa::Closed->value;
         $this->catatan_evaluasi = $temuan->catatan_evaluasi ?? '';
         $this->showEvaluasiModal = true;
     }
 
     public function saveEvaluasiClosing(): void
     {
-        abort_unless(
-            auth()->user()?->can('update_audit_manajemen::temuan::capa') ||
-            auth()->user()?->can('page_Dashboard'),
-            403
-        );
+        abort_unless(auth()->user()?->can('update_audit_manajemen::temuan::capa'), 403);
 
         if (! $this->selectedTemuanId) {
             return;
         }
 
         $this->validate([
-            'hasil_evaluasi'   => 'required|in:Closed,In Progress',
+            'hasil_evaluasi'   => ['required', Rule::in(StatusCapa::hasilEvaluasi())],
             'catatan_evaluasi' => 'required|string|min:5',
         ], [
             'hasil_evaluasi.required'   => 'Hasil evaluasi status CAPA wajib dipilih.',
@@ -279,32 +263,26 @@ class RegisterTemuanCapaIndex extends Component
         ]);
 
         $this->showEvaluasiModal = false;
-        $toastMsg = $this->hasil_evaluasi === 'Closed'
+        $toastMsg = $this->hasil_evaluasi === StatusCapa::Closed->value
             ? "Temuan audit {$temuan->kode} berhasil ditutup resmi (Closed)."
             : "Tindak lanjut {$temuan->kode} dikembalikan untuk revisi (In Progress).";
 
-        $this->toast($toastMsg, $this->hasil_evaluasi === 'Closed' ? 'success' : 'info');
+        $this->toast($toastMsg, $this->hasil_evaluasi === StatusCapa::Closed->value ? 'success' : 'info');
     }
     public function render()
     {
         $user = auth()->user();
         abort_unless(
-            $user && (
-                $user->can('view_any_audit_manajemen::temuan::capa') ||
-                $user->can('view_audit_manajemen::temuan::capa') ||
-                $user->can('page_AuditorDashboard') ||
-                $user->can('page_Dashboard') ||
-                $user->can('page_AdminLogistikDashboard')
-            ),
+            $user && ($user->can('view_any_audit_manajemen::temuan::capa') || $user->can('view_audit_manajemen::temuan::capa')),
             403
         );
 
         $today = now()->toDateString();
         // Metrik Ringkasan CAPA
         $totalTemuan = TemuanAudit::count();
-        $totalClosed = TemuanAudit::where('status_capa', 'Closed')->count();
-        $totalMayorOpen = TemuanAudit::where('tingkat_risiko', 'Mayor')->where('status_capa', '!=', 'Closed')->count();
-        $totalOverdue = TemuanAudit::where('status_capa', '!=', 'Closed')->where('due_date_capa', '<', $today)->count();
+        $totalClosed = TemuanAudit::where('status_capa', StatusCapa::Closed->value)->count();
+        $totalMayorOpen = TemuanAudit::where('tingkat_risiko', 'Mayor')->where('status_capa', '!=', StatusCapa::Closed->value)->count();
+        $totalOverdue = TemuanAudit::where('status_capa', '!=', StatusCapa::Closed->value)->where('due_date_capa', '<', $today)->count();
         $closingRate = $totalTemuan > 0 ? round(($totalClosed / $totalTemuan) * 100, 1) : 100;
 
         $query = TemuanAudit::with(['auditor', 'evaluator', 'unit', 'gudang'])
@@ -318,12 +296,12 @@ class RegisterTemuanCapaIndex extends Component
                 });
             });
 
-        $items = $query->orderByRaw("CASE WHEN status_capa = 'In Progress' THEN 1 WHEN status_capa = 'In Review' THEN 2 ELSE 3 END")
+        $items = $query->orderByRaw('CASE WHEN status_capa = ? THEN 1 WHEN status_capa = ? THEN 2 ELSE 3 END', [StatusCapa::InProgress->value, StatusCapa::InReview->value])
             ->orderBy('due_date_capa', 'asc')
             ->paginate($this->perPage);
 
-        $daftarUnit = Cache::remember('dropdown_unit_aktif', 60, fn () => Unit::where('status', 'AKTIF')->orderBy('nama')->get());
-        $daftarGudang = Cache::remember('dropdown_gudang_aktif', 60, fn () => Gudang::where('status', 'AKTIF')->orderBy('nama')->get());
+        $daftarUnit = Cache::remember('dropdown_unit_aktif', config('simlog.cache.dropdown_ttl'), fn () => Unit::where('status', 'AKTIF')->orderBy('nama')->get());
+        $daftarGudang = Cache::remember('dropdown_gudang_aktif', config('simlog.cache.dropdown_ttl'), fn () => Gudang::where('status', 'AKTIF')->orderBy('nama')->get());
 
         return view('livewire.audit.register-temuan-capa-index', [
             'items'          => $items,
@@ -335,8 +313,8 @@ class RegisterTemuanCapaIndex extends Component
             'closingRate'    => $closingRate,
             'daftarUnit'     => $daftarUnit,
             'daftarGudang'   => $daftarGudang,
-            'canCreate'      => $user?->can('create_audit_manajemen::temuan::capa') || $user?->can('page_Dashboard'),
-            'canEvaluate'    => $user?->can('update_audit_manajemen::temuan::capa') || $user?->can('page_Dashboard'),
+            'canCreate'      => $user?->can('create_audit_manajemen::temuan::capa'),
+            'canEvaluate'    => $user?->can('update_audit_manajemen::temuan::capa'),
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Register Temuan Audit & CAPA']);
     }
 }

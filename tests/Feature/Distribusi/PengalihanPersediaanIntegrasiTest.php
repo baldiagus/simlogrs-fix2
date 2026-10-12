@@ -23,6 +23,8 @@ class PengalihanPersediaanIntegrasiTest extends TestCase
 
     protected User $userPetugasGudang;
     protected User $userPetugasUnit;
+    protected User $userKepalaGudang;
+    protected User $userKepalaUnit;
     protected Gudang $gudang;
     protected Unit $unitAsal;
     protected Unit $unitTujuan;
@@ -51,7 +53,31 @@ class PengalihanPersediaanIntegrasiTest extends TestCase
         $this->userPetugasGudang->givePermissionTo([
             'view_any_gudang_stok::pengalihan::barang',
             'create_gudang_stok::pengalihan::barang',
+        ]);
+        $this->userKepalaGudang = User::create([
+            'nama' => 'Kepala Gudang Integrasi',
+            'username' => 'kepala_gdg_int',
+            'email' => 'kepala_gdg_int@simlog.test',
+            'password' => bcrypt('password'),
+            'gudang_id' => $this->gudang->id,
+            'status' => 'AKTIF',
+        ]);
+        $this->userKepalaGudang->givePermissionTo([
+            'view_any_gudang_stok::pengalihan::barang',
             'update_gudang_stok::pengalihan::barang',
+        ]);
+
+        $this->userKepalaUnit = User::create([
+            'nama' => 'Kepala Unit Asal Integrasi',
+            'username' => 'kepala_unit_int',
+            'email' => 'kepala_unit_int@simlog.test',
+            'password' => bcrypt('password'),
+            'unit_id' => $this->unitAsal->id,
+            'status' => 'AKTIF',
+        ]);
+        $this->userKepalaUnit->givePermissionTo([
+            'view_any_layanan_unit::pengalihan::aset',
+            'update_layanan_unit::pengalihan::aset',
         ]);
 
         $this->userPetugasUnit = User::create([
@@ -142,7 +168,7 @@ class PengalihanPersediaanIntegrasiTest extends TestCase
                 ],
             ],
         ]);
-        $service->setujuiPengalihan($transfer->id, $this->userPetugasGudang->id);
+        $service->setujuiPengalihan($transfer->id, $this->userKepalaGudang->id);
         $service->eksekusiSerahTerima($transfer->id, $this->userPetugasUnit->id);
 
         // 2. Petugas ruangan membuka halaman Persediaan Lokal Ruangan
@@ -167,7 +193,7 @@ class PengalihanPersediaanIntegrasiTest extends TestCase
             'diajukan_oleh' => $this->userPetugasGudang->id,
             'aset_ids' => [$this->aset->id],
         ]);
-        $service->setujuiPengalihan($transfer->id, $this->userPetugasGudang->id);
+        $service->setujuiPengalihan($transfer->id, $this->userKepalaUnit->id);
         $service->eksekusiSerahTerima($transfer->id, $this->userPetugasUnit->id);
 
         // 2. Petugas ruangan membuka halaman Persediaan Lokal Ruangan tab Aset

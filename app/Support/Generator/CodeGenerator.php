@@ -3,7 +3,6 @@
 namespace App\Support\Generator;
 
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class CodeGenerator
 {

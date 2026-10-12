@@ -2,6 +2,8 @@
 
 namespace App\Services\Aset;
 
+use App\Enums\StatusAset;
+use App\Enums\StatusPengalihan;
 use App\Models\Aset;
 use App\Models\PengalihanAset;
 use App\Models\PengalihanAsetDetail;
@@ -61,7 +63,7 @@ class PengalihanAsetService
                 'lokasi_gudang_tujuan_id' => $tipeTujuan === 'GUDANG' ? $lokasiGudangTujuanId : null,
                 'tanggal_pengalihan' => $data['tanggal_pengalihan'] ?? now()->toDateString(),
                 'alasan' => $data['alasan'] ?? '-',
-                'status' => 'DIAJUKAN',
+                'status' => StatusPengalihan::Diajukan->value,
                 'diajukan_oleh' => $data['diajukan_oleh'],
                 'catatan' => $data['catatan'] ?? null,
             ]);
@@ -78,7 +80,7 @@ class PengalihanAsetService
                 }
 
                 // Validasi status aset
-                if (! in_array($aset->status, ['TERSEDIA', 'DIGUNAKAN'], true) || in_array($aset->kondisi, ['RUSAK_BERAT', 'DIHAPUSKAN'], true)) {
+                if (! in_array($aset->status, StatusAset::dapatDialihkan(), true) || in_array($aset->kondisi, ['RUSAK_BERAT', 'DIHAPUSKAN'], true)) {
                     throw new InvalidArgumentException("Aset {$aset->kode_aset} ({$aset->status}) tidak dapat dialihkan.");
                 }
 
@@ -90,7 +92,7 @@ class PengalihanAsetService
                 ]);
 
                 // Kunci aset selama proses pengalihan berlangsung
-                $aset->update(['status' => 'DALAM_PENGALIHAN']);
+                $aset->update(['status' => StatusAset::DalamPengalihan->value]);
             }
 
             return $transfer->load(['detail.aset', 'unitAsal', 'unitTujuan', 'gudangAsal', 'gudangTujuan']);
@@ -105,7 +107,7 @@ class PengalihanAsetService
         return DB::transaction(function () use ($pengalihanId, $userId, $catatan) {
             $transfer = PengalihanAset::lockForUpdate()->findOrFail($pengalihanId);
 
-            if ($transfer->status !== 'DIAJUKAN') {
+            if ($transfer->status !== StatusPengalihan::Diajukan->value) {
                 throw new InvalidArgumentException("Dokumen pengalihan {$transfer->kode} tidak dalam status DIAJUKAN.");
             }
 
@@ -114,7 +116,7 @@ class PengalihanAsetService
             }
 
             $transfer->update([
-                'status' => 'DISETUJUI',
+                'status' => StatusPengalihan::Disetujui->value,
                 'disetujui_oleh' => $userId,
                 'catatan' => $catatan ?: $transfer->catatan,
             ]);
@@ -131,7 +133,7 @@ class PengalihanAsetService
         return DB::transaction(function () use ($pengalihanId, $userId, $alasan) {
             $transfer = PengalihanAset::with('detail.aset')->lockForUpdate()->findOrFail($pengalihanId);
 
-            if (! in_array($transfer->status, ['DIAJUKAN', 'DISETUJUI'], true)) {
+            if (! in_array($transfer->status, StatusPengalihan::aktif(), true)) {
                 throw new InvalidArgumentException("Dokumen pengalihan {$transfer->kode} tidak dapat ditolak.");
             }
 
@@ -141,13 +143,13 @@ class PengalihanAsetService
 
             // Kembalikan status aset
             foreach ($transfer->detail as $item) {
-                if ($item->aset && $item->aset->status === 'DALAM_PENGALIHAN') {
-                    $item->aset->update(['status' => 'TERSEDIA']);
+                if ($item->aset && $item->aset->status === StatusAset::DalamPengalihan->value) {
+                    $item->aset->update(['status' => StatusAset::Tersedia->value]);
                 }
             }
 
             $transfer->update([
-                'status' => 'DITOLAK',
+                'status' => StatusPengalihan::Ditolak->value,
                 'disetujui_oleh' => $userId,
                 'catatan' => $alasan ?: $transfer->catatan,
             ]);
@@ -164,19 +166,19 @@ class PengalihanAsetService
         return DB::transaction(function () use ($pengalihanId, $userId, $alasan) {
             $transfer = PengalihanAset::with('detail.aset')->lockForUpdate()->findOrFail($pengalihanId);
 
-            if ($transfer->status !== 'DIAJUKAN') {
+            if ($transfer->status !== StatusPengalihan::Diajukan->value) {
                 throw new InvalidArgumentException("Hanya pengalihan berstatus DIAJUKAN yang dapat dibatalkan.");
             }
 
             // Kembalikan status aset
             foreach ($transfer->detail as $item) {
-                if ($item->aset && $item->aset->status === 'DALAM_PENGALIHAN') {
-                    $item->aset->update(['status' => 'TERSEDIA']);
+                if ($item->aset && $item->aset->status === StatusAset::DalamPengalihan->value) {
+                    $item->aset->update(['status' => StatusAset::Tersedia->value]);
                 }
             }
 
             $transfer->update([
-                'status' => 'DIBATALKAN',
+                'status' => StatusPengalihan::Dibatalkan->value,
                 'catatan' => $alasan ?: $transfer->catatan,
             ]);
 
@@ -192,7 +194,7 @@ class PengalihanAsetService
         return DB::transaction(function () use ($pengalihanId, $userId, $kondisiAset) {
             $transfer = PengalihanAset::with('detail.aset')->lockForUpdate()->findOrFail($pengalihanId);
 
-            if ($transfer->status !== 'DISETUJUI') {
+            if ($transfer->status !== StatusPengalihan::Disetujui->value) {
                 throw new InvalidArgumentException("Dokumen pengalihan {$transfer->kode} belum disetujui atau sudah selesai diproses.");
             }
 
@@ -215,7 +217,7 @@ class PengalihanAsetService
                         'unit_id' => $transfer->unit_tujuan_id,
                         'gudang_id' => null,
                         'lokasi_gudang_id' => null,
-                        'status' => 'TERSEDIA',
+                        'status' => StatusAset::Tersedia->value,
                         'kondisi' => $kondisiBaru,
                     ]);
                 } else {
@@ -223,14 +225,14 @@ class PengalihanAsetService
                         'unit_id' => null,
                         'gudang_id' => $transfer->gudang_tujuan_id,
                         'lokasi_gudang_id' => $transfer->lokasi_gudang_tujuan_id,
-                        'status' => 'TERSEDIA',
+                        'status' => StatusAset::Tersedia->value,
                         'kondisi' => $kondisiBaru,
                     ]);
                 }
             }
 
             $transfer->update([
-                'status' => 'SELESAI',
+                'status' => StatusPengalihan::Selesai->value,
                 'diterima_oleh' => $userId,
                 'tanggal_serah_terima' => now(),
             ]);

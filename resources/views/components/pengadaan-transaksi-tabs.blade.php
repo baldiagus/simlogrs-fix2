@@ -4,12 +4,16 @@
     $portalKey = \App\Support\Portal\PortalResolver::resolve();
     $user = auth()->user();
 
-    $canPr = $user?->can('view_any_pengadaan::permintaan::pengadaan');
-    $canPo = $user?->can('view_any_pengadaan::pesanan::pembelian');
-    $canRcv = $user?->can('view_any_gudang_stok::penerimaan::po');
+    // Visibilitas tab = guard halaman: page_* rute DAN view_any_* / view_* modul.
+    $canPr = $user?->can('page_PermintaanPengadaanIndex')
+        && ($user->can('view_any_pengadaan::permintaan::pengadaan') || $user->can('view_pengadaan::permintaan::pengadaan'));
+    $canPo = $user?->can('page_PesananPembelianIndex')
+        && ($user->can('view_any_pengadaan::pesanan::pembelian') || $user->can('view_pengadaan::pesanan::pembelian'));
+    $canRcv = $user?->can('page_PenerimaanPoIndex')
+        && ($user->can('view_any_gudang_stok::penerimaan::po') || $user->can('view_gudang_stok::penerimaan::po'));
 
-    $pendingPrCount = $canPo ? \App\Models\PermintaanPengadaan::where('status', \App\Models\PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN)->doesntHave('pesananPembelian')->count() : 0;
-    $pendingInboundCount = $canRcv ? \App\Models\PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])->count() : 0;
+    $pendingPrCount = $canPo ? \App\Models\PermintaanPengadaan::where('status', \App\Enums\StatusPermintaanPengadaan::DiteruskanKePengadaan->value)->doesntHave('pesananPembelian')->count() : 0;
+    $pendingInboundCount = $canRcv ? \App\Models\PesananPembelian::whereIn('status', \App\Enums\StatusPesananPembelian::bisaDiterima())->count() : 0;
 
     $totalTabs = ($canPr ? 1 : 0) + ($canPo ? 1 : 0) + ($canRcv ? 1 : 0);
 @endphp

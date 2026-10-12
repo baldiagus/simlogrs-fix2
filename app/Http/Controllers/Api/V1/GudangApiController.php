@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\StatusPengalihan;
+use App\Enums\StatusPenerimaanPo;
+use App\Enums\StatusPermintaanPengadaan;
+use App\Enums\StatusPesananPembelian;
+use App\Enums\StatusStokOpname;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Aset;
 use App\Models\Barang;
@@ -33,11 +38,9 @@ class GudangApiController extends ApiController
     {
         $user = $request->user();
         $isGlobal = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             $user->can('view_any_master::lokasi::gudang') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_AuditorDashboard') ||
-            $user->can('page_ManajemenDashboard')
+            $user->can('view_master::lokasi::gudang')
         );
 
         $hasWarehouseAccess = $isGlobal || ($user && $user->gudang_id);
@@ -90,11 +93,9 @@ class GudangApiController extends ApiController
     {
         $user = $request->user();
         $isGlobal = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']) ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             $user->can('view_any_master::lokasi::gudang') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_AuditorDashboard') ||
-            $user->can('page_ManajemenDashboard')
+            $user->can('view_master::lokasi::gudang')
         );
 
         $rak = LokasiGudang::with(['gudang:id,kode,nama'])->find($id);
@@ -195,7 +196,7 @@ class GudangApiController extends ApiController
     {
         $user = $request->user();
 
-        if (! $user->can('create_gudang_stok::picking::distribusi') && ! $user->can('page_AdminLogistikDashboard')) {
+        if (! $user->can('create_gudang_stok::picking::distribusi') && ! $user->hasRole(['super_admin', 'admin_logistik'])) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk eksekusi picking FEFO.', 403);
         }
 
@@ -292,7 +293,7 @@ class GudangApiController extends ApiController
     {
         $user = $request->user();
 
-        if (! $user->can('create_gudang_stok::stok::opname') && ! $user->can('update_gudang_stok::stok::opname') && ! $user->can('page_AdminLogistikDashboard')) {
+        if (! $user->can('create_gudang_stok::stok::opname') && ! $user->can('update_gudang_stok::stok::opname') && ! $user->hasRole(['super_admin', 'admin_logistik'])) {
             return $this->jsonError('Anda tidak memiliki wewenang menginput hasil stock opname.', 403);
         }
 
@@ -309,16 +310,13 @@ class GudangApiController extends ApiController
             return $this->jsonError('Sesi stock opname tidak ditemukan.', 404);
         }
 
-        $isGlobalAdmin = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik']) ||
-            $user->can('page_AdminLogistikDashboard')
-        );
+        $isGlobalAdmin = $user && $user->hasRole(['super_admin', 'admin_logistik']);
 
         if (! $isGlobalAdmin && (int) $user?->gudang_id !== (int) $opname->gudang_id) {
             return $this->jsonError('Anda tidak memiliki wewenang menginput stock opname untuk fasilitas gudang lain.', 403);
         }
 
-        if ($opname->status !== 'BERJALAN') {
+        if ($opname->status !== StatusStokOpname::Berjalan->value) {
             return $this->jsonError("Sesi stock opname {$opname->kode} tidak sedang dalam status BERJALAN (status: {$opname->status}).", 422);
         }
 
@@ -373,20 +371,16 @@ class GudangApiController extends ApiController
     {
         $user = $request->user();
 
-        $canView = $user->can('create_gudang_stok::penerimaan::po') ||
-            $user->can('view_any_gudang_stok::penerimaan::po') ||
+        $canView = $user->can('view_any_gudang_stok::penerimaan::po') ||
             $user->can('view_gudang_stok::penerimaan::po') ||
-            $user->hasRole('petugas_gudang') ||
-            $user->hasRole('kepala_gudang') ||
-            $user->hasRole('admin_logistik') ||
-            $user->hasRole('super_admin');
+            $user->hasRole(['super_admin', 'admin_logistik']);
 
         if (! $canView) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk melihat daftar penerimaan PO.', 403);
         }
 
         $pos = PesananPembelian::query()
-            ->whereIn('status', ['DIKIRIM_VENDOR', 'DITERBITKAN', 'DITERIMA_SEBAGIAN'])
+            ->whereIn('status', StatusPesananPembelian::aktif())
             ->with([
                 'pemasok:id,kode,nama',
                 'detail.barang:id,kode,nama,satuan_id,kategori_id',
@@ -432,10 +426,7 @@ class GudangApiController extends ApiController
         $user = $request->user();
 
         $canReceive = $user->can('create_gudang_stok::penerimaan::po') ||
-            $user->hasRole('petugas_gudang') ||
-            $user->hasRole('kepala_gudang') ||
-            $user->hasRole('admin_logistik') ||
-            $user->hasRole('super_admin');
+            $user->hasRole(['super_admin', 'admin_logistik']);
 
         if (! $canReceive) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk melakukan penerimaan PO gudang.', 403);
@@ -468,7 +459,7 @@ class GudangApiController extends ApiController
             return $this->jsonError('Data PO tidak ditemukan.', 404);
         }
 
-        if (! in_array($po->status, ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])) {
+        if (! in_array($po->status, StatusPesananPembelian::bisaDiterima())) {
             return $this->jsonError("PO {$po->kode} belum dikirim oleh vendor atau tidak dalam status dapat diterima (saat ini: {$po->status}).", 422);
         }
         $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
@@ -540,8 +531,8 @@ class GudangApiController extends ApiController
                 $po->refresh();
                 $po->load('detail');
                 $allReceived = $po->detail->every(fn ($d) => (int) $d->jumlah_diterima >= (int) $d->jumlah_dipesan);
-                $statusRcv = $allReceived ? 'LENGKAP' : 'SEBAGIAN';
-                $statusPo  = $allReceived ? 'DITERIMA_LENGKAP' : 'DITERIMA_SEBAGIAN';
+                $statusRcv = $allReceived ? StatusPenerimaanPo::Lengkap->value : StatusPenerimaanPo::Sebagian->value;
+                $statusPo  = $allReceived ? StatusPesananPembelian::DiterimaLengkap->value : StatusPesananPembelian::DiterimaSebagian->value;
 
                 // 3. Buat dokumen penerimaan barang
                 $rcv = PenerimaanBarang::create([
@@ -610,8 +601,8 @@ class GudangApiController extends ApiController
                 $po->update(['status' => $statusPo]);
 
                 // 6. Jika seluruh barang PO telah diterima lengkap, update status PR induk menjadi SELESAI
-                if ($statusPo === 'DITERIMA_LENGKAP' && $po->permintaan_pengadaan_id) {
-                    $po->permintaanPengadaan()->update(['status' => 'SELESAI']);
+                if ($statusPo === StatusPesananPembelian::DiterimaLengkap->value && $po->permintaan_pengadaan_id) {
+                    $po->permintaanPengadaan()->update(['status' => StatusPermintaanPengadaan::Selesai->value]);
                 }
                 return $rcv;
             });
@@ -646,7 +637,7 @@ class GudangApiController extends ApiController
             $userId = $user->id;
 
             if ($tab === 'otorisasi') {
-                $query->where('status', 'DIAJUKAN')
+                $query->where('status', StatusPengalihan::Diajukan->value)
                     ->where('tipe_asal', 'GUDANG')
                     ->where('gudang_asal_id', $userGudangId)
                     ->where(function ($sub) use ($userGudangId, $userId) {
@@ -654,7 +645,7 @@ class GudangApiController extends ApiController
                             ->orWhere('diajukan_oleh', '!=', $userId);
                     });
             } elseif ($tab === 'aktif') {
-                $query->whereIn('status', ['DIAJUKAN', 'DISETUJUI'])
+                $query->whereIn('status', [StatusPengalihan::Diajukan->value, StatusPengalihan::Disetujui->value])
                     ->where(function ($q) use ($userGudangId, $userId) {
                         $q->where('diajukan_oleh', $userId);
                         if ($userGudangId) {
@@ -665,7 +656,7 @@ class GudangApiController extends ApiController
                         }
                     });
             } else {
-                $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN'])
+                $query->whereIn('status', [StatusPengalihan::Selesai->value, StatusPengalihan::Ditolak->value, StatusPengalihan::Dibatalkan->value])
                     ->where(function ($q) use ($userGudangId, $userId) {
                         $q->where('diajukan_oleh', $userId);
                         if ($userGudangId) {
@@ -676,31 +667,30 @@ class GudangApiController extends ApiController
             }
         } else {
             if ($tab === 'aktif') {
-                $query->whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
+                $query->whereIn('status', [StatusPengalihan::Diajukan->value, StatusPengalihan::Disetujui->value]);
             } elseif ($tab === 'otorisasi') {
-                $query->where('status', 'DIAJUKAN');
+                $query->where('status', StatusPengalihan::Diajukan->value);
             } elseif ($tab === 'riwayat') {
-                $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
+                $query->whereIn('status', [StatusPengalihan::Selesai->value, StatusPengalihan::Ditolak->value, StatusPengalihan::Dibatalkan->value]);
             }
         }
         $list = $query->get()->map(function ($item) use ($user, $isGlobalAdmin) {
             $namaItem = $item->detail->first()?->barang?->nama ?? 'Komoditas Logistik';
 
-            $canCancel = $item->status === 'DIAJUKAN' && (
+            $canCancel = $item->status === StatusPengalihan::Diajukan->value && (
                 $isGlobalAdmin ||
                 (int) $item->diajukan_oleh === (int) $user->id
             );
 
-            $canApprove = $item->status === 'DIAJUKAN' && (
+            $canApprove = $item->status === StatusPengalihan::Diajukan->value && (
                 $isGlobalAdmin ||
                 ($user->gudang_id && (int) $user->gudang_id === (int) $item->gudang_asal_id && $user->hasRole(['kepala_gudang', 'super_admin', 'admin_logistik']))
             );
 
-            $canReceive = $item->status === 'DISETUJUI' && (
+            $canReceive = $item->status === StatusPengalihan::Disetujui->value && (
                 $isGlobalAdmin ||
                 ($user->gudang_id && (int) $user->gudang_id === (int) $item->gudang_tujuan_id)
             );
-
             return [
                 'id'                 => $item->id,
                 'kode'               => $item->kode,
@@ -739,7 +729,7 @@ class GudangApiController extends ApiController
 
         $canCreate = $user && (
             $user->can('create_gudang_stok::pengalihan::barang') ||
-            $user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang', 'petugas_gudang'])
+            $user->hasRole(['super_admin', 'admin_logistik'])
         );
 
         if (! $canCreate) {
@@ -863,10 +853,10 @@ class GudangApiController extends ApiController
         try {
             if ($aksi === 'REJECT') {
                 $pengalihan = $service->tolakPengalihan($id, $user->id, $catatan);
-                return $this->jsonSuccess(['id' => $pengalihan->id, 'status' => 'DITOLAK'], "Pengalihan barang {$pengalihan->kode} berhasil ditolak.");
+                return $this->jsonSuccess(['id' => $pengalihan->id, 'status' => StatusPengalihan::Ditolak->value], "Pengalihan barang {$pengalihan->kode} berhasil ditolak.");
             } else {
                 $pengalihan = $service->setujuiPengalihan($id, $user->id, $catatan);
-                return $this->jsonSuccess(['id' => $pengalihan->id, 'status' => 'DISETUJUI'], "Pengalihan barang {$pengalihan->kode} berhasil disetujui.");
+                return $this->jsonSuccess(['id' => $pengalihan->id, 'status' => StatusPengalihan::Disetujui->value], "Pengalihan barang {$pengalihan->kode} berhasil disetujui.");
             }
         } catch (Exception $e) {
             return $this->jsonError($e->getMessage(), 422);
@@ -883,7 +873,7 @@ class GudangApiController extends ApiController
 
         try {
             $pengalihan = $service->eksekusiSerahTerima($id, $user->id);
-            return $this->jsonSuccess(['id' => $pengalihan->id, 'status' => 'SELESAI'], "Serah terima fisik barang {$pengalihan->kode} berhasil selesai.");
+            return $this->jsonSuccess(['id' => $pengalihan->id, 'status' => StatusPengalihan::Selesai->value], "Serah terima fisik barang {$pengalihan->kode} berhasil selesai.");
         } catch (Exception $e) {
             return $this->jsonError($e->getMessage(), 422);
         }
@@ -900,7 +890,7 @@ class GudangApiController extends ApiController
 
         try {
             $pengalihan = $service->batalkanPengalihan($id, $user->id, $alasan);
-            return $this->jsonSuccess(['id' => $pengalihan->id, 'status' => 'DIBATALKAN'], "Pengalihan barang {$pengalihan->kode} berhasil dibatalkan.");
+            return $this->jsonSuccess(['id' => $pengalihan->id, 'status' => StatusPengalihan::Dibatalkan->value], "Pengalihan barang {$pengalihan->kode} berhasil dibatalkan.");
         } catch (Exception $e) {
             return $this->jsonError($e->getMessage(), 422);
         }

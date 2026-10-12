@@ -107,7 +107,7 @@ class MonitoringStokFefoIndex extends Component
         $items = $query->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
             ->paginate($this->perPage);
 
-        $daftarGudang = Cache::remember('dropdown_gudang_aktif', 60, fn () => Gudang::where('status', 'AKTIF')->orderBy('nama')->get());
+        $daftarGudang = Cache::remember('dropdown_gudang_aktif', config('simlog.cache.dropdown_ttl'), fn () => Gudang::where('status', 'AKTIF')->orderBy('nama')->get());
 
         return view('livewire.persediaan.monitoring-stok-fefo-index', [
             'items'                => $items,

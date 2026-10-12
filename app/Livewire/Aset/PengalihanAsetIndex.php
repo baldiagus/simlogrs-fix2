@@ -2,6 +2,9 @@
 
 namespace App\Livewire\Aset;
 
+use App\Enums\StatusAset;
+use App\Enums\StatusPeminjaman;
+use App\Enums\StatusPengalihan;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -93,14 +96,8 @@ class PengalihanAsetIndex extends Component
     public function openCreateModal(): void
     {
         $user = auth()->user();
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
-        abort_unless(
-            $user?->can('create_layanan_unit::pengalihan::aset') ||
-            $user?->can('page_PengalihanAsetIndex') ||
-            $isGlobalAdmin,
-            403,
-            'Anda tidak memiliki wewenang untuk mengajukan pengalihan aset.'
-        );
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
+        abort_unless($user?->can('create_layanan_unit::pengalihan::aset') || $isGlobalAdmin, 403, 'Anda tidak memiliki wewenang untuk mengajukan pengalihan aset.');
 
         $this->resetValidation();
         $this->tanggal_pengalihan = now()->toDateString();
@@ -203,18 +200,18 @@ class PengalihanAsetIndex extends Component
     public function getDaftarBarangAsetTersedia()
     {
         $user = auth()->user();
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
         $ownUnitId = ! $isGlobalAdmin ? $user?->unit_id : null;
         $ownGudangId = ! $isGlobalAdmin ? $user?->gudang_id : null;
 
         $constraint = function ($q) use ($ownUnitId, $ownGudangId) {
-            $q->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+            $q->whereIn('status', StatusAset::dapatDialihkan())
                 ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
                 ->whereDoesntHave('permintaanMaintenance', function ($sub) {
                     $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
                 })
                 ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
-                    $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                    $sub->whereIn('status', StatusPeminjaman::aktif());
                 })
                 ->when($ownUnitId, fn ($sub) => $sub->where(fn ($sq) => $sq->where('unit_id', '!=', $ownUnitId)->orWhereNull('unit_id')))
                 ->when($ownGudangId, fn ($sub) => $sub->where(fn ($sq) => $sq->where('gudang_id', '!=', $ownGudangId)->orWhereNull('gudang_id')));
@@ -235,18 +232,18 @@ class PengalihanAsetIndex extends Component
         }
 
         $user = auth()->user();
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
         $ownUnitId = ! $isGlobalAdmin ? $user?->unit_id : null;
         $ownGudangId = ! $isGlobalAdmin ? $user?->gudang_id : null;
 
         $assets = Aset::where('barang_id', $this->selected_barang_id)
-            ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+            ->whereIn('status', StatusAset::dapatDialihkan())
             ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
             ->whereDoesntHave('permintaanMaintenance', function ($sub) {
                 $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
             })
             ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
-                $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                $sub->whereIn('status', StatusPeminjaman::aktif());
             })
             ->when($ownUnitId, fn ($sub) => $sub->where(fn ($sq) => $sq->where('unit_id', '!=', $ownUnitId)->orWhereNull('unit_id')))
             ->when($ownGudangId, fn ($sub) => $sub->where(fn ($sq) => $sq->where('gudang_id', '!=', $ownGudangId)->orWhereNull('gudang_id')))
@@ -341,12 +338,8 @@ class PengalihanAsetIndex extends Component
     public function submitPengalihan(): void
     {
         $user = auth()->user();
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
-        abort_unless(
-            $user?->can('create_layanan_unit::pengalihan::aset') ||
-            $isGlobalAdmin,
-            403
-        );
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
+        abort_unless($user?->can('create_layanan_unit::pengalihan::aset') || $isGlobalAdmin, 403);
 
         // Jika menggunakan alur pemilihan penyedia aset (seperti peminjaman aset)
         if ($this->selected_penyedia_key) {
@@ -487,9 +480,9 @@ class PengalihanAsetIndex extends Component
         );
 
         // 2. Wewenang Fasilitas Asal Pemilik Aset
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
-        $isOriginOwner = ($transfer->tipe_asal === 'RUANGAN' && $user?->unit_id && (int) $user->unit_id === (int) $transfer->unit_asal_id && ($user->can('update_layanan_unit::pengalihan::aset') || $user->hasRole(['kepala_unit', 'super_admin'])))
-            || ($transfer->tipe_asal === 'GUDANG' && $user?->gudang_id && (int) $user->gudang_id === (int) $transfer->gudang_asal_id && ($user->can('update_layanan_unit::pengalihan::aset') || $user->hasRole(['kepala_gudang', 'super_admin'])));
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
+        $isOriginOwner = ($transfer->tipe_asal === 'RUANGAN' && $user?->unit_id && (int) $user->unit_id === (int) $transfer->unit_asal_id && $user->hasRole('kepala_unit') && $user->can('update_layanan_unit::pengalihan::aset'))
+            || ($transfer->tipe_asal === 'GUDANG' && $user?->gudang_id && (int) $user->gudang_id === (int) $transfer->gudang_asal_id && $user->hasRole('kepala_gudang') && $user->can('update_layanan_unit::pengalihan::aset'));
 
         abort_unless(
             $isGlobalAdmin || $isOriginOwner,
@@ -522,7 +515,7 @@ class PengalihanAsetIndex extends Component
         $transfer = PengalihanAset::with(['detail.aset.barang'])->findOrFail($id);
 
         abort_unless(
-            $transfer->status === 'DISETUJUI',
+            $transfer->status === StatusPengalihan::Disetujui->value,
             403,
             'Pengalihan belum disetujui.'
         );
@@ -542,15 +535,8 @@ class PengalihanAsetIndex extends Component
     public function executeTerima(): void
     {
         $user = auth()->user();
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
-        abort_unless(
-            $user?->can('update_layanan_unit::pengalihan::aset') ||
-            $user?->can('create_layanan_unit::pengalihan::aset') ||
-            $isGlobalAdmin ||
-            $user?->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'petugas_unit', 'kepala_gudang', 'petugas_gudang']),
-            403,
-            'Anda tidak memiliki wewenang untuk mengonfirmasi serah terima fisik aset.'
-        );
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
+        abort_unless($user?->can('update_layanan_unit::pengalihan::aset') || $isGlobalAdmin, 403, 'Anda tidak memiliki wewenang untuk mengonfirmasi serah terima fisik aset.');
 
         try {
             $service = app(PengalihanAsetService::class);
@@ -568,14 +554,7 @@ class PengalihanAsetIndex extends Component
     public function cancelPengalihan(int $id): void
     {
         $user = auth()->user();
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard')));
-        abort_unless(
-            $user?->can('delete_layanan_unit::pengalihan::aset') ||
-            $user?->can('create_layanan_unit::pengalihan::aset') ||
-            $isGlobalAdmin,
-            403,
-            'Anda tidak memiliki wewenang untuk membatalkan pengalihan aset.'
-        );
+        abort_unless($user?->can('delete_layanan_unit::pengalihan::aset') || ($user && $user->hasRole(['super_admin', 'admin_logistik'])), 403, 'Anda tidak memiliki wewenang untuk membatalkan pengalihan aset.');
 
         try {
             $service = app(PengalihanAsetService::class);
@@ -590,13 +569,12 @@ class PengalihanAsetIndex extends Component
     public function render()
     {
         $user = auth()->user();
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard')));
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
 
         abort_unless(
             $user && (
                 $user->can('view_any_layanan_unit::pengalihan::aset') ||
                 $user->can('view_layanan_unit::pengalihan::aset') ||
-                $user->can('page_PengalihanAsetIndex') ||
                 $isGlobalAdmin
             ),
             403,
@@ -637,7 +615,7 @@ class PengalihanAsetIndex extends Component
                     }
                 });
             }
-            $query->whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
+            $query->whereIn('status', StatusPengalihan::aktif());
         }
         // 2. Tab Otorisasi: Pengajuan dari unit/gudang LAIN yang meminta aset dari fasilitas pengguna
         elseif ($this->activeTab === 'otorisasi') {
@@ -660,7 +638,7 @@ class PengalihanAsetIndex extends Component
                     }
                 });
             }
-            $query->where('status', 'DIAJUKAN');
+            $query->where('status', StatusPengalihan::Diajukan->value);
         }
         // 3. Tab Riwayat: Selesai, Ditolak, Dibatalkan
         else {
@@ -675,7 +653,7 @@ class PengalihanAsetIndex extends Component
                     }
                 });
             }
-            $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
+            $query->whereIn('status', StatusPengalihan::riwayat());
         }
 
         // Status filter
@@ -703,7 +681,7 @@ class PengalihanAsetIndex extends Component
         $items = $query->orderBy($this->getValidatedSortColumn(['kode', 'status', 'tanggal_pengalihan']), $this->getValidatedSortDirection())->paginate($this->perPage);
 
         // Hitungan Tab & KPI yang disinkronkan ke fasilitas pengguna
-        $countAktifQuery = PengalihanAset::whereIn('status', ['DIAJUKAN', 'DISETUJUI']);
+        $countAktifQuery = PengalihanAset::whereIn('status', StatusPengalihan::aktif());
         if (! $isGlobalAdmin) {
             $countAktifQuery->where(function ($q) use ($user) {
                 if ($user?->unit_id) {
@@ -717,7 +695,7 @@ class PengalihanAsetIndex extends Component
         }
         $countAktif = $countAktifQuery->count();
 
-        $countOtorisasiQuery = PengalihanAset::where('status', 'DIAJUKAN');
+        $countOtorisasiQuery = PengalihanAset::where('status', StatusPengalihan::Diajukan->value);
         if (! $isGlobalAdmin) {
             $countOtorisasiQuery->where(function ($q) use ($user) {
                 if ($user?->unit_id) {
@@ -782,7 +760,7 @@ class PengalihanAsetIndex extends Component
         $asetTersedia = collect();
         if ($this->showCreateModal) {
             $asetQuery = Aset::with('barang')
-                ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+                ->whereIn('status', StatusAset::dapatDialihkan())
                 ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN']);
 
             if ($this->tipe_asal === 'RUANGAN' && $this->unit_asal_id) {

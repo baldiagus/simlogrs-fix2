@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ApiController;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
@@ -36,7 +37,7 @@ class AuthController extends ApiController
         $email = $request->input('email');
         $throttleKey = strtolower($email) . '|' . $request->ip();
 
-        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+        if (RateLimiter::tooManyAttempts($throttleKey, (int) config('simlog.auth.max_login_attempts'))) {
             $seconds = RateLimiter::availableIn($throttleKey);
             return $this->jsonError("Terlalu banyak percobaan masuk. Coba lagi dalam {$seconds} detik.", 429);
         }
@@ -159,31 +160,34 @@ class AuthController extends ApiController
             ]);
         }
 
-        $user->update([
-            'password'             => Hash::make($request->input('password_baru')),
-            'wajib_ganti_password' => false,
-        ]);
-
-        LogAudit::create([
-            'pengguna_id'     => $user->id,
-            'peran_id'        => $user->roles?->first()?->id,
-            'referensi_jenis' => 'User',
-            'referensi_id'    => $user->id,
-            'aksi'            => 'GANTI_PASSWORD',
-            'data_sebelum'    => [
-                'user_id'              => $user->id,
-                'username'             => $user->username,
-                'wajib_ganti_password' => true,
-            ],
-            'data_sesudah'    => [
-                'user_id'              => $user->id,
-                'username'             => $user->username,
+        // Perubahan sandi dan audit dalam satu transaksi (ADR 0002 B)
+        DB::transaction(function () use ($user, $request) {
+            $user->update([
+                'password'             => Hash::make($request->input('password_baru')),
                 'wajib_ganti_password' => false,
-            ],
-            'ip_address'      => $request->ip(),
-            'device'          => substr($request->userAgent() ?? 'MobileApp', 0, 255),
-            'dibuat_pada'     => now(),
-        ]);
+            ]);
+
+            LogAudit::create([
+                'pengguna_id'     => $user->id,
+                'peran_id'        => $user->roles?->first()?->id,
+                'referensi_jenis' => 'User',
+                'referensi_id'    => $user->id,
+                'aksi'            => 'GANTI_PASSWORD',
+                'data_sebelum'    => [
+                    'user_id'              => $user->id,
+                    'username'             => $user->username,
+                    'wajib_ganti_password' => true,
+                ],
+                'data_sesudah'    => [
+                    'user_id'              => $user->id,
+                    'username'             => $user->username,
+                    'wajib_ganti_password' => false,
+                ],
+                'ip_address'      => $request->ip(),
+                'device'          => substr($request->userAgent() ?? 'MobileApp', 0, 255),
+                'dibuat_pada'     => now(),
+            ]);
+        });
 
         return $this->jsonSuccess([
             'user'                 => $this->formatUserData($user),

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Pengadaan;
 
+use App\Enums\StatusPermintaanPengadaan;
 use App\Livewire\Pengadaan\PenerimaanPoIndex;
 use App\Models\Barang;
 use App\Models\Gudang;
@@ -72,7 +73,7 @@ class PenerimaanPoTest extends TestCase
             'diajukan_oleh' => $this->user->id,
             'tanggal_permintaan' => now()->toDateString(),
             'urgensi' => 'REGULER',
-            'status' => PermintaanPengadaan::STATUS_DIPROSES,
+            'status' => StatusPermintaanPengadaan::Diproses->value,
         ]);
 
         $po = PesananPembelian::create([
@@ -180,7 +181,7 @@ class PenerimaanPoTest extends TestCase
             'diajukan_oleh' => $this->user->id,
             'tanggal_permintaan' => now()->toDateString(),
             'urgensi' => 'REGULER',
-            'status' => PermintaanPengadaan::STATUS_DIPROSES,
+            'status' => StatusPermintaanPengadaan::Diproses->value,
         ]);
 
         $po = PesananPembelian::create([
@@ -237,7 +238,7 @@ class PenerimaanPoTest extends TestCase
             'diajukan_oleh' => $this->user->id,
             'tanggal_permintaan' => now()->toDateString(),
             'urgensi' => 'REGULER',
-            'status' => PermintaanPengadaan::STATUS_DIPROSES,
+            'status' => StatusPermintaanPengadaan::Diproses->value,
         ]);
 
         $po = PesananPembelian::create([
@@ -297,7 +298,7 @@ class PenerimaanPoTest extends TestCase
             'diajukan_oleh' => $this->user->id,
             'tanggal_permintaan' => now()->toDateString(),
             'urgensi' => 'REGULER',
-            'status' => PermintaanPengadaan::STATUS_DIPROSES,
+            'status' => StatusPermintaanPengadaan::Diproses->value,
         ]);
 
         $po = PesananPembelian::create([
@@ -344,7 +345,7 @@ class PenerimaanPoTest extends TestCase
             'diajukan_oleh' => $this->user->id,
             'tanggal_permintaan' => now()->toDateString(),
             'urgensi' => 'REGULER',
-            'status' => PermintaanPengadaan::STATUS_DIPROSES,
+            'status' => StatusPermintaanPengadaan::Diproses->value,
         ]);
 
         $po = PesananPembelian::create([

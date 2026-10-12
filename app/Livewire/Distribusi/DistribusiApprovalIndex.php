@@ -2,24 +2,25 @@
 
 namespace App\Livewire\Distribusi;
 
+use App\Enums\StatusPermintaanDistribusi;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
+use App\Livewire\Distribusi\Concerns\AuthorizesDistribusiScope;
 use App\Models\PermintaanDistribusi;
 use App\Models\PermintaanDistribusiDetail;
 use App\Models\StokBatch;
-use App\Models\Gudang;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class DistribusiApprovalIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, AuthorizesDistribusiScope;
 
     #[Url(history: true)]
-    public string $filterStatus = 'DISETUJUI_KARU';
+    public string $filterStatus = StatusPermintaanDistribusi::DisetujuiKaru->value;
 
     #[Url(history: true)]
     public string $filterUrgensi = '';
@@ -42,15 +43,9 @@ class DistribusiApprovalIndex extends Component
 
     public function openReview(int $id): void
     {
-        abort_unless(
-            auth()->user()?->can('update_gudang_stok::distribusi::approval')
-            || auth()->user()?->can('gudang_stok::distribusi::approval')
-            || auth()->user()?->can('page_DistribusiApprovalIndex'),
-            403
-        );
-
         $this->selectedPermintaan = PermintaanDistribusi::with(['unit', 'gudang', 'detail.barang.satuan'])
             ->findOrFail($id);
+        $this->authorizeGudangAction($this->selectedPermintaan);
 
         $this->selectedId = $this->selectedPermintaan->id;
         $this->itemQtys = [];
@@ -99,7 +94,7 @@ class DistribusiApprovalIndex extends Component
 
         $stokCommitted = (int) PermintaanDistribusiDetail::where('barang_id', $barangId)
             ->whereHas('permintaanDistribusi', function ($q) use ($gudangId, $excludePermintaanId) {
-                $q->where('status', 'DISETUJUI_GUDANG')
+                $q->where('status', StatusPermintaanDistribusi::DisetujuiGudang->value)
                     ->when($gudangId, fn ($sub) => $sub->where('gudang_id', $gudangId))
                     ->when($excludePermintaanId, fn ($sub) => $sub->where('id', '!=', $excludePermintaanId));
             })
@@ -140,12 +135,7 @@ class DistribusiApprovalIndex extends Component
 
     public function submitApproveGudang(): void
     {
-        abort_unless(
-            auth()->user()?->can('update_gudang_stok::distribusi::approval')
-            || auth()->user()?->can('gudang_stok::distribusi::approval')
-            || auth()->user()?->can('page_DistribusiApprovalIndex'),
-            403
-        );
+        abort_unless($this->canApproveGudang(), 403);
 
         if (! $this->selectedId || empty($this->itemQtys)) {
             return;
@@ -158,9 +148,10 @@ class DistribusiApprovalIndex extends Component
         // Persetujuan mengesahkan kuota komitmen 100%; selisih terhadap stok fisik otomatis menjadi hutang gudang (backorder)
 
         DB::transaction(function () {
-            $permintaan = PermintaanDistribusi::with('detail')->findOrFail($this->selectedId);
+            $permintaan = PermintaanDistribusi::with('detail')->lockForUpdate()->findOrFail($this->selectedId);
+            $this->authorizeGudangAction($permintaan);
 
-            if ($permintaan->status !== 'DISETUJUI_KARU') {
+            if ($permintaan->status !== StatusPermintaanDistribusi::DisetujuiKaru->value) {
                 $this->toast("Permintaan {$permintaan->kode} sudah diproses sebelumnya.", 'warning');
                 return;
             }
@@ -174,7 +165,7 @@ class DistribusiApprovalIndex extends Component
             }
 
             $permintaan->update([
-                'status'         => 'DISETUJUI_GUDANG',
+                'status'         => StatusPermintaanDistribusi::DisetujuiGudang->value,
                 'disetujui_oleh' => auth()->id(),
             ]);
         });
@@ -187,6 +178,7 @@ class DistribusiApprovalIndex extends Component
     public function confirmRejectGudang(int $id): void
     {
         $permintaan = PermintaanDistribusi::findOrFail($id);
+        $this->authorizeGudangAction($permintaan);
 
         $this->askConfirmation(
             target: $id,
@@ -200,22 +192,16 @@ class DistribusiApprovalIndex extends Component
 
     public function rejectGudang(int $id): void
     {
-        abort_unless(
-            auth()->user()?->can('update_gudang_stok::distribusi::approval')
-            || auth()->user()?->can('gudang_stok::distribusi::approval')
-            || auth()->user()?->can('page_DistribusiApprovalIndex'),
-            403
-        );
-
         $permintaan = PermintaanDistribusi::findOrFail($id);
+        $this->authorizeGudangAction($permintaan);
 
-        if ($permintaan->status !== 'DISETUJUI_KARU') {
+        if ($permintaan->status !== StatusPermintaanDistribusi::DisetujuiKaru->value) {
             $this->toast('Hanya permintaan berstatus DISETUJUI_KARU yang dapat ditolak oleh admin logistik.', 'warning');
             return;
         }
 
         $permintaan->update([
-            'status'         => 'DITOLAK',
+            'status'         => StatusPermintaanDistribusi::Ditolak->value,
             'disetujui_oleh' => auth()->id(),
         ]);
 
@@ -224,17 +210,40 @@ class DistribusiApprovalIndex extends Component
 
     public function openDetail(int $id): void
     {
+        $this->authorizeView();
+
+        $permintaan = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang.satuan', 'pengiriman.detail'])
+            ->findOrFail($id);
+        $this->authorizeReadScoped($permintaan->unit_id, $permintaan->gudang_id);
+
+        $this->selectedPermintaan = $permintaan;
+        $this->showDetailModal = true;
+    }
+
+    protected function authorizeView(): void
+    {
         abort_unless(
-            auth()->user()?->can('view_any_gudang_stok::distribusi::approval')
-            || auth()->user()?->can('view_gudang_stok::distribusi::approval')
-            || auth()->user()?->can('gudang_stok::distribusi::approval')
-            || auth()->user()?->can('page_DistribusiApprovalIndex'),
+            auth()->user()?->canAny(['view_any_gudang_stok::distribusi::approval', 'view_gudang_stok::distribusi::approval']),
             403
         );
+    }
 
-        $this->selectedPermintaan = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang.satuan', 'pengiriman.detail'])
-            ->findOrFail($id);
-        $this->showDetailModal = true;
+    /**
+     * Tahap Meja 2 (Kepala Gudang): role kepala_gudang dan permission update; super_admin/admin_logistik global.
+     */
+    protected function canApproveGudang(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) ($user
+            && $user->can('update_gudang_stok::distribusi::approval')
+            && ($this->isGlobalOperator() || $user->hasRole('kepala_gudang')));
+    }
+
+    protected function authorizeGudangAction(PermintaanDistribusi $permintaan): void
+    {
+        abort_unless($this->canApproveGudang(), 403, 'Anda tidak memiliki wewenang otorisasi distribusi gudang.');
+        abort_unless($this->inGudangScope($permintaan->gudang_id), 403, 'Anda hanya berhak memproses permohonan untuk gudang Anda sendiri.');
     }
 
     public function showDetail(int $id): void
@@ -244,24 +253,20 @@ class DistribusiApprovalIndex extends Component
 
     public function render()
     {
-        abort_unless(
-            auth()->user()?->can('view_any_gudang_stok::distribusi::approval')
-            || auth()->user()?->can('view_gudang_stok::distribusi::approval')
-            || auth()->user()?->can('gudang_stok::distribusi::approval')
-            || auth()->user()?->can('page_DistribusiApprovalIndex'),
-            403
-        );
-        $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
+        $this->authorizeView();
+        $canApproveGudang = $this->canApproveGudang();
 
-        $allowedStatuses = ['DISETUJUI_KARU', 'DISETUJUI_GUDANG', 'SEDANG_DIKIRIM', 'SELESAI', 'DITOLAK'];
+        $allowedStatuses = [
+            StatusPermintaanDistribusi::DisetujuiKaru->value,
+            StatusPermintaanDistribusi::DisetujuiGudang->value,
+            StatusPermintaanDistribusi::SedangDikirim->value,
+            StatusPermintaanDistribusi::Selesai->value,
+            StatusPermintaanDistribusi::Ditolak->value,
+        ];
 
         $query = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang.satuan'])
             ->whereIn('status', $allowedStatuses)
-            ->when(! $isGlobalAdmin && $user?->gudang_id, function ($q) use ($user) {
-                $gudangIds = Gudang::where('kepala_gudang_id', $user->id)->pluck('id');
-                $q->whereIn('gudang_id', $gudangIds->isNotEmpty() ? $gudangIds : [$user->gudang_id]);
-            })
+            ->tap(fn ($q) => $this->applyReadScope($q))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterUrgensi, fn ($q) => $q->where('urgensi', $this->filterUrgensi))
             ->when($this->search, function ($q) {
@@ -278,6 +283,9 @@ class DistribusiApprovalIndex extends Component
 
         return view('livewire.distribusi.distribusi-approval-index', [
             'items' => $items,
+            'canApproveGudang' => $canApproveGudang,
+            'approvableGudangIds' => $canApproveGudang ? $this->ownGudangIds() : [],
+            'isGlobalAdmin' => $this->isGlobalOperator(),
         ])->layout('layouts.portal', [
             'portal' => $this->getPortalName(),
             'title'  => 'Otorisasi Distribusi Logistik (Admin Sentral)',

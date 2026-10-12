@@ -28,7 +28,7 @@
             <div class="w-full sm:w-48">
                 <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="AKTIF">Tugas Aktif Berjalan</option>
-                    <option value="SELESAI">Riwayat Selesai</option>
+                    <option value="{{ \App\Enums\StatusSpk::Selesai->value }}">Riwayat Selesai</option>
                     <option value="SEMUA">Semua SPK</option>
                 </select>
             </div>
@@ -100,13 +100,13 @@
                                     <flux:menu.item wire:click="showDetail({{ $spk->id }})" icon="eye">
                                         Detail Pengerjaan
                                     </flux:menu.item>
-                                    @if (in_array($spk->status, ['DITUGASKAN', 'DITERIMA']))
-                                        @can('create_pemeliharaan::lembar::kerja')
+                                    @if (in_array($spk->status, \App\Enums\StatusSpk::aktif()))
+                                        @if (auth()->user()?->can('create_pemeliharaan::lembar::kerja') && ((int) $spk->teknisi_id === (int) auth()->id() || auth()->user()->hasRole(['super_admin', 'admin_logistik'])))
                                             <flux:menu.separator />
                                             <flux:menu.item wire:click="openLembarKerja({{ $spk->id }})" icon="wrench-screwdriver" class="text-emerald-600 dark:text-emerald-400">
                                                 Input Lembar Kerja
                                             </flux:menu.item>
-                                        @endcan
+                                        @endif
                                     @endif
                                 </flux:menu>
                             </flux:dropdown>

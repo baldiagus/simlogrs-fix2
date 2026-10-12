@@ -137,7 +137,7 @@
                 </div>
             @endif
 
-            @if ($isGlobalAdmin && $daftarUnit->isNotEmpty())
+            @if ($canPickUnit && $daftarUnit->isNotEmpty())
                 <div class="w-full sm:w-64">
                     <select wire:model.live="filterUnitId" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 font-medium">
                         @foreach ($daftarUnit as $u)
@@ -154,7 +154,7 @@
                 <flux:table.columns sticky>
                     <flux:table.column sortable :sorted="$sortBy === 'barang_id'" :direction="$sortDirection" wire:click="sort('barang_id')" class="w-36">Kode</flux:table.column>
                     <flux:table.column>Nama Komoditas & Kategori</flux:table.column>
-                    @if ($isGlobalAdmin)
+                    @if ($canPickUnit)
                         <flux:table.column>Unit / Ruangan</flux:table.column>
                     @endif
                     <flux:table.column sortable :sorted="$sortBy === 'jumlah'" :direction="$sortDirection" wire:click="sort('jumlah')" class="text-right w-36">Sisa Fisik</flux:table.column>
@@ -185,7 +185,7 @@
                             </flux:table.cell>
 
                             {{-- Unit (Jika Admin) --}}
-                            @if ($isGlobalAdmin)
+                            @if ($canPickUnit)
                                 <flux:table.cell class="text-xs text-zinc-600 dark:text-zinc-300">
                                     {{ $stok->unit?->nama ?? $stok->gudang?->nama ?? '-' }}
                                 </flux:table.cell>
@@ -215,7 +215,7 @@
                             {{-- Aksi --}}
                             <flux:table.cell class="text-right">
                                 <div class="flex items-center justify-end gap-1.5">
-                                    @if (! $isWarehouseUser)
+                                    @if (! $isWarehouseUser && $canCatatPakai)
                                         @if (! $isHabis)
                                             <flux:button
                                                 wire:click="openCatatPemakaian({{ $stok->id }})"
@@ -268,7 +268,7 @@
                     <flux:table.column sortable :sorted="$sortBy === 'kode_aset'" :direction="$sortDirection" wire:click="sort('kode_aset')" class="w-36">Kode Aset</flux:table.column>
                     <flux:table.column>Nama Sarana & Kategori</flux:table.column>
                     <flux:table.column class="w-36">Nomor Seri</flux:table.column>
-                    @if ($isGlobalAdmin)
+                    @if ($canPickUnit)
                         <flux:table.column>Unit / Ruangan</flux:table.column>
                     @endif
                     <flux:table.column class="text-center w-32">Kondisi</flux:table.column>
@@ -300,7 +300,7 @@
                             </flux:table.cell>
 
                             {{-- Unit (Jika Admin) --}}
-                            @if ($isGlobalAdmin)
+                            @if ($canPickUnit)
                                 <flux:table.cell class="text-xs text-zinc-600 dark:text-zinc-300">
                                     {{ $ast->unit?->nama ?? '-' }}
                                 </flux:table.cell>
@@ -344,11 +344,11 @@
                             <flux:table.cell class="text-right w-16">
                                 @php
                                     $user = auth()->user();
-                                    $canUbahStatus = $user && (
-                                        $user->can('update_layanan_unit::stok::ruangan') ||
-                                        $user->hasRole(['super_admin', 'admin_logistik', 'kepala_unit']) ||
-                                        $user->can('page_AdminLogistikDashboard')
-                                    ) && ($isGlobalAdmin || (int) $user->unit_id === (int) $ast->unit_id);
+                                    $ownsThisAset = $isGlobalAdmin
+                                        || ($user?->unit_id && $ast->unit_id && (int) $user->unit_id === (int) $ast->unit_id)
+                                        || ($user?->gudang_id && $ast->gudang_id && (int) $user->gudang_id === (int) $ast->gudang_id);
+                                    $canUbahStatus = $canUpdateStok && $ownsThisAset;
+                                    $canLaporThis = $canLaporServis && $ownsThisAset;
                                 @endphp
                                 @if ($ast->status === 'DALAM_MAINTENANCE')
                                     <flux:badge size="xs" color="amber" class="font-medium" title="Aset sedang dalam penanganan perbaikan oleh teknisi IPSRS">
@@ -363,7 +363,7 @@
                                                     Ubah Status Operasional
                                                 </flux:menu.item>
                                             @endif
-                                            @if (! in_array($ast->status, ['DIPINJAM', 'DALAM_MAINTENANCE', 'DIHAPUSKAN']))
+                                            @if ($canLaporThis && ! in_array($ast->status, ['DIPINJAM', 'DALAM_MAINTENANCE', 'DIHAPUSKAN']))
                                                 <flux:menu.item wire:click="openLaporServis({{ $ast->id }})" icon="wrench">
                                                     Lapor Servis ke IPSRS
                                                 </flux:menu.item>

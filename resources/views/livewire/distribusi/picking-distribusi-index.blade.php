@@ -1,3 +1,4 @@
+@use('App\Enums\StatusPermintaanDistribusi')
 <div class="space-y-6">
     {{-- Header Halaman & Sub-Navigasi --}}
     <div class="space-y-3">
@@ -82,7 +83,7 @@
                         <flux:table.row :key="$item->id">
                             <flux:table.cell class="font-mono font-semibold text-xs text-zinc-900 dark:text-zinc-100">
                                 <div>{{ $item->kode }}</div>
-                                @if ($item->status === 'DIKIRIM_SEBAGIAN')
+                                @if ($item->status === StatusPermintaanDistribusi::DikirimSebagian->value)
                                     <flux:badge size="xs" color="amber" class="mt-0.5">Sisa Terhutang</flux:badge>
                                 @endif
                             </flux:table.cell>
@@ -116,10 +117,10 @@
                                             Detail Permintaan
                                         </flux:menu.item>
 
-                                        @canany(['create_gudang_stok::picking::distribusi', 'update_gudang_stok::picking::distribusi', 'page_PickingDistribusiIndex', 'page_GudangDashboard'])
+                                        @canany(['create_gudang_stok::picking::distribusi'])
                                             <flux:menu.separator />
                                             <flux:menu.item wire:click="confirmPicking({{ $item->id }})" icon="cube" class="text-emerald-600 dark:text-emerald-400">
-                                                {{ $item->status === 'DIKIRIM_SEBAGIAN' ? 'Picking Sisa Hutang' : 'Eksekusi Picking FEFO' }}
+                                                {{ $item->status === StatusPermintaanDistribusi::DikirimSebagian->value ? 'Picking Sisa Hutang' : 'Eksekusi Picking FEFO' }}
                                             </flux:menu.item>
                                         @endcanany
                                     </flux:menu>
@@ -401,7 +402,7 @@
                     <flux:button type="button" variant="ghost" wire:click="closePermintaanDetailModal">
                         Tutup
                     </flux:button>
-                    @canany(['create_gudang_stok::picking::distribusi', 'update_gudang_stok::picking::distribusi', 'page_PickingDistribusiIndex', 'page_GudangDashboard'])
+                    @canany(['create_gudang_stok::picking::distribusi'])
                         <flux:button
                             type="button"
                             variant="primary"
@@ -409,7 +410,7 @@
                             wire:click="confirmPickingFromDetail"
                             class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold"
                         >
-                            {{ $selectedPermintaanDetail->status === 'DIKIRIM_SEBAGIAN' ? 'Lanjutkan Picking Sisa Hutang' : 'Lanjutkan Eksekusi Picking FEFO' }}
+                            {{ $selectedPermintaanDetail->status === StatusPermintaanDistribusi::DikirimSebagian->value ? 'Lanjutkan Picking Sisa Hutang' : 'Lanjutkan Eksekusi Picking FEFO' }}
                         </flux:button>
                     @endcanany
                 </div>

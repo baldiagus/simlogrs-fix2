@@ -3,7 +3,6 @@
 namespace App\Support\File;
 
 use Illuminate\Http\File;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -19,9 +18,12 @@ class FileOptimizer
         mixed $file,
         string $directory,
         string $disk = 'public',
-        int $maxDimension = 1600,
-        int $quality = 80
+        ?int $maxDimension = null,
+        ?int $quality = null
     ): array {
+        $maxDimension ??= (int) config('simlog.upload.image_max_dimension');
+        $quality ??= (int) config('simlog.upload.image_quality');
+
         $origName = method_exists($file, 'getClientOriginalName')
             ? $file->getClientOriginalName()
             : basename((string) $file);

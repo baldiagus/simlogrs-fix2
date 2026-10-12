@@ -6,21 +6,13 @@
 
     // Gudang & Admin Sentral boleh memutasi barang dan aset; Unit Ruangan hanya boleh aset
     $isGudangOrAdmin = $user && (
-        $user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang', 'petugas_gudang']) ||
-        $user->can('page_Dashboard') ||
-        $user->can('page_AdminLogistikDashboard') ||
-        $user->can('page_KepalaGudangDashboard') ||
-        $user->can('page_GudangDashboard') ||
-        $user->can('view_any_pengalihan::barang')
+        $user->can('view_any_gudang_stok::pengalihan::barang') ||
+        $user->can('view_gudang_stok::pengalihan::barang') ||
+        false
     );
 
     $canBarang = $isGudangOrAdmin;
-    $canAset = $user && (
-        $user->can('view_any_layanan_unit::pengalihan::aset') ||
-        $user->can('view_any_pengalihan::aset') ||
-        $user->can('page_PengalihanAsetIndex') ||
-        $user->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'petugas_unit', 'kepala_gudang', 'petugas_gudang'])
-    );
+    $canAset = $user && ($user->can('view_any_layanan_unit::pengalihan::aset') || $user->can('view_layanan_unit::pengalihan::aset'));
 
     $totalTabs = ($canBarang ? 1 : 0) + ($canAset ? 1 : 0);
 @endphp

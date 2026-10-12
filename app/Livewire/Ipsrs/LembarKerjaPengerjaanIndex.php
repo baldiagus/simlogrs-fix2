@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Ipsrs;
 
+use App\Enums\StatusMaintenance;
+use App\Enums\StatusSpk;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -10,7 +12,6 @@ use App\Models\Barang;
 use App\Models\LogMaintenance;
 use App\Models\PenugasanMaintenance;
 use App\Models\PergerakanStok;
-use App\Models\PermintaanMaintenance;
 use App\Models\StokBatch;
 use App\Models\SukuCadangMaintenance;
 use Exception;
@@ -82,7 +83,7 @@ class LembarKerjaPengerjaanIndex extends Component
         $this->formSpk = PenugasanMaintenance::with(['permintaanMaintenance.aset.barang', 'permintaanMaintenance.unit'])->findOrFail($spkId);
         $user = auth()->user();
         $isOwner = (int) $this->formSpk->teknisi_id === (int) $user?->id;
-        $isSupervisor = $user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_AdminLogistikDashboard'));
+        $isSupervisor = (bool) $user?->hasRole(['super_admin', 'admin_logistik']);
         abort_unless($isOwner || $isSupervisor, 403, 'Anda hanya berhak mengisi lembar kerja untuk SPK yang ditugaskan kepada Anda.');
 
         $this->tanggal_pengerjaan = now()->format('Y-m-d\TH:i');
@@ -157,7 +158,7 @@ class LembarKerjaPengerjaanIndex extends Component
         $user = auth()->user();
         $spk = PenugasanMaintenance::with(['permintaanMaintenance.aset'])->findOrFail($this->penugasan_id);
         $isOwner = (int) $spk->teknisi_id === (int) $user?->id;
-        $isSupervisor = $user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('page_AdminLogistikDashboard'));
+        $isSupervisor = (bool) $user?->hasRole(['super_admin', 'admin_logistik']);
         abort_unless($isOwner || $isSupervisor, 403, 'Anda hanya berhak mengisi lembar kerja untuk SPK yang ditugaskan kepada Anda.');
         $tiket = $spk->permintaanMaintenance;
 
@@ -255,8 +256,8 @@ class LembarKerjaPengerjaanIndex extends Component
 
                 // 3. Update Status SPK, Tiket, dan Aset
                 if ($this->hasil === 'BERHASIL' && $this->uji_fungsi_kelaikan) {
-                    $spk->update(['status' => 'SELESAI']);
-                    $tiket->update(['status' => 'SELESAI']);
+                    $spk->update(['status' => StatusSpk::Selesai->value]);
+                    $tiket->update(['status' => StatusMaintenance::Selesai->value]);
 
                     // Kembalikan Aset ke kondisi BAIK dan status TERSEDIA / DIGUNAKAN
                     if ($tiket->aset) {
@@ -267,14 +268,14 @@ class LembarKerjaPengerjaanIndex extends Component
                         ]);
                     }
                 } elseif ($this->hasil === 'BERHASIL' && ! $this->uji_fungsi_kelaikan) {
-                    $spk->update(['status' => 'DITERIMA']);
-                    $tiket->update(['status' => 'UJI_FUNGSI']);
+                    $spk->update(['status' => StatusSpk::Diterima->value]);
+                    $tiket->update(['status' => StatusMaintenance::UjiFungsi->value]);
                 } elseif ($this->hasil === 'PENDING') {
-                    $spk->update(['status' => 'DITERIMA']);
-                    $tiket->update(['status' => 'SEDANG_DIKERJAKAN']);
+                    $spk->update(['status' => StatusSpk::Diterima->value]);
+                    $tiket->update(['status' => StatusMaintenance::SedangDikerjakan->value]);
                 } else {
-                    $spk->update(['status' => 'DITERIMA']);
-                    $tiket->update(['status' => 'MENUNGGU_SPAREPART']);
+                    $spk->update(['status' => StatusSpk::Diterima->value]);
+                    $tiket->update(['status' => StatusMaintenance::MenungguSparepart->value]);
                 }
             });
 
@@ -289,6 +290,8 @@ class LembarKerjaPengerjaanIndex extends Component
 
     public function showDetail(int $spkId): void
     {
+        $this->authorizeView();
+
         $this->selectedSpk = PenugasanMaintenance::with([
             'permintaanMaintenance.aset.barang',
             'permintaanMaintenance.unit',
@@ -299,17 +302,32 @@ class LembarKerjaPengerjaanIndex extends Component
             'logMaintenance.sukuCadang.barang',
             'permintaanMaintenance.sukuCadang.barang',
         ])->findOrFail($spkId);
+        abort_unless(! $this->isOwnSpkOnly() || (int) $this->selectedSpk->teknisi_id === (int) auth()->id(), 403);
 
         $this->showDetailModal = true;
     }
 
-    public function render()
+    /**
+     * Teknisi hanya melihat lembar kerja SPK miliknya; koordinator, role global,
+     * dan auditor/manajemen membaca seluruh departemen.
+     */
+    private function isOwnSpkOnly(): bool
+    {
+        return ! auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_teknisi', 'auditor', 'manajemen']);
+    }
+
+    private function authorizeView(): void
     {
         abort_unless(
             auth()->user()?->can('view_any_pemeliharaan::lembar::kerja') ||
             auth()->user()?->can('view_pemeliharaan::lembar::kerja'),
             403
         );
+    }
+
+    public function render()
+    {
+        $this->authorizeView();
 
         $query = PenugasanMaintenance::with([
             'permintaanMaintenance.aset.barang',
@@ -317,8 +335,9 @@ class LembarKerjaPengerjaanIndex extends Component
             'teknisi',
             'logMaintenance',
         ])
-        ->when($this->filterStatus === 'AKTIF', fn ($q) => $q->whereIn('status', ['DITUGASKAN', 'DITERIMA']))
-        ->when($this->filterStatus === 'SELESAI', fn ($q) => $q->where('status', 'SELESAI'))
+        ->when($this->isOwnSpkOnly(), fn ($q) => $q->where('teknisi_id', auth()->id()))
+        ->when($this->filterStatus === 'AKTIF', fn ($q) => $q->whereIn('status', StatusSpk::aktif()))
+        ->when($this->filterStatus === StatusSpk::Selesai->value, fn ($q) => $q->where('status', StatusSpk::Selesai->value))
         ->when($this->search, function ($q) {
             $q->where(function ($sub) {
                 $sub->where('kode', 'ilike', "%{$this->search}%")

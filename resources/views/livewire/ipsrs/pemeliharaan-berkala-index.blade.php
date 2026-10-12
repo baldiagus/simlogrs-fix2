@@ -130,11 +130,11 @@
                                 <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
                                 <flux:menu class="min-w-44">
                                     @if ($item->status === 'AKTIF')
-                                        @can('create_pemeliharaan::spk::perbaikan')
+                                        @if ($this->canTerbitkanSpk())
                                             <flux:menu.item wire:click="confirmEksekusi({{ $item->id }})" icon="bolt">
                                                 Eksekusi SPK
                                             </flux:menu.item>
-                                        @endcan
+                                        @endif
                                     @endif
                                     @can('update_pemeliharaan::pemeliharaan::berkala')
                                         <flux:menu.item wire:click="edit({{ $item->id }})" icon="pencil-square">

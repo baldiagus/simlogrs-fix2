@@ -56,11 +56,9 @@
             <div class="w-full sm:w-44">
                 <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status Aset</option>
-                    <option value="TERSEDIA">TERSEDIA</option>
-                    <option value="DIGUNAKAN">DIGUNAKAN</option>
-                    <option value="DIPINJAM">DIPINJAM</option>
-                    <option value="DALAM_MAINTENANCE">DALAM MAINTENANCE</option>
-                    <option value="DIHAPUSKAN">DIHAPUSKAN</option>
+                    @foreach (\App\Enums\StatusAset::dapatDiaturManual() as $statusAset)
+                        <option value="{{ $statusAset }}">{{ str_replace('_', ' ', $statusAset) }}</option>
+                    @endforeach
                 </select>
             </div>
 
@@ -180,25 +178,19 @@
                                     </flux:menu.item>
                                     @php
                                         $user = auth()->user();
-                                        $canEditThisAset = $user && $user->can('update_master::aset') && (
-                                            $user->hasRole(['super_admin', 'admin_logistik']) ||
-                                            $user->can('page_AdminLogistikDashboard') ||
-                                            ($user->unit_id && (int) $user->unit_id === (int) $item->unit_id)
-                                        );
+                                        $canEditThisAset = $this->canUserEditAset($user, $item);
                                     @endphp
                                     @if ($canEditThisAset)
                                         <flux:menu.item wire:click="edit({{ $item->id }})" icon="pencil-square">
                                             Ubah Data
                                         </flux:menu.item>
                                     @endif
-                                    @can('delete_master::aset')
-                                        @if ($user && ($user->hasRole(['super_admin', 'admin_logistik']) || ($user->unit_id && (int) $user->unit_id === (int) $item->unit_id)))
-                                            <flux:menu.separator />
-                                            <flux:menu.item wire:click="confirmDelete({{ $item->id }})" icon="trash" variant="danger">
-                                                Hapus Data
-                                            </flux:menu.item>
-                                        @endif
-                                    @endcan
+                                    @if ($this->canUserDeleteAset($user, $item))
+                                        <flux:menu.separator />
+                                        <flux:menu.item wire:click="confirmDelete({{ $item->id }})" icon="trash" variant="danger">
+                                            Hapus Data
+                                        </flux:menu.item>
+                                    @endif
                                 </flux:menu>
                             </flux:dropdown>
                         </flux:table.cell>
@@ -308,11 +300,9 @@
                     <div>
                         <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Status Aset <span class="text-red-500">*</span></label>
                         <select wire:model="status" required class="w-full text-sm rounded-lg border {{ $errors->has('status') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                            <option value="TERSEDIA">TERSEDIA</option>
-                            <option value="DIGUNAKAN">DIGUNAKAN</option>
-                            <option value="DIPINJAM">DIPINJAM</option>
-                            <option value="DALAM_MAINTENANCE">DALAM MAINTENANCE</option>
-                            <option value="DIHAPUSKAN">DIHAPUSKAN</option>
+                            @foreach (\App\Enums\StatusAset::dapatDiaturManual() as $statusAset)
+                                <option value="{{ $statusAset }}">{{ str_replace('_', ' ', $statusAset) }}</option>
+                            @endforeach
                         </select>
                         @error('status') <p class="mt-1 text-xs text-red-500 flex items-center gap-1"><span class="font-medium">{{ $message }}</span></p> @enderror
                     </div>
@@ -464,7 +454,7 @@
                                     <span class="font-mono font-bold text-xs text-zinc-900 dark:text-zinc-100">{{ $latestPinjam?->kode ?? '-' }}</span>
                                     <span class="text-[11px] text-zinc-400">&bull; Peminjaman Terakhir</span>
                                 </div>
-                                <x-status-badge :status="$latestPinjam?->status ?? 'SELESAI'" />
+                                <x-status-badge :status="$latestPinjam?->status ?? \App\Enums\StatusPeminjaman::Selesai->value" />
                             </div>
                             <div class="text-xs text-zinc-700 dark:text-zinc-300">
                                 <span class="font-semibold">{{ $latestPinjam?->unitPeminjam?->nama ?? 'Ruangan' }}</span>
@@ -473,7 +463,7 @@
                                 <span>Masa: {{ $latestPinjam?->tanggal_pinjam?->format('d/m/Y') ?? '-' }} s/d {{ $latestPinjam?->tanggal_kembali_rencana?->format('d/m/Y') ?? '-' }}</span>
                                 @if ($latestKembali)
                                     <span class="font-medium text-emerald-600 dark:text-emerald-400">Kembali: {{ str_replace('_', ' ', $latestKembali->kondisi_saat_kembali) }}</span>
-                                @elseif ($latestPinjam?->status === 'DIPINJAM')
+                                @elseif ($latestPinjam?->status === \App\Enums\StatusPeminjaman::Dipinjam->value)
                                     <span class="font-medium text-amber-600 dark:text-amber-400">Sedang Dipinjam</span>
                                 @endif
                             </div>
@@ -570,7 +560,7 @@
                                             {{ $pinjam?->keperluan ?: '-' }}
                                         </td>
                                         <td class="p-3 text-center">
-                                            <x-status-badge :status="$pinjam?->status ?? 'SELESAI'" />
+                                            <x-status-badge :status="$pinjam?->status ?? \App\Enums\StatusPeminjaman::Selesai->value" />
                                         </td>
                                         <td class="p-3">
                                             @if ($kembali)
@@ -581,7 +571,7 @@
                                                 @if ($kembali->catatan)
                                                     <div class="text-[11px] text-zinc-500 italic mt-0.5">"{{ $kembali->catatan }}"</div>
                                                 @endif
-                                            @elseif ($pinjam?->status === 'DIPINJAM')
+                                            @elseif ($pinjam?->status === \App\Enums\StatusPeminjaman::Dipinjam->value)
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                                                     Sedang Digunakan
                                                 </span>

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\StatusAset;
+use App\Enums\StatusPeminjaman;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Aset;
 use App\Models\PermintaanPeminjaman;
@@ -54,13 +56,13 @@ class AsetApiController extends ApiController
         $peminjamanAktif = null;
         $antreanPeminjaman = null;
         $transaksiPinjam = PermintaanPeminjaman::whereHas('detail', fn ($q) => $q->where('aset_id', $aset->id))
-            ->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM'])
+            ->whereIn('status', StatusPeminjaman::aktif())
             ->with(['unitPeminjam', 'pengaju'])
             ->latest('id')
             ->first();
 
         if ($transaksiPinjam) {
-            if ($transaksiPinjam->status === 'DIPINJAM') {
+            if ($transaksiPinjam->status === StatusPeminjaman::Dipinjam->value) {
                 $peminjamanAktif = $transaksiPinjam;
             } else {
                 $antreanPeminjaman = [
@@ -141,13 +143,13 @@ class AsetApiController extends ApiController
         $peminjamanAktif = null;
         $antreanPeminjaman = null;
         $transaksiPinjam = PermintaanPeminjaman::whereHas('detail', fn ($q) => $q->where('aset_id', $aset->id))
-            ->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM'])
+            ->whereIn('status', StatusPeminjaman::aktif())
             ->with(['unitPeminjam', 'pengaju'])
             ->latest('id')
             ->first();
 
         if ($transaksiPinjam) {
-            if ($transaksiPinjam->status === 'DIPINJAM') {
+            if ($transaksiPinjam->status === StatusPeminjaman::Dipinjam->value) {
                 $peminjamanAktif = $transaksiPinjam;
             } else {
                 $antreanPeminjaman = [
@@ -221,18 +223,18 @@ class AsetApiController extends ApiController
         $tujuan = $request->query('tujuan');
         $aset = Aset::query()
             ->when($tujuan === 'pengalihan', function ($q) {
-                $q->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+                $q->whereIn('status', StatusAset::dapatDialihkan())
                     ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
                     ->whereDoesntHave('permintaanMaintenance', function ($sub) {
                         $sub->whereNotIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
                     });
             }, function ($q) {
-                $q->where('status', 'TERSEDIA')
+                $q->where('status', StatusAset::Tersedia->value)
                     ->where('kondisi', 'BAIK');
             })
             // Kunci integritas: kecualikan aset yang sedang dalam proses pengajuan atau aktif dipinjam
             ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($q) {
-                $q->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                $q->whereIn('status', StatusPeminjaman::aktif());
             })
             ->with(['barang.kategori:id,nama', 'barang.satuan:id,nama', 'barang.merek:id,nama', 'unit:id,kode,nama', 'gudang:id,kode,nama', 'lokasiGudang:id,kode,nama'])
             // Jangan meminjam aset dari ruangan sendiri (selaras dengan validasi web)
@@ -361,10 +363,7 @@ class AsetApiController extends ApiController
         $perspektif = $request->query('perspektif', 'peminjam'); // peminjam atau penyedia
         $filterStatus = $request->query('status'); // DIAJUKAN, DISETUJUI, DIPINJAM, SELESAI, DITOLAK
 
-        $isGlobalAdmin = $user->can('page_Dashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->hasRole('super_admin') ||
-            $user->hasRole('admin_logistik');
+        $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
 
         $query = PermintaanPeminjaman::query()
             ->with([
@@ -404,7 +403,7 @@ class AsetApiController extends ApiController
             ->map(function ($p) use ($user) {
                 $firstDetail = $p->detail->first();
                 $aset = $firstDetail?->aset;
-                $isOverdue = $p->status === 'DIPINJAM' && $p->tanggal_kembali_rencana && now()->startOfDay()->gt($p->tanggal_kembali_rencana);
+                $isOverdue = $p->status === StatusPeminjaman::Dipinjam->value && $p->tanggal_kembali_rencana && now()->startOfDay()->gt($p->tanggal_kembali_rencana);
 
                 return [
                     'id'                      => $p->id,
@@ -448,12 +447,7 @@ class AsetApiController extends ApiController
 
         $canPinjam = $user && (
             $user->can('create_layanan_unit::peminjaman::aset') ||
-            $user->hasRole('petugas_unit') ||
-            $user->hasRole('kepala_unit') ||
-            $user->hasRole('auditor') ||
-            $user->hasRole('manajemen') ||
-            $user->hasRole('pengadaan') ||
-            $user->hasRole('super_admin')
+            $user->hasRole(['super_admin', 'admin_logistik'])
         );
 
         if (! $canPinjam) {
@@ -484,7 +478,7 @@ class AsetApiController extends ApiController
         }
 
         $aset = Aset::where('id', $request->input('aset_id'))
-            ->where('status', 'TERSEDIA')
+            ->where('status', StatusAset::Tersedia->value)
             ->where('kondisi', 'BAIK')
             ->first();
         if (! $aset) {
@@ -492,7 +486,7 @@ class AsetApiController extends ApiController
         }
 
         // Kunci integritas: periksa apakah aset sedang dalam transaksi peminjaman aktif lain
-        $isSedangDipinjam = PermintaanPeminjaman::whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM'])
+        $isSedangDipinjam = PermintaanPeminjaman::whereIn('status', StatusPeminjaman::aktif())
             ->whereHas('detail', fn ($d) => $d->where('aset_id', $aset->id))
             ->exists();
 
@@ -522,7 +516,7 @@ class AsetApiController extends ApiController
                     'tanggal_pinjam'          => $request->input('tanggal_pinjam'),
                     'tanggal_kembali_rencana' => $request->input('tanggal_kembali_rencana'),
                     'keperluan'               => $request->input('keperluan'),
-                    'status'                  => 'DIAJUKAN',
+                    'status'                  => StatusPeminjaman::Diajukan->value,
                     'catatan'                 => $request->input('catatan'),
                 ]);
 
@@ -559,29 +553,20 @@ class AsetApiController extends ApiController
             return $this->jsonError('Data peminjaman tidak ditemukan.', 404);
         }
 
-        if ($pinjam->status !== 'DIAJUKAN') {
+        if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
             return $this->jsonError("Hanya peminjaman berstatus DIAJUKAN yang dapat dibatalkan (saat ini: {$pinjam->status}).", 422);
         }
 
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
+        $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
         $canCancel = $isGlobalAdmin ||
-            (int) $pinjam->diajukan_oleh === (int) $user->id ||
-            ((int) $pinjam->unit_id === (int) $user->unit_id && (
-                $user->can('create_layanan_unit::peminjaman::aset') ||
-                $user->can('delete_layanan_unit::peminjaman::aset') ||
-                $user->hasRole('petugas_unit') ||
-                $user->hasRole('kepala_unit') ||
-                $user->hasRole('auditor') ||
-                $user->hasRole('manajemen') ||
-                $user->hasRole('pengadaan')
-            ));
+            ((int) $pinjam->diajukan_oleh === (int) $user->id && $user->can('delete_layanan_unit::peminjaman::aset'));
 
         if (! $canCancel) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk membatalkan pengajuan ini.', 403);
         }
 
         $pinjam->update([
-            'status'  => 'DIBATALKAN',
+            'status'  => StatusPeminjaman::Dibatalkan->value,
             'catatan' => ($pinjam->catatan ? $pinjam->catatan . "\n" : '') . '[Dibatalkan oleh pemohon pada ' . now()->format('d/m/Y H:i') . ']',
         ]);
 
@@ -601,22 +586,13 @@ class AsetApiController extends ApiController
             return $this->jsonError('Data peminjaman tidak ditemukan.', 404);
         }
 
-        if ($pinjam->status !== 'DIPINJAM') {
+        if ($pinjam->status !== StatusPeminjaman::Dipinjam->value) {
             return $this->jsonError("Hanya peminjaman dengan status DIPINJAM yang dapat diperpanjang (saat ini: {$pinjam->status}).", 422);
         }
 
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
+        $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
         $canExtend = $isGlobalAdmin ||
-            (int) $pinjam->diajukan_oleh === (int) $user->id ||
-            ((int) $pinjam->unit_id === (int) $user->unit_id && (
-                $user->can('update_layanan_unit::peminjaman::aset') ||
-                $user->can('create_layanan_unit::peminjaman::aset') ||
-                $user->hasRole('petugas_unit') ||
-                $user->hasRole('kepala_unit') ||
-                $user->hasRole('auditor') ||
-                $user->hasRole('manajemen') ||
-                $user->hasRole('pengadaan')
-            ));
+            ((int) $pinjam->diajukan_oleh === (int) $user->id && $user->can('update_layanan_unit::peminjaman::aset'));
 
         if (! $canExtend) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk memperpanjang peminjaman ini.', 403);
@@ -668,14 +644,8 @@ class AsetApiController extends ApiController
     {
         $user = $request->user();
 
-        $canApprove = $user->can('update_layanan_unit::approval::peminjaman') ||
-            $user->can('layanan_unit::approval::peminjaman') ||
-            $user->hasRole('kepala_unit') ||
-            $user->hasRole('kepala_gudang') ||
-            $user->hasRole('kepala_teknisi') ||
-            $user->hasRole('admin_logistik') ||
-            $user->hasRole('super_admin');
-
+        $canApprove = $user->hasRole(['super_admin', 'admin_logistik']) ||
+            ($user->can('update_layanan_unit::approval::peminjaman') && $user->hasRole(['kepala_unit', 'kepala_gudang', 'kepala_teknisi']));
         if (! $canApprove) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengakses otorisasi peminjaman aset.', 403);
         }
@@ -683,7 +653,7 @@ class AsetApiController extends ApiController
         $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
 
         $query = PermintaanPeminjaman::query()
-            ->whereIn('status', ['DIAJUKAN', 'DISETUJUI'])
+            ->whereIn('status', StatusPeminjaman::antreanOtorisasi())
             ->with([
                 'unitPeminjam:id,kode,nama',
                 'unitPenyedia:id,kode,nama',
@@ -693,12 +663,12 @@ class AsetApiController extends ApiController
             ]);
 
         if (! $isGlobalAdmin) {
-            if ($user->unit_id) {
+            if ($user->hasRole('kepala_unit')) {
                 $query->where('tipe_penyedia', 'RUANGAN')->where('unit_penyedia_id', $user->unit_id);
-            } elseif ($user->gudang_id) {
+            } elseif ($user->hasRole('kepala_gudang')) {
                 $query->where('tipe_penyedia', 'GUDANG')->where('gudang_penyedia_id', $user->gudang_id);
             } else {
-                return $this->jsonSuccess([], 'Tidak ada antrean otorisasi.');
+                $query->whereRaw('1 = 0');
             }
         }
 
@@ -736,14 +706,8 @@ class AsetApiController extends ApiController
     {
         $user = $request->user();
 
-        $canApprove = $user->can('update_layanan_unit::approval::peminjaman') ||
-            $user->can('layanan_unit::approval::peminjaman') ||
-            $user->hasRole('kepala_unit') ||
-            $user->hasRole('kepala_gudang') ||
-            $user->hasRole('kepala_teknisi') ||
-            $user->hasRole('admin_logistik') ||
-            $user->hasRole('super_admin');
-
+        $canApprove = $user->hasRole(['super_admin', 'admin_logistik']) ||
+            ($user->can('update_layanan_unit::approval::peminjaman') && $user->hasRole(['kepala_unit', 'kepala_gudang', 'kepala_teknisi']));
         if (! $canApprove) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengotorisasi peminjaman ini.', 403);
         }
@@ -755,11 +719,14 @@ class AsetApiController extends ApiController
 
         $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
         if (! $isGlobalAdmin) {
-            if ($pinjam->tipe_penyedia === 'RUANGAN' && (int) $user->unit_id !== (int) $pinjam->unit_penyedia_id) {
-                return $this->jsonError('Anda tidak memiliki wewenang memproses permintaan dari ruangan penyedia ini.', 403);
-            }
-            if ($pinjam->tipe_penyedia === 'GUDANG' && (int) $user->gudang_id !== (int) $pinjam->gudang_penyedia_id) {
-                return $this->jsonError('Anda tidak memiliki wewenang memproses permintaan dari gudang penyedia ini.', 403);
+            $hasProviderRole = $pinjam->tipe_penyedia === 'RUANGAN'
+                ? $user->hasRole('kepala_unit')
+                : $user->hasRole('kepala_gudang');
+            $hasProviderScope = $pinjam->tipe_penyedia === 'RUANGAN'
+                ? (int) $user->unit_id === (int) $pinjam->unit_penyedia_id
+                : (int) $user->gudang_id === (int) $pinjam->gudang_penyedia_id;
+            if (! $hasProviderRole || ! $hasProviderScope) {
+                return $this->jsonError('Anda tidak memiliki wewenang memproses permintaan dari fasilitas penyedia ini.', 403);
             }
         }
 
@@ -771,13 +738,13 @@ class AsetApiController extends ApiController
         $aksi = $request->input('aksi');
 
         if ($aksi === 'setujui') {
-            if ($pinjam->status !== 'DIAJUKAN') {
+            if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
                 return $this->jsonError("Hanya permintaan berstatus DIAJUKAN yang dapat disetujui (saat ini: {$pinjam->status}).", 422);
             }
 
             // Kunci integritas: periksa apakah ada aset di permohonan ini yang sudah disetujui/dipinjam pada transaksi lain
             $asetIds = $pinjam->detail->pluck('aset_id')->filter();
-            $konflik = PermintaanPeminjaman::whereIn('status', ['DISETUJUI', 'DIPINJAM'])
+            $konflik = PermintaanPeminjaman::whereIn('status', StatusPeminjaman::mengikatAset())
                 ->where('id', '!=', $pinjam->id)
                 ->whereHas('detail', fn ($d) => $d->whereIn('aset_id', $asetIds))
                 ->first();
@@ -787,34 +754,34 @@ class AsetApiController extends ApiController
             }
 
             $pinjam->update([
-                'status'         => 'DISETUJUI',
+                'status'         => StatusPeminjaman::Disetujui->value,
                 'disetujui_oleh' => $user->id,
             ]);
             return $this->jsonSuccess([
                 'kode'   => $pinjam->kode,
-                'status' => 'DISETUJUI',
+                'status' => StatusPeminjaman::Disetujui->value,
             ], "Permintaan peminjaman {$pinjam->kode} berhasil disetujui, siap diserahterimakan.");
         }
 
         if ($aksi === 'tolak') {
-            if ($pinjam->status !== 'DIAJUKAN') {
+            if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
                 return $this->jsonError("Hanya permintaan berstatus DIAJUKAN yang dapat ditolak (saat ini: {$pinjam->status}).", 422);
             }
 
             $pinjam->update([
-                'status'         => 'DITOLAK',
+                'status'         => StatusPeminjaman::Ditolak->value,
                 'disetujui_oleh' => $user->id,
                 'catatan'        => $request->input('catatan') ?? $pinjam->catatan,
             ]);
 
             return $this->jsonSuccess([
                 'kode'   => $pinjam->kode,
-                'status' => 'DITOLAK',
+                'status' => StatusPeminjaman::Ditolak->value,
             ], "Permintaan peminjaman {$pinjam->kode} ditolak.");
         }
 
         if ($aksi === 'serah_terima') {
-            if ($pinjam->status !== 'DISETUJUI') {
+            if ($pinjam->status !== StatusPeminjaman::Disetujui->value) {
                 return $this->jsonError("Hanya peminjaman berstatus DISETUJUI yang dapat diserahterimakan (saat ini: {$pinjam->status}).", 422);
             }
 
@@ -823,7 +790,7 @@ class AsetApiController extends ApiController
 
                 return $this->jsonSuccess([
                     'kode'   => $pinjam->kode,
-                    'status' => 'DIPINJAM',
+                    'status' => StatusPeminjaman::Dipinjam->value,
                 ], "Serah terima fisik berhasil. Aset resmi berstatus DIPINJAM oleh {$pinjam->unitPeminjam?->nama}.");
             } catch (Exception $e) {
                 return $this->jsonError($e->getMessage(), 422);
@@ -850,7 +817,7 @@ class AsetApiController extends ApiController
             return $this->jsonError('Data peminjaman tidak ditemukan.', 404);
         }
 
-        if ($pinjam->status !== 'DISETUJUI') {
+        if ($pinjam->status !== StatusPeminjaman::Disetujui->value) {
             return $this->jsonError("Permintaan {$pinjam->kode} tidak dalam status siap serah terima (saat ini: {$pinjam->status}).", 422);
         }
 
@@ -869,7 +836,7 @@ class AsetApiController extends ApiController
 
             return $this->jsonSuccess([
                 'kode'            => $pinjam->kode,
-                'status'          => 'DIPINJAM',
+                'status'          => StatusPeminjaman::Dipinjam->value,
                 'diserahkan_oleh' => [
                     'id'       => $user->id,
                     'nama'     => $user->nama,
@@ -905,7 +872,7 @@ class AsetApiController extends ApiController
             return $this->jsonError('Data peminjaman tidak ditemukan.', 404);
         }
 
-        if ($pinjam->status !== 'DIPINJAM') {
+        if ($pinjam->status !== StatusPeminjaman::Dipinjam->value) {
             return $this->jsonError("Peminjaman {$pinjam->kode} tidak dalam status aktif dipinjam (saat ini: {$pinjam->status}).", 422);
         }
 
@@ -946,7 +913,7 @@ class AsetApiController extends ApiController
             return $this->jsonSuccess([
                 'kode_pengembalian' => $pengembalian->kode,
                 'kode_peminjaman'   => $pinjam->kode,
-                'status_transaksi'  => 'SELESAI',
+                'status_transaksi'  => StatusPeminjaman::Selesai->value,
             ], "Pengembalian aset berhasil diproses. Status transaksi: SELESAI.");
         } catch (Exception $e) {
             return $this->jsonError($e->getMessage(), 422);
@@ -959,7 +926,7 @@ class AsetApiController extends ApiController
     public function daftarPengalihan(Request $request): JsonResponse
     {
         $user = $request->user();
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik', 'manajemen'])));
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
         $tab = $request->query('tab', 'aktif');
 
         $query = PengalihanAset::with([
@@ -1107,18 +1074,18 @@ class AsetApiController extends ApiController
     public function komoditasAsetTersedia(Request $request): JsonResponse
     {
         $user = $request->user();
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik', 'manajemen'])));
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
         $ownUnitId = ! $isGlobalAdmin ? $user?->unit_id : null;
         $ownGudangId = ! $isGlobalAdmin ? $user?->gudang_id : null;
 
         $assets = Aset::with(['barang.kategori', 'barang.satuan', 'unit', 'gudang'])
-            ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+            ->whereIn('status', StatusAset::dapatDialihkan())
             ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
             ->whereDoesntHave('permintaanMaintenance', function ($sub) {
                 $sub->whereNotIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
             })
             ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
-                $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                $sub->whereIn('status', StatusPeminjaman::aktif());
             })
             ->when($ownUnitId, fn ($sub) => $sub->where(fn ($sq) => $sq->where('unit_id', '!=', $ownUnitId)->orWhereNull('unit_id')))
             ->when($ownGudangId, fn ($sub) => $sub->where(fn ($sq) => $sq->where('gudang_id', '!=', $ownGudangId)->orWhereNull('gudang_id')))
@@ -1165,16 +1132,16 @@ class AsetApiController extends ApiController
     public function inventarisAsal(Request $request): JsonResponse
     {
         $user = $request->user();
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik', 'manajemen'])));
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
 
         $query = Aset::with(['barang.kategori', 'barang.satuan', 'barang.merek', 'unit', 'gudang'])
-            ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN'])
+            ->whereIn('status', StatusAset::dapatDialihkan())
             ->whereNotIn('kondisi', ['RUSAK_BERAT', 'DIHAPUSKAN'])
             ->whereDoesntHave('permintaanMaintenance', function ($sub) {
                 $sub->whereNotIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
             })
             ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
-                $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                $sub->whereIn('status', StatusPeminjaman::aktif());
             });
 
         if (! $isGlobalAdmin) {

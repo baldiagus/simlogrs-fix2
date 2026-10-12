@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\StatusPermintaanDistribusi;
+use App\Enums\StatusPengirimanBarang;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Aset;
 use App\Models\Barang;
@@ -116,7 +118,7 @@ class DistribusiApiController extends ApiController
             ->limit(100)
             ->get()
             ->map(function ($item) use ($user, $isGlobalAdmin) {
-                $canCancel = $item->status === 'DIAJUKAN' && (
+                $canCancel = $item->status === StatusPermintaanDistribusi::Diajukan->value && (
                     (int) $item->diajukan_oleh === (int) $user->id ||
                     ($user->unit_id && (int) $user->unit_id === (int) $item->unit_id && $user->hasRole('kepala_unit')) ||
                     $isGlobalAdmin
@@ -189,7 +191,7 @@ class DistribusiApiController extends ApiController
         if (! $isGlobalAdmin && ! $isUnitOwner) {
             return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat dokumen amprah unit lain.', 403);
         }
-        $canCancel = $amprah->status === 'DIAJUKAN' && (
+        $canCancel = $amprah->status === StatusPermintaanDistribusi::Diajukan->value && (
             (int) $amprah->diajukan_oleh === (int) $user->id ||
             ($user->unit_id && (int) $user->unit_id === (int) $amprah->unit_id && $user->hasRole('kepala_unit')) ||
             $isGlobalAdmin
@@ -227,15 +229,7 @@ class DistribusiApiController extends ApiController
     {
         $user = $request->user();
 
-        $canAmprah = $user && (
-            $user->can('create_layanan_unit::permintaan::barang') ||
-            $user->hasRole('petugas_unit') ||
-            $user->hasRole('kepala_unit') ||
-            $user->hasRole('auditor') ||
-            $user->hasRole('manajemen') ||
-            $user->hasRole('pengadaan') ||
-            $user->hasRole('super_admin')
-        );
+        $canAmprah = $user && $user->can('create_layanan_unit::permintaan::barang');
 
         if (! $canAmprah) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengajukan amprah barang ruangan.', 403);
@@ -280,12 +274,9 @@ class DistribusiApiController extends ApiController
         // Komoditas dengan stok gudang kosong atau kurang tetap diizinkan diajukan via API
         // Selisih kebutuhan akan otomatis dicatat sebagai hutang gudang (backorder)
 
-        $isPetugasUnitMurni = $user->hasRole('petugas_unit')
-            && ! $user->hasRole('kepala_unit')
-            && ! $user->can('update_layanan_unit::approval::karu');
-
-        $directToGudang = ! $isPetugasUnitMurni;
-        $statusAwal     = $directToGudang ? 'DISETUJUI_KARU' : 'DIAJUKAN';
+        $directToGudang = $user->hasRole('kepala_unit')
+            && $user->can('update_layanan_unit::approval::karu');
+        $statusAwal     = $directToGudang ? StatusPermintaanDistribusi::DisetujuiKaru->value : StatusPermintaanDistribusi::Diajukan->value;
         $disetujuiOleh  = $directToGudang ? $user->id : null;
 
         try {
@@ -341,7 +332,7 @@ class DistribusiApiController extends ApiController
             return $this->jsonError('Data amprah tidak ditemukan.', 404);
         }
 
-        if ($amprah->status !== 'DIAJUKAN') {
+        if ($amprah->status !== StatusPermintaanDistribusi::Diajukan->value) {
             return $this->jsonError("Hanya amprah berstatus DIAJUKAN yang dapat dibatalkan (saat ini: {$amprah->status}).", 422);
         }
 
@@ -355,7 +346,7 @@ class DistribusiApiController extends ApiController
         }
 
         $amprah->update([
-            'status'  => 'DITOLAK',
+            'status'  => StatusPermintaanDistribusi::Ditolak->value,
             'catatan' => ($amprah->catatan ? $amprah->catatan . "\n" : '') . '[Dibatalkan oleh pemohon pada ' . now()->format('d/m/Y H:i') . ']',
         ]);
 
@@ -370,14 +361,10 @@ class DistribusiApiController extends ApiController
     {
         $user = $request->user();
 
-        $canPick = $user->can('create_gudang_stok::picking::distribusi') ||
-            $user->can('update_gudang_stok::picking::distribusi') ||
-            $user->can('view_any_gudang_stok::picking::distribusi') ||
+        $canPick = $user->can('view_any_gudang_stok::picking::distribusi') ||
             $user->can('view_gudang_stok::picking::distribusi') ||
-            $user->hasRole('petugas_gudang') ||
-            $user->hasRole('kepala_gudang') ||
-            $user->hasRole('admin_logistik') ||
-            $user->hasRole('super_admin');
+            $user->can('create_gudang_stok::picking::distribusi') ||
+            $user->can('update_gudang_stok::picking::distribusi');
 
         if (! $canPick) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk melihat antrean picking FEFO.', 403);
@@ -387,9 +374,13 @@ class DistribusiApiController extends ApiController
         $gudangIds = Gudang::where('kepala_gudang_id', $user->id)->pluck('id');
         $filterGudang = $gudangIds->isNotEmpty() ? $gudangIds->toArray() : ($user->gudang_id ? [$user->gudang_id] : []);
 
+        if (! $isGlobalPickAdmin && ! $filterGudang) {
+            return $this->jsonError('Akun Anda tidak terhubung dengan fasilitas gudang.', 403);
+        }
+
         $items = PermintaanDistribusi::query()
-            ->whereIn('status', ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN', 'DISETUJUI_KARU'])
-            ->when(! $isGlobalPickAdmin && $filterGudang, fn ($q) => $q->whereIn('gudang_id', $filterGudang))
+            ->whereIn('status', StatusPermintaanDistribusi::dapatDikirim())
+            ->when(! $isGlobalPickAdmin, fn ($q) => $q->whereIn('gudang_id', $filterGudang))
             ->with(['unit:id,kode,nama', 'pengaju:id,nama', 'detail.barang.satuan'])
             ->latest('id')
             ->get()
@@ -421,11 +412,7 @@ class DistribusiApiController extends ApiController
     {
         $user = $request->user();
 
-        if (! $user->can('create_gudang_stok::picking::distribusi') &&
-            ! $user->hasRole('petugas_gudang') &&
-            ! $user->hasRole('kepala_gudang') &&
-            ! $user->hasRole('admin_logistik') &&
-            ! $user->hasRole('super_admin')) {
+        if (! $user->can('create_gudang_stok::picking::distribusi')) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk eksekusi picking FEFO.', 403);
         }
 
@@ -435,7 +422,7 @@ class DistribusiApiController extends ApiController
 
         $permintaan = PermintaanDistribusi::with(['detail.barang', 'unit'])->find($request->input('permintaan_id'));
 
-        if (! in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN', 'DISETUJUI_KARU'], true)) {
+        if (! in_array($permintaan->status, StatusPermintaanDistribusi::dapatDikirim(), true)) {
             return $this->jsonError("Permintaan {$permintaan->kode} tidak dalam status siap picking (saat ini: {$permintaan->status}).", 422);
         }
 
@@ -473,7 +460,7 @@ class DistribusiApiController extends ApiController
         $userUnitId = $user->unit_id;
 
         $sppbs = PengirimanBarang::query()
-            ->where('status', 'DIKIRIM')
+            ->where('status', StatusPengirimanBarang::Dikirim->value)
             ->when($userUnitId && ! $isGlobalAdmin, fn ($q) => $q->where('unit_id', $userUnitId))
             ->with(['gudang:id,kode,nama', 'unit:id,kode,nama', 'pengirim:id,nama', 'detail.barang.satuan', 'detail.stokBatch'])
             ->latest('id')
@@ -509,13 +496,7 @@ class DistribusiApiController extends ApiController
     {
         $user = $request->user();
 
-        if (! $user->can('create_layanan_unit::penerimaan::barang') &&
-            ! $user->can('update_layanan_unit::penerimaan::barang') &&
-            ! $user->hasRole('petugas_unit') &&
-            ! $user->hasRole('kepala_unit') &&
-            ! $user->hasRole('auditor') &&
-            ! $user->hasRole('manajemen') &&
-            ! $user->hasRole('super_admin')) {
+        if (! $user->can('update_layanan_unit::penerimaan::barang')) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk konfirmasi penerimaan barang ruangan.', 403);
         }
 
@@ -537,7 +518,7 @@ class DistribusiApiController extends ApiController
             $penerimaan = DB::transaction(function () use ($id, $user) {
                 $sppb = PengirimanBarang::lockForUpdate()->with(['permintaanDistribusi', 'unit', 'gudang', 'detail.barang', 'detail.stokBatch'])->findOrFail($id);
 
-                if ($sppb->status !== 'DIKIRIM') {
+                if ($sppb->status !== StatusPengirimanBarang::Dikirim->value) {
                     throw new Exception("Pengiriman {$sppb->kode} telah diproses sebelumnya (saat ini: {$sppb->status}).");
                 }
 
@@ -623,7 +604,7 @@ class DistribusiApiController extends ApiController
                     }
                 }
 
-                $sppb->update(['status' => 'DITERIMA']);
+                $sppb->update(['status' => StatusPengirimanBarang::Diterima->value]);
 
                 if ($sppb->permintaanDistribusi) {
                     $permintaan = $sppb->permintaanDistribusi;
@@ -636,9 +617,9 @@ class DistribusiApiController extends ApiController
                     $totalDiminta = $permintaan->detail->sum(fn ($d) => $d->jumlah_disetujui !== null ? $d->jumlah_disetujui : $d->jumlah);
 
                     if ($totalDiterima >= $totalDiminta) {
-                        $permintaan->update(['status' => 'SELESAI']);
+                        $permintaan->update(['status' => StatusPermintaanDistribusi::Selesai->value]);
                     } else {
-                        $permintaan->update(['status' => 'DIKIRIM_SEBAGIAN']);
+                        $permintaan->update(['status' => StatusPermintaanDistribusi::DikirimSebagian->value]);
                     }
                 }
 

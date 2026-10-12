@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Pengadaan;
 
+use App\Enums\StatusPermintaanPengadaan;
+use App\Enums\StatusPesananPembelian;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -62,13 +64,13 @@ class PesananPembelianIndex extends Component
 
         $pr = PermintaanPengadaan::with('detail.barang')->findOrFail($prId);
 
-        if ($pr->status !== PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN) {
+        if ($pr->status !== StatusPermintaanPengadaan::DiteruskanKePengadaan->value) {
             $this->toast("Hanya PR berstatus DITERUSKAN KE PENGADAAN yang dapat dikonversi (saat ini: {$pr->status}).", 'danger');
             return;
         }
 
         $alreadyHasPo = PesananPembelian::where('permintaan_pengadaan_id', $prId)
-            ->where('status', '!=', 'DIBATALKAN')
+            ->where('status', '!=', StatusPesananPembelian::Dibatalkan->value)
             ->exists();
         if ($alreadyHasPo) {
             $this->toast('Permintaan Pengadaan ini sudah memiliki PO aktif.', 'danger');
@@ -111,7 +113,7 @@ class PesananPembelianIndex extends Component
         abort_unless(auth()->user()?->can('create_pengadaan::pesanan::pembelian'), 403);
         if ($this->prId) {
             $alreadyHasPo = PesananPembelian::where('permintaan_pengadaan_id', $this->prId)
-                ->where('status', '!=', 'DIBATALKAN')
+                ->where('status', '!=', StatusPesananPembelian::Dibatalkan->value)
                 ->exists();
             if ($alreadyHasPo) {
                 $this->toast('Permintaan Pengadaan ini sudah pernah diterbitkan menjadi Pesanan Pembelian (PO).', 'danger');
@@ -148,7 +150,7 @@ class PesananPembelianIndex extends Component
                 'estimasi_tanggal_kirim'  => $this->estimasi_tanggal_kirim,
                 'total_biaya'             => $totalBiaya,
                 'syarat_pembayaran'       => $this->syarat_pembayaran,
-                'status'                  => 'DITERBITKAN',
+                'status'                  => StatusPesananPembelian::Diterbitkan->value,
                 'catatan'                 => $this->catatan,
                 'dibuat_oleh'             => auth()->id(),
             ]);
@@ -165,7 +167,7 @@ class PesananPembelianIndex extends Component
 
             if ($this->prId) {
                 PermintaanPengadaan::where('id', $this->prId)->update([
-                    'status' => PermintaanPengadaan::STATUS_DIPROSES,
+                    'status' => StatusPermintaanPengadaan::Diproses->value,
                 ]);
             }
         });
@@ -176,7 +178,7 @@ class PesananPembelianIndex extends Component
 
     public function showDetail(int $id): void
     {
-        abort_unless(auth()->user()?->can('view_pengadaan::pesanan::pembelian'), 403);
+        abort_unless(auth()->user()?->can('view_any_pengadaan::pesanan::pembelian') || auth()->user()?->can('view_pengadaan::pesanan::pembelian'), 403);
 
         $this->selectedPo = PesananPembelian::with(['pemasok', 'permintaanPengadaan', 'detail.barang', 'pembuat'])
             ->findOrFail($id);
@@ -184,6 +186,8 @@ class PesananPembelianIndex extends Component
     }
     public function confirmUpdateStatusKirim(int $id): void
     {
+        abort_unless(auth()->user()?->can('update_pengadaan::pesanan::pembelian'), 403);
+
         $po = PesananPembelian::with('pemasok')->findOrFail($id);
         $this->askConfirmation(
             target: $id,
@@ -202,12 +206,12 @@ class PesananPembelianIndex extends Component
 
         $po = PesananPembelian::findOrFail($id);
 
-        if ($po->status !== 'DITERBITKAN') {
+        if ($po->status !== StatusPesananPembelian::Diterbitkan->value) {
             $this->toast('Status PO tidak dapat diubah.', 'danger');
             return;
         }
 
-        $po->update(['status' => 'DIKIRIM_VENDOR']);
+        $po->update(['status' => StatusPesananPembelian::DikirimVendor->value]);
         $this->toast("PO {$po->kode} telah diperbarui ke status DIKIRIM VENDOR.", 'success');
     }
 
@@ -217,7 +221,7 @@ class PesananPembelianIndex extends Component
 
         $daftarPemasok = Pemasok::where('status', 'AKTIF')->get();
 
-        $daftarPrSiapKonversi = PermintaanPengadaan::where('status', PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN)
+        $daftarPrSiapKonversi = PermintaanPengadaan::where('status', StatusPermintaanPengadaan::DiteruskanKePengadaan->value)
             ->whereDoesntHave('pesananPembelian')
             ->get();
 

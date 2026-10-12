@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\StatusMaintenance;
+use App\Enums\StatusSpk;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Aset;
 use App\Models\Barang;
@@ -33,14 +35,7 @@ class MaintenanceApiController extends ApiController
         $user = $request->user();
 
         $canLapor = $user->can('create_layanan_unit::lapor::servis') ||
-            $user->can('page_KepalaUnitDashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->hasRole('kepala_unit') ||
-            $user->hasRole('kepala_teknisi') ||
-            $user->hasRole('kepala_gudang') ||
-            $user->hasRole('petugas_gudang') ||
-            $user->hasRole('admin_logistik') ||
-            $user->hasRole('super_admin');
+            $user->hasRole(['super_admin', 'admin_logistik']);
         if (! $user || ! $canLapor) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk melaporkan kerusakan sarana.', 403);
         }
@@ -52,7 +47,7 @@ class MaintenanceApiController extends ApiController
                 'unit_id'           => 'nullable|integer|exists:unit,id',
                 'deskripsi_masalah' => 'required|string|min:5|max:1000',
                 'prioritas'         => 'nullable|in:RENDAH,SEDANG,TINGGI,CITO',
-                'foto'              => 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:10240',
+                'foto'              => 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:' . config('simlog.upload.max_kb'),
             ]);
         } catch (ValidationException $e) {
             return $this->jsonError('Validasi formulir gagal.', 422, $e->errors());
@@ -102,7 +97,7 @@ class MaintenanceApiController extends ApiController
                 'deskripsi_masalah' => $validated['deskripsi_masalah'],
                 'foto_kerusakan'    => $fotoPath,
                 'prioritas'         => $prioritas,
-                'status'            => 'DILAPORKAN',
+                'status'            => StatusMaintenance::Dilaporkan->value,
             ]);
 
             // Jika prioritas CITO atau TINGGI, tandai aset ke status DALAM_MAINTENANCE
@@ -144,21 +139,12 @@ class MaintenanceApiController extends ApiController
 
         $canView = $user->can('view_any_layanan_unit::lapor::servis') ||
             $user->can('view_layanan_unit::lapor::servis') ||
-            $user->hasRole('petugas_unit') ||
-            $user->hasRole('kepala_unit') ||
-            $user->hasRole('teknisi') ||
-            $user->hasRole('kepala_teknisi') ||
-            $user->hasRole('admin_logistik') ||
-            $user->hasRole('kepala_gudang') ||
-            $user->hasRole('petugas_gudang') ||
-            $user->hasRole('pengadaan') ||
-            $user->hasRole('manajemen') ||
-            $user->hasRole('auditor');
+            $user->hasRole(['super_admin', 'admin_logistik']);
         if (! $canView) {
             return $this->jsonError('Anda tidak memiliki wewenang melihat daftar tiket kerusakan.', 403);
         }
 
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik') || $user->hasRole('teknisi') || $user->hasRole('kepala_teknisi') || $user->hasRole('auditor') || $user->hasRole('manajemen');
+        $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
         $userUnitId = $user->unit_id;
         $userGudangId = $user->gudang_id;
         $filterStatus = $request->query('status');
@@ -193,7 +179,7 @@ class MaintenanceApiController extends ApiController
         });
 
         $tikets = $query->latest('id')->limit(100)->get()->map(function ($item) use ($user) {
-            $canCancel = $item->status === 'DILAPORKAN' && (
+            $canCancel = $item->status === StatusMaintenance::Dilaporkan->value && (
                 (int) $item->dilaporkan_oleh === (int) $user->id ||
                 ($user->hasRole('kepala_unit') && (int) $user->unit_id === (int) $item->unit_id) ||
                 ($user->hasRole('kepala_gudang') && (int) $user->gudang_id === (int) $item->aset?->gudang_id) ||
@@ -274,12 +260,9 @@ class MaintenanceApiController extends ApiController
             return $this->jsonError('Tiket kerusakan tidak ditemukan.', 404);
         }
 
-        $user = $request->user();
         $isPrivileged = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik', 'teknisi', 'kepala_teknisi', 'auditor', 'manajemen']) ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_AuditorDashboard') ||
-            $user->can('page_ManajemenDashboard')
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
+            $user->can('view_any_layanan_unit::lapor::servis')
         );
 
         $isUnitOwner = $user && (
@@ -291,7 +274,7 @@ class MaintenanceApiController extends ApiController
         if (! $isPrivileged && ! $isUnitOwner) {
             return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat tiket pemeliharaan unit lain.', 403);
         }
-        $canCancel = $tiket->status === 'DILAPORKAN' && (
+        $canCancel = $tiket->status === StatusMaintenance::Dilaporkan->value && (
             (int) $tiket->dilaporkan_oleh === (int) $user->id ||
             ($user->hasRole('kepala_unit') && (int) $user->unit_id === (int) $tiket->unit_id) ||
             ($user->hasRole('kepala_gudang') && (int) $user->gudang_id === (int) $tiket->aset?->gudang_id) ||
@@ -349,7 +332,7 @@ class MaintenanceApiController extends ApiController
             return $this->jsonError('Tiket kerusakan tidak ditemukan.', 404);
         }
 
-        if ($tiket->status !== 'DILAPORKAN') {
+        if ($tiket->status !== StatusMaintenance::Dilaporkan->value) {
             return $this->jsonError("Hanya tiket berstatus DILAPORKAN yang dapat dibatalkan (saat ini: {$tiket->status}).", 422);
         }
 
@@ -363,7 +346,7 @@ class MaintenanceApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang untuk membatalkan tiket ini.', 403);
         }
 
-        $tiket->update(['status' => 'DIBATALKAN']);
+        $tiket->update(['status' => StatusMaintenance::Dibatalkan->value]);
 
         return $this->jsonSuccess(null, "Laporan kerusakan {$tiket->kode} berhasil dibatalkan.");
     }
@@ -391,10 +374,8 @@ class MaintenanceApiController extends ApiController
         $user = $request->user();
 
         $canDisposisi = $user && (
-            $user->can('create_pemeliharaan::spk::perbaikan') ||
-            $user->hasRole('kepala_teknisi') ||
-            $user->hasRole('admin_logistik') ||
-            $user->hasRole('super_admin')
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
+            ($user->can('create_pemeliharaan::spk::perbaikan') && $user->hasRole('kepala_teknisi'))
         );
 
         if (! $canDisposisi) {
@@ -407,7 +388,7 @@ class MaintenanceApiController extends ApiController
             return $this->jsonError('Tiket kerusakan tidak ditemukan.', 404);
         }
 
-        if (! in_array($tiket->status, ['DILAPORKAN', 'MENUNGGU_SPK'], true)) {
+        if (! in_array($tiket->status, StatusMaintenance::menungguPenugasan(), true)) {
             return $this->jsonError("Tiket {$tiket->kode} sudah diproses sebelumnya (saat ini: {$tiket->status}).", 422);
         }
 
@@ -442,11 +423,11 @@ class MaintenanceApiController extends ApiController
                     'tanggal_penugasan'         => $tglPenugasan,
                     'target_selesai'            => $targetSelesai,
                     'instruksi_khusus'          => $instruksiKhusus,
-                    'status'                    => 'DITUGASKAN',
+                    'status'                    => StatusSpk::Ditugaskan->value,
                 ]);
 
                 $tiket->update([
-                    'status' => 'DITUGASKAN',
+                    'status' => StatusMaintenance::Ditugaskan->value,
                 ]);
 
                 return $spkRecord;
@@ -458,7 +439,7 @@ class MaintenanceApiController extends ApiController
                 'id'       => $spk->id,
                 'kode_spk' => $spk->kode,
                 'teknisi'  => $teknisi?->nama ?? 'Teknisi',
-                'status'   => 'DITUGASKAN',
+                'status'   => StatusSpk::Ditugaskan->value,
             ], "Surat Perintah Kerja {$spk->kode} berhasil diterbitkan dan ditugaskan ke {$teknisi?->nama}.", 201);
         } catch (\Throwable $e) {
             return $this->jsonError('Gagal menerbitkan SPK: ' . $e->getMessage(), 500);
@@ -476,16 +457,8 @@ class MaintenanceApiController extends ApiController
             return $this->jsonError('Unauthenticated.', 401);
         }
 
-        $isGlobalAdmin = $user->can('page_Dashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->hasRole('super_admin') ||
-            $user->hasRole('admin_logistik');
-
-        $canViewAll = $isGlobalAdmin ||
-            $user->can('view_any_pemeliharaan::spk::perbaikan') ||
-            $user->hasRole('auditor') ||
-            $user->hasRole('manajemen') ||
-            $user->hasRole('kepala_teknisi');
+        $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
+        $canViewAll = $isGlobalAdmin || $user->can('view_any_pemeliharaan::spk::perbaikan');
         if (! $canViewAll && ! $user->can('view_pemeliharaan::spk::perbaikan') && ! $user->hasRole(['teknisi', 'kepala_teknisi'])) {
             return $this->jsonError('Anda tidak memiliki wewenang melihat daftar SPK teknisi.', 403);
         }
@@ -499,7 +472,7 @@ class MaintenanceApiController extends ApiController
         ])
         ->when(! $canViewAll, fn ($q) => $q->where('teknisi_id', $user->id))
         ->when($filterStatus, fn ($q) => $q->where('status', $filterStatus))
-        ->orderByRaw("CASE WHEN status = 'DITUGASKAN' THEN 1 WHEN status = 'DITERIMA' THEN 2 ELSE 3 END")
+        ->orderByRaw('CASE WHEN status = ? THEN 1 WHEN status = ? THEN 2 ELSE 3 END', [StatusSpk::Ditugaskan->value, StatusSpk::Diterima->value])
         ->orderBy('id', 'desc')
         ->paginate(15);
 
@@ -546,12 +519,8 @@ class MaintenanceApiController extends ApiController
     {
         $user = $request->user();
 
-        $isGlobalAdmin = $user?->can('page_Dashboard') ||
-            $user?->can('page_AdminLogistikDashboard') ||
-            $user?->hasRole('super_admin') ||
-            $user?->hasRole('admin_logistik') ||
-            $user?->hasRole('kepala_teknisi');
-        if (! $user || (! $isGlobalAdmin && ! $user->can('view_any_pemeliharaan::spk::perbaikan') && ! $user->can('view_pemeliharaan::spk::perbaikan') && ! $user->hasRole('teknisi'))) {
+        $isGlobalAdmin = $user?->hasRole(['super_admin', 'admin_logistik']);
+        if (! $user || (! $isGlobalAdmin && ! $user->can('view_any_pemeliharaan::spk::perbaikan') && ! $user->can('view_pemeliharaan::spk::perbaikan'))) {
             return $this->jsonError('Anda tidak memiliki wewenang melihat detail SPK.', 403);
         }
 
@@ -639,12 +608,13 @@ class MaintenanceApiController extends ApiController
             return $this->jsonError('Dokumen SPK tidak ditemukan.', 404);
         }
         $isOwner = (int) $spk->teknisi_id === (int) $user->id;
-        $isSupervisor = $user->hasRole(['super_admin', 'admin_logistik', 'kepala_teknisi']) || $user->can('page_AdminLogistikDashboard');
+        $isSupervisor = $user->hasRole(['super_admin', 'admin_logistik']) ||
+            ($user->can('update_pemeliharaan::spk::perbaikan') && $user->hasRole('kepala_teknisi'));
         if (! $isOwner && ! $isSupervisor) {
             return $this->jsonError('Anda hanya diizinkan mengisi lembar kerja untuk SPK yang ditugaskan kepada Anda.', 403);
         }
 
-        if ($spk->status === 'SELESAI' || $spk->status === 'DIBATALKAN') {
+        if (in_array($spk->status, StatusSpk::riwayat(), true)) {
             return $this->jsonError("SPK berstatus '{$spk->status}' tidak dapat ditambahkan catatan pengerjaan.", 422);
         }
 
@@ -657,7 +627,7 @@ class MaintenanceApiController extends ApiController
                 'tindakan'              => 'required|string|min:3|max:1000',
                 'hasil'                 => 'required|in:BERHASIL,PENDING,GAGAL',
                 'catatan'               => 'nullable|string|max:1000',
-                'foto'                  => 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:10240',
+                'foto'                  => 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:' . config('simlog.upload.max_kb'),
                 'uji_fungsi_kelaikan'   => 'nullable|boolean',
                 'spareparts'            => 'nullable|array',
                 'spareparts.*.barang_id'=> 'required_with:spareparts|integer|exists:barang,id',
@@ -801,8 +771,8 @@ class MaintenanceApiController extends ApiController
 
                 // 3. Update Status Dokumen & Aset
                 if ($validated['hasil'] === 'BERHASIL' && $ujiFungsiLolos) {
-                    $spk->update(['status' => 'SELESAI']);
-                    $tiket->update(['status' => 'SELESAI']);
+                    $spk->update(['status' => StatusSpk::Selesai->value]);
+                    $tiket->update(['status' => StatusMaintenance::Selesai->value]);
 
                     if ($tiket->aset) {
                         $newStatus = $tiket->aset->unit_id ? 'DIGUNAKAN' : 'TERSEDIA';
@@ -812,14 +782,14 @@ class MaintenanceApiController extends ApiController
                         ]);
                     }
                 } elseif ($validated['hasil'] === 'BERHASIL' && ! $ujiFungsiLolos) {
-                    $spk->update(['status' => 'DITERIMA']);
-                    $tiket->update(['status' => 'UJI_FUNGSI']);
+                    $spk->update(['status' => StatusSpk::Diterima->value]);
+                    $tiket->update(['status' => StatusMaintenance::UjiFungsi->value]);
                 } elseif ($validated['hasil'] === 'PENDING') {
-                    $spk->update(['status' => 'DITERIMA']);
-                    $tiket->update(['status' => 'SEDANG_DIKERJAKAN']);
+                    $spk->update(['status' => StatusSpk::Diterima->value]);
+                    $tiket->update(['status' => StatusMaintenance::SedangDikerjakan->value]);
                 } else {
-                    $spk->update(['status' => 'DITERIMA']);
-                    $tiket->update(['status' => 'MENUNGGU_SPAREPART']);
+                    $spk->update(['status' => StatusSpk::Diterima->value]);
+                    $tiket->update(['status' => StatusMaintenance::MenungguSparepart->value]);
                 }
             });
 

@@ -106,11 +106,11 @@ class PengadaanApiController extends ApiController
             ->get()
             ->map(function ($item) {
                 $status = $item->status;
-                if ($status === 'DIPROSES' && $item->pesananPembelian->isNotEmpty()) {
-                    $allPoReceived = $item->pesananPembelian->every(fn ($po) => $po->status === 'DITERIMA_LENGKAP');
+                if ($status === StatusPermintaanPengadaan::Diproses->value && $item->pesananPembelian->isNotEmpty()) {
+                    $allPoReceived = $item->pesananPembelian->every(fn ($po) => $po->status === StatusPesananPembelian::DiterimaLengkap->value);
                     if ($allPoReceived) {
-                        $status = 'SELESAI';
-                        $item->update(['status' => 'SELESAI']);
+                        $status = StatusPermintaanPengadaan::Selesai->value;
+                        $item->update(['status' => StatusPermintaanPengadaan::Selesai->value]);
                     }
                 }
 
@@ -152,10 +152,7 @@ class PengadaanApiController extends ApiController
     {
         $user = $request->user();
 
-        if (! $user->can('create_pengadaan::permintaan::pengadaan') &&
-            ! $user->hasRole('petugas_unit') &&
-            ! $user->hasRole('kepala_unit') &&
-            ! $user->hasRole('super_admin')) {
+        if (! $user->can('create_pengadaan::permintaan::pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik'])) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengajukan permintaan pengadaan.', 403);
         }
 
@@ -220,7 +217,7 @@ class PengadaanApiController extends ApiController
                     'diajukan_oleh'      => $user->id,
                     'tanggal_permintaan' => now()->toDateString(),
                     'urgensi'            => $request->input('urgensi'),
-                    'status'             => 'DIAJUKAN',
+                    'status'             => StatusPermintaanPengadaan::Diajukan->value,
                     'catatan'            => $request->input('catatan'),
                 ]);
                 foreach ($request->input('items') as $row) {
@@ -267,14 +264,9 @@ class PengadaanApiController extends ApiController
     {
         $user = $request->user();
         $isGlobal = $user && (
-            $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik', 'manajemen', 'auditor', 'kepala_gudang', 'petugas_gudang']) ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             $user->can('view_any_pengadaan::pesanan::pembelian') ||
-            $user->can('view_any_pengadaan::penerimaan::po') ||
-            $user->can('page_PesananPembelianIndex') ||
-            $user->can('page_PenerimaanPoIndex') ||
-            $user->can('page_PengadaanDashboard') ||
-            $user->can('page_ManajemenDashboard') ||
-            $user->can('page_AuditorDashboard')
+            $user->can('view_any_pengadaan::penerimaan::po')
         );
 
         $hasUnitAccess = $user && ($user->unit_id || $user->hasRole(['kepala_unit', 'petugas_unit']));
@@ -346,14 +338,9 @@ class PengadaanApiController extends ApiController
     {
         $user = $request->user();
         $hasPoAccess = $user && (
-            $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik', 'manajemen', 'auditor', 'kepala_gudang', 'petugas_gudang']) ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             $user->can('view_any_pengadaan::pesanan::pembelian') ||
-            $user->can('view_any_pengadaan::penerimaan::po') ||
-            $user->can('page_PesananPembelianIndex') ||
-            $user->can('page_PenerimaanPoIndex') ||
-            $user->can('page_PengadaanDashboard') ||
-            $user->can('page_ManajemenDashboard') ||
-            $user->can('page_AuditorDashboard')
+            $user->can('view_any_pengadaan::penerimaan::po')
         );
 
         if (! $hasPoAccess) {
@@ -414,9 +401,7 @@ class PengadaanApiController extends ApiController
         $user = $request->user();
 
         $canManage = $user && (
-            $user->hasRole('pengadaan') ||
-            $user->hasRole('admin_logistik') ||
-            $user->hasRole('super_admin') ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             $user->can('create_pengadaan::pesanan::pembelian')
         );
 
@@ -445,7 +430,7 @@ class PengadaanApiController extends ApiController
             return $this->jsonError('Dokumen PR tidak ditemukan.', 404);
         }
 
-        if (! in_array($pr->status, [PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN, PermintaanPengadaan::STATUS_DIPROSES, 'DISETUJUI'])) {
+        if (! in_array($pr->status, StatusPermintaanPengadaan::siapPo())) {
             return $this->jsonError("Hanya PR yang telah diserahkan ke pengadaan yang dapat diterbitkan PO (saat ini: {$pr->status}).", 422);
         }
 
@@ -482,7 +467,7 @@ class PengadaanApiController extends ApiController
                     'estimasi_tanggal_kirim'  => $request->input('estimasi_tanggal_kirim'),
                     'total_biaya'             => $totalBiaya,
                     'syarat_pembayaran'       => $request->input('syarat_pembayaran'),
-                    'status'                  => 'DITERBITKAN',
+                    'status'                  => StatusPesananPembelian::Diterbitkan->value,
                     'catatan'                 => $request->input('catatan'),
                     'dibuat_oleh'             => $user->id,
                 ]);
@@ -501,7 +486,7 @@ class PengadaanApiController extends ApiController
                 }
 
                 // Update status PR menjadi DIPROSES
-                $pr->update(['status' => PermintaanPengadaan::STATUS_DIPROSES]);
+                $pr->update(['status' => StatusPermintaanPengadaan::Diproses->value]);
 
                 return $poHeader;
             });
@@ -526,9 +511,7 @@ class PengadaanApiController extends ApiController
         $user = $request->user();
 
         $canManage = $user && (
-            $user->hasRole('pengadaan') ||
-            $user->hasRole('admin_logistik') ||
-            $user->hasRole('super_admin') ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             $user->can('update_pengadaan::pesanan::pembelian')
         );
 
@@ -541,14 +524,14 @@ class PengadaanApiController extends ApiController
             return $this->jsonError('Dokumen PO tidak ditemukan.', 404);
         }
 
-        if ($po->status !== 'DITERBITKAN') {
+        if ($po->status !== StatusPesananPembelian::Diterbitkan->value) {
             return $this->jsonError("Hanya PO dengan status DITERBITKAN yang dapat diubah menjadi DIKIRIM_VENDOR (saat ini: {$po->status}).", 422);
         }
 
         $estimasiBaru = $request->input('estimasi_tanggal_kirim', $po->estimasi_tanggal_kirim);
 
         $po->update([
-            'status'                 => 'DIKIRIM_VENDOR',
+            'status'                 => StatusPesananPembelian::DikirimVendor->value,
             'estimasi_tanggal_kirim' => $estimasiBaru,
         ]);
 

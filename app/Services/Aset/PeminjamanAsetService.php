@@ -2,6 +2,8 @@
 
 namespace App\Services\Aset;
 
+use App\Enums\StatusAset;
+use App\Enums\StatusPeminjaman;
 use App\Models\Aset;
 use App\Models\PengembalianPeminjaman;
 use App\Models\PengembalianPeminjamanDetail;
@@ -22,7 +24,7 @@ class PeminjamanAsetService
      */
     public function serahTerimaFisik(PermintaanPeminjaman $pinjam, User $actor): void
     {
-        if ($pinjam->status !== 'DISETUJUI') {
+        if ($pinjam->status !== StatusPeminjaman::Disetujui->value) {
             throw new Exception("Permintaan {$pinjam->kode} belum disetujui atau sudah diproses.");
         }
 
@@ -31,7 +33,7 @@ class PeminjamanAsetService
             $catatanBaru = trim(($pinjam->catatan ? $pinjam->catatan . "\n" : '') . $catatanHandover);
 
             $pinjam->update([
-                'status'  => 'DIPINJAM',
+                'status'  => StatusPeminjaman::Dipinjam->value,
                 'catatan' => $catatanBaru,
             ]);
             foreach ($pinjam->detail as $detail) {
@@ -41,18 +43,18 @@ class PeminjamanAsetService
                     continue;
                 }
 
-                if ($aset->status === 'DIPINJAM') {
+                if ($aset->status === StatusAset::Dipinjam->value) {
                     throw new Exception("Aset '{$aset->kode_aset}' ({$aset->barang?->nama}) saat ini sedang berstatus aktif DIPINJAM oleh unit lain.");
                 }
 
-                if ($aset->status !== 'TERSEDIA') {
+                if ($aset->status !== StatusAset::Tersedia->value) {
                     throw new Exception("Aset '{$aset->kode_aset}' tidak dalam status TERSEDIA untuk diserahterimakan (saat ini: {$aset->status}).");
                 }
 
                 // Chain of custody: kepemilikan operasional berpindah ke unit peminjam.
                 // Gudang disetel null agar patuh pada check constraint chk_aset_lokasi_xor.
                 $aset->update([
-                    'status'           => 'DIPINJAM',
+                    'status'           => StatusAset::Dipinjam->value,
                     'unit_id'          => $pinjam->unit_id,
                     'gudang_id'        => null,
                     'lokasi_gudang_id' => null,
@@ -79,7 +81,7 @@ class PeminjamanAsetService
         User $actor,
         ?string $catatan = null
     ): PengembalianPeminjaman {
-        if ($pinjam->status !== 'DIPINJAM') {
+        if ($pinjam->status !== StatusPeminjaman::Dipinjam->value) {
             throw new Exception("Peminjaman {$pinjam->kode} tidak dalam status aktif dipinjam.");
         }
 
@@ -116,7 +118,7 @@ class PeminjamanAsetService
                 }
 
                 $updateData = [
-                    'status'  => $kondisi === 'BAIK' ? 'TERSEDIA' : 'DALAM_MAINTENANCE',
+                    'status'  => $kondisi === 'BAIK' ? StatusAset::Tersedia->value : StatusAset::DalamMaintenance->value,
                     'kondisi' => $kondisi,
                 ];
 
@@ -155,7 +157,7 @@ class PeminjamanAsetService
             }
 
             $pinjam->update([
-                'status' => 'SELESAI',
+                'status' => StatusPeminjaman::Selesai->value,
             ]);
 
             return $pengembalian;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\StatusAset;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Aset;
 use App\Models\Barang;
@@ -23,12 +24,9 @@ class MasterApiController extends ApiController
     {
         $user = $request->user();
         $canViewFinancials = $user && (
-            $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik', 'manajemen', 'auditor']) ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             $user->can('view_any_pengadaan::pesanan::pembelian') ||
-            $user->can('view_any_pengadaan::realisasi::anggaran') ||
-            $user->can('page_PengadaanDashboard') ||
-            $user->can('page_ManajemenDashboard') ||
-            $user->can('page_AuditorDashboard')
+            $user->can('view_any_pengadaan::realisasi::anggaran')
         );
 
         $tipe = $request->query('tipe');
@@ -61,7 +59,7 @@ class MasterApiController extends ApiController
                 ->sum('jumlah');
 
             $stokRuangan = $b->tipe === 'ASET'
-                ? (int) Aset::where('barang_id', $b->id)->whereNotNull('unit_id')->where('status', '!=', 'DIHAPUSKAN')->count()
+                ? (int) Aset::where('barang_id', $b->id)->whereNotNull('unit_id')->where('status', '!=', StatusAset::Dihapuskan->value)->count()
                 : (int) StokRuangan::where('barang_id', $b->id)->sum('jumlah');
             $totalAset = (int) Aset::where('barang_id', $b->id)->count();
 
@@ -100,12 +98,9 @@ class MasterApiController extends ApiController
     {
         $user = $request->user();
         $canViewFinancials = $user && (
-            $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik', 'manajemen', 'auditor']) ||
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
             $user->can('view_any_pengadaan::pesanan::pembelian') ||
-            $user->can('view_any_pengadaan::realisasi::anggaran') ||
-            $user->can('page_PengadaanDashboard') ||
-            $user->can('page_ManajemenDashboard') ||
-            $user->can('page_AuditorDashboard')
+            $user->can('view_any_pengadaan::realisasi::anggaran')
         );
 
         $barang = Barang::with([
@@ -171,7 +166,7 @@ class MasterApiController extends ApiController
             ->sum('jumlah');
 
         $stokRuangan = $barang->tipe === 'ASET'
-            ? (int) Aset::where('barang_id', $barang->id)->whereNotNull('unit_id')->where('status', '!=', 'DIHAPUSKAN')->count()
+            ? (int) Aset::where('barang_id', $barang->id)->whereNotNull('unit_id')->where('status', '!=', StatusAset::Dihapuskan->value)->count()
             : (int) StokRuangan::where('barang_id', $barang->id)->sum('jumlah');
         $totalAset = (int) Aset::where('barang_id', $barang->id)->count();
 

@@ -2,10 +2,13 @@
 
 namespace App\Livewire\Distribusi;
 
+use App\Enums\StatusPermintaanDistribusi;
+use App\Enums\StatusPengirimanBarang;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
+use App\Livewire\Distribusi\Concerns\AuthorizesDistribusiScope;
 use App\Models\Gudang;
 use App\Models\PengirimanBarang;
 use App\Models\PermintaanDistribusi;
@@ -15,7 +18,7 @@ use Livewire\Component;
 
 class PickingDistribusiIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, AuthorizesDistribusiScope;
 
     #[Url(history: true)]
     public string $activeTab = 'siap-picking'; // 'siap-picking' | 'riwayat-sppb'
@@ -47,26 +50,16 @@ class PickingDistribusiIndex extends Component
 
     public function confirmPicking(int $permintaanId): void
     {
-        $user = auth()->user();
-        abort_unless(
-            $user && (
-                $user->can('create_gudang_stok::picking::distribusi') ||
-                $user->can('update_gudang_stok::picking::distribusi') ||
-                $user->can('page_PickingDistribusiIndex') ||
-                $user->can('page_GudangDashboard') ||
-                $user->can('page_Dashboard')
-            ),
-            403,
-            'Anda tidak memiliki wewenang untuk melakukan picking FEFO.'
-        );
+        abort_unless($this->canPick(), 403, 'Anda tidak memiliki wewenang untuk melakukan picking FEFO.');
 
         $permintaan = PermintaanDistribusi::with(['unit', 'detail'])->find($permintaanId);
         if (! $permintaan) {
             $this->toast('Data permintaan amprah tidak ditemukan.', 'danger');
             return;
         }
+        $this->authorizePickingScope($permintaan);
 
-        if (! in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN'])) {
+        if (! in_array($permintaan->status, StatusPermintaanDistribusi::siapPicking())) {
             $this->toast("Permintaan {$permintaan->kode} belum disetujui gudang atau sudah selesai diproses.", 'warning');
             return;
         }
@@ -87,32 +80,24 @@ class PickingDistribusiIndex extends Component
     public function executePicking(int $permintaanId): void
     {
         $user = auth()->user();
-        abort_unless(
-            $user && (
-                $user->can('create_gudang_stok::picking::distribusi') ||
-                $user->can('update_gudang_stok::picking::distribusi') ||
-                $user->can('page_PickingDistribusiIndex') ||
-                $user->can('page_GudangDashboard') ||
-                $user->can('page_Dashboard')
-            ),
-            403,
-            'Anda tidak memiliki wewenang untuk mengeksekusi picking FEFO.'
-        );
+        abort_unless($this->canPick(), 403, 'Anda tidak memiliki wewenang untuk mengeksekusi picking FEFO.');
 
         $permintaan = PermintaanDistribusi::with(['detail.barang', 'unit'])->find($permintaanId);
         if (! $permintaan) {
             $this->toast('Data permintaan amprah tidak ditemukan.', 'danger');
             return;
         }
+        $this->authorizePickingScope($permintaan);
 
-        if (! in_array($permintaan->status, ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN', 'DISETUJUI_KARU'], true)) {
+        // Picking hanya setelah otorisasi gudang (Meja 2); DISETUJUI_KARU belum boleh dieksekusi
+        if (! in_array($permintaan->status, StatusPermintaanDistribusi::siapPicking(), true)) {
             $this->toast("Status permintaan {$permintaan->kode} ({$permintaan->status}) tidak valid untuk picking.", 'warning');
             return;
         }
 
         // Pastikan gudang_id terisi jika belum ada
         if (! $permintaan->gudang_id) {
-            $gudangId = $user->gudang_id ?: Gudang::where('status', 'AKTIF')->first()?->id ?: 1;
+            $gudangId = $user->gudang_id ?: ($this->ownGudangIds()[0] ?? null) ?: Gudang::where('status', 'AKTIF')->first()?->id ?: 1;
             $permintaan->update(['gudang_id' => $gudangId]);
             $permintaan->refresh();
         }
@@ -131,7 +116,7 @@ class PickingDistribusiIndex extends Component
     {
         $this->checkAccess();
 
-        $this->selectedSppb = PengirimanBarang::with([
+        $sppb = PengirimanBarang::with([
             'permintaanDistribusi',
             'unit',
             'gudang',
@@ -139,32 +124,30 @@ class PickingDistribusiIndex extends Component
             'detail.barang.satuan',
             'detail.stokBatch.lokasiGudang',
         ])->findOrFail($id);
+        $this->authorizeReadScoped($sppb->unit_id, $sppb->gudang_id);
 
+        $this->selectedSppb = $sppb;
         $this->showDetailModal = true;
-    }
-
-    public function closeDetailModal(): void
-    {
-        $this->showDetailModal = false;
-        $this->selectedSppb = null;
     }
 
     public function showPermintaanDetail(int $id): void
     {
         $this->checkAccess();
 
-        $this->selectedPermintaanDetail = PermintaanDistribusi::with([
+        $permintaan = PermintaanDistribusi::with([
             'unit',
             'gudang',
             'pengaju',
             'penyetuju',
             'detail.barang.satuan',
         ])->findOrFail($id);
+        abort_unless($this->canReadPermintaan($permintaan), 403, 'Anda tidak memiliki wewenang untuk melihat permohonan di luar gudang Anda.');
+        $this->selectedPermintaanDetail = $permintaan;
 
         $gudangId = $this->selectedPermintaanDetail->gudang_id;
 
         $existingShipments = PengirimanBarang::where('permintaan_distribusi_id', $this->selectedPermintaanDetail->id)
-            ->where('status', '!=', 'BATAL')
+            ->where('status', '!=', StatusPengirimanBarang::Batal->value)
             ->pluck('id');
 
         $alreadySentMap = \App\Models\PengirimanBarangDetail::whereIn('pengiriman_barang_id', $existingShipments)
@@ -223,22 +206,60 @@ class PickingDistribusiIndex extends Component
 
     protected function checkAccess(): void
     {
-        $user = auth()->user();
         abort_unless(
-            $user && (
-                $user->can('page_PickingDistribusiIndex') ||
-                $user->can('view_any_gudang_stok::picking::distribusi') ||
-                $user->can('view_gudang_stok::picking::distribusi') ||
-                $user->can('create_gudang_stok::picking::distribusi') ||
-                $user->can('update_gudang_stok::picking::distribusi') ||
-                $user->can('page_Dashboard') ||
-                $user->can('page_GudangDashboard') ||
-                $user->can('page_KepalaGudangDashboard') ||
-                $user->can('page_AdminLogistikDashboard')
-            ),
+            auth()->user()?->canAny(['view_any_gudang_stok::picking::distribusi', 'view_gudang_stok::picking::distribusi']),
             403,
             'Anda tidak memiliki wewenang untuk mengakses halaman Picking FEFO & SPPB.'
         );
+    }
+
+    protected function canPick(): bool
+    {
+        return (bool) auth()->user()?->can('create_gudang_stok::picking::distribusi');
+    }
+
+    /**
+     * Picking hanya untuk gudang milik pengguna; amprah tanpa gudang boleh diambil gudang pengguna.
+     */
+    protected function authorizePickingScope(PermintaanDistribusi $permintaan): void
+    {
+        if ($this->isGlobalOperator()) {
+            return;
+        }
+
+        $gudangIds = $this->ownGudangIds();
+        abort_unless($gudangIds, 403, 'Akun Anda tidak terhubung dengan fasilitas gudang.');
+        abort_unless(
+            ! $permintaan->gudang_id || in_array((int) $permintaan->gudang_id, $gudangIds, true),
+            403,
+            'Anda hanya berhak memproses picking untuk gudang Anda sendiri.'
+        );
+    }
+
+    protected function canReadPermintaan(PermintaanDistribusi $permintaan): bool
+    {
+        if (! $permintaan->gudang_id && ! $this->isGlobalOperator() && $this->ownGudangIds()) {
+            return true;
+        }
+
+        return $this->canReadScoped($permintaan->unit_id, $permintaan->gudang_id, false, true);
+    }
+
+    /**
+     * Antrean picking: gudang milik pengguna (termasuk amprah tanpa gudang); tanpa penempatan = pembaca global.
+     */
+    protected function applyPickingQueueScope($query)
+    {
+        if ($this->isGlobalOperator()) {
+            return $query;
+        }
+
+        $gudangIds = $this->ownGudangIds();
+        if ($gudangIds) {
+            return $query->where(fn ($sub) => $sub->whereIn('gudang_id', $gudangIds)->orWhereNull('gudang_id'));
+        }
+
+        return $this->applyReadScope($query, null, 'gudang_id');
     }
 
     public function render()
@@ -246,30 +267,17 @@ class PickingDistribusiIndex extends Component
         $this->checkAccess();
 
         $user = auth()->user();
-        $isGlobalAdmin = $user && (
-            $user->can('page_Dashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_KepalaGudangDashboard')
-        );
 
         // Badge count untuk antrean Siap Picking
-        $siapPickingCount = PermintaanDistribusi::whereIn('status', ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN'])
-            ->when($user?->gudang_id && ! $isGlobalAdmin, function ($q) use ($user) {
-                $q->where(function ($sub) use ($user) {
-                    $sub->where('gudang_id', $user->gudang_id)->orWhereNull('gudang_id');
-                });
-            })
+        $siapPickingCount = PermintaanDistribusi::whereIn('status', StatusPermintaanDistribusi::siapPicking())
+            ->tap(fn ($q) => $this->applyPickingQueueScope($q))
             ->count();
 
         if ($this->activeTab === 'siap-picking') {
             $query = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'detail.barang.satuan'])
                 ->withCount('detail')
-                ->whereIn('status', ['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN'])
-                ->when($user?->gudang_id && ! $isGlobalAdmin, function ($q) use ($user) {
-                    $q->where(function ($sub) use ($user) {
-                        $sub->where('gudang_id', $user->gudang_id)->orWhereNull('gudang_id');
-                    });
-                })
+                ->whereIn('status', StatusPermintaanDistribusi::siapPicking())
+                ->tap(fn ($q) => $this->applyPickingQueueScope($q))
                 ->when($this->filterUrgensi, fn ($q) => $q->where('urgensi', $this->filterUrgensi))
                 ->when($this->search, function ($q) {
                     $q->where(function ($sub) {
@@ -298,7 +306,7 @@ class PickingDistribusiIndex extends Component
                 'detail.barang.satuan',
                 'detail.stokBatch.lokasiGudang',
             ])
-                ->when($user?->gudang_id && ! $isGlobalAdmin, fn ($q) => $q->where('gudang_id', $user->gudang_id))
+                ->tap(fn ($q) => $this->applyReadScope($q, null, 'gudang_id'))
                 ->when($this->search, function ($q) {
                     $q->where(function ($sub) {
                         $sub->where('kode', 'ilike', "%{$this->search}%")

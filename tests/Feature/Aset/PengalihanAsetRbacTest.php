@@ -100,6 +100,7 @@ class PengalihanAsetRbacTest extends TestCase
             'view_any_layanan_unit::pengalihan::aset',
             'update_layanan_unit::pengalihan::aset',
         ]);
+        $this->userApprover->assignRole('kepala_unit');
     }
 
     public function test_user_without_permission_is_forbidden_from_viewing_page(): void
@@ -112,6 +113,10 @@ class PengalihanAsetRbacTest extends TestCase
 
     public function test_user_with_view_permission_can_view_page_but_cannot_submit(): void
     {
+        $this->userViewer->assignRole(\Spatie\Permission\Models\Role::create([
+            'name' => 'role_only_without_transfer_permission',
+            'guard_name' => 'web',
+        ]));
         $this->actingAs($this->userViewer);
 
         Livewire::test(PengalihanAsetIndex::class)
@@ -140,6 +145,61 @@ class PengalihanAsetRbacTest extends TestCase
             'unit_tujuan_id' => $this->unitB->id,
             'status' => 'DIAJUKAN',
         ]);
+    }
+
+
+    public function test_approver_cannot_approve_transfer_from_another_unit(): void
+    {
+        $otherUnitAsset = Aset::create([
+            'barang_id' => $this->aset->barang_id,
+            'unit_id' => $this->unitB->id,
+            'gudang_id' => null,
+            'lokasi_gudang_id' => null,
+            'kode_aset' => 'AST-RBAC-OTHER-' . uniqid(),
+            'nomor_seri' => 'SN-RBAC-OTHER-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'kondisi' => 'BAIK',
+            'status' => 'TERSEDIA',
+        ]);
+        $transfer = app(PengalihanAsetService::class)->ajukanPengalihan([
+            'tipe_asal' => 'RUANGAN',
+            'unit_asal_id' => $this->unitB->id,
+            'tipe_tujuan' => 'RUANGAN',
+            'unit_tujuan_id' => $this->unitA->id,
+            'tanggal_pengalihan' => now()->toDateString(),
+            'alasan' => 'Test batas scope unit',
+            'diajukan_oleh' => $this->userCreator->id,
+            'aset_ids' => [$otherUnitAsset->id],
+        ]);
+
+        $this->actingAs($this->userApprover);
+        Livewire::test(PengalihanAsetIndex::class)
+            ->set('actionTransferId', $transfer->id)
+            ->set('actionType', 'APPROVE')
+            ->call('executeApproval')
+            ->assertForbidden();
+    }
+
+    public function test_workflow_role_without_update_permission_cannot_approve(): void
+    {
+        $transfer = app(PengalihanAsetService::class)->ajukanPengalihan([
+            'tipe_asal' => 'RUANGAN',
+            'unit_asal_id' => $this->unitA->id,
+            'tipe_tujuan' => 'RUANGAN',
+            'unit_tujuan_id' => $this->unitB->id,
+            'tanggal_pengalihan' => now()->toDateString(),
+            'alasan' => 'Test batas permission workflow',
+            'diajukan_oleh' => $this->userViewer->id,
+            'aset_ids' => [$this->aset->id],
+        ]);
+
+        $this->userViewer->givePermissionTo('update_layanan_unit::pengalihan::aset');
+        $this->actingAs($this->userViewer);
+        Livewire::test(PengalihanAsetIndex::class)
+            ->set('actionTransferId', $transfer->id)
+            ->set('actionType', 'APPROVE')
+            ->call('executeApproval')
+            ->assertForbidden();
     }
 
     public function test_user_with_update_permission_can_approve_transfer(): void

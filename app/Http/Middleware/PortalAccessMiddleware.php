@@ -47,12 +47,30 @@ class PortalAccessMiddleware
 
         // 2. Ambil permission yang dibutuhkan untuk portal ini
         $requiredPermission = $this->portalPermissionMap[$portal] ?? null;
+        // Portal access is a boundary; a module's registered page permission gates its route.
+        $routePermission = $this->routePagePermission($request);
+        if ($routePermission && ! $user->can($routePermission)) {
+            abort(403, 'Anda tidak memiliki izin untuk mengakses halaman ini.');
+        }
 
-        // 3. Evaluasi murni berbasis Spatie Permission (Zero Hardcode)
         if (! $requiredPermission || ! $user->can($requiredPermission)) {
             abort(403, "Akses ke portal '{$portal}' ditolak. Anda tidak memiliki izin wewenang.");
         }
 
         return $next($request);
     }
+
+    private function routePagePermission(Request $request): ?string
+    {
+        $controller = $request->route()?->getControllerClass();
+        if (! $controller) {
+            return null;
+        }
+
+        $permission = 'page_' . class_basename($controller);
+        return in_array($permission, \App\Support\Rbac\PagePermissionRegistry::getAllPermissions(), true)
+            ? $permission
+            : null;
+    }
 }
+

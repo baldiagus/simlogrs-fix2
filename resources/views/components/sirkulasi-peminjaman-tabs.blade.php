@@ -4,16 +4,25 @@
     $portalKey = \App\Support\Portal\PortalResolver::resolve();
     $user = auth()->user();
 
-    $canPinjam = $user?->can('view_any_layanan_unit::peminjaman::aset');
-    $canApproval = $user?->can('view_any_layanan_unit::approval::peminjaman');
+    // Visibilitas tab = guard halaman: page_* rute DAN view_any_* / view_* modul.
+    $canPinjam = $user?->can('page_PeminjamanAsetIndex')
+        && ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_layanan_unit::peminjaman::aset'));
+    $canApproval = $user?->can('page_ApprovalPeminjamanIndex')
+        && ($user->can('view_any_layanan_unit::approval::peminjaman') || $user->can('view_layanan_unit::approval::peminjaman'));
 
-    $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+    // Hanya role global yang melihat antrean lintas unit/gudang; page_*Dashboard bukan bypass scope.
+    $hasGlobalRead = $user && $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']);
 
     $pendingApprovalCount = 0;
     if ($canApproval) {
         $pendingApprovalCount = \App\Models\PermintaanPeminjaman::where('status', 'DIAJUKAN')
-            ->when(! $isGlobalAdmin && $user?->unit_id, fn ($q) => $q->where('unit_penyedia_id', $user->unit_id))
-            ->when(! $isGlobalAdmin && $user?->gudang_id, fn ($q) => $q->where('gudang_penyedia_id', $user->gudang_id))
+            ->when(! $hasGlobalRead, function ($q) use ($user) {
+                $q->where(function ($scope) use ($user) {
+                    $scope->when($user?->unit_id, fn ($s) => $s->orWhere('unit_penyedia_id', $user->unit_id))
+                        ->when($user?->gudang_id, fn ($s) => $s->orWhere('gudang_penyedia_id', $user->gudang_id))
+                        ->when(! $user?->unit_id && ! $user?->gudang_id, fn ($s) => $s->whereRaw('1 = 0'));
+                });
+            })
             ->count();
     }
 

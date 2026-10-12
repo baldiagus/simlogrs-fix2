@@ -300,10 +300,10 @@ class BarangIndex extends Component
     {
         abort_unless(auth()->user()?->can('view_any_master::barang') || auth()->user()?->can('view_master::barang'), 403);
 
-        $daftarKategori = Cache::remember('dropdown_kategori_aktif', 60, fn () => KategoriBarang::where('status', 'AKTIF')->get());
-        $daftarSatuan = Cache::remember('dropdown_satuan_aktif', 60, fn () => SatuanBarang::where('status', 'AKTIF')->get());
-        $daftarMerek = Cache::remember('dropdown_merek_aktif', 60, fn () => MerekBarang::where('status', 'AKTIF')->get());
-        $daftarPemasok = Cache::remember('dropdown_pemasok_aktif', 60, fn () => Pemasok::where('status', 'AKTIF')->get());
+        $daftarKategori = Cache::remember('dropdown_kategori_aktif', config('simlog.cache.dropdown_ttl'), fn () => KategoriBarang::where('status', 'AKTIF')->get());
+        $daftarSatuan = Cache::remember('dropdown_satuan_aktif', config('simlog.cache.dropdown_ttl'), fn () => SatuanBarang::where('status', 'AKTIF')->get());
+        $daftarMerek = Cache::remember('dropdown_merek_aktif', config('simlog.cache.dropdown_ttl'), fn () => MerekBarang::where('status', 'AKTIF')->get());
+        $daftarPemasok = Cache::remember('dropdown_pemasok_aktif', config('simlog.cache.dropdown_ttl'), fn () => Pemasok::where('status', 'AKTIF')->get());
 
         $items = Barang::with(['kategori', 'satuan', 'merek', 'pemasokDefault'])
             ->when($this->filterTipe, fn ($q) => $q->where('tipe', $this->filterTipe))

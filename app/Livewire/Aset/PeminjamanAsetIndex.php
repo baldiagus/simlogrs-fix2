@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Aset;
 
+use App\Enums\StatusAset;
+use App\Enums\StatusPeminjaman;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -229,10 +231,10 @@ class PeminjamanAsetIndex extends Component
 
             $aset = Aset::where('barang_id', $this->selected_barang_id)
                 ->where('unit_id', $id)
-                ->where('status', 'TERSEDIA')
+                ->where('status', StatusAset::Tersedia->value)
                 ->where('kondisi', 'BAIK')
                 ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
-                    $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                    $sub->whereIn('status', StatusPeminjaman::aktif());
                 })
                 ->whereDoesntHave('permintaanMaintenance', function ($sub) {
                     $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
@@ -246,10 +248,10 @@ class PeminjamanAsetIndex extends Component
 
             $aset = Aset::where('barang_id', $this->selected_barang_id)
                 ->where('gudang_id', $id)
-                ->where('status', 'TERSEDIA')
+                ->where('status', StatusAset::Tersedia->value)
                 ->where('kondisi', 'BAIK')
                 ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
-                    $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                    $sub->whereIn('status', StatusPeminjaman::aktif());
                 })
                 ->whereDoesntHave('permintaanMaintenance', function ($sub) {
                     $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
@@ -283,11 +285,11 @@ class PeminjamanAsetIndex extends Component
     public function getDaftarBarangAsetTersedia()
     {
         $user = auth()->user();
-        $isGlobalAdmin = (bool) ($user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik'])));
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
         $ownUnitId = ! $isGlobalAdmin ? $user?->unit_id : null;
 
         $constraint = function ($q) use ($ownUnitId) {
-            $q->where('status', 'TERSEDIA')->where('kondisi', 'BAIK')
+            $q->where('status', StatusAset::Tersedia->value)->where('kondisi', 'BAIK')
                 ->where(function ($loc) {
                     $loc->whereNull('unit_id')->orWhereHas('unit', fn ($u) => $u->where('status', 'AKTIF'));
                 })
@@ -295,7 +297,7 @@ class PeminjamanAsetIndex extends Component
                     $loc->whereNull('gudang_id')->orWhereHas('gudang', fn ($g) => $g->where('status', 'AKTIF'));
                 })
                 ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
-                    $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                    $sub->whereIn('status', StatusPeminjaman::aktif());
                 })
                 ->whereDoesntHave('permintaanMaintenance', function ($sub) {
                     $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
@@ -321,7 +323,7 @@ class PeminjamanAsetIndex extends Component
         $userUnitId = $user?->unit_id;
 
         $assets = Aset::where('barang_id', $this->selected_barang_id)
-            ->where('status', 'TERSEDIA')
+            ->where('status', StatusAset::Tersedia->value)
             ->where('kondisi', 'BAIK')
             ->where(function ($loc) {
                 $loc->whereNull('unit_id')->orWhereHas('unit', fn ($u) => $u->where('status', 'AKTIF'));
@@ -330,7 +332,7 @@ class PeminjamanAsetIndex extends Component
                 $loc->whereNull('gudang_id')->orWhereHas('gudang', fn ($g) => $g->where('status', 'AKTIF'));
             })
             ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
-                $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                $sub->whereIn('status', StatusPeminjaman::aktif());
             })
             ->whereDoesntHave('permintaanMaintenance', function ($sub) {
                 $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
@@ -407,7 +409,7 @@ class PeminjamanAsetIndex extends Component
         $isMaintenance = \App\Models\PermintaanMaintenance::where('aset_id', $aset->id)
             ->whereNotIn('status', ['SELESAI', 'DIBATALKAN'])
             ->exists();
-        if ($isMaintenance || $aset->status === 'DALAM_MAINTENANCE' || $aset->kondisi !== 'BAIK') {
+        if ($isMaintenance || $aset->status === StatusAset::DalamMaintenance->value || $aset->kondisi !== 'BAIK') {
             $this->toast("Aset '{$aset->kode_aset}' sedang dalam laporan pemeliharaan/perbaikan IPSRS dan tidak dapat dipinjam.", 'warning');
             return;
         }
@@ -472,11 +474,11 @@ class PeminjamanAsetIndex extends Component
 
         // Query seluruh aset yang tersedia di lokasi penyedia
         $assetsQuery = Aset::where('barang_id', $this->selected_barang_id)
-            ->where('status', 'TERSEDIA')
+            ->where('status', StatusAset::Tersedia->value)
             ->where('kondisi', 'BAIK')
             ->whereHas('barang', fn ($b) => $b->where('status', 'AKTIF'))
             ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($sub) {
-                $sub->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                $sub->whereIn('status', StatusPeminjaman::aktif());
             })
             ->whereDoesntHave('permintaanMaintenance', function ($sub) {
                 $sub->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
@@ -512,7 +514,7 @@ class PeminjamanAsetIndex extends Component
         }
 
         // Kunci integritas: periksa apakah aset sedang dalam transaksi peminjaman aktif lain
-        $isSedangDipinjam = PermintaanPeminjaman::whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM'])
+        $isSedangDipinjam = PermintaanPeminjaman::whereIn('status', StatusPeminjaman::aktif())
             ->whereHas('detail', fn ($d) => $d->where('aset_id', $aset->id))
             ->exists();
 
@@ -524,7 +526,7 @@ class PeminjamanAsetIndex extends Component
         $isMaintenance = \App\Models\PermintaanMaintenance::where('aset_id', $aset->id)
             ->whereNotIn('status', ['SELESAI', 'DIBATALKAN'])
             ->exists();
-        if ($isMaintenance || $aset->status === 'DALAM_MAINTENANCE') {
+        if ($isMaintenance || $aset->status === StatusAset::DalamMaintenance->value) {
             $this->addError('selected_aset_id', "Aset '{$aset->kode_aset}' ({$aset->barang?->nama}) sedang dalam penanganan perbaikan/pemeliharaan IPSRS dan tidak dapat dipinjam.");
             return;
         }
@@ -546,7 +548,7 @@ class PeminjamanAsetIndex extends Component
                 'tanggal_pinjam'          => $this->tanggal_pinjam,
                 'tanggal_kembali_rencana' => $this->tanggal_kembali_rencana,
                 'keperluan'               => $this->keperluan,
-                'status'                  => 'DIAJUKAN',
+                'status'                  => StatusPeminjaman::Diajukan->value,
                 'catatan'                 => $this->catatan ?: null,
             ]);
 
@@ -586,7 +588,7 @@ class PeminjamanAsetIndex extends Component
         abort_unless(auth()->user()?->can('update_layanan_unit::peminjaman::aset') || auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
 
         $pinjam = PermintaanPeminjaman::findOrFail($id);
-        if (! in_array($pinjam->status, ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM'], true)) {
+        if (! in_array($pinjam->status, StatusPeminjaman::aktif(), true)) {
             $this->toast('Hanya peminjaman aktif yang dapat diperpanjang.', 'error');
             return;
         }
@@ -613,12 +615,7 @@ class PeminjamanAsetIndex extends Component
 
         $pinjam = PermintaanPeminjaman::findOrFail($this->perpanjangId);
         $user = auth()->user();
-        $isGlobalAdmin = $user && (
-            $user->can('page_Dashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_SuperAdminDashboard') ||
-            $user->can('manage_all')
-        );
+        $isGlobalAdmin = $user && $user->hasRole(['super_admin', 'admin_logistik']);
 
         if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $pinjam->unit_id) {
             abort(403, 'Anda tidak berwenang memperpanjang permohonan peminjaman dari unit lain.');
@@ -648,7 +645,7 @@ class PeminjamanAsetIndex extends Component
     public function confirmBatal(int $id): void
     {
         $pinjam = PermintaanPeminjaman::findOrFail($id);
-        if ($pinjam->status !== 'DIAJUKAN') {
+        if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
             $this->toast('Hanya peminjaman berstatus DIAJUKAN yang dapat dibatalkan.', 'error');
             return;
         }
@@ -668,25 +665,20 @@ class PeminjamanAsetIndex extends Component
         abort_unless(auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
 
         $pinjam = PermintaanPeminjaman::findOrFail($id);
-        if ($pinjam->status !== 'DIAJUKAN') {
+        if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
             $this->toast('Hanya peminjaman berstatus DIAJUKAN yang dapat dibatalkan.', 'error');
             return;
         }
 
         $user = auth()->user();
-        $isGlobalAdmin = $user && (
-            $user->can('page_Dashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_SuperAdminDashboard') ||
-            $user->can('manage_all')
-        );
+        $isGlobalAdmin = $user && $user->hasRole(['super_admin', 'admin_logistik']);
 
         if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $pinjam->unit_id) {
             abort(403, 'Anda tidak berwenang membatalkan permohonan peminjaman dari unit lain.');
         }
 
         $pinjam->update([
-            'status'  => 'DIBATALKAN',
+            'status'  => StatusPeminjaman::Dibatalkan->value,
             'catatan' => ($pinjam->catatan ? $pinjam->catatan . "\n" : '') . '[Dibatalkan oleh pemohon pada ' . now()->format('d/m/Y H:i') . ']',
         ]);
 
@@ -695,7 +687,7 @@ class PeminjamanAsetIndex extends Component
     public function confirmSerahTerima(int $id): void
     {
         $pinjam = PermintaanPeminjaman::with(['unitPeminjam', 'detail.aset'])->findOrFail($id);
-        if ($pinjam->status !== 'DISETUJUI') {
+        if ($pinjam->status !== StatusPeminjaman::Disetujui->value) {
             $this->toast('Hanya peminjaman berstatus DISETUJUI yang dapat diserahterimakan.', 'danger');
             return;
         }
@@ -715,12 +707,7 @@ class PeminjamanAsetIndex extends Component
         $user = auth()->user();
         $pinjam = PermintaanPeminjaman::with('detail.aset')->findOrFail($id);
 
-        $isGlobalAdmin = $user && (
-            $user->can('page_Dashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_SuperAdminDashboard') ||
-            $user->can('manage_all')
-        );
+        $isGlobalAdmin = $user && $user->hasRole(['super_admin', 'admin_logistik']);
 
         if (! $isGlobalAdmin) {
             if ($pinjam->tipe_penyedia === 'RUANGAN') {
@@ -734,7 +721,7 @@ class PeminjamanAsetIndex extends Component
             }
         }
 
-        if ($pinjam->status !== 'DISETUJUI') {
+        if ($pinjam->status !== StatusPeminjaman::Disetujui->value) {
             $this->toast('Hanya peminjaman berstatus DISETUJUI yang dapat diserahterimakan.', 'danger');
             return;
         }
@@ -759,31 +746,17 @@ class PeminjamanAsetIndex extends Component
     public function render()
     {
         $user = auth()->user();
-        abort_unless(
-            $user && (
-                $user->can('view_any_layanan_unit::peminjaman::aset') ||
-                $user->can('view_layanan_unit::peminjaman::aset') ||
-                $user->can('page_PeminjamanAsetIndex') ||
-                $user->can('page_Dashboard') ||
-                $user->can('page_AdminLogistikDashboard')
-            ),
-            403
-        );
+        abort_unless($user && ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_layanan_unit::peminjaman::aset')), 403);
 
-        $isGlobalAdmin = $user && (
-            $user->can('page_Dashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_SuperAdminDashboard') ||
-            $user->can('manage_all')
-        );
+        $isGlobalAdmin = $user && $user->hasRole(['super_admin', 'admin_logistik']);
 
-        $countAktifQuery = PermintaanPeminjaman::whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+        $countAktifQuery = PermintaanPeminjaman::whereIn('status', StatusPeminjaman::aktif());
         $this->applyPeminjamanScope($countAktifQuery, $user, $isGlobalAdmin);
         $countAktif = $countAktifQuery->count();
 
-        $countKatalogQuery = Aset::where('status', 'TERSEDIA')->where('kondisi', 'BAIK')
+        $countKatalogQuery = Aset::where('status', StatusAset::Tersedia->value)->where('kondisi', 'BAIK')
             ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($q) {
-                $q->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                $q->whereIn('status', StatusPeminjaman::aktif());
             })
             ->whereDoesntHave('permintaanMaintenance', function ($q) {
                 $q->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);
@@ -823,10 +796,10 @@ class PeminjamanAsetIndex extends Component
         $daftarKatalogAset = collect();
         if ($this->activeTab === 'katalog') {
             $queryKatalog = Aset::with(['barang.satuan', 'unit', 'gudang', 'lokasiGudang'])
-                ->where('status', 'TERSEDIA')
+                ->where('status', StatusAset::Tersedia->value)
                 ->where('kondisi', 'BAIK')
                 ->whereDoesntHave('peminjamanDetail.permintaanPeminjaman', function ($q) {
-                    $q->whereIn('status', ['DIAJUKAN', 'DISETUJUI', 'DIPINJAM']);
+                    $q->whereIn('status', StatusPeminjaman::aktif());
                 })
                 ->whereDoesntHave('permintaanMaintenance', function ($q) {
                     $q->whereNotIn('status', ['SELESAI', 'DIBATALKAN']);

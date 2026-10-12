@@ -2,10 +2,12 @@
 
 namespace App\Livewire\Distribusi;
 
+use App\Enums\StatusPermintaanDistribusi;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
+use App\Livewire\Distribusi\Concerns\AuthorizesDistribusiScope;
 use App\Models\Barang;
 use App\Models\Gudang;
 use App\Models\PermintaanDistribusi;
@@ -20,7 +22,7 @@ use Livewire\Component;
 
 class PermintaanBarangIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, AuthorizesDistribusiScope;
 
     #[Url(history: true)]
     public string $filterStatus = '';
@@ -112,8 +114,11 @@ class PermintaanBarangIndex extends Component
 
         $user = auth()->user();
 
-        // Auto-fill unit_id if user has unit_id and property was empty
-        if (! $this->unit_id && $user?->unit_id) {
+        // Non-global hanya boleh mengajukan untuk unitnya sendiri
+        if (! $this->isGlobalOperator()) {
+            abort_unless($user?->unit_id, 403, 'Akun Anda tidak terhubung dengan unit ruangan.');
+            $this->unit_id = $user->unit_id;
+        } elseif (! $this->unit_id && $user?->unit_id) {
             $this->unit_id = $user->unit_id;
         }
 
@@ -148,13 +153,11 @@ class PermintaanBarangIndex extends Component
 
         // Komoditas dengan stok gudang kosong atau kurang tetap diizinkan diajukan
         // Selisih kebutuhan akan otomatis dicatat sebagai hutang gudang (backorder)
-        // Pengguna selain role 'petugas_unit' (Kepala Unit, Teknisi, Admin, dll.) langsung bypass Meja 1 ke Kepala Gudang
-        $isPetugasUnitMurni = $user->hasRole('petugas_unit')
-            && ! $user->hasRole('kepala_unit')
-            && ! $user->can('update_layanan_unit::approval::karu');
-
-        $directToGudang = ! $isPetugasUnitMurni;
-        $initialStatus  = $directToGudang ? 'DISETUJUI_KARU' : 'DIAJUKAN';
+        // Hanya Kepala Unit (role + permission otorisasi karu) untuk unitnya sendiri yang melewati Meja 1
+        $directToGudang = $user->hasRole('kepala_unit')
+            && $user->can('update_layanan_unit::approval::karu')
+            && $this->inUnitScope($this->unit_id);
+        $initialStatus  = $directToGudang ? StatusPermintaanDistribusi::DisetujuiKaru->value : StatusPermintaanDistribusi::Diajukan->value;
         $disetujuiOleh  = $directToGudang ? $user->id : null;
 
         DB::transaction(function () use ($user, $initialStatus, $disetujuiOleh, $directToGudang) {
@@ -206,12 +209,8 @@ class PermintaanBarangIndex extends Component
             'pengiriman.detail',
         ])->findOrFail($id);
 
-        $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
-
-        if (! $isGlobalAdmin && $user?->unit_id && (int) $user->unit_id !== (int) $permintaan->unit_id) {
-            abort(403, 'Anda tidak memiliki hak akses untuk melihat dokumen dari unit ini.');
-        }
+        $this->authorizeView();
+        $this->authorizeReadScoped($permintaan->unit_id, $permintaan->gudang_id);
 
         $this->selectedPermintaan = $permintaan;
         $this->showDetailModal = true;
@@ -220,14 +219,10 @@ class PermintaanBarangIndex extends Component
     public function confirmBatal(int $id): void
     {
         $permintaan = PermintaanDistribusi::with('unit')->findOrFail($id);
-        $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
+        $this->authorizeRequesterAction($permintaan, 'Anda tidak memiliki hak akses untuk membatalkan permintaan dari unit ini.');
 
-        if (! $isGlobalAdmin && $user?->unit_id && (int) $user->unit_id !== (int) $permintaan->unit_id) {
-            abort(403, 'Anda tidak memiliki hak akses untuk membatalkan permintaan dari unit ini.');
-        }
-
-        $canBatal = in_array($permintaan->status, ['DIAJUKAN', 'DISETUJUI_KARU'])
+        // 'DIBATALKAN' bukan nilai status SPPB (yang dipakai BATAL); dipertahankan agar perilaku tidak berubah.
+        $canBatal = in_array($permintaan->status, StatusPermintaanDistribusi::dapatDibatalkan())
             && ! \App\Models\PengirimanBarang::where('permintaan_distribusi_id', $permintaan->id)->where('status', '!=', 'DIBATALKAN')->exists();
 
         if (! $canBatal) {
@@ -269,14 +264,10 @@ class PermintaanBarangIndex extends Component
     public function batal(int $id): void
     {
         $permintaan = PermintaanDistribusi::findOrFail($id);
-        $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
+        $this->authorizeRequesterAction($permintaan, 'Anda tidak memiliki hak akses untuk membatalkan permintaan dari unit ini.');
 
-        if (! $isGlobalAdmin && $user?->unit_id && (int) $user->unit_id !== (int) $permintaan->unit_id) {
-            abort(403, 'Anda tidak memiliki hak akses untuk membatalkan permintaan dari unit ini.');
-        }
-
-        $canBatal = in_array($permintaan->status, ['DIAJUKAN', 'DISETUJUI_KARU'])
+        // 'DIBATALKAN' bukan nilai status SPPB (yang dipakai BATAL); dipertahankan agar perilaku tidak berubah.
+        $canBatal = in_array($permintaan->status, StatusPermintaanDistribusi::dapatDibatalkan())
             && ! \App\Models\PengirimanBarang::where('permintaan_distribusi_id', $permintaan->id)->where('status', '!=', 'DIBATALKAN')->exists();
 
         if (! $canBatal) {
@@ -286,7 +277,7 @@ class PermintaanBarangIndex extends Component
 
         $catatanAwal = $permintaan->catatan ? $permintaan->catatan . "\n" : '';
         $permintaan->update([
-            'status' => 'DITOLAK',
+            'status' => StatusPermintaanDistribusi::Ditolak->value,
             'catatan' => $catatanAwal . '[Dibatalkan oleh pemohon]',
         ]);
 
@@ -296,14 +287,9 @@ class PermintaanBarangIndex extends Component
     public function confirmTutupSisaHutang(int $id): void
     {
         $permintaan = PermintaanDistribusi::findOrFail($id);
-        $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
+        $this->authorizeRequesterAction($permintaan, 'Anda tidak memiliki hak akses untuk menutup sisa permintaan dari unit ini.');
 
-        if (! $isGlobalAdmin && $user?->unit_id && (int) $user->unit_id !== (int) $permintaan->unit_id) {
-            abort(403, 'Anda tidak memiliki hak akses untuk menutup sisa permintaan dari unit ini.');
-        }
-
-        if ($permintaan->status !== 'DIKIRIM_SEBAGIAN') {
+        if ($permintaan->status !== StatusPermintaanDistribusi::DikirimSebagian->value) {
             $this->toast('Hanya permintaan dengan status DIKIRIM_SEBAGIAN yang dapat ditutup sisa hutangnya.', 'warning');
             return;
         }
@@ -320,24 +306,18 @@ class PermintaanBarangIndex extends Component
 
     public function tutupSisaHutang(int $id): void
     {
-        $user = auth()->user();
-        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard') || $user->hasRole(['super_admin', 'admin_logistik']));
-
-        DB::transaction(function () use ($id, $user, $isGlobalAdmin) {
+        DB::transaction(function () use ($id) {
             $permintaan = PermintaanDistribusi::lockForUpdate()->findOrFail($id);
+            $this->authorizeRequesterAction($permintaan, 'Anda tidak memiliki hak akses untuk menutup sisa permintaan dari unit ini.');
 
-            if (! $isGlobalAdmin && $user?->unit_id && (int) $user->unit_id !== (int) $permintaan->unit_id) {
-                abort(403, 'Anda tidak memiliki hak akses untuk menutup sisa permintaan dari unit ini.');
-            }
-
-            if ($permintaan->status !== 'DIKIRIM_SEBAGIAN') {
+            if ($permintaan->status !== StatusPermintaanDistribusi::DikirimSebagian->value) {
                 $this->toast('Hanya permintaan dengan status DIKIRIM_SEBAGIAN yang dapat ditutup sisa hutangnya.', 'warning');
                 return;
             }
 
             $catatanAwal = $permintaan->catatan ? $permintaan->catatan . "\n" : '';
             $permintaan->update([
-                'status'  => 'SELESAI',
+                'status'  => StatusPermintaanDistribusi::Selesai->value,
                 'catatan' => $catatanAwal . '[Sisa hutang ditutup oleh pemohon pada ' . now()->format('d/m/Y H:i') . ']',
             ]);
 
@@ -345,25 +325,41 @@ class PermintaanBarangIndex extends Component
         });
     }
 
-    public function render()
+    protected function authorizeView(): void
     {
-        $user = auth()->user();
         abort_unless(
-            $user && (
-                $user->can('view_any_layanan_unit::permintaan::barang') ||
-                $user->can('view_layanan_unit::permintaan::barang') ||
-                $user->can('page_PermintaanBarangIndex') ||
-                $user->can('page_Dashboard') ||
-                $user->can('page_AdminLogistikDashboard')
-            ),
+            auth()->user()?->canAny(['view_any_layanan_unit::permintaan::barang', 'view_layanan_unit::permintaan::barang']),
             403
         );
+    }
 
-        $isGlobalAdmin = $user && ($user->can('page_Dashboard') || $user->can('page_AdminLogistikDashboard'));
+    /**
+     * Pembatalan/penutupan amprah oleh pemohon: permission pengajuan amprah dan unit milik sendiri.
+     */
+    protected function canRequesterAct(?int $unitId): bool
+    {
+        $user = auth()->user();
+
+        return (bool) ($user
+            && $user->canAny(['create_layanan_unit::permintaan::barang', 'update_layanan_unit::permintaan::barang'])
+            && ($this->isGlobalOperator() || ($user->unit_id && (int) $user->unit_id === (int) $unitId)));
+    }
+
+    protected function authorizeRequesterAction(PermintaanDistribusi $permintaan, string $message): void
+    {
+        abort_unless($this->canRequesterAct($permintaan->unit_id), 403, $message);
+    }
+
+    public function render()
+    {
+        $this->authorizeView();
+
+        $user = auth()->user();
+        $isGlobalAdmin = $this->isGlobalOperator();
 
         $query = PermintaanDistribusi::with(['unit', 'gudang', 'pengaju', 'penyetuju', 'detail.barang.satuan'])
             ->withCount('detail')
-            ->when(! $isGlobalAdmin && $user?->unit_id, fn ($q) => $q->where('unit_id', $user->unit_id))
+            ->tap(fn ($q) => $this->applyReadScope($q))
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterUrgensi, fn ($q) => $q->where('urgensi', $this->filterUrgensi))
             ->when($this->search, function ($q) {
@@ -378,9 +374,9 @@ class PermintaanBarangIndex extends Component
             ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
-        $daftarBarang = Cache::remember('dropdown_barang_aktif', 60, fn () => Barang::where('status', 'AKTIF')->with('satuan')->orderBy('nama')->get());
-        $daftarGudang = Cache::remember('dropdown_gudang_aktif', 60, fn () => Gudang::where('status', 'AKTIF')->orderBy('nama')->get());
-        $daftarUnit   = Cache::remember('dropdown_unit_aktif', 60, fn () => Unit::where('status', 'AKTIF')->orderBy('nama')->get());
+        $daftarBarang = Cache::remember('dropdown_barang_aktif', config('simlog.cache.dropdown_ttl'), fn () => Barang::where('status', 'AKTIF')->with('satuan')->orderBy('nama')->get());
+        $daftarGudang = Cache::remember('dropdown_gudang_aktif', config('simlog.cache.dropdown_ttl'), fn () => Gudang::where('status', 'AKTIF')->orderBy('nama')->get());
+        $daftarUnit   = Cache::remember('dropdown_unit_aktif', config('simlog.cache.dropdown_ttl'), fn () => Unit::where('status', 'AKTIF')->orderBy('nama')->get());
         $stokGudangMap = [];
         if ($this->gudang_id) {
             $stokGudangMap = StokBatch::where('gudang_id', $this->gudang_id)
@@ -403,6 +399,7 @@ class PermintaanBarangIndex extends Component
             'daftarUnit'       => $daftarUnit,
             'stokGudangMap'    => $stokGudangMap,
             'isGlobalAdmin'    => $isGlobalAdmin,
+            'canRequesterAct'  => (bool) $user?->canAny(['create_layanan_unit::permintaan::barang', 'update_layanan_unit::permintaan::barang']),
             'userUnitId'       => $user?->unit_id,
             'items'            => $this->items,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Permintaan Barang Ruangan (Amprah)']);

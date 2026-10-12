@@ -78,8 +78,8 @@ class BukuMutasiIndex extends Component
 
         $items = $query->orderBy('id', 'desc')->paginate($this->perPage);
 
-        $daftarGudang = Cache::remember('dropdown_gudang_aktif', 60, fn () => Gudang::where('status', 'AKTIF')->orderBy('nama')->get());
-        $daftarBarang = Cache::remember('dropdown_barang_aktif', 60, fn () => Barang::where('status', 'AKTIF')->orderBy('nama')->get());
+        $daftarGudang = Cache::remember('dropdown_gudang_aktif', config('simlog.cache.dropdown_ttl'), fn () => Gudang::where('status', 'AKTIF')->orderBy('nama')->get());
+        $daftarBarang = Cache::remember('dropdown_barang_aktif', config('simlog.cache.dropdown_ttl'), fn () => Barang::where('status', 'AKTIF')->orderBy('nama')->get());
 
         return view('livewire.persediaan.buku-mutasi-index', [
             'items'        => $items,

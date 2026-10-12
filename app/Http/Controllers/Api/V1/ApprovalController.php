@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\StatusPermintaanPengadaan;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\PermintaanDistribusi;
 use App\Models\PermintaanPengadaan;
@@ -18,22 +19,20 @@ class ApprovalController extends ApiController
         $user = $request->user();
 
         $isCrossUnitViewer = $user && (
-            $user->hasRole(['pengadaan', 'manajemen', 'auditor', 'super_admin', 'admin_logistik']) ||
-            $user->can('page_PengadaanDashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_Dashboard') ||
-            $user->can('page_ManajemenDashboard') ||
-            $user->can('page_AuditorDashboard')
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
+            $user->can('view_any_pengadaan::permintaan::pengadaan') ||
+            $user->can('view_any_layanan_unit::approval::karu') ||
+            $user->can('view_any_gudang_stok::distribusi::approval')
         );
 
         $isPengadaanOnly = $user && $user->hasRole('pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik']);
-        $isAdminOrAudit = $user && ($user->hasRole(['super_admin', 'admin_logistik', 'manajemen', 'auditor']) || $user->can('page_AdminLogistikDashboard'));
+        $isAdminOrAudit = $user && ($user->hasRole(['super_admin', 'admin_logistik']) || $user->can('view_any_pengadaan::permintaan::pengadaan'));
 
-        $prStatuses = [PermintaanPengadaan::STATUS_DIAJUKAN];
+        $prStatuses = [StatusPermintaanPengadaan::Diajukan->value];
         if ($isPengadaanOnly) {
-            $prStatuses = [PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN];
+            $prStatuses = [StatusPermintaanPengadaan::DiteruskanKePengadaan->value];
         } elseif ($isAdminOrAudit) {
-            $prStatuses = [PermintaanPengadaan::STATUS_DIAJUKAN, PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN];
+            $prStatuses = [StatusPermintaanPengadaan::Diajukan->value, StatusPermintaanPengadaan::DiteruskanKePengadaan->value];
         }
 
         $pr = PermintaanPengadaan::whereIn('status', $prStatuses)
@@ -82,7 +81,7 @@ class ApprovalController extends ApiController
         $isGudangRole = $user && ($user->hasRole(['kepala_gudang', 'petugas_gudang']) || $user->gudang_id) && ! $user->hasRole(['super_admin', 'admin_logistik']);
         $isAdminLogistik = $user && $user->hasRole('admin_logistik') && ! $user->hasRole('super_admin');
         $isSuperAdmin = $user && $user->hasRole('super_admin');
-        $isAuditOrManajemen = $user && $user->hasRole(['auditor', 'manajemen']);
+        $isAuditOrManajemen = $user && $user->can('view_any_gudang_stok::distribusi::approval');
 
         if ($isKaruOnly) {
             // Kepala Ruangan (Meja 1): HANYA memproses DIAJUKAN dari unit ruangannya sendiri
@@ -140,9 +139,8 @@ class ApprovalController extends ApiController
         $user = $request->user();
 
         $canApprove = $user && (
-            $user->can('update_pengadaan::permintaan::pengadaan') ||
-            $user->hasRole('pengadaan') ||
-            $user->hasRole('super_admin')
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
+            ($user->can('update_pengadaan::permintaan::pengadaan') && $user->hasRole(['pengadaan', 'kepala_unit', 'kepala_gudang']))
         );
 
         if (! $canApprove) {
@@ -178,18 +176,18 @@ class ApprovalController extends ApiController
         }
 
         if ($aksi === 'serahkan' || $aksi === 'teruskan') {
-            if ($pr->status !== 'DISETUJUI' && $pr->status !== PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN) {
+            if ($pr->status !== 'DISETUJUI' && $pr->status !== StatusPermintaanPengadaan::DiteruskanKePengadaan->value) {
                 return $this->jsonError("Hanya PR berstatus DISETUJUI / DITERUSKAN yang dapat diserahkan ke bagian pengadaan (saat ini: {$pr->status}).", 422);
             }
 
             $pr->update([
-                'status' => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN,
+                'status' => StatusPermintaanPengadaan::DiteruskanKePengadaan->value,
                 'catatan' => $request->input('catatan') ?? $pr->catatan,
             ]);
 
             return $this->jsonSuccess([
                 'kode' => $pr->kode,
-                'status' => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN,
+                'status' => StatusPermintaanPengadaan::DiteruskanKePengadaan->value,
             ], "PR {$pr->kode} berhasil diserahkan ke bagian pengadaan.");
         }
 
@@ -197,13 +195,12 @@ class ApprovalController extends ApiController
             if ($user->hasRole('pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'kepala_gudang'])) {
                 return $this->jsonError('Bagian Pengadaan tidak memiliki wewenang untuk menyetujui pengajuan PR ruangan. Otorisasi persetujuan tersebut adalah wewenang Kepala Ruangan / Kepala Gudang.', 403);
             }
-
-            if ($pr->status !== PermintaanPengadaan::STATUS_DIAJUKAN) {
+            if ($pr->status !== StatusPermintaanPengadaan::Diajukan->value) {
                 return $this->jsonError("PR {$pr->kode} tidak dalam status DIAJUKAN (saat ini: {$pr->status}).", 422);
             }
 
             $pr->update([
-                'status' => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN,
+                'status' => StatusPermintaanPengadaan::DiteruskanKePengadaan->value,
                 'disetujui_oleh' => $user->id,
                 'catatan' => $request->input('catatan') ?? $pr->catatan,
             ]);
@@ -211,16 +208,20 @@ class ApprovalController extends ApiController
 
             return $this->jsonSuccess([
                 'kode' => $pr->kode,
-                'status' => PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN,
+                'status' => StatusPermintaanPengadaan::DiteruskanKePengadaan->value,
             ], "PR {$pr->kode} berhasil disetujui dan diteruskan ke bagian pengadaan.");
         }
 
         // Tolak
-        if (! $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik']) && $pr->status !== PermintaanPengadaan::STATUS_DIAJUKAN) {
+        if (! $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik']) && $pr->status !== StatusPermintaanPengadaan::Diajukan->value) {
             return $this->jsonError("Hanya PR berstatus DIAJUKAN yang dapat ditolak pada tingkat ruangan/unit (saat ini: {$pr->status}).", 422);
         }
-        if ($user->hasRole('pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik']) && $pr->status !== PermintaanPengadaan::STATUS_DITERUSKAN_KE_PENGADAAN) {
+        if ($user->hasRole('pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik']) && $pr->status !== StatusPermintaanPengadaan::DiteruskanKePengadaan->value) {
             return $this->jsonError("Bagian Pengadaan hanya berhak menolak PR yang telah diteruskan ke pengadaan (saat ini: {$pr->status}).", 422);
+        }
+        // Berlaku juga bagi admin global: PR yang sudah diproses/final tidak dapat ditolak (ADR 0002 A7).
+        if (! StatusPermintaanPengadaan::tryFrom((string) $pr->status)?->bolehKe(StatusPermintaanPengadaan::Ditolak)) {
+            return $this->jsonError("PR {$pr->kode} tidak dapat ditolak karena sudah diproses atau final (saat ini: {$pr->status}).", 422);
         }
 
 
@@ -230,14 +231,14 @@ class ApprovalController extends ApiController
         }
 
         $pr->update([
-            'status' => PermintaanPengadaan::STATUS_DITOLAK,
+            'status' => StatusPermintaanPengadaan::Ditolak->value,
             'disetujui_oleh' => $user->id,
             'catatan' => $catatanTolak,
         ]);
 
         return $this->jsonSuccess([
             'kode' => $pr->kode,
-            'status' => PermintaanPengadaan::STATUS_DITOLAK,
+            'status' => StatusPermintaanPengadaan::Ditolak->value,
         ], "PR {$pr->kode} ditolak.");
     }
 
@@ -262,15 +263,15 @@ class ApprovalController extends ApiController
 
         // Meja 1: Approval Karu (status DIAJUKAN)
         if ($amprah->status === 'DIAJUKAN') {
-            if ($user->hasRole(['kepala_gudang', 'petugas_gudang']) && ! $user->hasRole('super_admin')) {
+            if ($user->hasRole(['kepala_gudang', 'petugas_gudang']) && ! $user->hasRole(['super_admin', 'admin_logistik'])) {
                 return $this->jsonError('Kepala Gudang tidak berwenang mengesahkan pengajuan Meja 1. Permohonan harus disetujui oleh Kepala Ruangan pemohon terlebih dahulu.', 403);
             }
 
-            if (! $user->can('update_layanan_unit::approval::karu') && ! $user->hasRole(['super_admin', 'admin_logistik'])) {
+            if (! $user->can('update_layanan_unit::approval::karu') || ! $user->hasRole(['kepala_unit', 'super_admin', 'admin_logistik'])) {
                 return $this->jsonError('Anda tidak memiliki wewenang mengesahkan permohonan ruangan ini.', 403);
             }
 
-            if ($user->unit_id && (int) $user->unit_id !== (int) $amprah->unit_id && ! $user->hasRole(['super_admin', 'admin_logistik'])) {
+            if (! $user->hasRole(['super_admin', 'admin_logistik']) && (int) $user->unit_id !== (int) $amprah->unit_id) {
                 return $this->jsonError('Anda hanya berhak mengesahkan permohonan dari unit ruangan Anda sendiri.', 403);
             }
 
@@ -306,11 +307,11 @@ class ApprovalController extends ApiController
                 return $this->jsonError('Otorisasi pengeluaran barang gudang (Meja 2) adalah wewenang Kepala Gudang / Admin Logistik.', 403);
             }
 
-            if (! $user->can('update_gudang_stok::distribusi::approval') && ! $user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang'])) {
+            if (! $user->hasRole(['super_admin', 'admin_logistik']) && (! $user->can('update_gudang_stok::distribusi::approval') || ! $user->hasRole('kepala_gudang'))) {
                 return $this->jsonError('Anda tidak memiliki wewenang otorisasi distribusi gudang logistik.', 403);
             }
 
-            if ($user->gudang_id && (int) $user->gudang_id !== (int) $amprah->gudang_id && ! $user->hasRole(['super_admin', 'admin_logistik'])) {
+            if (! $user->hasRole(['super_admin', 'admin_logistik']) && (! $user->gudang_id || (int) $user->gudang_id !== (int) $amprah->gudang_id)) {
                 return $this->jsonError('Anda hanya berhak mengesahkan permohonan untuk fasilitas gudang Anda sendiri.', 403);
             }
 

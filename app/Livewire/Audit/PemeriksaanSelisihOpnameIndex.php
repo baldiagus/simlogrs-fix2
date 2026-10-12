@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Audit;
 
+use App\Enums\StatusCapa;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
@@ -52,10 +53,7 @@ class PemeriksaanSelisihOpnameIndex extends Component
     {
         abort_unless(
             auth()->user()?->can('view_any_audit_manajemen::selisih::opname') ||
-            auth()->user()?->can('page_AuditorDashboard') ||
-            auth()->user()?->can('page_ManajemenDashboard') ||
-            auth()->user()?->can('page_Dashboard') ||
-            auth()->user()?->hasRole(['super_admin', 'auditor', 'manajemen']),
+            auth()->user()?->can('view_audit_manajemen::selisih::opname'),
             403,
             'Akses ditolak: Anda tidak memiliki wewenang mengakses Pemeriksaan Selisih Opname.'
         );
@@ -82,10 +80,9 @@ class PemeriksaanSelisihOpnameIndex extends Component
     public function openTerbitkanCapa(int $opnameId): void
     {
         abort_unless(
-            auth()->user()?->can('create_audit_manajemen::temuan::capa') ||
-            auth()->user()?->hasRole(['auditor', 'super_admin']),
+            auth()->user()?->hasRole('auditor') && auth()->user()?->can('create_audit_manajemen::temuan::capa'),
             403,
-            'Hanya Auditor SPI dan Super Admin yang berwenang menerbitkan temuan audit CAPA.'
+            'Hanya Auditor SPI dengan izin yang berwenang menerbitkan temuan audit CAPA.'
         );
 
         $this->selectedOpname = StokOpname::with(['gudang', 'detail.barang.satuan', 'detail.stokBatch'])->findOrFail($opnameId);
@@ -108,11 +105,7 @@ class PemeriksaanSelisihOpnameIndex extends Component
 
     public function saveCapa(): void
     {
-        abort_unless(
-            auth()->user()?->can('create_audit_manajemen::temuan::capa') ||
-            auth()->user()?->hasRole(['auditor', 'super_admin']),
-            403
-        );
+        abort_unless(auth()->user()?->hasRole('auditor') && auth()->user()?->can('create_audit_manajemen::temuan::capa'), 403);
 
         $this->validate();
 
@@ -126,7 +119,7 @@ class PemeriksaanSelisihOpnameIndex extends Component
             'ringkasan'      => $this->ringkasan,
             'tingkat_risiko' => $this->tingkat_risiko,
             'due_date_capa'  => $this->due_date_capa,
-            'status_capa'    => 'In Progress',
+            'status_capa'    => StatusCapa::InProgress->value,
             'auditor_id'     => $user->id,
             'gudang_id'      => $this->targetGudangId,
         ]);
@@ -173,7 +166,7 @@ class PemeriksaanSelisihOpnameIndex extends Component
 
         $items = $query->orderBy('id', 'desc')->paginate($this->perPage);
 
-        $daftarGudang = Cache::remember('dropdown_gudang_aktif_audit', 60, fn () => Gudang::where('status', 'AKTIF')->orderBy('nama')->get());
+        $daftarGudang = Cache::remember('dropdown_gudang_aktif_audit', config('simlog.cache.dropdown_ttl'), fn () => Gudang::where('status', 'AKTIF')->orderBy('nama')->get());
 
         // Metrik Ringkasan Eksekutif Opname
         $countTotalSesi = StokOpname::count();

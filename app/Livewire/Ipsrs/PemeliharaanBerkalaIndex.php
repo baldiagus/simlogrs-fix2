@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Ipsrs;
 
+use App\Enums\StatusMaintenance;
+use App\Enums\StatusSpk;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -201,7 +203,7 @@ class PemeliharaanBerkalaIndex extends Component
 
     public function confirmEksekusi(int $id): void
     {
-        abort_unless(auth()->user()?->can('create_pemeliharaan::spk::perbaikan'), 403);
+        abort_unless($this->canTerbitkanSpk(), 403);
 
         $jadwal = JadwalMaintenance::with(['aset.barang', 'teknisi'])->findOrFail($id);
 
@@ -217,7 +219,7 @@ class PemeliharaanBerkalaIndex extends Component
 
     public function eksekusiServis(int $id): void
     {
-        abort_unless(auth()->user()?->can('create_pemeliharaan::spk::perbaikan'), 403);
+        abort_unless($this->canTerbitkanSpk(), 403);
 
         $jadwal = JadwalMaintenance::with('aset')->findOrFail($id);
         $user = auth()->user();
@@ -232,7 +234,7 @@ class PemeliharaanBerkalaIndex extends Component
                 'dilaporkan_oleh'   => $user->id,
                 'deskripsi_masalah' => "[Servis Preventif Rutin] {$jadwal->jenis_maintenance}",
                 'prioritas'         => 'SEDANG',
-                'status'            => 'DITUGASKAN',
+                'status'            => StatusMaintenance::Ditugaskan->value,
             ]);
 
             // 2. Buat SPK Langsung untuk Teknisi PIC
@@ -245,7 +247,7 @@ class PemeliharaanBerkalaIndex extends Component
                 'tanggal_penugasan'         => now()->toDateString(),
                 'target_selesai'            => now()->addDays(2)->toDateString(),
                 'instruksi_khusus'          => "Servis berkala rutin sesuai jadwal {$jadwal->kode}. " . ($jadwal->catatan ?: ''),
-                'status'                    => 'DITUGASKAN',
+                'status'                    => StatusSpk::Ditugaskan->value,
             ]);
             // 3. Kunci status aset ke DALAM_MAINTENANCE
             if ($jadwal->aset && $jadwal->aset->status !== 'DALAM_MAINTENANCE') {
@@ -262,6 +264,17 @@ class PemeliharaanBerkalaIndex extends Component
         });
 
         $this->toast("SPK servis preventif berhasil diterbitkan dan masuk ke antrean pengerjaan teknisi.", 'success');
+    }
+
+    /**
+     * Eksekusi jadwal menerbitkan SPK, jadi mengikuti tahap disposisi Koordinator IPSRS.
+     */
+    public function canTerbitkanSpk(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) ($user?->can('create_pemeliharaan::spk::perbaikan')
+            && $user->hasRole(['kepala_teknisi', 'super_admin', 'admin_logistik']));
     }
 
     public function render()

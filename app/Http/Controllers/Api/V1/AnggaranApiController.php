@@ -20,11 +20,9 @@ class AnggaranApiController extends ApiController
     public function realisasi(Request $request): JsonResponse
     {
         $user = $request->user();
-        $allowed = $user->hasAnyRole(['auditor', 'manajemen', 'pengadaan', 'super_admin', 'admin_logistik'])
+        $allowed = $user->hasAnyRole(['super_admin', 'admin_logistik'])
             || $user->can('view_any_pengadaan::realisasi::anggaran')
-            || $user->can('page_RealisasiAnggaranIndex')
-            || $user->can('page_ManajemenDashboard')
-            || $user->can('page_AuditorDashboard');
+            || $user->can('view_pengadaan::realisasi::anggaran');
 
         if (! $allowed) {
             return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat Pagu & Realisasi Anggaran.', 403);
@@ -125,11 +123,9 @@ class AnggaranApiController extends ApiController
     public function unitDetail(Request $request, int $unitId): JsonResponse
     {
         $user = $request->user();
-        $allowed = $user->hasAnyRole(['auditor', 'manajemen', 'pengadaan', 'super_admin', 'admin_logistik'])
+        $allowed = $user->hasAnyRole(['super_admin', 'admin_logistik'])
             || $user->can('view_any_pengadaan::realisasi::anggaran')
-            || $user->can('page_RealisasiAnggaranIndex')
-            || $user->can('page_ManajemenDashboard')
-            || $user->can('page_AuditorDashboard');
+            || $user->can('view_pengadaan::realisasi::anggaran');
 
         if (! $allowed) {
             return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat Pagu & Realisasi Anggaran.', 403);
