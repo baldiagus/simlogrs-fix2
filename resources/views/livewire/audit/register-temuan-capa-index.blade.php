@@ -1,4 +1,18 @@
 <div class="space-y-6">
+    {{-- Header Halaman & Aksi Utama --}}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <flux:heading size="xl" level="1" class="font-bold tracking-tight">Register Temuan Audit & Tindakan Korektif (CAPA)</flux:heading>
+            <flux:subheading class="text-zinc-500 dark:text-zinc-400">Sistem terpadu pelaporan ketidaksesuaian audit operasional, monitoring bukti perbaikan, dan evaluasi closing.</flux:subheading>
+        </div>
+
+        @if ($canCreate)
+            <flux:button wire:click="openCreate" variant="primary" icon="plus" wire:loading.attr="disabled">
+                Registrasi Temuan Baru
+            </flux:button>
+        @endif
+    </div>
+
     {{-- Kartu Metrik Ringkasan CAPA --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs">
@@ -48,20 +62,6 @@
 
     {{-- Tabel Register Temuan CAPA --}}
     <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        {{-- Header Halaman --}}
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <flux:heading size="xl" level="1">Register Temuan Audit & Tindakan Korektif (CAPA)</flux:heading>
-                <flux:subheading>Sistem terpadu pelaporan ketidaksesuaian audit operasional, monitoring bukti perbaikan, dan evaluasi closing.</flux:subheading>
-            </div>
-
-            @if ($canCreate)
-                <flux:button wire:click="openCreate" variant="primary" icon="plus" wire:loading.attr="disabled">
-                    Registrasi Temuan Baru
-                </flux:button>
-            @endif
-        </div>
-
         {{-- Toolbar Filter & Pencarian --}}
         <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div class="w-full sm:w-80">
