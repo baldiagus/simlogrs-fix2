@@ -12,6 +12,7 @@ use App\Models\PenerimaanBarangDetail;
 use App\Models\PergerakanStok;
 use App\Models\PesananPembelian;
 use App\Models\StokBatch;
+use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -164,105 +165,7 @@ class GudangPenerimaanPoApiController extends ApiController
         }
 
         try {
-            $penerimaan = DB::transaction(function () use ($request, $user, $po, $gudangId) {
-                $kodeRcv = CodeGenerator::generate('RCV', PenerimaanBarang::class, 'kode', 'Ym', 3);
-
-                // 1. Update jumlah diterima di pesanan_pembelian_detail
-                foreach ($request->input('items') as $row) {
-                    $qty = (int) $row['jumlah_diterima'];
-                    if ($qty <= 0) continue;
-
-                    $poDetail = $po->detail->firstWhere('barang_id', $row['barang_id']);
-                    if ($poDetail) {
-                        $poDetail->increment('jumlah_diterima', $qty);
-
-                        if ((float) $poDetail->harga_satuan > 0) {
-                            Barang::where('id', $row['barang_id'])->update([
-                                'harga_beli_terakhir' => $poDetail->harga_satuan,
-                            ]);
-                        }
-                    }
-                }
-
-                // 2. Evaluasi status PO
-                $po->refresh();
-                $po->load('detail');
-                $allReceived = $po->detail->every(fn ($d) => (int) $d->jumlah_diterima >= (int) $d->jumlah_dipesan);
-                $statusRcv = $allReceived ? StatusPenerimaanPo::Lengkap->value : StatusPenerimaanPo::Sebagian->value;
-                $statusPo  = $allReceived ? StatusPesananPembelian::DiterimaLengkap->value : StatusPesananPembelian::DiterimaSebagian->value;
-
-                // 3. Buat dokumen penerimaan barang
-                $rcv = PenerimaanBarang::create([
-                    'kode'                 => $kodeRcv,
-                    'pesanan_pembelian_id' => $po->id,
-                    'gudang_id'            => $gudangId,
-                    'nomor_surat_jalan'    => $request->input('nomor_surat_jalan'),
-                    'tanggal_terima'       => now()->toDateString(),
-                    'status'               => $statusRcv,
-                    'catatan'              => $request->input('catatan'),
-                    'diterima_oleh'        => $user->id,
-                ]);
-
-                // 4. Catat detail & stok batch
-                foreach ($request->input('items') as $row) {
-                    $qty = (int) $row['jumlah_diterima'];
-                    $rusak = (int) ($row['jumlah_rusak'] ?? 0);
-                    $net = max(0, $qty - $rusak);
-
-                    if ($qty <= 0) continue;
-
-                    $poDetail = $po->detail->firstWhere('barang_id', $row['barang_id']);
-                    $hargaSatuan = $poDetail ? $poDetail->harga_satuan : 0;
-
-                    PenerimaanBarangDetail::create([
-                        'penerimaan_barang_id' => $rcv->id,
-                        'barang_id'            => $row['barang_id'],
-                        'lokasi_gudang_id'     => $row['lokasi_gudang_id'],
-                        'nomor_batch'          => $row['nomor_batch'],
-                        'tanggal_kedaluwarsa'  => $row['tanggal_kedaluwarsa'] ?? null,
-                        'jumlah_diterima'      => $qty,
-                        'jumlah_rusak'         => $rusak,
-                        'harga_satuan'         => $hargaSatuan,
-                    ]);
-
-                    if ($net > 0) {
-                        $batch = StokBatch::create([
-                            'barang_id'           => $row['barang_id'],
-                            'gudang_id'           => $gudangId,
-                            'lokasi_gudang_id'    => $row['lokasi_gudang_id'],
-                            'nomor_batch'         => $row['nomor_batch'],
-                            'tanggal_kedaluwarsa' => $row['tanggal_kedaluwarsa'] ?? null,
-                            'jumlah'              => $net,
-                            'harga_satuan'        => $hargaSatuan,
-                            'status'              => 'AKTIF',
-                        ]);
-
-                        PergerakanStok::create([
-                            'barang_id'        => $row['barang_id'],
-                            'stok_batch_id'    => $batch->id,
-                            'gudang_id'        => $gudangId,
-                            'lokasi_gudang_id' => $row['lokasi_gudang_id'],
-                            'jenis'            => 'MASUK',
-                            'jumlah'           => $net,
-                            'saldo_sebelum'    => 0,
-                            'saldo_sesudah'    => $net,
-                            'referensi_jenis'  => 'PENERIMAAN_PO',
-                            'referensi_id'     => $rcv->id,
-                            'keterangan'       => "Penerimaan PO {$po->kode} - Batch {$row['nomor_batch']}",
-                            'dibuat_oleh'      => $user->id,
-                        ]);
-                    }
-                }
-
-                // 5. Update status PO
-                $po->update(['status' => $statusPo]);
-
-                // 6. Jika seluruh barang PO telah diterima lengkap, update status PR induk menjadi SELESAI
-                if ($statusPo === StatusPesananPembelian::DiterimaLengkap->value && $po->permintaan_pengadaan_id) {
-                    $po->permintaanPengadaan()->update(['status' => StatusPermintaanPengadaan::Selesai->value]);
-                }
-                return $rcv;
-            });
+            $penerimaan = $this->eksekusiPenerimaanPo($request, $user, $po, $gudangId);
 
             return $this->jsonSuccess([
                 'id'       => $penerimaan->id,
@@ -272,5 +175,111 @@ class GudangPenerimaanPoApiController extends ApiController
         } catch (\Throwable $e) {
             return $this->jsonError('Gagal memproses penerimaan barang: ' . $e->getMessage(), 500);
         }
+    }
+
+    protected function eksekusiPenerimaanPo(Request $request, User $user, PesananPembelian $po, int $gudangId): PenerimaanBarang
+    {
+        return DB::transaction(function () use ($request, $user, $po, $gudangId) {
+            $kodeRcv = CodeGenerator::generate('RCV', PenerimaanBarang::class, 'kode', 'Ym', 3);
+
+            // 1. Update jumlah diterima di pesanan_pembelian_detail
+            foreach ($request->input('items') as $row) {
+                $qty = (int) $row['jumlah_diterima'];
+                if ($qty <= 0) continue;
+
+                $poDetail = $po->detail->firstWhere('barang_id', $row['barang_id']);
+                if ($poDetail) {
+                    $poDetail->increment('jumlah_diterima', $qty);
+
+                    if ((float) $poDetail->harga_satuan > 0) {
+                        Barang::where('id', $row['barang_id'])->update([
+                            'harga_beli_terakhir' => $poDetail->harga_satuan,
+                        ]);
+                    }
+                }
+            }
+
+            // 2. Evaluasi status PO
+            $po->refresh();
+            $po->load('detail');
+            $allReceived = $po->detail->every(fn ($d) => (int) $d->jumlah_diterima >= (int) $d->jumlah_dipesan);
+            $statusRcv = $allReceived ? StatusPenerimaanPo::Lengkap->value : StatusPenerimaanPo::Sebagian->value;
+            $statusPo  = match (true) {
+                $allReceived => StatusPesananPembelian::DiterimaLengkap->value,
+                default => StatusPesananPembelian::DiterimaSebagian->value,
+            };
+
+            // 3. Buat dokumen penerimaan barang
+            $rcv = PenerimaanBarang::create([
+                'kode'                 => $kodeRcv,
+                'pesanan_pembelian_id' => $po->id,
+                'gudang_id'            => $gudangId,
+                'nomor_surat_jalan'    => $request->input('nomor_surat_jalan'),
+                'tanggal_terima'       => now()->toDateString(),
+                'status'               => $statusRcv,
+                'catatan'              => $request->input('catatan'),
+                'diterima_oleh'        => $user->id,
+            ]);
+
+            // 4. Catat detail & stok batch
+            foreach ($request->input('items') as $row) {
+                $qty = (int) $row['jumlah_diterima'];
+                $rusak = (int) ($row['jumlah_rusak'] ?? 0);
+                $net = max(0, $qty - $rusak);
+
+                if ($qty <= 0) continue;
+
+                $poDetail = $po->detail->firstWhere('barang_id', $row['barang_id']);
+                $hargaSatuan = $poDetail ? $poDetail->harga_satuan : 0;
+
+                PenerimaanBarangDetail::create([
+                    'penerimaan_barang_id' => $rcv->id,
+                    'barang_id'            => $row['barang_id'],
+                    'lokasi_gudang_id'     => $row['lokasi_gudang_id'],
+                    'nomor_batch'          => $row['nomor_batch'],
+                    'tanggal_kedaluwarsa'  => $row['tanggal_kedaluwarsa'] ?? null,
+                    'jumlah_diterima'      => $qty,
+                    'jumlah_rusak'         => $rusak,
+                    'harga_satuan'         => $hargaSatuan,
+                ]);
+
+                if ($net > 0) {
+                    $batch = StokBatch::create([
+                        'barang_id'           => $row['barang_id'],
+                        'gudang_id'           => $gudangId,
+                        'lokasi_gudang_id'    => $row['lokasi_gudang_id'],
+                        'nomor_batch'         => $row['nomor_batch'],
+                        'tanggal_kedaluwarsa' => $row['tanggal_kedaluwarsa'] ?? null,
+                        'jumlah'              => $net,
+                        'harga_satuan'        => $hargaSatuan,
+                        'status'              => 'AKTIF',
+                    ]);
+
+                    PergerakanStok::create([
+                        'barang_id'        => $row['barang_id'],
+                        'stok_batch_id'    => $batch->id,
+                        'gudang_id'        => $gudangId,
+                        'lokasi_gudang_id' => $row['lokasi_gudang_id'],
+                        'jenis'            => 'MASUK',
+                        'jumlah'           => $net,
+                        'saldo_sebelum'    => 0,
+                        'saldo_sesudah'    => $net,
+                        'referensi_jenis'  => 'PENERIMAAN_PO',
+                        'referensi_id'     => $rcv->id,
+                        'keterangan'       => "Penerimaan PO {$po->kode} - Batch {$row['nomor_batch']}",
+                        'dibuat_oleh'      => $user->id,
+                    ]);
+                }
+            }
+
+            // 5. Update status PO
+            $po->update(['status' => $statusPo]);
+
+            // 6. Jika seluruh barang PO telah diterima lengkap, update status PR induk menjadi SELESAI
+            if ($statusPo === StatusPesananPembelian::DiterimaLengkap->value && $po->permintaan_pengadaan_id) {
+                $po->permintaanPengadaan()->update(['status' => StatusPermintaanPengadaan::Selesai->value]);
+            }
+            return $rcv;
+        });
     }
 }

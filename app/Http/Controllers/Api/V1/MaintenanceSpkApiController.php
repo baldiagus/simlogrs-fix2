@@ -324,28 +324,9 @@ class MaintenanceSpkApiController extends ApiController
             $fotoLogPath = $opt['path'];
             $fotoLogUrl = $opt['url'];
         }
-        // Validasi ketersediaan stok fisik suku cadang sebelum transaksi
         if (! empty($validated['spareparts'])) {
-            foreach ($validated['spareparts'] as $item) {
-                $barang = Barang::with('satuan')->find($item['barang_id']);
-                if ($barang && $barang->tipe !== 'SPAREPART') {
-                    return $this->jsonError("Komoditas '{$barang->nama}' bertipe {$barang->tipe}. Hanya barang bertipe SPAREPART yang dapat digunakan pada lembar kerja pengerjaan.", 422);
-                }
-                $needed = (int) $item['jumlah'];
-                $available = (int) StokBatch::where('barang_id', $item['barang_id'])
-                    ->where('status', 'AKTIF')
-                    ->where('jumlah', '>', 0)
-                    ->sum('jumlah');
-
-                $namaBarang = $barang?->nama ?? "Barang #{$item['barang_id']}";
-                $satuan = $barang?->satuan?->simbol ?? 'Unit';
-                if ($available <= 0) {
-                    return $this->jsonError("Stok fisik suku cadang '{$namaBarang}' saat ini habis (0 {$satuan}).", 422);
-                }
-
-                if ($needed > $available) {
-                    return $this->jsonError("Jumlah diminta untuk '{$namaBarang}' ({$needed} {$satuan}) melebihi stok fisik yang tersedia ({$available} {$satuan}).", 422);
-                }
+            if ($errMsg = $this->validasiKetersediaanSparepart($validated['spareparts'])) {
+                return $this->jsonError($errMsg, 422);
             }
         }
 
@@ -354,119 +335,7 @@ class MaintenanceSpkApiController extends ApiController
         $ujiFungsiLolos = (bool) ($validated['uji_fungsi_kelaikan'] ?? ($validated['hasil'] === 'BERHASIL'));
 
         try {
-            DB::transaction(function () use ($user, $spk, $tiket, $validated, $fotoLogPath, $tglPengerjaan, $ujiFungsiLolos, &$log, &$sparepartsRecorded) {
-                // 1. Simpan Catatan Lembar Kerja
-                $log = LogMaintenance::create([
-                    'permintaan_maintenance_id' => $tiket->id,
-                    'penugasan_maintenance_id'  => $spk->id,
-                    'dikerjakan_oleh'           => $user->id,
-                    'tanggal_pengerjaan'        => $tglPengerjaan,
-                    'jam_mulai'                 => $validated['jam_mulai'] ?? null,
-                    'jam_selesai'               => $validated['jam_selesai'] ?? null,
-                    'diagnosa'                  => $validated['diagnosa'],
-                    'tindakan'                  => $validated['tindakan'],
-                    'hasil'                     => $validated['hasil'],
-                    'catatan'                   => $validated['catatan'] ?? null,
-                    'foto_pengerjaan'           => $fotoLogPath,
-                ]);
-
-                // 2. Alokasi Suku Cadang FEFO
-                $sparepartsRecorded = [];
-                if (! empty($validated['spareparts'])) {
-                    foreach ($validated['spareparts'] as $item) {
-                        $barang = Barang::findOrFail($item['barang_id']);
-                        $needed = (int) $item['jumlah'];
-
-                        $batches = StokBatch::where('barang_id', $barang->id)
-                            ->where('status', 'AKTIF')
-                            ->where('jumlah', '>', 0)
-                            ->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
-                            ->lockForUpdate()
-                            ->get();
-
-                        $available = $batches->sum('jumlah');
-                        if ($available < $needed) {
-                            throw new Exception("Saldo stok fisik suku cadang '{$barang->nama}' tidak mencukupi (Tersedia: {$available}, Dibutuhkan: {$needed}).");
-                        }
-
-                        $remaining = $needed;
-                        foreach ($batches as $batch) {
-                            if ($remaining <= 0) {
-                                break;
-                            }
-
-                            $deduct = min($batch->jumlah, $remaining);
-                            $saldoSebelum = $batch->jumlah;
-                            $saldoSesudah = $saldoSebelum - $deduct;
-
-                            $batch->update([
-                                'jumlah' => $saldoSesudah,
-                                'status' => $saldoSesudah == 0 ? 'HABIS' : 'AKTIF',
-                            ]);
-
-                            $pergerakan = PergerakanStok::create([
-                                'barang_id'        => $barang->id,
-                                'stok_batch_id'    => $batch->id,
-                                'gudang_id'        => $batch->gudang_id,
-                                'lokasi_gudang_id' => $batch->lokasi_gudang_id,
-                                'jenis'            => 'KELUAR',
-                                'jumlah'           => $deduct,
-                                'saldo_sebelum'    => $saldoSebelum,
-                                'saldo_sesudah'    => $saldoSesudah,
-                                'referensi_jenis'  => 'SPK_MAINTENANCE',
-                                'referensi_id'     => $spk->id,
-                                'keterangan'       => "Servis Mobile IPSRS: {$tiket->kode} ({$log->diagnosa})",
-                                'dibuat_oleh'      => $user->id,
-                            ]);
-
-                            $subtotal = $deduct * (float) $batch->harga_satuan;
-                            $sc = SukuCadangMaintenance::create([
-                                'permintaan_maintenance_id' => $tiket->id,
-                                'log_maintenance_id'        => $log->id,
-                                'barang_id'                 => $barang->id,
-                                'stok_batch_id'             => $batch->id,
-                                'pergerakan_stok_id'        => $pergerakan->id,
-                                'jumlah_digunakan'          => $deduct,
-                                'harga_satuan'              => $batch->harga_satuan,
-                                'subtotal'                  => $subtotal,
-                                'dicatat_oleh'              => $user->id,
-                            ]);
-
-                            $sparepartsRecorded[] = [
-                                'nama_barang' => $barang->nama,
-                                'jumlah'      => $deduct,
-                                'batch'       => $batch->nomor_batch,
-                                'subtotal'    => $subtotal,
-                            ];
-
-                            $remaining -= $deduct;
-                        }
-                    }
-                }
-
-                // 3. Update Status Dokumen & Aset
-                if ($validated['hasil'] === 'BERHASIL' && $ujiFungsiLolos) {
-                    $spk->update(['status' => StatusSpk::Selesai->value]);
-                    $tiket->update(['status' => StatusMaintenance::Selesai->value]);
-
-                    if ($tiket->aset) {
-                        $newStatus = $tiket->aset->unit_id ? 'DIGUNAKAN' : 'TERSEDIA';
-                        $tiket->aset->update([
-                            'status'  => $newStatus,
-                            'kondisi' => 'BAIK',
-                        ]);
-                    }
-                } elseif ($validated['hasil'] === 'BERHASIL' && ! $ujiFungsiLolos) {
-                    $spk->update(['status' => StatusSpk::Diterima->value]);
-                    $tiket->update(['status' => StatusMaintenance::UjiFungsi->value]);
-                } elseif ($validated['hasil'] === 'PENDING') {
-                    $spk->update(['status' => StatusSpk::Diterima->value]);
-                    $tiket->update(['status' => StatusMaintenance::SedangDikerjakan->value]);
-                } else {
-                    $spk->update(['status' => StatusSpk::Diterima->value]);
-                    $tiket->update(['status' => StatusMaintenance::MenungguSparepart->value]);
-                }
-            });
+            [$log, $sparepartsRecorded] = $this->eksekusiLogPengerjaan($user, $spk, $tiket, $validated, $fotoLogPath, $tglPengerjaan, $ujiFungsiLolos);
 
             return $this->jsonSuccess([
                 'spk_id'           => $spk->id,
@@ -483,4 +352,160 @@ class MaintenanceSpkApiController extends ApiController
             return $this->jsonError($e->getMessage(), 422);
         }
     }
+
+    protected function validasiKetersediaanSparepart(array $spareparts): ?string
+    {
+        foreach ($spareparts as $item) {
+            $barang = Barang::with('satuan')->find($item['barang_id']);
+            if ($barang && $barang->tipe !== 'SPAREPART') {
+                return "Komoditas '{$barang->nama}' bertipe {$barang->tipe}. Hanya barang bertipe SPAREPART yang dapat digunakan pada lembar kerja pengerjaan.";
+            }
+            $needed = (int) $item['jumlah'];
+            $available = (int) StokBatch::where('barang_id', $item['barang_id'])
+                ->where('status', 'AKTIF')
+                ->where('jumlah', '>', 0)
+                ->sum('jumlah');
+
+            $namaBarang = $barang?->nama ?? "Barang #{$item['barang_id']}";
+            $satuan = $barang?->satuan?->simbol ?? 'Unit';
+            if ($available <= 0) {
+                return "Stok fisik suku cadang '{$namaBarang}' saat ini habis (0 {$satuan}).";
+            }
+
+            if ($needed > $available) {
+                return "Jumlah diminta untuk '{$namaBarang}' ({$needed} {$satuan}) melebihi stok fisik yang tersedia ({$available} {$satuan}).";
+            }
+        }
+
+        return null;
+    }
+
+    protected function eksekusiLogPengerjaan(
+        User $user,
+        PenugasanMaintenance $spk,
+        PermintaanMaintenance $tiket,
+        array $validated,
+        ?string $fotoLogPath,
+        $tglPengerjaan,
+        bool $ujiFungsiLolos
+    ): array {
+        $log = null;
+        $sparepartsRecorded = [];
+
+        DB::transaction(function () use ($user, $spk, $tiket, $validated, $fotoLogPath, $tglPengerjaan, $ujiFungsiLolos, &$log, &$sparepartsRecorded) {
+            // 1. Simpan Catatan Lembar Kerja
+            $log = LogMaintenance::create([
+                'permintaan_maintenance_id' => $tiket->id,
+                'penugasan_maintenance_id'  => $spk->id,
+                'dikerjakan_oleh'           => $user->id,
+                'tanggal_pengerjaan'        => $tglPengerjaan,
+                'jam_mulai'                 => $validated['jam_mulai'] ?? null,
+                'jam_selesai'               => $validated['jam_selesai'] ?? null,
+                'diagnosa'                  => $validated['diagnosa'],
+                'tindakan'                  => $validated['tindakan'],
+                'hasil'                     => $validated['hasil'],
+                'catatan'                   => $validated['catatan'] ?? null,
+                'foto_pengerjaan'           => $fotoLogPath,
+            ]);
+
+            // 2. Alokasi Suku Cadang FEFO
+            if (! empty($validated['spareparts'])) {
+                foreach ($validated['spareparts'] as $item) {
+                    $barang = Barang::findOrFail($item['barang_id']);
+                    $needed = (int) $item['jumlah'];
+
+                    $batches = StokBatch::where('barang_id', $barang->id)
+                        ->where('status', 'AKTIF')
+                        ->where('jumlah', '>', 0)
+                        ->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
+                        ->lockForUpdate()
+                        ->get();
+
+                    $available = $batches->sum('jumlah');
+                    if ($available < $needed) {
+                        throw new Exception("Saldo stok fisik suku cadang '{$barang->nama}' tidak mencukupi (Tersedia: {$available}, Dibutuhkan: {$needed}).");
+                    }
+
+                    $remaining = $needed;
+                    foreach ($batches as $batch) {
+                        if ($remaining <= 0) {
+                            break;
+                        }
+
+                        $deduct = min($batch->jumlah, $remaining);
+                        $saldoSebelum = $batch->jumlah;
+                        $saldoSesudah = $saldoSebelum - $deduct;
+
+                        $batch->update([
+                            'jumlah' => $saldoSesudah,
+                            'status' => $saldoSesudah == 0 ? 'HABIS' : 'AKTIF',
+                        ]);
+
+                        $pergerakan = PergerakanStok::create([
+                            'barang_id'        => $barang->id,
+                            'stok_batch_id'    => $batch->id,
+                            'gudang_id'        => $batch->gudang_id,
+                            'lokasi_gudang_id' => $batch->lokasi_gudang_id,
+                            'jenis'            => 'KELUAR',
+                            'jumlah'           => $deduct,
+                            'saldo_sebelum'    => $saldoSebelum,
+                            'saldo_sesudah'    => $saldoSesudah,
+                            'referensi_jenis'  => 'SPK_MAINTENANCE',
+                            'referensi_id'     => $spk->id,
+                            'keterangan'       => "Servis Mobile IPSRS: {$tiket->kode} ({$log->diagnosa})",
+                            'dibuat_oleh'      => $user->id,
+                        ]);
+
+                        $subtotal = $deduct * (float) $batch->harga_satuan;
+                        SukuCadangMaintenance::create([
+                            'permintaan_maintenance_id' => $tiket->id,
+                            'log_maintenance_id'        => $log->id,
+                            'barang_id'                 => $barang->id,
+                            'stok_batch_id'             => $batch->id,
+                            'pergerakan_stok_id'        => $pergerakan->id,
+                            'jumlah_digunakan'          => $deduct,
+                            'harga_satuan'              => $batch->harga_satuan,
+                            'subtotal'                  => $subtotal,
+                            'dicatat_oleh'              => $user->id,
+                        ]);
+
+                        $sparepartsRecorded[] = [
+                            'nama_barang' => $barang->nama,
+                            'jumlah'      => $deduct,
+                            'batch'       => $batch->nomor_batch,
+                            'subtotal'    => $subtotal,
+                        ];
+
+                        $remaining -= $deduct;
+                    }
+                }
+            }
+
+            // 3. Update Status Dokumen & Aset
+            if ($validated['hasil'] === 'BERHASIL' && $ujiFungsiLolos) {
+                $spk->update(['status' => StatusSpk::Selesai->value]);
+                $tiket->update(['status' => StatusMaintenance::Selesai->value]);
+
+                if ($tiket->aset) {
+                    $newStatus = $tiket->aset->unit_id ? 'DIGUNAKAN' : 'TERSEDIA';
+                    $tiket->aset->update([
+                        'status'  => $newStatus,
+                        'kondisi' => 'BAIK',
+                    ]);
+                }
+            } elseif ($validated['hasil'] === 'BERHASIL' && ! $ujiFungsiLolos) {
+                $spk->update(['status' => StatusSpk::Diterima->value]);
+                $tiket->update(['status' => StatusMaintenance::UjiFungsi->value]);
+            } elseif ($validated['hasil'] === 'PENDING') {
+                $spk->update(['status' => StatusSpk::Diterima->value]);
+                $tiket->update(['status' => StatusMaintenance::SedangDikerjakan->value]);
+            } else {
+                $spk->update(['status' => StatusSpk::Diterima->value]);
+                $tiket->update(['status' => StatusMaintenance::MenungguSparepart->value]);
+            }
+        });
+
+        return [$log, $sparepartsRecorded];
+    }
+
 }

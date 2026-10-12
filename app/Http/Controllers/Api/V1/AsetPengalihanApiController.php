@@ -33,6 +33,15 @@ class AsetPengalihanApiController extends ApiController
             'detail.aset.barang.satuan',
         ])->latest('id');
 
+        $this->filterDaftarPengalihan($query, $user, $isGlobalAdmin, $tab);
+
+        $list = $query->get()->map(fn ($item) => $this->formatItemPengalihan($item, $user, $isGlobalAdmin));
+
+        return $this->jsonSuccess($list, 'Daftar pengalihan aset berhasil dimuat.');
+    }
+
+    protected function filterDaftarPengalihan($query, $user, bool $isGlobalAdmin, string $tab): void
+    {
         if (! $isGlobalAdmin) {
             $userUnitId = $user->unit_id;
             $userGudangId = $user->gudang_id;
@@ -102,67 +111,66 @@ class AsetPengalihanApiController extends ApiController
                 $query->whereIn('status', ['SELESAI', 'DITOLAK', 'DIBATALKAN']);
             }
         }
+    }
 
-        $list = $query->get()->map(function ($item) use ($user, $isGlobalAdmin) {
-            $namaItem = $item->detail->first()?->aset?->barang?->nama
-                ?? $item->detail->first()?->aset?->nama_aset
-                ?? 'Aset Inventaris';
+    protected function formatItemPengalihan($item, $user, bool $isGlobalAdmin): array
+    {
+        $namaItem = $item->detail->first()?->aset?->barang?->nama
+            ?? $item->detail->first()?->aset?->nama_aset
+            ?? 'Aset Inventaris';
 
-            $canCancel = $item->status === 'DIAJUKAN' && (
-                $isGlobalAdmin ||
-                (int) $item->diajukan_oleh === (int) $user->id ||
-                ($user->unit_id && (int) $user->unit_id === (int) $item->unit_asal_id && $user->hasRole('kepala_unit'))
-            );
+        $canCancel = $item->status === 'DIAJUKAN' && (
+            $isGlobalAdmin ||
+            (int) $item->diajukan_oleh === (int) $user->id ||
+            ($user->unit_id && (int) $user->unit_id === (int) $item->unit_asal_id && $user->hasRole('kepala_unit'))
+        );
 
-            $canApprove = $item->status === 'DIAJUKAN' && (
-                $isGlobalAdmin ||
-                ($user->unit_id && (int) $user->unit_id === (int) $item->unit_asal_id && $user->hasRole(['kepala_unit', 'super_admin', 'admin_logistik'])) ||
-                ($user->gudang_id && (int) $user->gudang_id === (int) $item->gudang_asal_id && $user->hasRole(['kepala_gudang', 'super_admin', 'admin_logistik']))
-            );
+        $canApprove = $item->status === 'DIAJUKAN' && (
+            $isGlobalAdmin ||
+            ($user->unit_id && (int) $user->unit_id === (int) $item->unit_asal_id && $user->hasRole(['kepala_unit', 'super_admin', 'admin_logistik'])) ||
+            ($user->gudang_id && (int) $user->gudang_id === (int) $item->gudang_asal_id && $user->hasRole(['kepala_gudang', 'super_admin', 'admin_logistik']))
+        );
 
-            $canReceive = $item->status === 'DISETUJUI' && (
-                $isGlobalAdmin ||
-                ($user->unit_id && (int) $user->unit_id === (int) $item->unit_tujuan_id) ||
-                ($user->gudang_id && (int) $user->gudang_id === (int) $item->gudang_tujuan_id)
-            );
+        $canReceive = $item->status === 'DISETUJUI' && (
+            $isGlobalAdmin ||
+            ($user->unit_id && (int) $user->unit_id === (int) $item->unit_tujuan_id) ||
+            ($user->gudang_id && (int) $user->gudang_id === (int) $item->gudang_tujuan_id)
+        );
 
-            return [
-                'id'                 => $item->id,
-                'kode'               => $item->kode,
-                'tipe'               => 'ASET',
-                'tipe_asal'          => $item->tipe_asal,
-                'asal_nama'          => $item->nama_lokasi_asal,
-                'unit_asal_id'       => $item->unit_asal_id,
-                'gudang_asal_id'     => $item->gudang_asal_id,
-                'tipe_tujuan'        => $item->tipe_tujuan,
-                'tujuan_nama'        => $item->nama_lokasi_tujuan,
-                'unit_tujuan_id'     => $item->unit_tujuan_id,
-                'gudang_tujuan_id'   => $item->gudang_tujuan_id,
-                'status'             => $item->status,
-                'tanggal_pengalihan' => $item->tanggal_pengalihan?->format('Y-m-d') ?? '',
-                'nama_item'          => $namaItem,
-                'jumlah'             => $item->detail->count(),
-                'alasan'             => $item->alasan,
-                'catatan'            => $item->catatan,
-                'pengaju'            => $item->pengaju?->nama ?? 'Staf',
-                'penyetuju'          => $item->penyetuju?->nama,
-                'penerima'           => $item->penerima?->nama,
-                'can_cancel'         => $canCancel,
-                'can_approve'        => $canApprove,
-                'can_receive'        => $canReceive,
-                'items'              => $item->detail->map(fn ($d) => [
-                    'id'                   => $d->id,
-                    'aset_id'              => $d->aset_id,
-                    'nama_barang'          => $d->aset?->barang?->nama ?? 'Aset',
-                    'kode_aset'            => $d->aset?->kode_aset ?? '-',
-                    'nomor_seri'           => $d->aset?->nomor_seri ?? '-',
-                    'kondisi_sebelum'      => $d->kondisi_sebelum ?? 'BAIK',
-                    'kondisi_saat_diterima'=> $d->kondisi_saat_diterima,
-                ]),
-            ];
-        });
-
-        return $this->jsonSuccess($list, 'Daftar pengalihan aset berhasil dimuat.');
+        return [
+            'id'                 => $item->id,
+            'kode'               => $item->kode,
+            'tipe'               => 'ASET',
+            'tipe_asal'          => $item->tipe_asal,
+            'asal_nama'          => $item->nama_lokasi_asal,
+            'unit_asal_id'       => $item->unit_asal_id,
+            'gudang_asal_id'     => $item->gudang_asal_id,
+            'tipe_tujuan'        => $item->tipe_tujuan,
+            'tujuan_nama'        => $item->nama_lokasi_tujuan,
+            'unit_tujuan_id'     => $item->unit_tujuan_id,
+            'gudang_tujuan_id'   => $item->gudang_tujuan_id,
+            'status'             => $item->status,
+            'tanggal_pengalihan' => $item->tanggal_pengalihan?->format('Y-m-d') ?? '',
+            'nama_item'          => $namaItem,
+            'jumlah'             => $item->detail->count(),
+            'alasan'             => $item->alasan,
+            'catatan'            => $item->catatan,
+            'pengaju'            => $item->pengaju?->nama ?? 'Staf',
+            'penyetuju'          => $item->penyetuju?->nama,
+            'penerima'           => $item->penerima?->nama,
+            'can_cancel'         => $canCancel,
+            'can_approve'        => $canApprove,
+            'can_receive'        => $canReceive,
+            'items'              => $item->detail->map(fn ($d) => [
+                'id'                   => $d->id,
+                'aset_id'              => $d->aset_id,
+                'nama_barang'          => $d->aset?->barang?->nama ?? 'Aset',
+                'kode_aset'            => $d->aset?->kode_aset ?? '-',
+                'nomor_seri'           => $d->aset?->nomor_seri ?? '-',
+                'kondisi_sebelum'      => $d->kondisi_sebelum ?? 'BAIK',
+                'kondisi_saat_diterima'=> $d->kondisi_saat_diterima,
+            ]),
+        ];
     }
 
     /**
