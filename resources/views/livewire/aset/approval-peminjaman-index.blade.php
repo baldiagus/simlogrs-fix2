@@ -15,7 +15,7 @@
     {{-- Workspace Card Utama --}}
     <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
         {{-- Navigasi Tab Status --}}
-        <flux:tabs class="pt-2 overflow-x-auto">
+        <flux:tabs class="pt-2">
             <flux:tab
                 wire:click="setFilterTab('')"
                 :current="$filterStatus === ''"
@@ -50,20 +50,28 @@
             </flux:tab>
         </flux:tabs>
 
-        {{-- Toolbar filter dan pencarian --}}
-        <div class="flex flex-wrap items-center justify-between gap-4 pt-1">
-            <div class="w-full sm:w-80">
+        {{-- Toolbar pencarian rata kanan --}}
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 pt-1">
+            @if ($filterStatus !== '' || $search !== '')
+                <flux:button
+                    wire:click="resetFilters"
+                    size="sm"
+                    variant="ghost"
+                    class="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                >
+                    Reset Filter
+                </flux:button>
+            @endif
+
+            <div class="w-full sm:w-72 md:w-80">
                 <flux:input
                     wire:model.live.debounce.300ms="search"
-                    placeholder="Cari kode PINJ, aset, peminjam, keperluan..."
+                    placeholder="Cari kode PINJ, aset, peminjam..."
                     icon="magnifying-glass"
                     size="sm"
                     clearable
                 />
             </div>
-            @if ($filterStatus !== '' || $search !== '')
-                <flux:button wire:click="resetFilters" size="sm" variant="ghost">Reset Filter</flux:button>
-            @endif
         </div>
         {{-- Tabel permintaan peminjaman --}}
         <flux:table bleed container:class="mt-4">
