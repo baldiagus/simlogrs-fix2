@@ -3,6 +3,7 @@
 namespace App\Livewire\Concerns;
 
 use App\Models\User;
+use App\Support\Auth\PengalihanAccess;
 
 /**
  * Aturan otorisasi pengalihan (aset & barang) sesuai ADR 0001.
@@ -19,27 +20,7 @@ trait AuthorizesPengalihan
 
     protected function bolehPengalihan(?User $user, object $p, string $aksi): bool
     {
-        if (! $user) {
-            return false;
-        }
-
-        if ($user->hasRole(['super_admin', 'admin_logistik'])) {
-            return true;
-        }
-
-        $entitas = $this->entitasPengalihan();
-        $dalamScope = fn (string $sisi): bool => $p->{"tipe_{$sisi}"} === 'RUANGAN'
-            ? $user->unit_id && (int) $user->unit_id === (int) $p->{"unit_{$sisi}_id"}
-            : $user->gudang_id && (int) $user->gudang_id === (int) $p->{"gudang_{$sisi}_id"};
-
-        return match ($aksi) {
-            'otorisasi'    => $user->can("update_{$entitas}")
-                && $user->hasRole($p->tipe_asal === 'RUANGAN' ? 'kepala_unit' : 'kepala_gudang')
-                && $dalamScope('asal'),
-            'serah_terima' => $user->can("update_{$entitas}") && $dalamScope('tujuan'),
-            'batal'        => $user->can("delete_{$entitas}") && (int) $p->diajukan_oleh === (int) $user->id,
-            default        => false,
-        };
+        return PengalihanAccess::boleh($user, $p, $aksi, $this->entitasPengalihan());
     }
 
     protected function authorizePengalihan(object $p, string $aksi, string $pesan): void

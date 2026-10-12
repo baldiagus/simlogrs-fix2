@@ -1,18 +1,28 @@
 <?php
 
-use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\ApprovalController;
-use App\Http\Controllers\Api\V1\GudangApiController;
-use App\Http\Controllers\Api\V1\AsetApiController;
-use App\Http\Controllers\Api\V1\MaintenanceApiController;
-use App\Http\Controllers\Api\V1\PengadaanApiController;
-use App\Http\Controllers\Api\V1\DistribusiApiController;
-use App\Http\Controllers\Api\V1\DashboardApiController;
-use App\Http\Controllers\Api\V1\MasterApiController;
-use App\Http\Controllers\Api\V1\PersediaanApiController;
-use App\Http\Controllers\Api\V1\IpsrsApiController;
-use App\Http\Controllers\Api\V1\AuditApiController;
 use App\Http\Controllers\Api\V1\AnggaranApiController;
+use App\Http\Controllers\Api\V1\ApprovalController;
+use App\Http\Controllers\Api\V1\AsetKatalogApiController;
+use App\Http\Controllers\Api\V1\AsetPeminjamanApiController;
+use App\Http\Controllers\Api\V1\AsetPeminjamanApprovalApiController;
+use App\Http\Controllers\Api\V1\AsetPengalihanApiController;
+use App\Http\Controllers\Api\V1\AuditForensikApiController;
+use App\Http\Controllers\Api\V1\AuditTemuanApiController;
+use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\DashboardApiController;
+use App\Http\Controllers\Api\V1\DistribusiAmprahApiController;
+use App\Http\Controllers\Api\V1\DistribusiPengirimanApiController;
+use App\Http\Controllers\Api\V1\GudangPenerimaanPoApiController;
+use App\Http\Controllers\Api\V1\GudangPengalihanBarangApiController;
+use App\Http\Controllers\Api\V1\GudangTataLetakApiController;
+use App\Http\Controllers\Api\V1\IpsrsApiController;
+use App\Http\Controllers\Api\V1\MaintenanceSpkApiController;
+use App\Http\Controllers\Api\V1\MaintenanceTiketApiController;
+use App\Http\Controllers\Api\V1\MasterApiController;
+use App\Http\Controllers\Api\V1\PengadaanApiController;
+use App\Http\Controllers\Api\V1\PersediaanMonitoringApiController;
+use App\Http\Controllers\Api\V1\PersediaanOpnameApiController;
+use App\Http\Controllers\Api\V1\PersediaanPenyesuaianApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -43,51 +53,51 @@ Route::prefix('v1')->group(function () {
         Route::post('/approval/amprah/{id}', [ApprovalController::class, 'approveAmprah']);
 
         // 5. Operasional Gudang & Scanner Barcode
-        Route::get('/gudang/rak', [GudangApiController::class, 'daftarRak']);
-        Route::get('/gudang/rak/{id}', [GudangApiController::class, 'detailRak']);
-        Route::post('/gudang/scan-batch', [GudangApiController::class, 'scanBatch']);
-        Route::post('/gudang/opname-count', [GudangApiController::class, 'opnameCount']);
-        Route::get('/gudang/po-inbound', [GudangApiController::class, 'poInbound']);
-        Route::post('/gudang/penerimaan-po', [GudangApiController::class, 'simpanPenerimaanPo']);
-        Route::get('/gudang/pengalihan-barang', [GudangApiController::class, 'daftarPengalihanBarang']);
-        Route::post('/gudang/pengalihan-barang', [GudangApiController::class, 'simpanPengalihanBarang']);
-        Route::post('/gudang/pengalihan-barang/{id}/otorisasi', [GudangApiController::class, 'otorisasiPengalihanBarang']);
-        Route::post('/gudang/pengalihan-barang/{id}/serah-terima', [GudangApiController::class, 'serahTerimaPengalihanBarang']);
-        Route::post('/gudang/pengalihan-barang/{id}/batal', [GudangApiController::class, 'batalPengalihanBarang']);
-        Route::get('/gudang/stok-tersedia', [GudangApiController::class, 'stokTersedia']);
+        Route::get('/gudang/rak', [GudangTataLetakApiController::class, 'daftarRak']);
+        Route::get('/gudang/rak/{id}', [GudangTataLetakApiController::class, 'detailRak']);
+        Route::post('/gudang/scan-batch', [GudangTataLetakApiController::class, 'scanBatch']);
+        Route::post('/gudang/opname-count', [GudangTataLetakApiController::class, 'opnameCount']);
+        Route::get('/gudang/po-inbound', [GudangPenerimaanPoApiController::class, 'poInbound']);
+        Route::post('/gudang/penerimaan-po', [GudangPenerimaanPoApiController::class, 'simpanPenerimaanPo']);
+        Route::get('/gudang/pengalihan-barang', [GudangPengalihanBarangApiController::class, 'daftarPengalihanBarang']);
+        Route::post('/gudang/pengalihan-barang', [GudangPengalihanBarangApiController::class, 'simpanPengalihanBarang']);
+        Route::post('/gudang/pengalihan-barang/{id}/otorisasi', [GudangPengalihanBarangApiController::class, 'otorisasiPengalihanBarang']);
+        Route::post('/gudang/pengalihan-barang/{id}/serah-terima', [GudangPengalihanBarangApiController::class, 'serahTerimaPengalihanBarang']);
+        Route::post('/gudang/pengalihan-barang/{id}/batal', [GudangPengalihanBarangApiController::class, 'batalPengalihanBarang']);
+        Route::get('/gudang/stok-tersedia', [GudangPengalihanBarangApiController::class, 'stokTersedia']);
 
 
         // 6. Sirkulasi Aset & Scanner QR
-        Route::post('/aset/scan-qr', [AsetApiController::class, 'scanQr']);
-        Route::get('/aset/detail/{id}', [AsetApiController::class, 'detailAset']);
-        Route::get('/aset/katalog-tersedia', [AsetApiController::class, 'katalogTersedia']);
-        Route::get('/aset/peminjaman', [AsetApiController::class, 'daftarPeminjaman']);
-        Route::post('/aset/peminjaman', [AsetApiController::class, 'simpanPeminjaman']);
-        Route::post('/aset/peminjaman/{id}/batal', [AsetApiController::class, 'batalPeminjaman']);
-        Route::post('/aset/peminjaman/{id}/perpanjang', [AsetApiController::class, 'perpanjangPeminjaman']);
-        Route::get('/aset/approval-peminjaman', [AsetApiController::class, 'daftarApprovalPeminjaman']);
-        Route::post('/aset/peminjaman/{id}/otorisasi', [AsetApiController::class, 'otorisasiPeminjaman']);
-        Route::post('/aset/serah-terima', [AsetApiController::class, 'serahTerima']);
-        Route::post('/aset/kembalikan', [AsetApiController::class, 'kembalikan']);
-        Route::get('/aset/pengalihan', [AsetApiController::class, 'daftarPengalihan']);
-        Route::get('/aset/pengalihan/komoditas-tersedia', [AsetApiController::class, 'komoditasAsetTersedia']);
-        Route::get('/aset/pengalihan/inventaris-asal', [AsetApiController::class, 'inventarisAsal']);
-        Route::post('/aset/pengalihan', [AsetApiController::class, 'simpanPengalihan']);
-        Route::post('/aset/pengalihan/{id}/batal', [AsetApiController::class, 'batalPengalihan']);
-        Route::post('/aset/pengalihan/{id}/otorisasi', [AsetApiController::class, 'otorisasiPengalihan']);
-        Route::post('/aset/pengalihan/{id}/serah-terima', [AsetApiController::class, 'serahTerimaPengalihan']);
+        Route::post('/aset/scan-qr', [AsetKatalogApiController::class, 'scanQr']);
+        Route::get('/aset/detail/{id}', [AsetKatalogApiController::class, 'detailAset']);
+        Route::get('/aset/katalog-tersedia', [AsetKatalogApiController::class, 'katalogTersedia']);
+        Route::get('/aset/peminjaman', [AsetPeminjamanApiController::class, 'daftarPeminjaman']);
+        Route::post('/aset/peminjaman', [AsetPeminjamanApiController::class, 'simpanPeminjaman']);
+        Route::post('/aset/peminjaman/{id}/batal', [AsetPeminjamanApiController::class, 'batalPeminjaman']);
+        Route::post('/aset/peminjaman/{id}/perpanjang', [AsetPeminjamanApiController::class, 'perpanjangPeminjaman']);
+        Route::get('/aset/approval-peminjaman', [AsetPeminjamanApprovalApiController::class, 'daftarApprovalPeminjaman']);
+        Route::post('/aset/peminjaman/{id}/otorisasi', [AsetPeminjamanApprovalApiController::class, 'otorisasiPeminjaman']);
+        Route::post('/aset/serah-terima', [AsetPeminjamanApprovalApiController::class, 'serahTerima']);
+        Route::post('/aset/kembalikan', [AsetPeminjamanApprovalApiController::class, 'kembalikan']);
+        Route::get('/aset/pengalihan', [AsetPengalihanApiController::class, 'daftarPengalihan']);
+        Route::get('/aset/pengalihan/komoditas-tersedia', [AsetPengalihanApiController::class, 'komoditasAsetTersedia']);
+        Route::get('/aset/pengalihan/inventaris-asal', [AsetPengalihanApiController::class, 'inventarisAsal']);
+        Route::post('/aset/pengalihan', [AsetPengalihanApiController::class, 'simpanPengalihan']);
+        Route::post('/aset/pengalihan/{id}/batal', [AsetPengalihanApiController::class, 'batalPengalihan']);
+        Route::post('/aset/pengalihan/{id}/otorisasi', [AsetPengalihanApiController::class, 'otorisasiPengalihan']);
+        Route::post('/aset/pengalihan/{id}/serah-terima', [AsetPengalihanApiController::class, 'serahTerimaPengalihan']);
 
         // 7. Pemeliharaan Sarana & Mobile Teknisi IPSRS
-        Route::get('/maintenance/tiket', [MaintenanceApiController::class, 'daftarTiketUnit']);
-        Route::get('/maintenance/aset-unit', [MaintenanceApiController::class, 'asetUnitTersedia']);
-        Route::get('/maintenance/teknisi', [MaintenanceApiController::class, 'daftarTeknisi']);
-        Route::get('/maintenance/tiket/{id}', [MaintenanceApiController::class, 'detailTiketUnit']);
-        Route::post('/maintenance/tiket/{id}/disposisi', [MaintenanceApiController::class, 'disposisiTiket']);
-        Route::post('/maintenance/tiket/{id}/batal', [MaintenanceApiController::class, 'batalTiketUnit']);
-        Route::post('/maintenance/lapor-cepat', [MaintenanceApiController::class, 'laporCepat']);
-        Route::get('/maintenance/spk', [MaintenanceApiController::class, 'spkList']);
-        Route::get('/maintenance/spk/{id}', [MaintenanceApiController::class, 'spkDetail']);
-        Route::post('/maintenance/spk/{id}/log', [MaintenanceApiController::class, 'submitLog']);
+        Route::get('/maintenance/tiket', [MaintenanceTiketApiController::class, 'daftarTiketUnit']);
+        Route::get('/maintenance/aset-unit', [MaintenanceTiketApiController::class, 'asetUnitTersedia']);
+        Route::get('/maintenance/teknisi', [MaintenanceSpkApiController::class, 'daftarTeknisi']);
+        Route::get('/maintenance/tiket/{id}', [MaintenanceTiketApiController::class, 'detailTiketUnit']);
+        Route::post('/maintenance/tiket/{id}/disposisi', [MaintenanceSpkApiController::class, 'disposisiTiket']);
+        Route::post('/maintenance/tiket/{id}/batal', [MaintenanceTiketApiController::class, 'batalTiketUnit']);
+        Route::post('/maintenance/lapor-cepat', [MaintenanceTiketApiController::class, 'laporCepat']);
+        Route::get('/maintenance/spk', [MaintenanceSpkApiController::class, 'spkList']);
+        Route::get('/maintenance/spk/{id}', [MaintenanceSpkApiController::class, 'spkDetail']);
+        Route::post('/maintenance/spk/{id}/log', [MaintenanceSpkApiController::class, 'submitLog']);
 
         // 8. Modul Pengadaan, Katalog Barang & Penerbitan PO
         Route::get('/master/barang', [PengadaanApiController::class, 'katalogBarang']);
@@ -100,15 +110,15 @@ Route::prefix('v1')->group(function () {
         Route::post('/pengadaan/po/{id}/kirim', [PengadaanApiController::class, 'updateStatusKirim']);
 
         // 9. Modul Distribusi & Amprah Ruangan
-        Route::get('/distribusi/katalog-barang', [DistribusiApiController::class, 'katalogBarang']);
-        Route::get('/distribusi/amprah', [DistribusiApiController::class, 'daftarAmprah']);
-        Route::get('/distribusi/amprah/{id}', [DistribusiApiController::class, 'detailAmprah']);
-        Route::post('/distribusi/amprah', [DistribusiApiController::class, 'simpanAmprah']);
-        Route::post('/distribusi/amprah/{id}/batal', [DistribusiApiController::class, 'batalAmprah']);
-        Route::get('/distribusi/antrean-picking', [DistribusiApiController::class, 'antreanPicking']);
-        Route::post('/distribusi/picking', [DistribusiApiController::class, 'eksekusiPicking']);
-        Route::get('/distribusi/sppb-inbound', [DistribusiApiController::class, 'sppbInbound']);
-        Route::post('/distribusi/sppb/{id}/terima', [DistribusiApiController::class, 'konfirmasiTerimaSppb']);
+        Route::get('/distribusi/katalog-barang', [DistribusiAmprahApiController::class, 'katalogBarang']);
+        Route::get('/distribusi/amprah', [DistribusiAmprahApiController::class, 'daftarAmprah']);
+        Route::get('/distribusi/amprah/{id}', [DistribusiAmprahApiController::class, 'detailAmprah']);
+        Route::post('/distribusi/amprah', [DistribusiAmprahApiController::class, 'simpanAmprah']);
+        Route::post('/distribusi/amprah/{id}/batal', [DistribusiAmprahApiController::class, 'batalAmprah']);
+        Route::get('/distribusi/antrean-picking', [DistribusiPengirimanApiController::class, 'antreanPicking']);
+        Route::post('/distribusi/picking', [DistribusiPengirimanApiController::class, 'eksekusiPicking']);
+        Route::get('/distribusi/sppb-inbound', [DistribusiPengirimanApiController::class, 'sppbInbound']);
+        Route::post('/distribusi/sppb/{id}/terima', [DistribusiPengirimanApiController::class, 'konfirmasiTerimaSppb']);
 
         // 10. Master Data Komoditas & Register Aset Lengkap (Semua Role)
         Route::get('/master/barang-lengkap', [MasterApiController::class, 'barangLengkap']);
@@ -118,14 +128,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/master/gudang', [MasterApiController::class, 'daftarGudang']);
         Route::get('/master/unit', [MasterApiController::class, 'daftarUnit']);
         // 11. Modul Persediaan & Opname Kepala Gudang
-        Route::get('/gudang/fefo/monitoring', [PersediaanApiController::class, 'monitoringFefo']);
-        Route::get('/gudang/mutasi/buku', [PersediaanApiController::class, 'bukuMutasi']);
-        Route::get('/gudang/opname/sesi', [PersediaanApiController::class, 'daftarOpname']);
-        Route::post('/gudang/opname/inisiasi', [PersediaanApiController::class, 'inisiasiOpname']);
-        Route::post('/gudang/opname/{id}/count', [PersediaanApiController::class, 'simpanHitungFisik']);
-        Route::get('/gudang/penyesuaian', [PersediaanApiController::class, 'daftarPenyesuaian']);
-        Route::post('/gudang/penyesuaian/{id}/approve', [PersediaanApiController::class, 'approvePenyesuaian']);
-        Route::post('/gudang/penyesuaian/{id}/reject', [PersediaanApiController::class, 'rejectPenyesuaian']);
+        Route::get('/gudang/fefo/monitoring', [PersediaanMonitoringApiController::class, 'monitoringFefo']);
+        Route::get('/gudang/mutasi/buku', [PersediaanMonitoringApiController::class, 'bukuMutasi']);
+        Route::get('/gudang/opname/sesi', [PersediaanOpnameApiController::class, 'daftarOpname']);
+        Route::post('/gudang/opname/inisiasi', [PersediaanOpnameApiController::class, 'inisiasiOpname']);
+        Route::post('/gudang/opname/{id}/count', [PersediaanOpnameApiController::class, 'simpanHitungFisik']);
+        Route::get('/gudang/penyesuaian', [PersediaanPenyesuaianApiController::class, 'daftarPenyesuaian']);
+        Route::post('/gudang/penyesuaian/{id}/approve', [PersediaanPenyesuaianApiController::class, 'approvePenyesuaian']);
+        Route::post('/gudang/penyesuaian/{id}/reject', [PersediaanPenyesuaianApiController::class, 'rejectPenyesuaian']);
 
         // 12. Modul Teknisi IPSRS: Jadwal Preventif & Rekam Medis Aset
         Route::get('/maintenance/preventif/jadwal', [IpsrsApiController::class, 'jadwalPreventif']);
@@ -135,16 +145,16 @@ Route::prefix('v1')->group(function () {
         Route::get('/maintenance/rekam-medis/{aset_id}', [IpsrsApiController::class, 'rekamMedisAset']);
 
         // 13. Modul Audit Internal SPI & Tata Kelola
-        Route::get('/audit/summary', [AuditApiController::class, 'summary']);
-        Route::get('/audit/trail', [AuditApiController::class, 'auditTrail']);
-        Route::get('/audit/trail/{id}', [AuditApiController::class, 'auditTrailDetail']);
-        Route::get('/audit/kepatuhan-pengadaan', [AuditApiController::class, 'kepatuhanPengadaan']);
-        Route::post('/audit/kepatuhan-pengadaan/{po_id}/capa', [AuditApiController::class, 'buatTemuanKepatuhan']);
-        Route::get('/audit/selisih-opname', [AuditApiController::class, 'selisihOpname']);
-        Route::get('/audit/temuan-capa', [AuditApiController::class, 'registerTemuan']);
-        Route::post('/audit/temuan-capa', [AuditApiController::class, 'simpanTemuan']);
-        Route::post('/audit/temuan-capa/{id}/tindak-lanjut', [AuditApiController::class, 'tindakLanjutTemuan']);
-        Route::post('/audit/temuan-capa/{id}/evaluasi', [AuditApiController::class, 'evaluasiTemuan']);
+        Route::get('/audit/summary', [AuditForensikApiController::class, 'summary']);
+        Route::get('/audit/trail', [AuditForensikApiController::class, 'auditTrail']);
+        Route::get('/audit/trail/{id}', [AuditForensikApiController::class, 'auditTrailDetail']);
+        Route::get('/audit/kepatuhan-pengadaan', [AuditForensikApiController::class, 'kepatuhanPengadaan']);
+        Route::post('/audit/kepatuhan-pengadaan/{po_id}/capa', [AuditTemuanApiController::class, 'buatTemuanKepatuhan']);
+        Route::get('/audit/selisih-opname', [AuditForensikApiController::class, 'selisihOpname']);
+        Route::get('/audit/temuan-capa', [AuditTemuanApiController::class, 'registerTemuan']);
+        Route::post('/audit/temuan-capa', [AuditTemuanApiController::class, 'simpanTemuan']);
+        Route::post('/audit/temuan-capa/{id}/tindak-lanjut', [AuditTemuanApiController::class, 'tindakLanjutTemuan']);
+        Route::post('/audit/temuan-capa/{id}/evaluasi', [AuditTemuanApiController::class, 'evaluasiTemuan']);
 
         // 14. Modul Pagu & Realisasi Pengeluaran Logistik & Suku Cadang IPSRS
         Route::get('/anggaran/realisasi', [AnggaranApiController::class, 'realisasi']);
