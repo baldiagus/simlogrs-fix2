@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\StatusPermintaanPengadaan;
+use App\Enums\StatusPesananPembelian;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Barang;
 use App\Models\Pemasok;
@@ -109,8 +111,8 @@ class PengadaanApiController extends ApiController
                 if ($status === StatusPermintaanPengadaan::Diproses->value && $item->pesananPembelian->isNotEmpty()) {
                     $allPoReceived = $item->pesananPembelian->every(fn ($po) => $po->status === StatusPesananPembelian::DiterimaLengkap->value);
                     if ($allPoReceived) {
+                        // GET idempotent: status disajikan selesai tanpa mutasi DB di dalam permintaan baca.
                         $status = StatusPermintaanPengadaan::Selesai->value;
-                        $item->update(['status' => StatusPermintaanPengadaan::Selesai->value]);
                     }
                 }
 

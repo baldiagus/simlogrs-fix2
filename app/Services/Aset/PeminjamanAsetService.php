@@ -81,11 +81,30 @@ class PeminjamanAsetService
         User $actor,
         ?string $catatan = null
     ): PengembalianPeminjaman {
-        if ($pinjam->status !== StatusPeminjaman::Dipinjam->value) {
-            throw new Exception("Peminjaman {$pinjam->kode} tidak dalam status aktif dipinjam.");
-        }
-
         return DB::transaction(function () use ($pinjam, $inspeksiItems, $actor, $catatan) {
+            // Kunci dokumen lalu cek ulang status: dua pengembalian bersamaan tidak boleh sama-sama diproses.
+            $pinjam = PermintaanPeminjaman::with('detail')->lockForUpdate()->findOrFail($pinjam->id);
+            if ($pinjam->status !== StatusPeminjaman::Dipinjam->value) {
+                throw new Exception("Peminjaman {$pinjam->kode} tidak dalam status aktif dipinjam.");
+            }
+
+            // Inspeksi harus tepat mencakup setiap aset pada dokumen: tidak ada aset asing, ganda, atau tertinggal.
+            $detailPerId = $pinjam->detail->keyBy('id');
+            $terinspeksi = [];
+            foreach ($inspeksiItems as $item) {
+                $detail = $detailPerId->get((int) ($item['permintaan_peminjaman_detail_id'] ?? 0));
+                if (! $detail || (int) $detail->aset_id !== (int) ($item['aset_id'] ?? 0)) {
+                    throw new Exception('Data inspeksi tidak sesuai dengan rincian aset pada dokumen peminjaman.');
+                }
+                if (isset($terinspeksi[$detail->id])) {
+                    throw new Exception('Satu aset tidak boleh diinspeksi lebih dari sekali dalam satu pengembalian.');
+                }
+                $terinspeksi[$detail->id] = true;
+            }
+            if (count($terinspeksi) !== $detailPerId->count()) {
+                throw new Exception('Seluruh aset pada dokumen peminjaman wajib diinspeksi sebelum pengembalian diselesaikan.');
+            }
+
             $kodeKembali = CodeGenerator::generate('RTN', PengembalianPeminjaman::class, 'kode', 'Ym', 3);
 
             $pengembalian = PengembalianPeminjaman::create([

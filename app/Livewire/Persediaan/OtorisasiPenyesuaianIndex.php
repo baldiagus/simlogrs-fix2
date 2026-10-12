@@ -78,6 +78,12 @@ class OtorisasiPenyesuaianIndex extends Component
 
         try {
             DB::transaction(function () use ($adj, $user) {
+                // Kunci dokumen lalu cek ulang status: dua pengesahan bersamaan tidak boleh sama-sama memutasi stok.
+                $adj = PenyesuaianStok::with(['stokOpname', 'detail.stokBatch', 'detail.barang'])->lockForUpdate()->findOrFail($adj->id);
+                if (! StatusPenyesuaianStok::tryFrom((string) $adj->status)?->bolehKe(StatusPenyesuaianStok::Disetujui)) {
+                    throw new Exception("Dokumen penyesuaian telah diproses sebelumnya dengan status {$adj->status}.");
+                }
+
                 foreach ($adj->detail as $detail) {
                     $batch = StokBatch::lockForUpdate()->findOrFail($detail->stok_batch_id);
                     $qty = (int) $detail->jumlah_penyesuaian;

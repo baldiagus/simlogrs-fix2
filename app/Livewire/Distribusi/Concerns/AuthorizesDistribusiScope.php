@@ -19,6 +19,12 @@ trait AuthorizesDistribusiScope
         return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik']);
     }
 
+    /** Pembaca global read-only (ADR 0001): auditor/manajemen via permission view*; bukan operator. */
+    protected function isGlobalReader(): bool
+    {
+        return (bool) auth()->user()?->hasRole(['auditor', 'manajemen']);
+    }
+
     protected function ownUnitIds(): array
     {
         $user = auth()->user();
@@ -81,7 +87,7 @@ trait AuthorizesDistribusiScope
             return $query->whereIn($gudangColumn, $gudangIds);
         }
 
-        if ($unitIds || $gudangIds) {
+        if ($unitIds || $gudangIds || ! $this->isGlobalReader()) {
             return $query->whereRaw('1 = 0');
         }
 
@@ -105,7 +111,7 @@ trait AuthorizesDistribusiScope
             return $gudangId && in_array((int) $gudangId, $gudangIds, true);
         }
 
-        return ! $unitIds && ! $gudangIds;
+        return ! $unitIds && ! $gudangIds && $this->isGlobalReader();
     }
 
     protected function authorizeReadScoped(?int $unitId, ?int $gudangId, bool $checkUnit = true, bool $checkGudang = true): void

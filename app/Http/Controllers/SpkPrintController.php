@@ -13,11 +13,7 @@ class SpkPrintController extends Controller
     {
         $user = $request->user();
         abort_unless(
-            $user && (
-                $user->can('view_any_pemeliharaan::spk::perbaikan') ||
-                $user->can('view_pemeliharaan::spk::perbaikan') ||
-                $user->can('page_Dashboard')
-            ),
+            $user && $user->canAny(['view_any_pemeliharaan::spk::perbaikan', 'view_pemeliharaan::spk::perbaikan']),
             403,
             'Anda tidak memiliki izin mencetak dokumen SPK.'
         );
@@ -29,11 +25,10 @@ class SpkPrintController extends Controller
             'teknisi',
             'penugast',
         ])->findOrFail($id);
-        $isSupervisor = $user->hasRole(['super_admin', 'admin_logistik'])
-            || $user->can('page_AdminLogistikDashboard')
-            || $user->can('page_Dashboard');
 
-        if (! $isSupervisor && $user->hasRole('teknisi') && (int) $spk->teknisi_id !== (int) $user->id) {
+        // Sama dengan DaftarSpkPerbaikanIndex: hanya teknisi biasa yang dibatasi ke SPK miliknya (ADR 0001).
+        $seluruhDepartemen = $user->hasRole(['super_admin', 'admin_logistik', 'kepala_teknisi', 'auditor', 'manajemen']);
+        if (! $seluruhDepartemen && (int) $spk->teknisi_id !== (int) $user->id) {
             abort(403, 'Anda hanya memiliki wewenang mencetak SPK yang ditugaskan kepada Anda.');
         }
 

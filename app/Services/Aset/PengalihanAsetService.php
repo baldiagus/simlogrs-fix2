@@ -31,11 +31,18 @@ class PengalihanAsetService
         $gudangTujuanId = $data['gudang_tujuan_id'] ?? null;
         $lokasiGudangTujuanId = $data['lokasi_gudang_tujuan_id'] ?? null;
 
-        // Anti self-transfer guard
-        if ($tipeAsal === 'RUANGAN' && $tipeTujuan === 'RUANGAN' && $unitAsalId === $unitTujuanId) {
+        if (! in_array($tipeAsal, ['RUANGAN', 'GUDANG'], true) || ! in_array($tipeTujuan, ['RUANGAN', 'GUDANG'], true)) {
+            throw new InvalidArgumentException('Tipe asal dan tipe tujuan pengalihan harus RUANGAN atau GUDANG.');
+        }
+        if (($tipeAsal === 'RUANGAN' ? ! $unitAsalId : ! $gudangAsalId) || ($tipeTujuan === 'RUANGAN' ? ! $unitTujuanId : ! $gudangTujuanId)) {
+            throw new InvalidArgumentException('Fasilitas asal dan tujuan pengalihan wajib dipilih sesuai tipenya.');
+        }
+
+        // Anti self-transfer guard (cast int: ID dari request bisa berupa string)
+        if ($tipeAsal === 'RUANGAN' && $tipeTujuan === 'RUANGAN' && (int) $unitAsalId === (int) $unitTujuanId) {
             throw new InvalidArgumentException('Unit asal dan unit tujuan pengalihan tidak boleh sama.');
         }
-        if ($tipeAsal === 'GUDANG' && $tipeTujuan === 'GUDANG' && $gudangAsalId === $gudangTujuanId) {
+        if ($tipeAsal === 'GUDANG' && $tipeTujuan === 'GUDANG' && (int) $gudangAsalId === (int) $gudangTujuanId) {
             throw new InvalidArgumentException('Gudang asal dan gudang tujuan pengalihan tidak boleh sama.');
         }
 

@@ -15,6 +15,7 @@ use App\Models\PermintaanPengadaanDetail;
 use App\Models\Unit;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class PermintaanPengadaanIndex extends Component

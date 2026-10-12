@@ -76,10 +76,8 @@
             <flux:table.rows>
                 @forelse ($daftarPermintaan as $item)
                     @php
-                        $user = auth()->user();
-                        $canManageItem = $isGlobalAdmin ||
-                            ($item->tipe_penyedia === 'RUANGAN' && (int) $user?->unit_id === (int) $item->unit_penyedia_id) ||
-                            ($item->tipe_penyedia === 'GUDANG' && (int) $user?->gudang_id === (int) $item->gudang_penyedia_id);
+                        $canApproveItem = $izin[$item->id]['approve'] ?? false;
+                        $canHandoverItem = $izin[$item->id]['serah_terima'] ?? false;
                     @endphp
                     <flux:table.row :key="$item->id">
                         <flux:table.cell class="font-mono font-semibold text-xs text-zinc-900 dark:text-zinc-100">
@@ -126,7 +124,7 @@
                                     <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
                                         Detail Permintaan
                                     </flux:menu.item>
-                                    @if ($item->status === \App\Enums\StatusPeminjaman::Diajukan->value && $canManageItem)
+                                    @if ($item->status === \App\Enums\StatusPeminjaman::Diajukan->value && $canApproveItem)
                                         <flux:menu.item wire:click="confirmApprove({{ $item->id }})" icon="check-circle" class="text-emerald-600 dark:text-emerald-400">
                                             Setujui
                                         </flux:menu.item>
@@ -134,7 +132,7 @@
                                             Tolak
                                         </flux:menu.item>
                                     @endif
-                                    @if ($item->status === \App\Enums\StatusPeminjaman::Disetujui->value && $canManageItem)
+                                    @if ($item->status === \App\Enums\StatusPeminjaman::Disetujui->value && $canHandoverItem)
                                         <flux:menu.item wire:click="confirmSerahTerima({{ $item->id }})" icon="arrow-right-start-on-rectangle">
                                             Serah Terima
                                         </flux:menu.item>
@@ -284,15 +282,13 @@
                 </div>
 
                 @php
-                    $user = auth()->user();
-                    $canManageSelected = $isGlobalAdmin ||
-                        ($selectedPinjam->tipe_penyedia === 'RUANGAN' && (int) $user?->unit_id === (int) $selectedPinjam->unit_penyedia_id) ||
-                        ($selectedPinjam->tipe_penyedia === 'GUDANG' && (int) $user?->gudang_id === (int) $selectedPinjam->gudang_penyedia_id);
+                    $canApproveSelected = $izinSelected['approve'] ?? false;
+                    $canHandoverSelected = $izinSelected['serah_terima'] ?? false;
                 @endphp
 
-                @if ($canManageSelected)
+                @if ($canApproveSelected || $canHandoverSelected)
                     <div class="flex items-center justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                        @if ($selectedPinjam->status === \App\Enums\StatusPeminjaman::Diajukan->value)
+                        @if ($selectedPinjam->status === \App\Enums\StatusPeminjaman::Diajukan->value && $canApproveSelected)
                             <flux:button
                                 wire:click="confirmReject({{ $selectedPinjam->id }})"
                                 variant="danger"
@@ -310,7 +306,7 @@
                             >
                                 Setujui Permintaan
                             </flux:button>
-                        @elseif ($selectedPinjam->status === \App\Enums\StatusPeminjaman::Disetujui->value)
+                        @elseif ($selectedPinjam->status === \App\Enums\StatusPeminjaman::Disetujui->value && $canHandoverSelected)
                             <flux:button
                                 wire:click="confirmSerahTerima({{ $selectedPinjam->id }})"
                                 variant="primary"

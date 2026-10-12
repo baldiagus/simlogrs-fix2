@@ -4,6 +4,7 @@ namespace App\Livewire\Aset;
 
 use App\Enums\StatusAset;
 use App\Enums\StatusPeminjaman;
+use App\Livewire\Concerns\AuthorizesPeminjaman;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -24,7 +25,7 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class PeminjamanAsetIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, AuthorizesPeminjaman;
 
     #[Url(history: true)]
     public string $activeTab = 'aktif';
@@ -687,6 +688,7 @@ class PeminjamanAsetIndex extends Component
     public function confirmSerahTerima(int $id): void
     {
         $pinjam = PermintaanPeminjaman::with(['unitPeminjam', 'detail.aset'])->findOrFail($id);
+        $this->authorizePeminjaman($pinjam, 'serah_terima', 'Hanya fasilitas penyedia dengan izin yang berhak melakukan serah terima fisik.');
         if ($pinjam->status !== StatusPeminjaman::Disetujui->value) {
             $this->toast('Hanya peminjaman berstatus DISETUJUI yang dapat diserahterimakan.', 'danger');
             return;
@@ -707,19 +709,7 @@ class PeminjamanAsetIndex extends Component
         $user = auth()->user();
         $pinjam = PermintaanPeminjaman::with('detail.aset')->findOrFail($id);
 
-        $isGlobalAdmin = $user && $user->hasRole(['super_admin', 'admin_logistik']);
-
-        if (! $isGlobalAdmin) {
-            if ($pinjam->tipe_penyedia === 'RUANGAN') {
-                if (! $user?->unit_id || (int) $user->unit_id !== (int) $pinjam->unit_penyedia_id) {
-                    abort(403, 'Hanya ruangan penyedia aset yang berhak melakukan serah terima fisik.');
-                }
-            } elseif ($pinjam->tipe_penyedia === 'GUDANG') {
-                if (! $user?->gudang_id || (int) $user->gudang_id !== (int) $pinjam->gudang_penyedia_id) {
-                    abort(403, 'Hanya fasilitas gudang penyedia aset yang berhak melakukan serah terima fisik.');
-                }
-            }
-        }
+        $this->authorizePeminjaman($pinjam, 'serah_terima', 'Hanya fasilitas penyedia dengan izin yang berhak melakukan serah terima fisik.');
 
         if ($pinjam->status !== StatusPeminjaman::Disetujui->value) {
             $this->toast('Hanya peminjaman berstatus DISETUJUI yang dapat diserahterimakan.', 'danger');
@@ -870,6 +860,8 @@ class PeminjamanAsetIndex extends Component
             'countKatalog'            => $countKatalog,
             'userUnitId'              => $user?->unit_id,
             'userGudangId'            => $user?->gudang_id,
+            'izin'                    => $this->izinPeminjaman($daftarPeminjaman),
+            'izinSelected'            => $this->selectedPinjam ? $this->izinPeminjaman([$this->selectedPinjam])[$this->selectedPinjam->id] : null,
             'pageTitle'               => $this->getPageTitle(),
             'pageSubtitle'            => $this->getPageSubtitle(),
         ])->layout('layouts.portal', [

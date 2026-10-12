@@ -49,6 +49,7 @@ class ApprovalPeminjamanTest extends TestCase
             'view_any_layanan_unit::peminjaman::aset',
             'update_layanan_unit::peminjaman::aset',
         ]);
+        $this->userPenyedia->assignRole('kepala_unit'); // tahap approval = role + permission (ADR 0001)
 
         $this->barangAset = Barang::where('status', 'AKTIF')->where('tipe', 'ASET')->first()
             ?: Barang::where('status', 'AKTIF')->first();

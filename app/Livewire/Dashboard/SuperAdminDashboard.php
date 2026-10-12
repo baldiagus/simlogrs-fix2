@@ -18,8 +18,15 @@ class SuperAdminDashboard extends Component
     public ?int $selectedGudangId = null;
     public ?int $selectedUnitId = null;
 
+    protected function authorizeEmulasi(): void
+    {
+        // Emulasi konteks hanya untuk super_admin di portalnya; page_Dashboard bukan bypass tanpa role (ADR 0001).
+        abort_unless(auth()->user()?->hasRole('super_admin') && auth()->user()->can('page_Dashboard'), 403);
+    }
+
     public function setGudangEmulasi(int $id)
     {
+        $this->authorizeEmulasi();
         app(ContextManager::class)->setGudangId($id);
         $this->showGudangModal = false;
         $this->toast('Mode emulasi gudang aktif: ' . Gudang::find($id)?->nama, 'info');
@@ -27,6 +34,7 @@ class SuperAdminDashboard extends Component
 
     public function setUnitEmulasi(int $id)
     {
+        $this->authorizeEmulasi();
         app(ContextManager::class)->setUnitId($id);
         $this->showUnitModal = false;
         $this->toast('Mode emulasi unit aktif: ' . Unit::find($id)?->nama, 'info');
@@ -46,13 +54,14 @@ class SuperAdminDashboard extends Component
 
     public function resetKonteksGlobal()
     {
+        $this->authorizeEmulasi();
         app(ContextManager::class)->resetGlobalContext();
         $this->toast('Konteks dikembalikan ke mode global seluruh rumah sakit.', 'success');
     }
 
     public function render()
     {
-        abort_unless(auth()->user()?->can('page_Dashboard') || auth()->user()?->can('page_' . class_basename(static::class)), 403);
+        abort_unless(auth()->user()?->can('page_Dashboard') || auth()->user()?->can('page_SuperAdminDashboard'), 403);
 
         $daftarGudang = Gudang::where('status', 'AKTIF')->get();
         $daftarUnit = Unit::where('status', 'AKTIF')->get();

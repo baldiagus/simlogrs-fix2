@@ -35,7 +35,9 @@ class BukuMutasiIndex extends Component
 
     public function showDetail(int $id): void
     {
-        $this->selectedMutasi = PergerakanStok::with([
+        $this->authorizeBaca();
+
+        $mutasi = PergerakanStok::with([
             'barang.kategori',
             'barang.satuan',
             'stokBatch',
@@ -43,8 +45,35 @@ class BukuMutasiIndex extends Component
             'lokasiGudang',
             'pembuatRecord',
         ])->findOrFail($id);
+        abort_unless($this->dalamScopeGudang($mutasi->gudang_id), 403, 'Anda tidak memiliki wewenang melihat mutasi gudang lain.');
 
+        $this->selectedMutasi = $mutasi;
         $this->showDetailModal = true;
+    }
+
+    protected function authorizeBaca(): void
+    {
+        abort_unless(
+            auth()->user()?->canAny(['view_any_gudang_stok::buku::mutasi', 'view_gudang_stok::buku::mutasi']),
+            403
+        );
+    }
+
+    /** Global: super_admin/admin_logistik (operator) dan auditor/manajemen (pembaca); lainnya hanya gudang miliknya. */
+    protected function bacaGlobal(): bool
+    {
+        return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']);
+    }
+
+    protected function dalamScopeGudang(?int $gudangId): bool
+    {
+        if ($this->bacaGlobal()) {
+            return true;
+        }
+
+        $own = auth()->user()?->gudang_id;
+
+        return $own && $gudangId && (int) $own === (int) $gudangId;
     }
 
     public function resetFilters(): void
@@ -55,15 +84,15 @@ class BukuMutasiIndex extends Component
 
     public function render()
     {
-        abort_unless(
-            auth()->user()?->can('view_any_gudang_stok::buku::mutasi') ||
-            auth()->user()?->can('view_gudang_stok::buku::mutasi'),
-            403
-        );
+        $this->authorizeBaca();
+
+        $global = $this->bacaGlobal();
+        $ownGudangId = auth()->user()?->gudang_id;
 
         $query = PergerakanStok::with(['barang.satuan', 'stokBatch', 'gudang', 'lokasiGudang', 'pembuatRecord'])
             ->when($this->filterJenis, fn ($q) => $q->where('jenis', $this->filterJenis))
-            ->when($this->filterGudangId, fn ($q) => $q->where('gudang_id', $this->filterGudangId))
+            ->when(! $global, fn ($q) => $ownGudangId ? $q->where('gudang_id', $ownGudangId) : $q->whereRaw('1 = 0'))
+            ->when($this->filterGudangId && $global, fn ($q) => $q->where('gudang_id', $this->filterGudangId))
             ->when($this->filterBarangId, fn ($q) => $q->where('barang_id', $this->filterBarangId))
             ->when($this->tanggalMulai, fn ($q) => $q->whereDate('dibuat_pada', '>=', $this->tanggalMulai))
             ->when($this->tanggalSelesai, fn ($q) => $q->whereDate('dibuat_pada', '<=', $this->tanggalSelesai))

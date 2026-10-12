@@ -31,8 +31,8 @@ class AnggaranApiController extends ApiController
         $tahun = $request->query('tahun', '2026');
 
         /** @var AnggaranRealtimeService $service */
+        // getRingkasanEksekutif() sudah melakukan syncRealisasiAnggaran(); tidak perlu dipanggil ganda.
         $service = app(AnggaranRealtimeService::class);
-        $service->syncRealisasiAnggaran($tahun);
         $ringkasan = $service->getRingkasanEksekutif($tahun);
 
         // 1. Data Tab Unit Ruangan

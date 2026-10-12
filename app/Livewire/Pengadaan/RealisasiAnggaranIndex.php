@@ -79,8 +79,8 @@ class RealisasiAnggaranIndex extends Component
 
     public function render()
     {
+        // getRingkasanEksekutif() sudah melakukan sinkronisasi; tidak perlu dipanggil ganda di setiap render cycle.
         $service = app(AnggaranRealtimeService::class);
-        $service->syncRealisasiAnggaran($this->filterTahun);
         $ringkasan = $service->getRingkasanEksekutif($this->filterTahun);
 
         // 1. Data Tab Unit Ruangan

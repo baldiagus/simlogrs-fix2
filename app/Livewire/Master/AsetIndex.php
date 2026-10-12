@@ -194,6 +194,7 @@ class AsetIndex extends Component
             403,
             'Akses ditolak: Anda tidak memiliki wewenang mengubah informasi aset milik unit lain.'
         );
+        $this->editingId = $aset->id;
         $this->barang_id = $aset->barang_id;
         $this->kode_aset = $aset->kode_aset;
         $this->nomor_seri = $aset->nomor_seri;
@@ -373,7 +374,10 @@ class AsetIndex extends Component
         abort_unless($this->canUserDeleteAset(auth()->user(), $aset), 403, 'Anda tidak memiliki hak akses menghapus register aset.');
 
         $hasDependencies = $aset->peminjamanDetail()->exists()
+            || $aset->pengalihanDetail()->exists()
             || $aset->permintaanMaintenance()->exists()
+            || DB::table('pengembalian_peminjaman_detail')->where('aset_id', $aset->id)->exists()
+            || DB::table('jadwal_maintenance')->where('aset_id', $aset->id)->exists()
             || $aset->status === StatusAset::Dipinjam->value;
 
         if ($hasDependencies) {

@@ -59,6 +59,7 @@ class PengembalianPeminjamanIndex extends Component
         $isGlobalAdmin = $user && $user->hasRole(['super_admin', 'admin_logistik']);
 
         if (! $isGlobalAdmin) {
+            abort_unless($user?->canAny(['create_layanan_unit::pengembalian::aset', 'update_layanan_unit::pengembalian::aset']), 403, 'Anda tidak memiliki izin memproses pengembalian & inspeksi fisik aset.');
             if ($pinjam->tipe_penyedia === 'RUANGAN' && (! $user?->unit_id || (int) $user->unit_id !== (int) $pinjam->unit_penyedia_id)) {
                 abort(403, 'Hanya ruangan penyedia yang berhak memproses inspeksi & pengembalian fisik aset.');
             }
@@ -209,6 +210,9 @@ class PengembalianPeminjamanIndex extends Component
             'detail.maintenance',
         ])->findOrFail($id);
 
+        $scoped = $this->applyScope(PengembalianPeminjaman::query()->whereKey($id), auth()->user(), 'permintaanPeminjaman');
+        abort_unless($scoped->exists(), 403, 'Anda tidak memiliki wewenang untuk melihat riwayat pengembalian ini.');
+
         $this->showDetailPengembalianModal = true;
     }
 
@@ -244,7 +248,8 @@ class PengembalianPeminjamanIndex extends Component
             }
 
             if (! $scoped) {
-                $q->whereRaw('1=1');
+                // Pembaca global hanya auditor/manajemen (ADR 0001); selain itu fail-closed.
+                $q->whereRaw($user?->hasRole(['auditor', 'manajemen']) ? '1=1' : '1=0');
             }
         };
 

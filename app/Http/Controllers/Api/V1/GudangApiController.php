@@ -847,6 +847,13 @@ class GudangApiController extends ApiController
     public function otorisasiPengalihanBarang(Request $request, int $id, PengalihanBarangService $service): JsonResponse
     {
         $user = $request->user();
+        $dokumen = PengalihanBarang::find($id);
+        if (! $dokumen) {
+            return $this->jsonError('Dokumen pengalihan tidak ditemukan.', 404);
+        }
+        if (! $this->bolehKelolaPengalihanBarang($user, $dokumen, 'otorisasi')) {
+            return $this->jsonError('Anda tidak berwenang mengotorisasi pengalihan barang ini.', 403);
+        }
         $aksi = strtoupper($request->input('aksi', 'APPROVE'));
         $catatan = $request->input('catatan');
 
@@ -870,6 +877,13 @@ class GudangApiController extends ApiController
     public function serahTerimaPengalihanBarang(Request $request, int $id, PengalihanBarangService $service): JsonResponse
     {
         $user = $request->user();
+        $dokumen = PengalihanBarang::find($id);
+        if (! $dokumen) {
+            return $this->jsonError('Dokumen pengalihan tidak ditemukan.', 404);
+        }
+        if (! $this->bolehKelolaPengalihanBarang($user, $dokumen, 'serah_terima')) {
+            return $this->jsonError('Anda tidak berwenang mengonfirmasi serah terima pengalihan barang ini.', 403);
+        }
 
         try {
             $pengalihan = $service->eksekusiSerahTerima($id, $user->id);
@@ -886,6 +900,13 @@ class GudangApiController extends ApiController
     public function batalPengalihanBarang(Request $request, int $id, PengalihanBarangService $service): JsonResponse
     {
         $user = $request->user();
+        $dokumen = PengalihanBarang::find($id);
+        if (! $dokumen) {
+            return $this->jsonError('Dokumen pengalihan tidak ditemukan.', 404);
+        }
+        if (! $this->bolehKelolaPengalihanBarang($user, $dokumen, 'batal')) {
+            return $this->jsonError('Anda tidak berwenang membatalkan pengalihan barang ini.', 403);
+        }
         $alasan = $request->input('alasan', 'Dibatalkan oleh pemohon');
 
         try {
@@ -894,6 +915,32 @@ class GudangApiController extends ApiController
         } catch (Exception $e) {
             return $this->jsonError($e->getMessage(), 422);
         }
+    }
+
+    /**
+     * Aturan sama dengan PengalihanBarangIndex: global admin lolos; selain itu butuh permission granular
+     * + role tahap workflow + scope fasilitas. Fail-closed saat unit/gudang user kosong.
+     */
+    private function bolehKelolaPengalihanBarang($user, PengalihanBarang $p, string $aksi): bool
+    {
+        if ($user->hasRole(['super_admin', 'admin_logistik'])) {
+            return true;
+        }
+
+        $dalamScope = function (string $sisi) use ($user, $p): bool {
+            return $p->{"tipe_{$sisi}"} === 'RUANGAN'
+                ? $user->unit_id && (int) $user->unit_id === (int) $p->{"unit_{$sisi}_id"}
+                : $user->gudang_id && (int) $user->gudang_id === (int) $p->{"gudang_{$sisi}_id"};
+        };
+
+        return match ($aksi) {
+            'otorisasi'    => $user->can('update_gudang_stok::pengalihan::barang')
+                && $user->hasRole($p->tipe_asal === 'RUANGAN' ? 'kepala_unit' : 'kepala_gudang')
+                && $dalamScope('asal'),
+            'serah_terima' => $user->can('update_gudang_stok::pengalihan::barang') && $dalamScope('tujuan'),
+            'batal'        => $user->can('delete_gudang_stok::pengalihan::barang') && (int) $p->diajukan_oleh === (int) $user->id,
+            default        => false,
+        };
     }
 
 }

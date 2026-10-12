@@ -89,9 +89,9 @@
                         {{-- Tombol Aksi: Proses Pengembalian --}}
                         @php
                             $user = auth()->user();
-                            $isProvider = $isGlobalAdmin ||
-                                ($pinjam->tipe_penyedia === 'RUANGAN' && (int) $user?->unit_id === (int) $pinjam->unit_penyedia_id) ||
-                                ($pinjam->tipe_penyedia === 'GUDANG' && (int) $user?->gudang_id === (int) $pinjam->gudang_penyedia_id);
+                            $isProvider = $isGlobalAdmin || ($user?->canAny(['create_layanan_unit::pengembalian::aset', 'update_layanan_unit::pengembalian::aset']) && (
+                                ($pinjam->tipe_penyedia === 'RUANGAN' && $user?->unit_id && (int) $user->unit_id === (int) $pinjam->unit_penyedia_id) ||
+                                ($pinjam->tipe_penyedia === 'GUDANG' && $user?->gudang_id && (int) $user->gudang_id === (int) $pinjam->gudang_penyedia_id)));
                         @endphp
                         {{-- Aksi: Proses Pengembalian --}}
                         <flux:table.cell class="text-right w-16">

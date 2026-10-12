@@ -3,6 +3,7 @@
 namespace App\Support\Generator;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class CodeGenerator
 {
@@ -21,9 +22,16 @@ class CodeGenerator
         $datePart = $now->format($dateFormat);
         $searchPrefix = "{$prefix}-{$datePart}-";
 
-        // Cari nomor urut terakhir pada periode terkait
+        // Serialisasi per periode agar dua transaksi tidak membaca nomor terakhir yang sama.
+        // ponytail: kunci hanya efektif di dalam transaksi (lepas saat commit); di luar transaksi pakai sequence DB.
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            DB::select('select pg_advisory_xact_lock(hashtext(?))', [$searchPrefix]);
+        }
+
+        // Urut panjang dulu: sebagai string 'X-999' > 'X-1000', jadi urutan leksikografis salah saat nomor melewati pad.
         $lastRecord = $modelClass::query()
             ->where($column, 'like', "{$searchPrefix}%")
+            ->orderByRaw("length({$column}) desc")
             ->orderBy($column, 'desc')
             ->value($column);
 

@@ -139,7 +139,19 @@ class PesananPembelianIndex extends Component
             'itemRows.*.harga_satuan.min'      => 'Harga satuan tidak boleh bernilai negatif.',
         ]);
 
-        DB::transaction(function () {
+        $sudahAdaPo = false;
+        DB::transaction(function () use (&$sudahAdaPo) {
+            // Kunci baris PR lalu cek ulang di dalam transaksi: dua penerbitan bersamaan tidak boleh sama-sama lolos.
+            if ($this->prId) {
+                PermintaanPengadaan::lockForUpdate()->find($this->prId);
+                $sudahAdaPo = PesananPembelian::where('permintaan_pengadaan_id', $this->prId)
+                    ->where('status', '!=', StatusPesananPembelian::Dibatalkan->value)
+                    ->exists();
+                if ($sudahAdaPo) {
+                    return;
+                }
+            }
+
             $totalBiaya = collect($this->itemRows)->sum(fn ($r) => (int) $r['jumlah'] * (float) $r['harga_satuan']);
 
             $po = PesananPembelian::create([
@@ -171,6 +183,11 @@ class PesananPembelianIndex extends Component
                 ]);
             }
         });
+
+        if ($sudahAdaPo) {
+            $this->toast('Permintaan Pengadaan ini sudah pernah diterbitkan menjadi Pesanan Pembelian (PO).', 'danger');
+            return;
+        }
 
         $this->showModal = false;
         $this->toast('Pesanan Pembelian berhasil dibuat.', 'success');

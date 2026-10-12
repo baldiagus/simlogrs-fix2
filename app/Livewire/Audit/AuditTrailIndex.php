@@ -34,6 +34,11 @@ class AuditTrailIndex extends Component
 
     public function showDetail(int $id): void
     {
+        abort_unless(
+            auth()->user()?->canAny(['view_any_audit_manajemen::audit::trail', 'view_audit_manajemen::audit::trail']),
+            403
+        );
+
         $this->selectedLog = LogAudit::with(['pengguna', 'peran'])->findOrFail($id);
         $this->showDetailModal = true;
     }

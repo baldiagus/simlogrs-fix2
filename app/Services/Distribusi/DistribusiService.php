@@ -65,7 +65,8 @@ class DistribusiService
             // 2. Siapkan alokasi batch FEFO untuk SPPB baru
             $itemsToDispatch = [];
 
-            foreach ($lockedPermintaan->detail as $detail) {
+            // Urut barang_id agar urutan kunci StokBatch konsisten antar transaksi (cegah deadlock).
+            foreach ($lockedPermintaan->detail->sortBy('barang_id') as $detail) {
                 $approvedQty = $detail->jumlah_disetujui !== null ? (int) $detail->jumlah_disetujui : (int) $detail->jumlah;
                 $alreadySent = (int) ($alreadySentMap[$detail->barang_id] ?? 0);
                 $owed = max(0, $approvedQty - $alreadySent);
@@ -166,22 +167,13 @@ class DistribusiService
                 ]);
             }
 
-            // 5. Update status permintaan distribusi (SEDANG_DIKIRIM jika lunas, DIKIRIM_SEBAGIAN jika masih ada hutang)
-            $allShipments = PengirimanBarang::where('permintaan_distribusi_id', $lockedPermintaan->id)
-                ->where('status', '!=', StatusPengirimanBarang::Batal->value)
-                ->pluck('id');
+            // 5. Update status permintaan distribusi: lunas hanya bila setiap barang terpenuhi, bukan total agregat.
+            // disetujui_oleh tidak ditimpa: tetap pejabat approval; picker tercatat di pengiriman_barang.dikirim_oleh.
+            $newStatus = $lockedPermintaan->semuaBarangDikirim()
+                ? StatusPermintaanDistribusi::SedangDikirim->value
+                : StatusPermintaanDistribusi::DikirimSebagian->value;
 
-            $totalSentAfterThis = PengirimanBarangDetail::whereIn('pengiriman_barang_id', $allShipments)
-                ->sum('jumlah_dikirim');
-
-            $totalRequested = $lockedPermintaan->detail->sum(fn ($d) => $d->jumlah_disetujui !== null ? $d->jumlah_disetujui : $d->jumlah);
-
-            $newStatus = ($totalSentAfterThis >= $totalRequested) ? StatusPermintaanDistribusi::SedangDikirim->value : StatusPermintaanDistribusi::DikirimSebagian->value;
-
-            $lockedPermintaan->update([
-                'status'         => $newStatus,
-                'disetujui_oleh' => $actor->id,
-            ]);
+            $lockedPermintaan->update(['status' => $newStatus]);
             $permintaan->status = $newStatus;
 
             return $sppb;

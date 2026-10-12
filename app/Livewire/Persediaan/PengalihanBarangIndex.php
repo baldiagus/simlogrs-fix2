@@ -3,6 +3,7 @@
 namespace App\Livewire\Persediaan;
 
 use App\Enums\StatusPengalihan;
+use App\Livewire\Concerns\AuthorizesPengalihan;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -19,7 +20,12 @@ use Livewire\Component;
 
 class PengalihanBarangIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, AuthorizesPengalihan;
+
+    protected function entitasPengalihan(): string
+    {
+        return 'gudang_stok::pengalihan::barang';
+    }
 
     #[Url(history: true)]
     public string $activeTab = 'aktif'; // 'aktif' | 'riwayat'
@@ -307,11 +313,7 @@ class PengalihanBarangIndex extends Component
     public function executeTerima(int $id): void
     {
         $user = auth()->user();
-        abort_unless(
-            $user?->can('update_gudang_stok::pengalihan::barang') ||
-            ($user && $user->hasRole(['super_admin', 'admin_logistik'])),
-            403
-        );
+        $this->authorizePengalihan(PengalihanBarang::findOrFail($id), 'serah_terima', 'Hanya fasilitas tujuan yang berhak mengonfirmasi serah terima fisik barang.');
 
         try {
             $service = app(PengalihanBarangService::class);
@@ -326,6 +328,7 @@ class PengalihanBarangIndex extends Component
     public function cancelPengalihan(int $id): void
     {
         $user = auth()->user();
+        $this->authorizePengalihan(PengalihanBarang::findOrFail($id), 'batal', 'Hanya pengaju dengan izin pembatalan yang berhak membatalkan pengalihan barang ini.');
         try {
             $service = app(PengalihanBarangService::class);
             $transfer = $service->batalkanPengalihan($id, $user->id, 'Dibatalkan oleh pengaju');
@@ -479,6 +482,7 @@ class PengalihanBarangIndex extends Component
             'units' => $units,
             'raks' => $raks,
             'isGlobalAdmin' => $isGlobalAdmin,
+            'izin' => $this->izinPengalihan($items),
             'isDestinationLocked' => ! $isGlobalAdmin && ($user?->gudang_id || $user?->unit_id),
             'namaLokasiTujuanUser' => $user?->gudang_id
                 ? ($user->gudang?->nama ?? 'Gudang Anda')

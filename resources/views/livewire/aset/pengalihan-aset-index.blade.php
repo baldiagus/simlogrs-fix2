@@ -229,35 +229,25 @@
                                         Lihat Berita Acara / Detail
                                     </flux:menu.item>
 
-                                    @if ($activeTab === 'otorisasi' && (int)$row->diajukan_oleh !== (int)auth()->user()?->id)
-                                        @php
-                                            $isOriginRoomOwner = $row->unit_asal_id && (int)$row->unit_asal_id === (int)auth()->user()?->unit_id;
-                                            $isOriginWarehouseOwner = $row->gudang_asal_id && (int)$row->gudang_asal_id === (int)auth()->user()?->gudang_id;
-                                            $canApproveRole = auth()->user()?->hasRole(['super_admin', 'admin_logistik']) || (auth()->user()?->hasRole('kepala_unit') && auth()->user()?->can('update_layanan_unit::pengalihan::aset')) || (auth()->user()?->hasRole('kepala_gudang') && auth()->user()?->can('update_layanan_unit::pengalihan::aset'));
-                                            $isGlobalAdmin = auth()->user()?->hasRole(['super_admin', 'admin_logistik']);
-                                        @endphp
-                                        @if (($isOriginRoomOwner || $isOriginWarehouseOwner || $isGlobalAdmin) && $canApproveRole)
-                                            <flux:menu.item icon="check" wire:click="openApprovalModal({{ $row->id }}, 'APPROVE')">
-                                                Setujui Pengalihan
-                                            </flux:menu.item>
-                                            <flux:menu.item icon="x-mark" class="text-red-600" wire:click="openApprovalModal({{ $row->id }}, 'REJECT')">
-                                                Tolak Pengalihan
-                                            </flux:menu.item>
-                                        @endif
+                                    @if ($activeTab === 'otorisasi' && (int)$row->diajukan_oleh !== (int)auth()->user()?->id && ($izin[$row->id]['otorisasi'] ?? false))
+                                        <flux:menu.item icon="check" wire:click="openApprovalModal({{ $row->id }}, 'APPROVE')">
+                                            Setujui Pengalihan
+                                        </flux:menu.item>
+                                        <flux:menu.item icon="x-mark" class="text-red-600" wire:click="openApprovalModal({{ $row->id }}, 'REJECT')">
+                                            Tolak Pengalihan
+                                        </flux:menu.item>
                                     @endif
 
-                                    @if ($activeTab === 'aktif' || (int)$row->diajukan_oleh === (int)auth()->user()?->id)
-                                        @if ($row->status === 'DIAJUKAN')
-                                            <flux:menu.item icon="trash" class="text-zinc-500" wire:click="cancelPengalihan({{ $row->id }})">
-                                                Batalkan Pengajuan
-                                            </flux:menu.item>
-                                        @endif
+                                    @if ($row->status === 'DIAJUKAN' && ($izin[$row->id]['batal'] ?? false))
+                                        <flux:menu.item icon="trash" class="text-zinc-500" wire:click="cancelPengalihan({{ $row->id }})">
+                                            Batalkan Pengajuan
+                                        </flux:menu.item>
+                                    @endif
 
-                                        @if ($row->status === 'DISETUJUI')
-                                            <flux:menu.item icon="arrow-down-tray" class="text-blue-600 font-semibold" wire:click="openTerimaModal({{ $row->id }})">
-                                                Konfirmasi Serah Terima Fisik
-                                            </flux:menu.item>
-                                        @endif
+                                    @if ($row->status === 'DISETUJUI' && ($izin[$row->id]['serah_terima'] ?? false))
+                                        <flux:menu.item icon="arrow-down-tray" class="text-blue-600 font-semibold" wire:click="openTerimaModal({{ $row->id }})">
+                                            Konfirmasi Serah Terima Fisik
+                                        </flux:menu.item>
                                     @endif
                                 </flux:menu>
                             </flux:dropdown>

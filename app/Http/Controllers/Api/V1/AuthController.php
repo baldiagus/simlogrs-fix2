@@ -166,6 +166,14 @@ class AuthController extends ApiController
                 'password'             => Hash::make($request->input('password_baru')),
                 'wajib_ganti_password' => false,
             ]);
+            // Cabut token Sanctum lainnya untuk menutup akses yang memakai sandi sementara (ADR 0002 B)
+            $currentTokenId = $user->currentAccessToken()?->id;
+            if ($currentTokenId) {
+                $user->tokens()->where('id', '!=', $currentTokenId)->delete();
+            } else {
+                $user->tokens()->delete();
+            }
+
 
             LogAudit::create([
                 'pengguna_id'     => $user->id,

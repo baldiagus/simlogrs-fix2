@@ -21,6 +21,8 @@ class SatuanBarangIndex extends Component
 
     public function showDetail(int $id): void
     {
+        abort_unless(auth()->user()?->canAny(['view_any_master::satuan::barang', 'view_master::satuan::barang']), 403);
+
         $this->selectedItem = SatuanBarang::withCount('barang')->findOrFail($id);
         $this->showDetailModal = true;
     }

@@ -204,7 +204,16 @@ class PengalihanBarangIndexTest extends TestCase
     {
         $this->actingAs($this->userGudang);
 
-        // Buat pengalihan antar gudang lain (gudang 2 ke gudang destinasi lain)
+        // Buat batch di gudang 2 agar valid dengan gudang asal pengalihan
+        $batchGudang2 = StokBatch::create([
+            'barang_id'           => $this->barangBhp->id,
+            'gudang_id'           => $this->gudang2->id,
+            'nomor_batch'         => 'BATCH-GDG2-' . uniqid(),
+            'tanggal_kedaluwarsa' => now()->addYear()->toDateString(),
+            'jumlah'              => 50,
+            'status'              => 'AKTIF',
+        ]);
+
         $service = app(\App\Services\Persediaan\PengalihanBarangService::class);
         $transferLain = $service->ajukanPengalihan([
             'tipe_asal' => 'GUDANG',
@@ -217,7 +226,7 @@ class PengalihanBarangIndexTest extends TestCase
             'items' => [
                 [
                     'barang_id' => $this->barangBhp->id,
-                    'stok_batch_id' => $this->batch->id,
+                    'stok_batch_id' => $batchGudang2->id,
                     'jumlah' => 5,
                 ],
             ],

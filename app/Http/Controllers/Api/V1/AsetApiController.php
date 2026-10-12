@@ -9,6 +9,7 @@ use App\Models\Aset;
 use App\Models\PermintaanPeminjaman;
 use App\Models\PermintaanPeminjamanDetail;
 use App\Models\StokBatch;
+use App\Models\Unit;
 use App\Services\Aset\PeminjamanAsetService;
 use App\Models\PengalihanAset;
 use App\Models\PengalihanAsetDetail;
@@ -894,7 +895,8 @@ class AsetApiController extends ApiController
             $detailId = $row['permintaan_peminjaman_detail_id'] ?? null;
             $exists = $detailId && \App\Models\PermintaanPeminjamanDetail::where('id', $detailId)->where('permintaan_peminjaman_id', $pinjam->id)->exists();
             if (! $exists) {
-                $matchedDetail = $pinjam->detail->firstWhere('aset_id', $row['aset_id']) ?? $pinjam->detail->first();
+                // Klien lama tanpa detail id: cocokkan lewat aset_id saja; aset asing ditolak service.
+                $matchedDetail = $pinjam->detail->firstWhere('aset_id', (int) $row['aset_id']);
                 if ($matchedDetail) {
                     $row['permintaan_peminjaman_detail_id'] = $matchedDetail->id;
                 }
@@ -1261,6 +1263,13 @@ class AsetApiController extends ApiController
     public function otorisasiPengalihan(Request $request, int $id, PengalihanAsetService $service): JsonResponse
     {
         $user = $request->user();
+        $dokumen = PengalihanAset::find($id);
+        if (! $dokumen) {
+            return $this->jsonError('Dokumen pengalihan tidak ditemukan.', 404);
+        }
+        if (! $this->bolehKelolaPengalihan($user, $dokumen, 'otorisasi')) {
+            return $this->jsonError('Anda tidak berwenang mengotorisasi pengalihan aset ini.', 403);
+        }
         $aksi = strtoupper($request->input('aksi', 'APPROVE'));
         $catatan = $request->input('catatan');
 
@@ -1284,6 +1293,13 @@ class AsetApiController extends ApiController
     public function serahTerimaPengalihan(Request $request, int $id, PengalihanAsetService $service): JsonResponse
     {
         $user = $request->user();
+        $dokumen = PengalihanAset::find($id);
+        if (! $dokumen) {
+            return $this->jsonError('Dokumen pengalihan tidak ditemukan.', 404);
+        }
+        if (! $this->bolehKelolaPengalihan($user, $dokumen, 'serah_terima')) {
+            return $this->jsonError('Anda tidak berwenang mengonfirmasi serah terima pengalihan aset ini.', 403);
+        }
 
         try {
             $pengalihan = $service->eksekusiSerahTerima($id, $user->id);
@@ -1300,6 +1316,13 @@ class AsetApiController extends ApiController
     public function batalPengalihan(Request $request, int $id, PengalihanAsetService $service): JsonResponse
     {
         $user = $request->user();
+        $dokumen = PengalihanAset::find($id);
+        if (! $dokumen) {
+            return $this->jsonError('Dokumen pengalihan tidak ditemukan.', 404);
+        }
+        if (! $this->bolehKelolaPengalihan($user, $dokumen, 'batal')) {
+            return $this->jsonError('Anda tidak berwenang membatalkan pengalihan aset ini.', 403);
+        }
         $alasan = $request->input('alasan', 'Dibatalkan oleh pemohon');
 
         try {
@@ -1308,6 +1331,32 @@ class AsetApiController extends ApiController
         } catch (Exception $e) {
             return $this->jsonError($e->getMessage(), 422);
         }
+    }
+
+    /**
+     * Aturan sama dengan PengalihanAsetIndex: global admin lolos; selain itu butuh permission granular
+     * + role tahap workflow + scope fasilitas. Fail-closed saat unit/gudang user kosong.
+     */
+    private function bolehKelolaPengalihan($user, PengalihanAset $p, string $aksi): bool
+    {
+        if ($user->hasRole(['super_admin', 'admin_logistik'])) {
+            return true;
+        }
+
+        $dalamScope = function (string $sisi) use ($user, $p): bool {
+            return $p->{"tipe_{$sisi}"} === 'RUANGAN'
+                ? $user->unit_id && (int) $user->unit_id === (int) $p->{"unit_{$sisi}_id"}
+                : $user->gudang_id && (int) $user->gudang_id === (int) $p->{"gudang_{$sisi}_id"};
+        };
+
+        return match ($aksi) {
+            'otorisasi'    => $user->can('update_layanan_unit::pengalihan::aset')
+                && $user->hasRole($p->tipe_asal === 'RUANGAN' ? 'kepala_unit' : 'kepala_gudang')
+                && $dalamScope('asal'),
+            'serah_terima' => $user->can('update_layanan_unit::pengalihan::aset') && $dalamScope('tujuan'),
+            'batal'        => $user->can('delete_layanan_unit::pengalihan::aset') && (int) $p->diajukan_oleh === (int) $user->id,
+            default        => false,
+        };
     }
 
 }

@@ -2,17 +2,21 @@
 
 namespace App\Livewire\Concerns;
 
+use Livewire\Attributes\Locked;
+
 trait HasConfirmationModal
 {
     public bool $showConfirmModal = false;
+    #[Locked]
     public mixed $confirmTarget = null;
+    #[Locked]
     public string $confirmAction = '';
     public string $confirmTitle = 'Konfirmasi Tindakan';
     public string $confirmDescription = 'Apakah Anda yakin ingin melanjutkan tindakan ini?';
     public string $confirmButtonText = 'Ya, Lanjutkan';
     public string $confirmButtonVariant = 'primary'; // primary, danger, warning
 
-    public function askConfirmation(
+    protected function askConfirmation(
         mixed $target,
         string $action,
         string $title,

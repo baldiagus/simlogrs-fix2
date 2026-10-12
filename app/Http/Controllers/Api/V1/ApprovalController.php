@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ApiController;
 use App\Models\PermintaanDistribusi;
 use App\Models\PermintaanPengadaan;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
 class ApprovalController extends ApiController
@@ -136,6 +137,12 @@ class ApprovalController extends ApiController
      */
     public function approvePr(Request $request, int $id): JsonResponse
     {
+        // Baris PR dikunci sepanjang transaksi: dua approval bersamaan tidak boleh sama-sama lolos cek status.
+        return DB::transaction(fn () => $this->prosesApprovePr($request, $id));
+    }
+
+    protected function prosesApprovePr(Request $request, int $id): JsonResponse
+    {
         $user = $request->user();
 
         $canApprove = $user && (
@@ -147,7 +154,7 @@ class ApprovalController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang untuk menyetujui permintaan pengadaan.', 403);
         }
 
-        $pr = PermintaanPengadaan::with('detail')->find($id);
+        $pr = PermintaanPengadaan::with('detail')->lockForUpdate()->find($id);
 
         if (! $pr) {
             return $this->jsonError('Permintaan pengadaan tidak ditemukan.', 404);
@@ -162,16 +169,12 @@ class ApprovalController extends ApiController
 
         // Validasi Kepemilikan Unit / Fasilitas (Anti Cross-Unit IDOR/BOLA)
         if (! $user->hasRole(['super_admin', 'admin_logistik'])) {
-            if ($user->hasRole('kepala_unit')) {
-                if ((int) $user->unit_id !== (int) $pr->unit_id) {
-                    return $this->jsonError('Anda hanya berhak mengesahkan atau menolak permintaan pengadaan dari unit ruangan Anda sendiri.', 403);
-                }
+            if ($user->hasRole('kepala_unit') && (! $user->unit_id || (int) $user->unit_id !== (int) $pr->unit_id)) {
+                return $this->jsonError('Anda hanya berhak mengesahkan atau menolak permintaan pengadaan dari unit ruangan Anda sendiri.', 403);
             }
 
-            if ($user->hasRole('kepala_gudang')) {
-                if ((int) $user->gudang_id !== (int) $pr->gudang_id) {
-                    return $this->jsonError('Anda hanya berhak mengesahkan atau menolak permintaan pengadaan dari fasilitas gudang Anda sendiri.', 403);
-                }
+            if ($user->hasRole('kepala_gudang') && (! $user->gudang_id || (int) $user->gudang_id !== (int) $pr->gudang_id)) {
+                return $this->jsonError('Anda hanya berhak mengesahkan atau menolak permintaan pengadaan dari fasilitas gudang Anda sendiri.', 403);
             }
         }
 
@@ -247,9 +250,14 @@ class ApprovalController extends ApiController
      */
     public function approveAmprah(Request $request, int $id): JsonResponse
     {
+        return DB::transaction(fn () => $this->prosesApproveAmprah($request, $id));
+    }
+
+    protected function prosesApproveAmprah(Request $request, int $id): JsonResponse
+    {
         $user = $request->user();
 
-        $amprah = PermintaanDistribusi::with('detail')->find($id);
+        $amprah = PermintaanDistribusi::with('detail')->lockForUpdate()->find($id);
         if (! $amprah) {
             return $this->jsonError('Permintaan distribusi tidak ditemukan.', 404);
         }
@@ -271,7 +279,7 @@ class ApprovalController extends ApiController
                 return $this->jsonError('Anda tidak memiliki wewenang mengesahkan permohonan ruangan ini.', 403);
             }
 
-            if (! $user->hasRole(['super_admin', 'admin_logistik']) && (int) $user->unit_id !== (int) $amprah->unit_id) {
+            if (! $user->hasRole(['super_admin', 'admin_logistik']) && (! $user->unit_id || (int) $user->unit_id !== (int) $amprah->unit_id)) {
                 return $this->jsonError('Anda hanya berhak mengesahkan permohonan dari unit ruangan Anda sendiri.', 403);
             }
 

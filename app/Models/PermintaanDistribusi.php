@@ -50,4 +50,51 @@ class PermintaanDistribusi extends BaseModel
     {
         return $this->hasMany(PengirimanBarang::class, 'permintaan_distribusi_id');
     }
+
+    /** Kuota disetujui per barang (jumlah_disetujui, fallback jumlah), digabung bila barang muncul di beberapa baris. */
+    protected function kuotaPerBarang(): array
+    {
+        return $this->detail
+            ->groupBy('barang_id')
+            ->map(fn ($rows) => (int) $rows->sum(fn ($d) => $d->jumlah_disetujui !== null ? $d->jumlah_disetujui : $d->jumlah))
+            ->all();
+    }
+
+    /** Setiap barang terpenuhi: kelebihan di satu barang tidak boleh menutup kekurangan barang lain. */
+    protected function semuaBarangTerpenuhi(array $realisasiPerBarang): bool
+    {
+        foreach ($this->kuotaPerBarang() as $barangId => $kuota) {
+            if ((int) ($realisasiPerBarang[$barangId] ?? 0) < $kuota) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function semuaBarangDikirim(): bool
+    {
+        $dikirim = PengirimanBarangDetail::query()
+            ->whereHas('pengirimanBarang', fn ($q) => $q
+                ->where('permintaan_distribusi_id', $this->id)
+                ->where('status', '!=', \App\Enums\StatusPengirimanBarang::Batal->value))
+            ->selectRaw('barang_id, sum(jumlah_dikirim) as total')
+            ->groupBy('barang_id')
+            ->pluck('total', 'barang_id')
+            ->all();
+
+        return $this->semuaBarangTerpenuhi($dikirim);
+    }
+
+    public function semuaBarangDiterima(): bool
+    {
+        $diterima = PenerimaanDistribusiDetail::query()
+            ->whereHas('penerimaanDistribusi.pengirimanBarang', fn ($q) => $q->where('permintaan_distribusi_id', $this->id))
+            ->selectRaw('barang_id, sum(jumlah_diterima) as total')
+            ->groupBy('barang_id')
+            ->pluck('total', 'barang_id')
+            ->all();
+
+        return $this->semuaBarangTerpenuhi($diterima);
+    }
 }

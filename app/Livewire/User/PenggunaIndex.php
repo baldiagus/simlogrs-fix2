@@ -43,6 +43,7 @@ class PenggunaIndex extends Component
 
     // Modal Kredensial Sementara (One-Time Display)
     public bool $showResetSuccessModal = false;
+    #[Locked]
     public array $tempPasswordData = [];
 
     public string $nama = '';
@@ -60,10 +61,13 @@ class PenggunaIndex extends Component
 
     public function boot(): void
     {
+        $this->authorizeBaca();
+    }
+
+    protected function authorizeBaca(): void
+    {
         abort_unless(
-            auth()->user()?->can('page_PenggunaIndex') ||
-            auth()->user()?->can('view_any_user::pengguna') ||
-            auth()->user()?->can('page_SuperAdminDashboard'),
+            auth()->user()?->canAny(['view_any_user::pengguna', 'view_user::pengguna']),
             403,
             'Akses ditolak: Anda tidak memiliki wewenang mengelola Akun Pengguna.'
         );
@@ -71,13 +75,7 @@ class PenggunaIndex extends Component
 
     public function mount(): void
     {
-        abort_unless(
-            auth()->user()?->can('page_PenggunaIndex') ||
-            auth()->user()?->can('view_any_user::pengguna') ||
-            auth()->user()?->can('page_SuperAdminDashboard'),
-            403,
-            'Akses ditolak: Anda tidak memiliki wewenang mengelola Akun Pengguna.'
-        );
+        $this->authorizeBaca();
     }
 
     public function updatedPenugasanTipe(string $value): void
@@ -95,8 +93,7 @@ class PenggunaIndex extends Component
     public function openCreate(): void
     {
         abort_unless(
-            auth()->user()?->can('create_user::pengguna') ||
-            auth()->user()?->can('page_SuperAdminDashboard'),
+            auth()->user()?->can('create_user::pengguna'),
             403,
             'Akses ditolak: Anda tidak memiliki wewenang menambah akun pengguna.'
         );
@@ -123,8 +120,7 @@ class PenggunaIndex extends Component
     public function openEdit(int $id): void
     {
         abort_unless(
-            auth()->user()?->can('update_user::pengguna') ||
-            auth()->user()?->can('page_SuperAdminDashboard'),
+            auth()->user()?->can('update_user::pengguna'),
             403,
             'Akses ditolak: Anda tidak memiliki wewenang mengubah akun pengguna.'
         );
@@ -165,10 +161,11 @@ class PenggunaIndex extends Component
 
     public function save(): void
     {
+        // Mode menentukan permission: create tidak boleh mengubah akun, update tidak boleh membuat akun.
         abort_unless(
-            auth()->user()?->can('create_user::pengguna') ||
-            auth()->user()?->can('update_user::pengguna') ||
-            auth()->user()?->hasRole('super_admin'),
+            $this->editingId
+                ? (auth()->user()?->can('update_user::pengguna') || auth()->user()?->hasRole('super_admin'))
+                : (auth()->user()?->can('create_user::pengguna') || auth()->user()?->hasRole('super_admin')),
             403,
             'Anda tidak memiliki izin menyimpan data pengguna.'
         );
@@ -231,6 +228,11 @@ class PenggunaIndex extends Component
 
             if ($user->hasRole('super_admin') && ! auth()->user()?->hasRole('super_admin')) {
                 abort(403, 'Akun dengan peran super_admin hanya dapat dikelola oleh pengguna dengan peran super_admin.');
+            }
+
+            // Anti self-promotion: pengguna tidak boleh mengubah peran dirinya sendiri.
+            if (auth()->id() === $user->id && ! $user->hasRole($this->selectedRole)) {
+                abort(403, 'Anda tidak dapat mengubah peran akun Anda sendiri.');
             }
 
             // Proteksi anti self-deactivation
@@ -608,12 +610,7 @@ class PenggunaIndex extends Component
 
     public function render()
     {
-        abort_unless(
-            auth()->user()?->can('page_PenggunaIndex') ||
-            auth()->user()?->can('view_any_user::pengguna') ||
-            auth()->user()?->can('page_SuperAdminDashboard'),
-            403
-        );
+        $this->authorizeBaca();
 
         $query = User::with(['roles', 'unit', 'gudang']);
 

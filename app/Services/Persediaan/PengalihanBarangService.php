@@ -32,11 +32,18 @@ class PengalihanBarangService
         $unitTujuanId = $data['unit_tujuan_id'] ?? null;
         $lokasiGudangTujuanId = $data['lokasi_gudang_tujuan_id'] ?? null;
 
-        // Anti self-transfer guard
-        if ($tipeAsal === 'GUDANG' && $tipeTujuan === 'GUDANG' && $gudangAsalId === $gudangTujuanId) {
+        if (! in_array($tipeAsal, ['RUANGAN', 'GUDANG'], true) || ! in_array($tipeTujuan, ['RUANGAN', 'GUDANG'], true)) {
+            throw new InvalidArgumentException('Tipe asal dan tipe tujuan pengalihan harus RUANGAN atau GUDANG.');
+        }
+        if (($tipeAsal === 'GUDANG' ? ! $gudangAsalId : ! $unitAsalId) || ($tipeTujuan === 'GUDANG' ? ! $gudangTujuanId : ! $unitTujuanId)) {
+            throw new InvalidArgumentException('Fasilitas asal dan tujuan pengalihan wajib dipilih sesuai tipenya.');
+        }
+
+        // Anti self-transfer guard (cast int: ID dari request bisa berupa string)
+        if ($tipeAsal === 'GUDANG' && $tipeTujuan === 'GUDANG' && (int) $gudangAsalId === (int) $gudangTujuanId) {
             throw new InvalidArgumentException('Gudang asal dan tujuan pengalihan tidak boleh sama.');
         }
-        if ($tipeAsal === 'RUANGAN' && $tipeTujuan === 'RUANGAN' && $unitAsalId === $unitTujuanId) {
+        if ($tipeAsal === 'RUANGAN' && $tipeTujuan === 'RUANGAN' && (int) $unitAsalId === (int) $unitTujuanId) {
             throw new InvalidArgumentException('Unit asal dan tujuan pengalihan tidak boleh sama.');
         }
 
@@ -79,7 +86,16 @@ class PengalihanBarangService
                 }
 
                 if ($tipeAsal === 'GUDANG') {
-                    $batch = StokBatch::lockForUpdate()->findOrFail($batchId);
+                    if (! $batchId) {
+                        throw new InvalidArgumentException('Batch stok asal wajib dipilih untuk pengalihan dari gudang.');
+                    }
+                    $batch = StokBatch::lockForUpdate()->find($batchId);
+                    if (! $batch
+                        || (int) $batch->gudang_id !== (int) $gudangAsalId
+                        || (int) $batch->barang_id !== (int) $barangId
+                        || $batch->status !== 'AKTIF') {
+                        throw new InvalidArgumentException('Batch stok tidak valid: bukan milik gudang asal, bukan barang yang dipilih, atau tidak aktif.');
+                    }
                     if ($batch->jumlah < $jumlah) {
                         throw new InvalidArgumentException("Stok batch {$batch->nomor_batch} tidak mencukupi untuk dialihkan.");
                     }

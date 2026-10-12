@@ -44,6 +44,8 @@ class LoginGateway extends Component
         // 3. Validasi Status Akun Aktif
         if ($user->status !== 'AKTIF') {
             Auth::logout();
+            session()->invalidate();
+            session()->regenerateToken();
             throw ValidationException::withMessages([
                 'email' => 'Akun Anda dinonaktifkan oleh administrator. Hubungi bagian IT / SIMRS.',
             ]);

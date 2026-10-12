@@ -5,6 +5,7 @@ namespace App\Livewire\Aset;
 use App\Enums\StatusAset;
 use App\Enums\StatusPeminjaman;
 use App\Enums\StatusPengalihan;
+use App\Livewire\Concerns\AuthorizesPengalihan;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -20,7 +21,12 @@ use Livewire\Component;
 
 class PengalihanAsetIndex extends Component
 {
-    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
+    use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, AuthorizesPengalihan;
+
+    protected function entitasPengalihan(): string
+    {
+        return 'layanan_unit::pengalihan::aset';
+    }
 
     #[Url(history: true)]
     public string $activeTab = 'aktif'; // 'aktif' | 'riwayat'
@@ -235,6 +241,8 @@ class PengalihanAsetIndex extends Component
         $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
         $ownUnitId = ! $isGlobalAdmin ? $user?->unit_id : null;
         $ownGudangId = ! $isGlobalAdmin ? $user?->gudang_id : null;
+        $userUnitId = $user?->unit_id;
+        $userGudangId = $user?->gudang_id;
 
         $assets = Aset::where('barang_id', $this->selected_barang_id)
             ->whereIn('status', StatusAset::dapatDialihkan())
@@ -513,6 +521,7 @@ class PengalihanAsetIndex extends Component
     {
         $user = auth()->user();
         $transfer = PengalihanAset::with(['detail.aset.barang'])->findOrFail($id);
+        $this->authorizePengalihan($transfer, 'serah_terima', 'Hanya fasilitas tujuan yang berhak mengonfirmasi serah terima fisik aset.');
 
         abort_unless(
             $transfer->status === StatusPengalihan::Disetujui->value,
@@ -535,8 +544,7 @@ class PengalihanAsetIndex extends Component
     public function executeTerima(): void
     {
         $user = auth()->user();
-        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
-        abort_unless($user?->can('update_layanan_unit::pengalihan::aset') || $isGlobalAdmin, 403, 'Anda tidak memiliki wewenang untuk mengonfirmasi serah terima fisik aset.');
+        $this->authorizePengalihan(PengalihanAset::findOrFail($this->transferTerima?->id), 'serah_terima', 'Hanya fasilitas tujuan yang berhak mengonfirmasi serah terima fisik aset.');
 
         try {
             $service = app(PengalihanAsetService::class);
@@ -554,7 +562,7 @@ class PengalihanAsetIndex extends Component
     public function cancelPengalihan(int $id): void
     {
         $user = auth()->user();
-        abort_unless($user?->can('delete_layanan_unit::pengalihan::aset') || ($user && $user->hasRole(['super_admin', 'admin_logistik'])), 403, 'Anda tidak memiliki wewenang untuk membatalkan pengalihan aset.');
+        $this->authorizePengalihan(PengalihanAset::findOrFail($id), 'batal', 'Hanya pengaju dengan izin pembatalan yang berhak membatalkan pengalihan aset ini.');
 
         try {
             $service = app(PengalihanAsetService::class);
@@ -804,6 +812,7 @@ class PengalihanAsetIndex extends Component
             'gudangs' => $gudangs,
             'raks' => $raks,
             'isGlobalAdmin' => $isGlobalAdmin,
+            'izin' => $this->izinPengalihan($items),
             'isOriginLocked' => $isOriginLocked,
             'namaLokasiAsalUser' => $namaLokasiAsalUser,
         ])->layout('layouts.portal', [

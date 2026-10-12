@@ -203,9 +203,7 @@
                                             Detail Pinjam
                                         </flux:menu.item>
                                         @php
-                                            $canSerahTerima = $isGlobalAdmin ||
-                                                ($item->tipe_penyedia === 'RUANGAN' && (int) $userUnitId === (int) $item->unit_penyedia_id) ||
-                                                ($item->tipe_penyedia === 'GUDANG' && (int) $userGudangId === (int) $item->gudang_penyedia_id);
+                                            $canSerahTerima = $izin[$item->id]['serah_terima'] ?? false;
                                         @endphp
                                         @if ($item->status === \App\Enums\StatusPeminjaman::Disetujui->value && $canSerahTerima)
                                             <flux:menu.item wire:click="confirmSerahTerima({{ $item->id }})" icon="arrow-right-start-on-rectangle">
@@ -699,9 +697,7 @@
                 @endif
 
                 @php
-                    $canSerahTerimaModal = $isGlobalAdmin ||
-                        ($selectedPinjam->tipe_penyedia === 'RUANGAN' && (int) $userUnitId === (int) $selectedPinjam->unit_penyedia_id) ||
-                        ($selectedPinjam->tipe_penyedia === 'GUDANG' && (int) $userGudangId === (int) $selectedPinjam->gudang_penyedia_id);
+                    $canSerahTerimaModal = $izinSelected['serah_terima'] ?? false;
                 @endphp
 
                 @if ($selectedPinjam->status === \App\Enums\StatusPeminjaman::Disetujui->value && $canSerahTerimaModal)
