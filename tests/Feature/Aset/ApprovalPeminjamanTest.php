@@ -120,4 +120,19 @@ class ApprovalPeminjamanTest extends TestCase
         $pinjam2->refresh();
         $this->assertEquals('DIAJUKAN', $pinjam2->status, 'Permintaan 2 tidak boleh disetujui untuk aset yang sudah disetujui.');
     }
+
+    public function test_set_filter_tab_updates_filter_status_and_resets_filters(): void
+    {
+        $this->actingAs($this->userPenyedia);
+
+        Livewire::test(ApprovalPeminjamanIndex::class)
+            ->assertViewHas('countSemua')
+            ->assertSet('filterStatus', '')
+            ->call('setFilterTab', 'DIAJUKAN')
+            ->assertSet('filterStatus', 'DIAJUKAN')
+            ->set('search', 'test')
+            ->call('resetFilters')
+            ->assertSet('filterStatus', '')
+            ->assertSet('search', '');
+    }
 }

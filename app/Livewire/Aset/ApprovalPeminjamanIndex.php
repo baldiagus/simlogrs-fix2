@@ -339,6 +339,18 @@ class ApprovalPeminjamanIndex extends Component
             })(),
         };
     }
+    public function setFilterTab(string $status = ''): void
+    {
+        $this->filterStatus = $status;
+        $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->filterStatus = '';
+        $this->resetPage();
+    }
 
     public function render()
     {
@@ -348,10 +360,10 @@ class ApprovalPeminjamanIndex extends Component
         $baseCountQuery = PermintaanPeminjaman::query();
         $this->applyScope($baseCountQuery);
 
+        $countSemua = (clone $baseCountQuery)->count();
         $countMenunggu = (clone $baseCountQuery)->where('status', StatusPeminjaman::Diajukan->value)->count();
         $countSiapSerahTerima = (clone $baseCountQuery)->where('status', StatusPeminjaman::Disetujui->value)->count();
         $countDipinjam = (clone $baseCountQuery)->where('status', StatusPeminjaman::Dipinjam->value)->count();
-
         $query = PermintaanPeminjaman::with([
             'unitPeminjam',
             'unitPenyedia',
@@ -388,6 +400,7 @@ class ApprovalPeminjamanIndex extends Component
             'pageTitle'            => $pageTitle,
             'isGlobalAdmin'        => $isGlobalAdmin,
             'countMenunggu'        => $countMenunggu,
+            'countSemua'           => $countSemua,
             'countSiapSerahTerima' => $countSiapSerahTerima,
             'countDipinjam'        => $countDipinjam,
             'filterStatus'         => $this->filterStatus,

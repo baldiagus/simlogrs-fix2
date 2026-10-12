@@ -14,78 +14,57 @@
 
     {{-- Workspace Card Utama --}}
     <flux:card class="space-y-5 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+        {{-- Navigasi Tab Status --}}
+        <flux:tabs class="pt-2 overflow-x-auto">
+            <flux:tab
+                wire:click="setFilterTab('')"
+                :current="$filterStatus === ''"
+                icon="inbox-stack"
+                :badge="$countSemua"
+            >
+                Semua
+            </flux:tab>
+            <flux:tab
+                wire:click="setFilterTab('{{ \App\Enums\StatusPeminjaman::Diajukan->value }}')"
+                :current="$filterStatus === \App\Enums\StatusPeminjaman::Diajukan->value"
+                icon="clock"
+                :badge="$countMenunggu"
+            >
+                Menunggu Otorisasi
+            </flux:tab>
+            <flux:tab
+                wire:click="setFilterTab('{{ \App\Enums\StatusPeminjaman::Disetujui->value }}')"
+                :current="$filterStatus === \App\Enums\StatusPeminjaman::Disetujui->value"
+                icon="check-circle"
+                :badge="$countSiapSerahTerima"
+            >
+                Siap Serah Terima
+            </flux:tab>
+            <flux:tab
+                wire:click="setFilterTab('{{ \App\Enums\StatusPeminjaman::Dipinjam->value }}')"
+                :current="$filterStatus === \App\Enums\StatusPeminjaman::Dipinjam->value"
+                icon="arrow-path"
+                :badge="$countDipinjam"
+            >
+                Sedang Dipinjam
+            </flux:tab>
+        </flux:tabs>
+
         {{-- Toolbar filter dan pencarian --}}
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-1">
-            <div class="flex flex-wrap items-center gap-1.5">
-                <flux:button
-                    wire:click="$set('filterStatus', '')"
-                    size="xs"
-                    :variant="$filterStatus === '' ? 'primary' : 'ghost'"
-                >
-                    Semua
-                </flux:button>
-                <flux:button
-                    wire:click="$set('filterStatus', '{{ \App\Enums\StatusPeminjaman::Diajukan->value }}')"
-                    size="xs"
-                    :variant="$filterStatus === \App\Enums\StatusPeminjaman::Diajukan->value ? 'primary' : 'ghost'"
-                >
-                    Menunggu Otorisasi
-                    @if ($countMenunggu > 0)
-                        <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700/60">
-                            {{ $countMenunggu }}
-                        </span>
-                    @endif
-                </flux:button>
-                <flux:button
-                    wire:click="$set('filterStatus', '{{ \App\Enums\StatusPeminjaman::Disetujui->value }}')"
-                    size="xs"
-                    :variant="$filterStatus === \App\Enums\StatusPeminjaman::Disetujui->value ? 'primary' : 'ghost'"
-                >
-                    Siap Serah Terima
-                    @if ($countSiapSerahTerima > 0)
-                        <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-900 dark:bg-blue-900/60 dark:text-blue-200 border border-blue-300 dark:border-blue-700/60">
-                            {{ $countSiapSerahTerima }}
-                        </span>
-                    @endif
-                </flux:button>
-                <flux:button
-                    wire:click="$set('filterStatus', '{{ \App\Enums\StatusPeminjaman::Dipinjam->value }}')"
-                    size="xs"
-                    :variant="$filterStatus === \App\Enums\StatusPeminjaman::Dipinjam->value ? 'primary' : 'ghost'"
-                >
-                    Sedang Dipinjam
-                    @if ($countDipinjam > 0)
-                        <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 dark:bg-emerald-900/60 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700/60">
-                            {{ $countDipinjam }}
-                        </span>
-                    @endif
-                </flux:button>
+        <div class="flex flex-wrap items-center justify-between gap-4 pt-1">
+            <div class="w-full sm:w-80">
+                <flux:input
+                    wire:model.live.debounce.300ms="search"
+                    placeholder="Cari kode PINJ, aset, peminjam, keperluan..."
+                    icon="magnifying-glass"
+                    size="sm"
+                    clearable
+                />
             </div>
-
-            <div class="flex items-center gap-2.5 w-full md:w-auto">
-                <div class="w-full sm:w-72">
-                    <flux:input
-                        wire:model.live.debounce.300ms="search"
-                        placeholder="Cari kode PINJ, aset, peminjam..."
-                        icon="magnifying-glass"
-                        clearable
-                    />
-                </div>
-
-                <div class="w-40 shrink-0">
-                    <select
-                        wire:model.live="filterStatus"
-                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100"
-                    >
-                        <option value="">Semua Status</option>
-                        @foreach (\App\Enums\StatusPeminjaman::cases() as $statusPinjam)
-                            <option value="{{ $statusPinjam->value }}">{{ $statusPinjam->value }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
+            @if ($filterStatus !== '' || $search !== '')
+                <flux:button wire:click="resetFilters" size="sm" variant="ghost">Reset Filter</flux:button>
+            @endif
         </div>
-
         {{-- Tabel permintaan peminjaman --}}
         <flux:table bleed container:class="mt-4">
             <flux:table.columns sticky>
