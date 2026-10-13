@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Auth\PenggunaPeran;
+use App\Models\Auth\UserDeviceToken;
 use App\Models\Master\Gudang;
 use App\Models\Master\Unit;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -74,5 +75,13 @@ class User extends Authenticatable
     public function penggunaPeran(): HasMany
     {
         return $this->hasMany(PenggunaPeran::class, 'pengguna_id');
+    }
+
+    /**
+     * Token FCM perangkat pengguna.
+     */
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(UserDeviceToken::class, 'pengguna_id');
     }
 }

@@ -79,6 +79,11 @@ class AuthController extends ApiController
      */
     public function logout(Request $request): JsonResponse
     {
+        // Perangkat yang keluar tidak boleh lagi menerima push: hapus token FCM bila dikirim.
+        if ($request->filled('fcm_token')) {
+            $request->user()->deviceTokens()->where('fcm_token', $request->input('fcm_token'))->delete();
+        }
+
         $request->user()->currentAccessToken()->delete();
 
         return $this->jsonSuccess(null, 'Berhasil keluar dari sesi mobile.');

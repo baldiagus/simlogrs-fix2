@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Models\Master\Notifikasi;
 use App\Http\Controllers\Api\ApiController;
 use App\Services\Dashboard\GudangDashboardBuilder;
 use App\Services\Dashboard\IpsrsDashboardBuilder;
@@ -53,6 +54,8 @@ class DashboardApiController extends ApiController
             $isManajemen     => $pengawasan->buildManajemen($user),
             default          => $pengadaan->buildDefault($user),
         };
+
+        $data['belum_dibaca'] = Notifikasi::where('pengguna_id', $user->id)->belumDibaca()->count();
 
         return $this->jsonSuccess($data, 'Ringkasan dashboard personal berhasil dimuat.');
     }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Aset\AsetPeminjamanApprovalApiController;
 use App\Http\Controllers\Api\V1\Aset\AsetPengalihanApiController;
 use App\Http\Controllers\Api\V1\Audit\AuditKepatuhanApiController;
 use App\Http\Controllers\Api\V1\Audit\AuditTemuanApiController;
+use App\Http\Controllers\Api\V1\Auth\FcmTokenApiController;
 use App\Http\Controllers\Api\V1\Audit\AuditTrailApiController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\DashboardApiController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Api\V1\Gudang\GudangPenerimaanPoApiController;
 use App\Http\Controllers\Api\V1\Gudang\GudangPengalihanBarangApiController;
 use App\Http\Controllers\Api\V1\Gudang\GudangTataLetakApiController;
 use App\Http\Controllers\Api\V1\Ipsrs\IpsrsJadwalApiController;
+use App\Http\Controllers\Api\V1\Notifikasi\NotifikasiApiController;
 use App\Http\Controllers\Api\V1\Ipsrs\IpsrsRekamMedisApiController;
 use App\Http\Controllers\Api\V1\Maintenance\MaintenanceLembarKerjaApiController;
 use App\Http\Controllers\Api\V1\Maintenance\MaintenanceSpkApiController;
@@ -52,6 +54,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/auth/ganti-password', [AuthController::class, 'gantiPasswordWajib']);
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::get('/dashboard/summary', [DashboardApiController::class, 'summary']);
+
+        // Notifikasi inbox & token FCM (docs/NOTIFICATION_CONTRACT.md)
+        Route::post('/auth/fcm-token', [FcmTokenApiController::class, 'simpan']);
+        Route::delete('/auth/fcm-token', [FcmTokenApiController::class, 'hapus']);
+        Route::get('/notifikasi', [NotifikasiApiController::class, 'index']);
+        Route::post('/notifikasi/baca-semua', [NotifikasiApiController::class, 'bacaSemua']);
+        Route::post('/notifikasi/{id}/dibaca', [NotifikasiApiController::class, 'dibaca'])->whereNumber('id');
         // 4. Persetujuan Cepat Pejabat / Karu
         Route::get('/approval/pending', [ApprovalController::class, 'pending']);
         Route::post('/approval/pr/{id}', [ApprovalController::class, 'approvePr']);
