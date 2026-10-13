@@ -454,6 +454,8 @@
 
         <flux:spacer />
 
+        {{-- Lonceng notifikasi pengguna (polling 30 detik) --}}
+        @livewire('notifikasi.lonceng')
 
         {{-- Dropdown Profile Pengguna di ujung kanan --}}
         <flux:dropdown position="top" align="start">

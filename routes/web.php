@@ -15,6 +15,7 @@ use App\Livewire\Dashboard\ManajemenDashboard;
 use App\Livewire\Dashboard\AuditorDashboard;
 use App\Livewire\User\PenggunaIndex;
 use App\Livewire\User\RoleManager;
+use App\Livewire\Notifikasi\DaftarNotifikasi;
 use App\Livewire\Master\UnitIndex;
 use App\Livewire\Master\GudangIndex;
 use App\Livewire\Master\LokasiGudangIndex;
@@ -97,6 +98,9 @@ foreach ($portals as $portalKey => $dashboardClass) {
         ->group(function () use ($portalKey, $dashboardClass) {
             // Dashboard Resmi Peran
             Route::get('/dashboard', $dashboardClass)->name('dashboard');
+
+            // Daftar notifikasi pengguna login
+            Route::get('/notifikasi', DaftarNotifikasi::class)->name('notifikasi');
 
             // Manajemen RBAC Khusus Super Admin
             if ($portalKey === 'super-admin') {

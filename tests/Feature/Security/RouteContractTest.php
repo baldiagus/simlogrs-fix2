@@ -54,6 +54,7 @@ class RouteContractTest extends TestCase
         'lokasi-gudang'         => 'lokasi-gudang',
         'master-rekanan'        => 'master-rekanan',
         'merek'                 => 'merek',
+        'notifikasi'            => 'notifikasi',
         'monitoring-fefo'       => 'monitoring-fefo',
         'otorisasi-penyesuaian' => 'otorisasi-penyesuaian',
         'pemasok'               => 'pemasok',
@@ -162,8 +163,8 @@ class RouteContractTest extends TestCase
             $this->assertSame($expected, $paths, "Path portal '{$portal}' menyimpang dari kontrak.");
         }
 
-        $this->assertCount(41, self::SHARED_ROUTES);
-        $this->assertSame(41 * 10 + 3, array_sum(array_map('count', $byPortal)));
+        $this->assertCount(42, self::SHARED_ROUTES);
+        $this->assertSame(42 * 10 + 3, array_sum(array_map('count', $byPortal)));
     }
 
     public function test_portal_route_names_follow_portal_prefix_contract_and_are_unique(): void
