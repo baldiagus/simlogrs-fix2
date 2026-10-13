@@ -68,26 +68,32 @@ Semua nilai string. Backend mengirim **notification + data** agar tampil walau a
 
 | `tipe` | Pemicu (model: status baru) | Penerima | Tujuan di app |
 |---|---|---|---|
-| `APPROVAL_PR` | `PermintaanPengadaan` → `DIAJUKAN` | Karu `unit_id` sama; `admin_logistik` | Approval Center, tab PR |
+| `APPROVAL_PR` | `PermintaanPengadaan` → `DIAJUKAN` | Karu `unit_id` sama (PR gudang: `kepala_gudang` `gudang_id` sama); `admin_logistik` | Approval Center, tab PR |
 | `APPROVAL_PR` | `PermintaanPengadaan` → `DITERUSKAN_KE_PENGADAAN` | role `pengadaan` | Approval Center, tab PR |
 | `PR_DIPUTUSKAN` | `PermintaanPengadaan` → `DISETUJUI` / `DITOLAK` | `diajukan_oleh` | Riwayat PR |
-| `PO_TERBIT` | `PesananPembelian` → `DITERBITKAN` | `kepala_gudang`, `petugas_gudang` (`gudang_id` sama) | Inbound PO |
+| `PO_TERBIT` | `PesananPembelian` → `DITERBITKAN` | `kepala_gudang`, `petugas_gudang`; `gudang_id` = gudang PR asal (`permintaan_pengadaan.gudang_id`), PO tidak punya kolom gudang; bila PR dari unit, semua staf gudang | Inbound PO |
 | `APPROVAL_AMPRAH` | `PermintaanDistribusi` → `DIAJUKAN` | Karu `unit_id` sama | Approval Center, tab Amprah |
-| `ANTREAN_PICKING` | `PermintaanDistribusi` → `DISETUJUI_KARU` | gudang `gudang_id` sama | Antrean Picking |
+| `ANTREAN_PICKING` | `PermintaanDistribusi` → `DISETUJUI_KARU` | `kepala_gudang` + `petugas_gudang` `gudang_id` sama | Antrean Picking |
 | `AMPRAH_DIPUTUSKAN` | `PermintaanDistribusi` → `DITOLAK` | `diajukan_oleh` | Detail Amprah |
-| `SPPB_DIKIRIM` | `PengirimanBarang` → `DIKIRIM` | pengaju amprah + Karu `unit_id` | SPPB Inbound |
+| `SPPB_DIKIRIM` | `PengirimanBarang` → `DIKIRIM` | pengaju amprah (`permintaan_distribusi.diajukan_oleh`) + Karu `pengiriman_barang.unit_id` | SPPB Inbound |
 | `TIKET_BARU` | `PermintaanMaintenance` → `DILAPORKAN` | `kepala_teknisi`, `admin_logistik` | Hub IPSRS |
 | `SPK_DITUGASKAN` | `PenugasanMaintenance` dibuat (`DITUGASKAN`) | `teknisi_id` | Detail SPK |
-| `PERBAIKAN_SELESAI` | `PermintaanMaintenance` → `SELESAI` | pelapor + Karu `unit_id` | Detail tiket |
-| `PINJAM_BARU` | `PermintaanPeminjaman` → `DIAJUKAN` | Karu pemilik aset | Otorisasi Sirkulasi |
+| `PERBAIKAN_SELESAI` | `PermintaanMaintenance` → `SELESAI` | pelapor (`dilaporkan_oleh`) + Karu `unit_id` | Detail tiket |
+| `PINJAM_BARU` | `PermintaanPeminjaman` → `DIAJUKAN` | Karu `unit_penyedia_id` (unit pemilik aset; `unit_id` = unit peminjam); penyedia GUDANG: `kepala_gudang` `gudang_penyedia_id` | Otorisasi Sirkulasi |
 | `PINJAM_DIPUTUSKAN` | `PermintaanPeminjaman` → `DISETUJUI` / `DITOLAK` | `diajukan_oleh` | Peminjaman Saya |
-| `PENGALIHAN_MASUK` | `PengalihanAset` → `DIAJUKAN` | Karu unit tujuan | Hub Pengalihan |
-| `OTORISASI_STOK` | `PenyesuaianStok` → `MENUNGGU` | `kepala_gudang`, `admin_logistik` | Otorisasi Penyesuaian |
+| `PENGALIHAN_MASUK` | `App\Models\Aset\PengalihanAset` → `DIAJUKAN` | Karu `unit_tujuan_id` (tujuan GUDANG: `kepala_gudang` `gudang_tujuan_id`) | Hub Pengalihan |
+| `OTORISASI_STOK` | `PenyesuaianStok` → `MENUNGGU` | `kepala_gudang` `gudang_id` sama, `admin_logistik` | Otorisasi Penyesuaian |
 | `PINJAM_JATUH_TEMPO` | cron H-1 sebelum `tanggal_kembali_rencana` | peminjam + penyetuju | Peminjaman Saya |
 | `PINJAM_TERLAMBAT` | cron harian: lewat `tanggal_kembali_rencana` | peminjam + penyetuju | Peminjaman Saya |
 | `SPK_PREVENTIF` | cron preventif menugaskan teknisi | `teknisi_id` | Detail SPK |
 
 `referensi_id` = id baris dokumen yang dimaksud.
+
+Catatan implementasi pemicu (Observer di `app/Observers`, penerima di `PenerimaResolver`):
+
+- Hanya pengguna `status = 'AKTIF'` yang menerima; pelaku (`Auth::id()`) dikeluarkan.
+- `PR_DIPUTUSKAN` juga terkirim saat PR `DIAJUKAN` → `DITERUSKAN_KE_PENGADAAN` (persetujuan ruangan/gudang), selain `DISETUJUI`/`DITOLAK`.
+- `SPK_DITUGASKAN` hanya untuk SPK yang dibuat oleh pengguna login; SPK buatan cron tanpa pelaku memakai `SPK_PREVENTIF`.
 
 ## 5. Aturan pengiriman
 

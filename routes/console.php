@@ -9,6 +9,7 @@ use App\Models\Persediaan\StokBatch;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\Artisan;
+use App\Services\Notifikasi\NotifikasiService;
 use Illuminate\Support\Facades\Cache;
 
 /*
@@ -53,57 +54,62 @@ Artisan::command('simlog:sweep-expired-batches', function () {
 })->purpose('Mengunci status batch kedaluwarsa dan memantau batch <90 hari')->dailyAt('00:01');
 
 /**
+ * Helper bersama command peringatan peminjaman: kirim ke pengaju dan penyetuju (bila beda)
+ * lewat NotifikasiService, dengan dedup harian per (pengguna, tipe, referensi_id).
+ * Mengembalikan jumlah notifikasi yang benar-benar diterbitkan.
+ */
+$kirimPeringatanPinjaman = function (
+    PermintaanPeminjaman $loan,
+    string $tipe,
+    string $judulPengaju,
+    string $pesanPengaju,
+    string $judulPenyetuju,
+    string $pesanPenyetuju,
+): int {
+    $sudahTerkirim = fn (int $penggunaId): bool => Notifikasi::where('pengguna_id', $penggunaId)
+        ->where('tipe', $tipe)
+        ->where('referensi_id', (string) $loan->id)
+        ->whereDate('dibuat_pada', now()->toDateString())
+        ->exists();
+
+    $service = app(NotifikasiService::class);
+    $count = 0;
+
+    if ($loan->diajukan_oleh && ! $sudahTerkirim($loan->diajukan_oleh)) {
+        $count += $service->kirim([$loan->diajukan_oleh], $judulPengaju, $pesanPengaju, $tipe, (string) $loan->id, '/petugas-unit/peminjaman-aset')->count();
+    }
+
+    if ($loan->disetujui_oleh && $loan->disetujui_oleh !== $loan->diajukan_oleh && ! $sudahTerkirim($loan->disetujui_oleh)) {
+        $count += $service->kirim([$loan->disetujui_oleh], $judulPenyetuju, $pesanPenyetuju, $tipe, (string) $loan->id, '/kepala-unit/approval-peminjaman')->count();
+    }
+
+    return $count;
+};
+
+/**
  * 2. Alert Overdue Loans (Jadwal: Harian 06:00 WIB)
  * Memindai peminjaman sarana aset yang melewati tanggal rencana pengembalian
  * dan menerbitkan notifikasi lonceng internal kepada peminjam & penanggung jawab.
  */
-Artisan::command('simlog:alert-overdue-loans', function () {
+Artisan::command('simlog:alert-overdue-loans', function () use ($kirimPeringatanPinjaman) {
     $this->info('[' . now()->toDateTimeString() . '] Memeriksa peminjaman aset yang melewati jatuh tempo...');
-
-    $today = now()->toDateString();
 
     $overdueLoans = PermintaanPeminjaman::with(['pengaju', 'unitPeminjam', 'penyetuju'])
         ->whereIn('status', ['DISETUJUI', 'DIPINJAM'])
-        ->where('tanggal_kembali_rencana', '<', $today)
+        ->where('tanggal_kembali_rencana', '<', now()->toDateString())
         ->get();
 
     $notifCount = 0;
     foreach ($overdueLoans as $loan) {
-        $alreadyNotified = Notifikasi::where('pengguna_id', $loan->diajukan_oleh)
-            ->where('judul', 'like', "%{$loan->kode}%")
-            ->whereDate('dibuat_pada', $today)
-            ->exists();
-
-        if (! $alreadyNotified) {
-            Notifikasi::create([
-                'pengguna_id' => $loan->diajukan_oleh,
-                'judul' => "Peringatan Keterlambatan Pengembalian Aset ({$loan->kode})",
-                'pesan' => "Peminjaman aset {$loan->kode} telah melewati batas rencana kembali ({$loan->tanggal_kembali_rencana->format('d/m/Y')}). Mohon segera lakukan pengembalian fisik ke unit penyedia.",
-                'tautan' => '/petugas-unit/peminjaman-aset',
-                'dibaca' => false,
-                'dibuat_pada' => now(),
-            ]);
-            $notifCount++;
-        }
-
-        if ($loan->disetujui_oleh && $loan->disetujui_oleh !== $loan->diajukan_oleh) {
-            $alreadyNotifiedKaru = Notifikasi::where('pengguna_id', $loan->disetujui_oleh)
-                ->where('judul', 'like', "%{$loan->kode}%")
-                ->whereDate('dibuat_pada', $today)
-                ->exists();
-
-            if (! $alreadyNotifiedKaru) {
-                Notifikasi::create([
-                    'pengguna_id' => $loan->disetujui_oleh,
-                    'judul' => "Pemberitahuan Peminjaman Melewati Jatuh Tempo ({$loan->kode})",
-                    'pesan' => "Peminjaman aset {$loan->kode} oleh unit {$loan->unitPeminjam?->nama} belum dikembalikan melewati batas {$loan->tanggal_kembali_rencana->format('d/m/Y')}.",
-                    'tautan' => '/kepala-unit/approval-peminjaman',
-                    'dibaca' => false,
-                    'dibuat_pada' => now(),
-                ]);
-                $notifCount++;
-            }
-        }
+        $tgl = $loan->tanggal_kembali_rencana->format('d/m/Y');
+        $notifCount += $kirimPeringatanPinjaman(
+            $loan,
+            'PINJAM_TERLAMBAT',
+            "Peringatan Keterlambatan Pengembalian Aset ({$loan->kode})",
+            "Peminjaman aset {$loan->kode} telah melewati batas rencana kembali ({$tgl}). Mohon segera lakukan pengembalian fisik ke unit penyedia.",
+            "Pemberitahuan Peminjaman Melewati Jatuh Tempo ({$loan->kode})",
+            "Peminjaman aset {$loan->kode} oleh unit {$loan->unitPeminjam?->nama} belum dikembalikan melewati batas {$tgl}.",
+        );
     }
 
     Cache::put('simlog:last_run:alert_overdue', [
@@ -116,6 +122,42 @@ Artisan::command('simlog:alert-overdue-loans', function () {
 
     $this->info("Pemeriksaan selesai: {$overdueLoans->count()} overdue, {$notifCount} notifikasi terkirim.");
 })->purpose('Mendeteksi peminjaman aset overdue dan mengirim notifikasi internal')->dailyAt('06:00');
+
+/**
+ * 2b. Alert Due-Soon Loans (Jadwal: Harian 07:00 WIB)
+ * Peminjaman aset yang jatuh tempo besok (H-1) diingatkan ke peminjam & penyetuju.
+ */
+Artisan::command('simlog:alert-due-soon-loans', function () use ($kirimPeringatanPinjaman) {
+    $this->info('[' . now()->toDateTimeString() . '] Memeriksa peminjaman aset yang jatuh tempo besok...');
+
+    $dueSoonLoans = PermintaanPeminjaman::with(['pengaju', 'unitPeminjam', 'penyetuju'])
+        ->whereIn('status', ['DISETUJUI', 'DIPINJAM'])
+        ->whereDate('tanggal_kembali_rencana', now()->addDay()->toDateString())
+        ->get();
+
+    $notifCount = 0;
+    foreach ($dueSoonLoans as $loan) {
+        $tgl = $loan->tanggal_kembali_rencana->format('d/m/Y');
+        $notifCount += $kirimPeringatanPinjaman(
+            $loan,
+            'PINJAM_JATUH_TEMPO',
+            "Pengingat Pengembalian Aset Besok ({$loan->kode})",
+            "Peminjaman aset {$loan->kode} jatuh tempo besok ({$tgl}). Mohon siapkan pengembalian fisik ke unit penyedia.",
+            "Pemberitahuan Peminjaman Jatuh Tempo Besok ({$loan->kode})",
+            "Peminjaman aset {$loan->kode} oleh unit {$loan->unitPeminjam?->nama} jatuh tempo besok ({$tgl}).",
+        );
+    }
+
+    Cache::put('simlog:last_run:alert_due_soon', [
+        'waktu' => now()->toDateTimeString(),
+        'status' => 'Sukses',
+        'ringkasan' => "{$dueSoonLoans->count()} peminjaman jatuh tempo besok, {$notifCount} notifikasi diterbitkan",
+        'due_soon_count' => $dueSoonLoans->count(),
+        'notif_count' => $notifCount,
+    ]);
+
+    $this->info("Pemeriksaan selesai: {$dueSoonLoans->count()} jatuh tempo besok, {$notifCount} notifikasi terkirim.");
+})->purpose('Mengingatkan peminjaman aset yang jatuh tempo besok (H-1)')->dailyAt('07:00');
 
 /**
  * 3. Generate Preventive Maintenance (Jadwal: Harian 01:00 WIB)
@@ -152,7 +194,7 @@ Artisan::command('simlog:generate-preventive-maintenance', function () {
         ]);
 
         if ($jadwal->teknisi_id) {
-            PenugasanMaintenance::create([
+            $penugasan = PenugasanMaintenance::create([
                 'kode' => CodeGenerator::generateSpk(),
                 'permintaan_maintenance_id' => $tiket->id,
                 'teknisi_id' => $jadwal->teknisi_id,
@@ -164,14 +206,14 @@ Artisan::command('simlog:generate-preventive-maintenance', function () {
                 'dibuat_pada' => now(),
             ]);
 
-            Notifikasi::create([
-                'pengguna_id' => $jadwal->teknisi_id,
-                'judul' => "SPK Preventif Baru: {$tiket->kode}",
-                'pesan' => "Anda ditugaskan pada pemeliharaan preventif " . ($jadwal->aset?->barang?->nama ?? 'Aset') . " ({$jadwal->jenis_maintenance}).",
-                'tautan' => '/teknisi/lembar-kerja',
-                'dibaca' => false,
-                'dibuat_pada' => now(),
-            ]);
+            app(NotifikasiService::class)->kirim(
+                [$jadwal->teknisi_id],
+                "SPK Preventif Baru: {$tiket->kode}",
+                "Anda ditugaskan pada pemeliharaan preventif " . ($jadwal->aset?->barang?->nama ?? 'Aset') . " ({$jadwal->jenis_maintenance}).",
+                'SPK_PREVENTIF',
+                (string) $penugasan->id,
+                '/teknisi/lembar-kerja',
+            );
         }
         if ($jadwal->aset && $jadwal->aset->status !== 'DALAM_MAINTENANCE') {
             $jadwal->aset->update(['status' => 'DALAM_MAINTENANCE']);

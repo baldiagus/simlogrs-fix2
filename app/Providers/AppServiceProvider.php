@@ -35,5 +35,16 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Database\Eloquent\Model::handleLazyLoadingViolationUsing(
             fn ($model, $relation) => logger()->warning('lazy-load', ['model' => get_class($model), 'relation' => $relation])
         );
+
+        // Pemicu notifikasi transaksi (satu kali untuk jalur web Livewire maupun API)
+        \App\Models\Pengadaan\PermintaanPengadaan::observe(\App\Observers\PermintaanPengadaanObserver::class);
+        \App\Models\Pengadaan\PesananPembelian::observe(\App\Observers\PesananPembelianObserver::class);
+        \App\Models\Distribusi\PermintaanDistribusi::observe(\App\Observers\PermintaanDistribusiObserver::class);
+        \App\Models\Distribusi\PengirimanBarang::observe(\App\Observers\PengirimanBarangObserver::class);
+        \App\Models\Ipsrs\PermintaanMaintenance::observe(\App\Observers\PermintaanMaintenanceObserver::class);
+        \App\Models\Ipsrs\PenugasanMaintenance::observe(\App\Observers\PenugasanMaintenanceObserver::class);
+        \App\Models\Aset\PermintaanPeminjaman::observe(\App\Observers\PermintaanPeminjamanObserver::class);
+        \App\Models\Aset\PengalihanAset::observe(\App\Observers\PengalihanAsetObserver::class);
+        \App\Models\Persediaan\PenyesuaianStok::observe(\App\Observers\PenyesuaianStokObserver::class);
     }
 }
