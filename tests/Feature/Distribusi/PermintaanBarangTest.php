@@ -3,11 +3,11 @@
 namespace Tests\Feature\Distribusi;
 
 use App\Livewire\Distribusi\PermintaanBarangIndex;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\PermintaanDistribusi;
-use App\Models\PermintaanDistribusiDetail;
-use App\Models\Unit;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Distribusi\PermintaanDistribusi;
+use App\Models\Distribusi\PermintaanDistribusiDetail;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;

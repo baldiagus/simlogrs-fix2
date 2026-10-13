@@ -69,7 +69,7 @@
                             </span>
                         </flux:table.cell>
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$item->status" />
+                            <x-ui.status-badge :status="$item->status" />
                         </flux:table.cell>
                         <flux:table.cell class="text-right w-16">
                             <flux:dropdown position="bottom" align="end">
@@ -97,13 +97,13 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada lokasi rak/bin yang terdaftar atau sesuai pencarian." cols="6" />
+                    <x-ui.empty-state message="Belum ada lokasi rak/bin yang terdaftar atau sesuai pencarian." cols="6" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
         {{-- Footer Pagination Terpadu: Kiri (Showing), Tengah (Baris per halaman), Kanan (Tombol) --}}
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     {{-- Modal Form Tambah / Ubah Rak --}}
@@ -115,7 +115,7 @@
             </div>
 
             <div>
-                <x-searchable-select
+                <x-ui.searchable-select
                     model="gudang_id"
                     label="Gudang Logistik"
                     placeholder="-- Ketik untuk mencari nama atau kode gudang... --"
@@ -189,14 +189,14 @@
                     </div>
                     <div>
                         <dt class="text-xs text-zinc-500 dark:text-zinc-400">Status</dt>
-                        <dd><x-status-badge :status="$selectedItem->status" /></dd>
+                        <dd><x-ui.status-badge :status="$selectedItem->status" /></dd>
                     </div>
                 </div>
             @endif
         </div>
     </flux:modal>
 
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

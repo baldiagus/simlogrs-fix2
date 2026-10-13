@@ -6,7 +6,7 @@ use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Pemasok;
+use App\Models\Master\Pemasok;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Validate;
@@ -19,7 +19,7 @@ class PemasokIndex extends Component
     public bool $showModal = false;
     public ?int $editingId = null;
     public bool $showDetailModal = false;
-    public ?\App\Models\Pemasok $selectedItem = null;
+    public ?\App\Models\Master\Pemasok $selectedItem = null;
 
     #[Validate('required|string|max:50')]
     public string $kode = '';
@@ -171,8 +171,8 @@ class PemasokIndex extends Component
 
         $pemasok = Pemasok::findOrFail($id);
 
-        $hasDependencies = \App\Models\PesananPembelian::where('pemasok_id', $id)->exists()
-            || \App\Models\Barang::where('pemasok_default_id', $id)->exists();
+        $hasDependencies = \App\Models\Pengadaan\PesananPembelian::where('pemasok_id', $id)->exists()
+            || \App\Models\Master\Barang::where('pemasok_default_id', $id)->exists();
 
         if ($hasDependencies) {
             $this->toast("Pemasok '{$pemasok->nama}' tidak dapat dihapus karena masih digunakan dalam riwayat pesanan/katalog barang. Silakan nonaktifkan status pemasok.", 'danger');

@@ -12,7 +12,7 @@
                         </flux:subheading>
                     </div>
                     <div style="margin-right: 2.25rem;">
-                        <x-status-badge :status="$selectedOpname->status" />
+                        <x-ui.status-badge :status="$selectedOpname->status" />
                     </div>
                 </div>
 

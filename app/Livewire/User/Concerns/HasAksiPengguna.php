@@ -166,19 +166,19 @@ trait HasAksiPengguna
         }
 
         // Cek ketergantungan relasi operasional
-        $hasDependencies = \App\Models\PermintaanPengadaan::where('diajukan_oleh', $id)->orWhere('disetujui_oleh', $id)->exists()
-            || \App\Models\PesananPembelian::where('dibuat_oleh', $id)->exists()
-            || \App\Models\PenerimaanBarang::where('diterima_oleh', $id)->exists()
-            || \App\Models\PermintaanDistribusi::where('diajukan_oleh', $id)->orWhere('disetujui_oleh', $id)->exists()
-            || \App\Models\PengirimanBarang::where('dikirim_oleh', $id)->exists()
-            || \App\Models\PenerimaanDistribusi::where('diterima_oleh', $id)->exists()
-            || \App\Models\PermintaanPeminjaman::where('diajukan_oleh', $id)->orWhere('disetujui_oleh', $id)->exists()
-            || \App\Models\PengembalianPeminjaman::where('diperiksa_oleh', $id)->exists()
-            || \App\Models\PermintaanMaintenance::where('dilaporkan_oleh', $id)->exists()
-            || \App\Models\PenugasanMaintenance::where('teknisi_id', $id)->orWhere('ditugaskan_oleh', $id)->exists()
-            || \App\Models\LogMaintenance::where('dikerjakan_oleh', $id)->exists()
-            || \App\Models\StokOpname::where('dibuat_oleh', $id)->orWhere('disetujui_oleh', $id)->exists()
-            || \App\Models\PenyesuaianStok::where('diajukan_oleh', $id)->orWhere('disetujui_oleh', $id)->exists();
+        $hasDependencies = \App\Models\Pengadaan\PermintaanPengadaan::where('diajukan_oleh', $id)->orWhere('disetujui_oleh', $id)->exists()
+            || \App\Models\Pengadaan\PesananPembelian::where('dibuat_oleh', $id)->exists()
+            || \App\Models\Pengadaan\PenerimaanBarang::where('diterima_oleh', $id)->exists()
+            || \App\Models\Distribusi\PermintaanDistribusi::where('diajukan_oleh', $id)->orWhere('disetujui_oleh', $id)->exists()
+            || \App\Models\Distribusi\PengirimanBarang::where('dikirim_oleh', $id)->exists()
+            || \App\Models\Distribusi\PenerimaanDistribusi::where('diterima_oleh', $id)->exists()
+            || \App\Models\Aset\PermintaanPeminjaman::where('diajukan_oleh', $id)->orWhere('disetujui_oleh', $id)->exists()
+            || \App\Models\Aset\PengembalianPeminjaman::where('diperiksa_oleh', $id)->exists()
+            || \App\Models\Ipsrs\PermintaanMaintenance::where('dilaporkan_oleh', $id)->exists()
+            || \App\Models\Ipsrs\PenugasanMaintenance::where('teknisi_id', $id)->orWhere('ditugaskan_oleh', $id)->exists()
+            || \App\Models\Ipsrs\LogMaintenance::where('dikerjakan_oleh', $id)->exists()
+            || \App\Models\Persediaan\StokOpname::where('dibuat_oleh', $id)->orWhere('disetujui_oleh', $id)->exists()
+            || \App\Models\Persediaan\PenyesuaianStok::where('diajukan_oleh', $id)->orWhere('disetujui_oleh', $id)->exists();
 
         if ($hasDependencies) {
             $this->toast("Akun {$user->nama} tidak dapat dihapus karena memiliki rekam jejak transaksi kedinasan. Silakan nonaktifkan akun sebagai gantinya.", 'danger');

@@ -9,7 +9,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Servis IPSRS --}}
-        <x-ipsrs-servis-tabs active="spk" />
+        <x-tabs.ipsrs-servis active="spk" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -49,10 +49,10 @@
                 <div class="w-full sm:w-48">
                     <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                         <option value="">Semua Status SPK</option>
-                        <option value="{{ \App\Enums\StatusSpk::Ditugaskan->value }}">DITUGASKAN</option>
-                        <option value="{{ \App\Enums\StatusSpk::Diterima->value }}">DITERIMA</option>
-                        <option value="{{ \App\Enums\StatusSpk::Selesai->value }}">SELESAI</option>
-                        <option value="{{ \App\Enums\StatusSpk::Dibatalkan->value }}">DIBATALKAN</option>
+                        <option value="{{ \App\Enums\Ipsrs\StatusSpk::Ditugaskan->value }}">DITUGASKAN</option>
+                        <option value="{{ \App\Enums\Ipsrs\StatusSpk::Diterima->value }}">DITERIMA</option>
+                        <option value="{{ \App\Enums\Ipsrs\StatusSpk::Selesai->value }}">SELESAI</option>
+                        <option value="{{ \App\Enums\Ipsrs\StatusSpk::Dibatalkan->value }}">DIBATALKAN</option>
                     </select>
                 </div>
             @endif
@@ -145,7 +145,7 @@
                             </flux:table.cell>
                         </flux:table.row>
                     @empty
-                        <x-empty-state message="Tidak ada antrean tiket kerusakan baru yang membutuhkan disposisi SPK." cols="6" />
+                        <x-ui.empty-state message="Tidak ada antrean tiket kerusakan baru yang membutuhkan disposisi SPK." cols="6" />
                     @endforelse
                 </flux:table.rows>
             </flux:table>
@@ -213,7 +213,7 @@
 
                             {{-- Status SPK --}}
                             <flux:table.cell class="text-center">
-                                <x-status-badge :status="$spk->status" />
+                                <x-ui.status-badge :status="$spk->status" />
                             </flux:table.cell>
 
                             {{-- Aksi: Cetak PDF & Detail --}}
@@ -232,13 +232,13 @@
                             </flux:table.cell>
                         </flux:table.row>
                     @empty
-                        <x-empty-state message="Belum ada Surat Perintah Kerja (SPK) yang diterbitkan." cols="7" />
+                        <x-ui.empty-state message="Belum ada Surat Perintah Kerja (SPK) yang diterbitkan." cols="7" />
                     @endforelse
                 </flux:table.rows>
             </flux:table>
         @endif
 
-        <x-table-pagination :paginator="$daftarData" />
+        <x-ui.table-pagination :paginator="$daftarData" />
     </flux:card>
 
     @include('livewire.ipsrs.partials.daftar-spk.modal-terbitkan-spk')

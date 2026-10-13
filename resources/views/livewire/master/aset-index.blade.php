@@ -56,7 +56,7 @@
             <div class="w-full sm:w-44">
                 <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status Aset</option>
-                    @foreach (\App\Enums\StatusAset::dapatDiaturManual() as $statusAset)
+                    @foreach (\App\Enums\Aset\StatusAset::dapatDiaturManual() as $statusAset)
                         <option value="{{ $statusAset }}">{{ str_replace('_', ' ', $statusAset) }}</option>
                     @endforeach
                 </select>
@@ -156,13 +156,13 @@
 
                         {{-- Nilai Perolehan --}}
                         <flux:table.cell class="text-right font-mono text-xs tabular-nums">
-                            <x-rupiah :value="$item->nilai_perolehan" class="font-semibold text-zinc-900 dark:text-zinc-100" />
+                            <x-ui.rupiah :value="$item->nilai_perolehan" class="font-semibold text-zinc-900 dark:text-zinc-100" />
                             <div class="text-[10px] text-zinc-500 dark:text-zinc-400">{{ $item->tanggal_perolehan->format('d/m/Y') }}</div>
                         </flux:table.cell>
 
                         {{-- Status Aset --}}
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$item->status" />
+                            <x-ui.status-badge :status="$item->status" />
                         </flux:table.cell>
 
                         {{-- Aksi --}}
@@ -196,13 +196,13 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada unit fisik aset yang terdaftar atau sesuai filter." cols="7" />
+                    <x-ui.empty-state message="Belum ada unit fisik aset yang terdaftar atau sesuai filter." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
         {{-- Footer Pagination Terpadu: Kiri (Showing), Tengah (Baris per halaman), Kanan (Tombol) --}}
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     @include('livewire.master.partials.aset.modal-aset-form')
@@ -213,7 +213,7 @@
 
     @include('livewire.master.partials.aset.modal-riwayat-sirkulasi')
 
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

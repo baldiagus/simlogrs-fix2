@@ -2,10 +2,10 @@
 
 namespace App\Services\Dashboard;
 
-use App\Enums\StatusSpk;
-use App\Models\JadwalMaintenance;
-use App\Models\PenugasanMaintenance;
-use App\Models\PermintaanMaintenance;
+use App\Enums\Ipsrs\StatusSpk;
+use App\Models\Ipsrs\JadwalMaintenance;
+use App\Models\Ipsrs\PenugasanMaintenance;
+use App\Models\Ipsrs\PermintaanMaintenance;
 use App\Models\User;
 
 class IpsrsDashboardBuilder

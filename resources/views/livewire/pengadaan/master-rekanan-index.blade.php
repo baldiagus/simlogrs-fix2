@@ -10,7 +10,7 @@
     </div>
 
     {{-- Navigasi Sub-Tab Hub Evaluasi --}}
-    <x-pengadaan-evaluasi-tabs active="rekanan" />
+    <x-tabs.pengadaan-evaluasi active="rekanan" />
 
     {{-- 3 Kartu Ringkasan Metrik Rekanan --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -150,7 +150,7 @@
             </table>
         </div>
 
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     {{-- Modal Detail Profil & Riwayat Transaksi Vendor --}}

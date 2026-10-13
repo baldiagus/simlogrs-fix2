@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Dashboard;
 
-use App\Models\Aset;
-use App\Models\PermintaanMaintenance;
-use App\Models\StokBatch;
-use App\Models\TemuanAudit;
+use App\Models\Aset\Aset;
+use App\Models\Ipsrs\PermintaanMaintenance;
+use App\Models\Persediaan\StokBatch;
+use App\Models\Audit\TemuanAudit;
 use App\Services\Anggaran\AnggaranRealtimeService;
 use Livewire\Component;
 

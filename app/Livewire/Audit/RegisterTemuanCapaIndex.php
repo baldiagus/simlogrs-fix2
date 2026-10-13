@@ -2,14 +2,14 @@
 
 namespace App\Livewire\Audit;
 
-use App\Enums\StatusCapa;
+use App\Enums\Audit\StatusCapa;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Gudang;
-use App\Models\TemuanAudit;
-use App\Models\Unit;
+use App\Models\Master\Gudang;
+use App\Models\Audit\TemuanAudit;
+use App\Models\Master\Unit;
 use App\Support\File\FileOptimizer;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\Cache;

@@ -56,7 +56,7 @@
                         <flux:table.cell class="text-zinc-500" style="white-space: normal;">{{ $item->kepalaUnit?->nama ?? $item->penanggung_jawab ?? '-' }}</flux:table.cell>
                         <flux:table.cell class="text-zinc-500" style="white-space: normal;">{{ $item->lokasi_gedung ?? '-' }}</flux:table.cell>
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$item->status" />
+                            <x-ui.status-badge :status="$item->status" />
                         </flux:table.cell>
                         <flux:table.cell class="text-right w-16">
                             <flux:dropdown position="bottom" align="end">
@@ -84,13 +84,13 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada unit kerja yang terdaftar atau sesuai pencarian." cols="7" />
+                    <x-ui.empty-state message="Belum ada unit kerja yang terdaftar atau sesuai pencarian." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
         {{-- Footer Pagination Terpadu: Kiri (Showing), Tengah (Baris per halaman), Kanan (Tombol) --}}
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     {{-- Modal Form Tambah / Ubah Unit --}}
@@ -117,7 +117,7 @@
 
             <flux:input wire:model="nama" label="Nama Ruangan / Unit" placeholder="misal: Instalasi Gawat Darurat" required />
             <div>
-                <x-searchable-select
+                <x-ui.searchable-select
                     model="kepala_unit_id"
                     label="Penanggung Jawab / Kepala Unit"
                     placeholder="-- Cari Nama Pegawai atau NIP... --"
@@ -177,7 +177,7 @@
                     </div>
                     <div>
                         <div class="text-zinc-500 dark:text-zinc-400">Status</div>
-                        <div class="font-semibold text-zinc-900 dark:text-zinc-100"><x-status-badge :status="$selectedItem->status" /></div>
+                        <div class="font-semibold text-zinc-900 dark:text-zinc-100"><x-ui.status-badge :status="$selectedItem->status" /></div>
                     </div>
                     <div>
                         <div class="text-zinc-500 dark:text-zinc-400">Jumlah Aset di Unit</div>
@@ -188,7 +188,7 @@
         </div>
     </flux:modal>
 
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

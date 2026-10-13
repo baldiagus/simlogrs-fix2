@@ -54,7 +54,7 @@
                     <div>
                         <div class="text-zinc-500 dark:text-zinc-400">Status Operasional</div>
                         <div class="mt-0.5">
-                            <x-status-badge :status="$selectedAset->status" />
+                            <x-ui.status-badge :status="$selectedAset->status" />
                         </div>
                     </div>
                     <div>
@@ -65,7 +65,7 @@
                     <div>
                         <div class="text-zinc-500 dark:text-zinc-400">Nilai Perolehan</div>
                         <div class="font-semibold text-zinc-900 dark:text-zinc-100">
-                            <x-rupiah :value="$selectedAset->nilai_perolehan" />
+                            <x-ui.rupiah :value="$selectedAset->nilai_perolehan" />
                         </div>
                     </div>
                     <div>
@@ -97,7 +97,7 @@
                                     <span class="font-mono font-bold text-xs text-zinc-900 dark:text-zinc-100">{{ $latestPinjam?->kode ?? '-' }}</span>
                                     <span class="text-[11px] text-zinc-400">&bull; Peminjaman Terakhir</span>
                                 </div>
-                                <x-status-badge :status="$latestPinjam?->status ?? \App\Enums\StatusPeminjaman::Selesai->value" />
+                                <x-ui.status-badge :status="$latestPinjam?->status ?? \App\Enums\Aset\StatusPeminjaman::Selesai->value" />
                             </div>
                             <div class="text-xs text-zinc-700 dark:text-zinc-300">
                                 <span class="font-semibold">{{ $latestPinjam?->unitPeminjam?->nama ?? 'Ruangan' }}</span>
@@ -106,7 +106,7 @@
                                 <span>Masa: {{ $latestPinjam?->tanggal_pinjam?->format('d/m/Y') ?? '-' }} s/d {{ $latestPinjam?->tanggal_kembali_rencana?->format('d/m/Y') ?? '-' }}</span>
                                 @if ($latestKembali)
                                     <span class="font-medium text-emerald-600 dark:text-emerald-400">Kembali: {{ str_replace('_', ' ', $latestKembali->kondisi_saat_kembali) }}</span>
-                                @elseif ($latestPinjam?->status === \App\Enums\StatusPeminjaman::Dipinjam->value)
+                                @elseif ($latestPinjam?->status === \App\Enums\Aset\StatusPeminjaman::Dipinjam->value)
                                     <span class="font-medium text-amber-600 dark:text-amber-400">Sedang Dipinjam</span>
                                 @endif
                             </div>

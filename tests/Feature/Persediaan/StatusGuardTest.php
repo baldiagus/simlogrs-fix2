@@ -4,12 +4,12 @@ namespace Tests\Feature\Persediaan;
 
 use App\Livewire\Persediaan\OtorisasiPenyesuaianIndex;
 use App\Livewire\Persediaan\StockOpnameIndex;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\PenyesuaianStok;
-use App\Models\StokOpname;
-use App\Models\StokBatch;
-use App\Models\StokOpnameDetail;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Persediaan\PenyesuaianStok;
+use App\Models\Persediaan\StokOpname;
+use App\Models\Persediaan\StokBatch;
+use App\Models\Persediaan\StokOpnameDetail;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;

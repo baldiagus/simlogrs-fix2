@@ -1,4 +1,4 @@
-@use('App\Enums\StatusPengirimanBarang')
+@use('App\Enums\Distribusi\StatusPengirimanBarang')
 <div class="space-y-6">
     {{-- Header Halaman & Sub-Navigasi --}}
     <div class="space-y-3">
@@ -10,7 +10,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Penyaluran SPPB --}}
-        <x-distribusi-sppb-tabs active="terima" />
+        <x-tabs.distribusi-sppb active="terima" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -63,7 +63,7 @@
                                     {{ $item->permintaanDistribusi->kode }}
                                 </div>
                                 <div class="mt-0.5">
-                                    <x-urgency-badge :urgency="$item->permintaanDistribusi->urgensi" />
+                                    <x-ui.urgency-badge :urgency="$item->permintaanDistribusi->urgensi" />
                                 </div>
                             @else
                                 <span class="text-zinc-500 dark:text-zinc-400 text-xs">-</span>
@@ -93,7 +93,7 @@
 
                         {{-- Status --}}
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$item->status" />
+                            <x-ui.status-badge :status="$item->status" />
                         </flux:table.cell>
 
                         {{-- Aksi --}}
@@ -119,13 +119,13 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada pengiriman SPPB yang menunggu penerimaan." :cols="7" />
+                    <x-ui.empty-state message="Belum ada pengiriman SPPB yang menunggu penerimaan." :cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
         {{-- Navigasi Paginasi --}}
-        <x-table-pagination :paginator="$daftarPengiriman" />
+        <x-ui.table-pagination :paginator="$daftarPengiriman" />
     </flux:card>
 
     {{-- Modal Detail Pengiriman Barang (SPPB) --}}
@@ -144,9 +144,9 @@
                     </div>
                     <div class="flex items-center gap-2" style="margin-right: 2.25rem;">
                         @if ($selectedSppb->permintaanDistribusi)
-                            <x-urgency-badge :urgency="$selectedSppb->permintaanDistribusi->urgensi" />
+                            <x-ui.urgency-badge :urgency="$selectedSppb->permintaanDistribusi->urgensi" />
                         @endif
-                        <x-status-badge :status="$selectedSppb->status" />
+                        <x-ui.status-badge :status="$selectedSppb->status" />
                     </div>
                 </div>
 
@@ -278,7 +278,7 @@
     </flux:modal>
 
     {{-- Modal Konfirmasi Tindakan --}}
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

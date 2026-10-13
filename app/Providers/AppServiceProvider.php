@@ -27,5 +27,11 @@ class AppServiceProvider extends ServiceProvider
 
             return false;
         }, E_WARNING | E_USER_WARNING);
+
+        // Deteksi N+1 (dev lokal saja): hanya log, tidak melempar exception
+        \Illuminate\Database\Eloquent\Model::preventLazyLoading(! app()->isProduction() && app()->environment('local') && ! app()->runningUnitTests());
+        \Illuminate\Database\Eloquent\Model::handleLazyLoadingViolationUsing(
+            fn ($model, $relation) => logger()->warning('lazy-load', ['model' => get_class($model), 'relation' => $relation])
+        );
     }
 }

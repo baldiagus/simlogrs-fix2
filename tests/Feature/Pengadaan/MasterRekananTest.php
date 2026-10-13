@@ -3,8 +3,8 @@
 namespace Tests\Feature\Pengadaan;
 
 use App\Livewire\Pengadaan\MasterRekananIndex;
-use App\Models\Pemasok;
-use App\Models\PesananPembelian;
+use App\Models\Master\Pemasok;
+use App\Models\Pengadaan\PesananPembelian;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;

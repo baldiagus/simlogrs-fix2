@@ -1,4 +1,4 @@
-@use('App\Enums\StatusPermintaanDistribusi')
+@use('App\Enums\Distribusi\StatusPermintaanDistribusi')
 <div class="space-y-6">
     {{-- Header Halaman & Sub-Navigasi --}}
     <div class="space-y-3">
@@ -10,7 +10,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Penyaluran SPPB --}}
-        <x-distribusi-sppb-tabs active="picking" />
+        <x-tabs.distribusi-sppb active="picking" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -97,7 +97,7 @@
                             </flux:table.cell>
 
                             <flux:table.cell>
-                                <x-urgency-badge :urgency="$item->urgensi" />
+                                <x-ui.urgency-badge :urgency="$item->urgensi" />
                             </flux:table.cell>
 
                             <flux:table.cell style="white-space: normal;">
@@ -128,7 +128,7 @@
                             </flux:table.cell>
                         </flux:table.row>
                     @empty
-                        <x-empty-state message="Tidak ada antrean amprah yang siap dipicking." :cols="6" />
+                        <x-ui.empty-state message="Tidak ada antrean amprah yang siap dipicking." :cols="6" />
                     @endforelse
                 </flux:table.rows>
             </flux:table>
@@ -165,7 +165,7 @@
                             </flux:table.cell>
 
                             <flux:table.cell class="text-center">
-                                <x-status-badge :status="$item->status" />
+                                <x-ui.status-badge :status="$item->status" />
                             </flux:table.cell>
 
                             <flux:table.cell class="text-right w-16">
@@ -180,14 +180,14 @@
                             </flux:table.cell>
                         </flux:table.row>
                     @empty
-                        <x-empty-state message="Belum ada riwayat SPPB yang diterbitkan." :cols="6" />
+                        <x-ui.empty-state message="Belum ada riwayat SPPB yang diterbitkan." :cols="6" />
                     @endforelse
                 </flux:table.rows>
             </flux:table>
         @endif
 
         {{-- Pagination --}}
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     @include('livewire.distribusi.partials.picking-distribusi.modal-detail-batch')
@@ -195,7 +195,7 @@
     @include('livewire.distribusi.partials.picking-distribusi.modal-detail-permintaan')
 
     {{-- Modal Konfirmasi Aksi --}}
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

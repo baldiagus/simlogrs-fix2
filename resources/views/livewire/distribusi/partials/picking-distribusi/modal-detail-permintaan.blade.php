@@ -1,4 +1,4 @@
-@use('App\Enums\StatusPermintaanDistribusi')
+@use('App\Enums\Distribusi\StatusPermintaanDistribusi')
     {{-- Modal Detail Permintaan Amprah Siap Picking --}}
     <flux:modal name="modal-permintaan-picking-detail" wire:model="showPermintaanDetailModal" class="w-full max-w-[92vw] lg:max-w-5xl">
         @if ($selectedPermintaanDetail)
@@ -12,7 +12,7 @@
                         </flux:subheading>
                     </div>
                     <div style="margin-right: 2.25rem;">
-                        <x-status-badge :status="$selectedPermintaanDetail->status" />
+                        <x-ui.status-badge :status="$selectedPermintaanDetail->status" />
                     </div>
                 </div>
 
@@ -23,7 +23,7 @@
                     </div>
                     <div>
                         <span class="text-zinc-500">Tingkat Urgensi:</span>
-                        <div class="mt-0.5"><x-urgency-badge :urgency="$selectedPermintaanDetail->urgensi" /></div>
+                        <div class="mt-0.5"><x-ui.urgency-badge :urgency="$selectedPermintaanDetail->urgensi" /></div>
                     </div>
                     <div>
                         <span class="text-zinc-500">Pemohon / Karu:</span>

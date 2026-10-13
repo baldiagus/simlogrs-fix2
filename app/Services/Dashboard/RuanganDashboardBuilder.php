@@ -2,14 +2,14 @@
 
 namespace App\Services\Dashboard;
 
-use App\Enums\StatusPeminjaman;
-use App\Enums\StatusPermintaanDistribusi;
-use App\Enums\StatusPermintaanPengadaan;
-use App\Models\PermintaanDistribusi;
-use App\Models\PermintaanMaintenance;
-use App\Models\PermintaanPeminjaman;
-use App\Models\PermintaanPengadaan;
-use App\Models\Unit;
+use App\Enums\Aset\StatusPeminjaman;
+use App\Enums\Distribusi\StatusPermintaanDistribusi;
+use App\Enums\Pengadaan\StatusPermintaanPengadaan;
+use App\Models\Distribusi\PermintaanDistribusi;
+use App\Models\Ipsrs\PermintaanMaintenance;
+use App\Models\Aset\PermintaanPeminjaman;
+use App\Models\Pengadaan\PermintaanPengadaan;
+use App\Models\Master\Unit;
 use App\Models\User;
 use Illuminate\Support\Collection;
 

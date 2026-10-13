@@ -226,18 +226,18 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Tidak ada data akun pegawai yang sesuai dengan parameter pencarian." cols="7" />
+                    <x-ui.empty-state message="Tidak ada data akun pegawai yang sesuai dengan parameter pencarian." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
-        <x-table-pagination :paginator="$users" />
+        <x-ui.table-pagination :paginator="$users" />
     </flux:card>
 
     @include('livewire.user.partials.pengguna.modal-form')
 
     {{-- Modal Konfirmasi Operasi Sensitif --}}
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

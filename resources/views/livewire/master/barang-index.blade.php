@@ -152,10 +152,10 @@
                             @endif
                         </flux:table.cell>
                         <flux:table.cell class="text-right font-mono text-xs tabular-nums w-32">
-                            <x-rupiah :value="$item->harga_beli_terakhir" class="font-semibold text-zinc-900 dark:text-zinc-100" />
+                            <x-ui.rupiah :value="$item->harga_beli_terakhir" class="font-semibold text-zinc-900 dark:text-zinc-100" />
                         </flux:table.cell>
                         <flux:table.cell class="text-center w-24">
-                            <x-status-badge :status="$item->status" />
+                            <x-ui.status-badge :status="$item->status" />
                         </flux:table.cell>
                         <flux:table.cell class="text-right w-16">
                             <flux:dropdown position="bottom" align="end">
@@ -183,18 +183,18 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada komoditas barang yang terdaftar atau sesuai kriteria pencarian." cols="8" />
+                    <x-ui.empty-state message="Belum ada komoditas barang yang terdaftar atau sesuai kriteria pencarian." cols="8" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
         {{-- Footer Pagination Terpadu: Kiri (Showing), Tengah (Baris per halaman), Kanan (Tombol) --}}
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     @include('livewire.master.partials.barang.modal-barang-form')
 
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

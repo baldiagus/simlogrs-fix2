@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Persediaan\Concerns;
 
-use App\Models\StokBatch;
+use App\Models\Persediaan\StokBatch;
 
 trait HasFormPengalihanBarang
 {

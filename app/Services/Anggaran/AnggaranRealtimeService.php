@@ -2,10 +2,10 @@
 
 namespace App\Services\Anggaran;
 
-use App\Models\AnggaranPengadaan;
-use App\Models\Aset;
-use App\Models\PengirimanBarangDetail;
-use App\Models\SukuCadangMaintenance;
+use App\Models\Master\AnggaranPengadaan;
+use App\Models\Aset\Aset;
+use App\Models\Distribusi\PengirimanBarangDetail;
+use App\Models\Ipsrs\SukuCadangMaintenance;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 

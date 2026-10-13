@@ -15,7 +15,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Servis IPSRS --}}
-        <x-ipsrs-servis-tabs active="lapor" />
+        <x-tabs.ipsrs-servis active="lapor" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -34,13 +34,13 @@
             <div class="w-full sm:w-52">
                 <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status</option>
-                    <option value="{{ \App\Enums\StatusMaintenance::Dilaporkan->value }}">DILAPORKAN</option>
-                    <option value="{{ \App\Enums\StatusMaintenance::Ditugaskan->value }}">DITUGASKAN (SPK)</option>
-                    <option value="{{ \App\Enums\StatusMaintenance::SedangDikerjakan->value }}">SEDANG DIKERJAKAN</option>
-                    <option value="{{ \App\Enums\StatusMaintenance::MenungguSparepart->value }}">MENUNGGU SPAREPART</option>
-                    <option value="{{ \App\Enums\StatusMaintenance::UjiFungsi->value }}">UJI FUNGSI</option>
-                    <option value="{{ \App\Enums\StatusMaintenance::Selesai->value }}">SELESAI</option>
-                    <option value="{{ \App\Enums\StatusMaintenance::Dibatalkan->value }}">DIBATALKAN</option>
+                    <option value="{{ \App\Enums\Ipsrs\StatusMaintenance::Dilaporkan->value }}">DILAPORKAN</option>
+                    <option value="{{ \App\Enums\Ipsrs\StatusMaintenance::Ditugaskan->value }}">DITUGASKAN (SPK)</option>
+                    <option value="{{ \App\Enums\Ipsrs\StatusMaintenance::SedangDikerjakan->value }}">SEDANG DIKERJAKAN</option>
+                    <option value="{{ \App\Enums\Ipsrs\StatusMaintenance::MenungguSparepart->value }}">MENUNGGU SPAREPART</option>
+                    <option value="{{ \App\Enums\Ipsrs\StatusMaintenance::UjiFungsi->value }}">UJI FUNGSI</option>
+                    <option value="{{ \App\Enums\Ipsrs\StatusMaintenance::Selesai->value }}">SELESAI</option>
+                    <option value="{{ \App\Enums\Ipsrs\StatusMaintenance::Dibatalkan->value }}">DIBATALKAN</option>
                 </select>
             </div>
 
@@ -142,7 +142,7 @@
 
                         {{-- Status --}}
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$item->status" />
+                            <x-ui.status-badge :status="$item->status" />
                         </flux:table.cell>
 
                         {{-- Aksi --}}
@@ -153,7 +153,7 @@
                                     <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
                                         Lihat Tiket Kerusakan
                                     </flux:menu.item>
-                                    @if ($item->status === \App\Enums\StatusMaintenance::Dilaporkan->value && $this->canBatal($item))
+                                    @if ($item->status === \App\Enums\Ipsrs\StatusMaintenance::Dilaporkan->value && $this->canBatal($item))
                                         <flux:menu.separator />
                                         <flux:menu.item wire:click="confirmBatal({{ $item->id }})" icon="x-mark" variant="danger">
                                             Batalkan Laporan
@@ -164,19 +164,19 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada tiket laporan kerusakan sarana yang terdaftar." cols="7" />
+                    <x-ui.empty-state message="Belum ada tiket laporan kerusakan sarana yang terdaftar." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
-        <x-table-pagination :paginator="$daftarTiket" />
+        <x-ui.table-pagination :paginator="$daftarTiket" />
     </flux:card>
 
     @include('livewire.ipsrs.partials.lapor-servis.modal-form-lapor')
 
     @include('livewire.ipsrs.partials.lapor-servis.modal-detail-tiket')
 
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

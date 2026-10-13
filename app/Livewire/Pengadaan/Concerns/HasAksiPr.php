@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Pengadaan\Concerns;
 
-use App\Enums\StatusPermintaanPengadaan;
-use App\Enums\StatusPesananPembelian;
-use App\Models\PermintaanPengadaan;
+use App\Enums\Pengadaan\StatusPermintaanPengadaan;
+use App\Enums\Pengadaan\StatusPesananPembelian;
+use App\Models\Pengadaan\PermintaanPengadaan;
 use Illuminate\Support\Facades\DB;
 
 trait HasAksiPr
@@ -94,7 +94,7 @@ trait HasAksiPr
             return;
         }
 
-        $hasPo = \App\Models\PesananPembelian::where('permintaan_pengadaan_id', $id)
+        $hasPo = \App\Models\Pengadaan\PesananPembelian::where('permintaan_pengadaan_id', $id)
             ->where('status', '!=', StatusPesananPembelian::Dibatalkan->value)
             ->exists();
         if ($hasPo) {

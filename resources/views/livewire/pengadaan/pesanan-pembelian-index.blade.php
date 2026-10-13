@@ -24,7 +24,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Pengadaan --}}
-        <x-pengadaan-transaksi-tabs active="po" />
+        <x-tabs.pengadaan-transaksi active="po" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -43,11 +43,11 @@
             <div class="w-full sm:w-56">
                 <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status</option>
-                    <option value="{{ \App\Enums\StatusPesananPembelian::Diterbitkan->value }}">DITERBITKAN</option>
-                    <option value="{{ \App\Enums\StatusPesananPembelian::DikirimVendor->value }}">DIKIRIM VENDOR</option>
-                    <option value="{{ \App\Enums\StatusPesananPembelian::DiterimaSebagian->value }}">DITERIMA SEBAGIAN</option>
-                    <option value="{{ \App\Enums\StatusPesananPembelian::DiterimaLengkap->value }}">DITERIMA LENGKAP</option>
-                    <option value="{{ \App\Enums\StatusPesananPembelian::Dibatalkan->value }}">DIBATALKAN</option>
+                    <option value="{{ \App\Enums\Pengadaan\StatusPesananPembelian::Diterbitkan->value }}">DITERBITKAN</option>
+                    <option value="{{ \App\Enums\Pengadaan\StatusPesananPembelian::DikirimVendor->value }}">DIKIRIM VENDOR</option>
+                    <option value="{{ \App\Enums\Pengadaan\StatusPesananPembelian::DiterimaSebagian->value }}">DITERIMA SEBAGIAN</option>
+                    <option value="{{ \App\Enums\Pengadaan\StatusPesananPembelian::DiterimaLengkap->value }}">DITERIMA LENGKAP</option>
+                    <option value="{{ \App\Enums\Pengadaan\StatusPesananPembelian::Dibatalkan->value }}">DIBATALKAN</option>
                 </select>
             </div>
             @if ($search || $filterStatus)
@@ -84,10 +84,10 @@
                         <flux:table.cell class="font-mono text-xs">{{ $item->permintaanPengadaan?->kode ?? '-' }}</flux:table.cell>
                         <flux:table.cell class="text-xs">{{ $item->tanggal_po?->translatedFormat('d M Y') ?? '-' }}</flux:table.cell>
                         <flux:table.cell class="text-right font-mono text-xs tabular-nums">
-                            <x-rupiah :value="$item->total_biaya" class="font-semibold text-zinc-900 dark:text-zinc-100" />
+                            <x-ui.rupiah :value="$item->total_biaya" class="font-semibold text-zinc-900 dark:text-zinc-100" />
                         </flux:table.cell>
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$item->status" />
+                            <x-ui.status-badge :status="$item->status" />
                         </flux:table.cell>
                         <flux:table.cell class="text-right w-16">
                             <flux:dropdown position="bottom" align="end">
@@ -98,7 +98,7 @@
                                             Detail Kontrak PO
                                         </flux:menu.item>
                                     @endcan
-                                    @if ($item->status === \App\Enums\StatusPesananPembelian::Diterbitkan->value)
+                                    @if ($item->status === \App\Enums\Pengadaan\StatusPesananPembelian::Diterbitkan->value)
                                         @can('update_pengadaan::pesanan::pembelian')
                                             <flux:menu.item wire:click="confirmUpdateStatusKirim({{ $item->id }})" icon="truck">
                                                 Tandai Dikirim Vendor
@@ -110,12 +110,12 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada pesanan pembelian yang terdaftar atau sesuai kriteria pencarian." cols="7" />
+                    <x-ui.empty-state message="Belum ada pesanan pembelian yang terdaftar atau sesuai kriteria pencarian." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     {{-- Modal Konversi PR → PO --}}
@@ -136,7 +136,7 @@
                     <flux:input wire:model="kode" label="Kode PO (Otomatis)" disabled readonly class="font-mono bg-zinc-100 dark:bg-zinc-800/80 cursor-not-allowed font-semibold" />
 
                     <div>
-                        <x-searchable-select
+                        <x-ui.searchable-select
                             model="pemasok_id"
                             label="Vendor / Pemasok"
                             placeholder="Pilih Vendor..."
@@ -185,7 +185,7 @@
                                     <td class="py-2 px-2 font-medium text-zinc-900 dark:text-zinc-100">{{ $row['nama_barang'] }}</td>
                                     <td class="py-2 px-2 text-right font-mono tabular-nums">{{ number_format($row['jumlah'], 0, ',', '.') }}</td>
                                     <td class="py-2 px-2">
-                                        <x-number-input model="itemRows.{{ $i }}.harga_satuan" label="" prefix="Rp" />
+                                        <x-ui.number-input model="itemRows.{{ $i }}.harga_satuan" label="" prefix="Rp" />
                                     </td>
                                     <td class="py-2 px-2 text-right font-mono tabular-nums font-semibold">
                                         Rp {{ number_format($row['subtotal'], 0, ',', '.') }}
@@ -250,7 +250,7 @@
                     </div>
                     <div>
                         <div class="text-xs text-zinc-500">Status</div>
-                        <div><x-status-badge :status="$selectedPo->status" /></div>
+                        <div><x-ui.status-badge :status="$selectedPo->status" /></div>
                     </div>
                     <div>
                         <div class="text-xs text-zinc-500">Dibuat Oleh</div>
@@ -258,7 +258,7 @@
                     </div>
                     <div>
                         <div class="text-xs text-zinc-500">Total Biaya</div>
-                        <div class="font-mono font-bold"><x-rupiah :value="$selectedPo->total_biaya" /></div>
+                        <div class="font-mono font-bold"><x-ui.rupiah :value="$selectedPo->total_biaya" /></div>
                     </div>
                     @if ($selectedPo->catatan)
                         <div class="col-span-full">
@@ -291,10 +291,10 @@
                                         <td class="py-2 px-2 text-right font-mono tabular-nums">{{ number_format($d->jumlah_dipesan, 0, ',', '.') }}</td>
                                         <td class="py-2 px-2 text-right font-mono tabular-nums">{{ number_format($d->jumlah_diterima, 0, ',', '.') }}</td>
                                         <td class="py-2 px-2 text-right font-mono tabular-nums">
-                                            <x-rupiah :value="$d->harga_satuan" />
+                                            <x-ui.rupiah :value="$d->harga_satuan" />
                                         </td>
                                         <td class="py-2 px-2 text-right font-mono tabular-nums font-semibold">
-                                            <x-rupiah :value="$d->subtotal" />
+                                            <x-ui.rupiah :value="$d->subtotal" />
                                         </td>
                                     </tr>
                                 @endforeach
@@ -303,7 +303,7 @@
                                 <tr class="border-t-2 border-zinc-300 dark:border-zinc-600">
                                     <td colspan="5" class="py-2 px-2 text-right font-bold text-zinc-700 dark:text-zinc-300">Total</td>
                                     <td class="py-2 px-2 text-right font-mono tabular-nums font-bold text-zinc-900 dark:text-zinc-100">
-                                        <x-rupiah :value="$selectedPo->total_biaya" />
+                                        <x-ui.rupiah :value="$selectedPo->total_biaya" />
                                     </td>
                                 </tr>
                             </tfoot>
@@ -315,7 +315,7 @@
         @endif
     </flux:modal>
 
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

@@ -2,14 +2,14 @@
 
 namespace Tests\Feature\Persediaan;
 
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\LokasiGudang;
-use App\Models\PengalihanBarang;
-use App\Models\PergerakanStok;
-use App\Models\StokBatch;
-use App\Models\StokRuangan;
-use App\Models\Unit;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Master\LokasiGudang;
+use App\Models\Persediaan\PengalihanBarang;
+use App\Models\Persediaan\PergerakanStok;
+use App\Models\Persediaan\StokBatch;
+use App\Models\Distribusi\StokRuangan;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Services\Persediaan\PengalihanBarangService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -67,8 +67,8 @@ class PengalihanBarangServiceTest extends TestCase
             'gudang_id' => $this->gudangAsal->id,
             'status' => 'AKTIF',
         ]);
-        $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'BOX-TF'], ['nama' => 'Box', 'status' => 'AKTIF'])->id;
-        $kategoriId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-BHP-TF'], ['nama' => 'Kategori BHP', 'status' => 'AKTIF'])->id;
+        $satuanId = \App\Models\Master\SatuanBarang::firstOrCreate(['kode' => 'BOX-TF'], ['nama' => 'Box', 'status' => 'AKTIF'])->id;
+        $kategoriId = \App\Models\Master\KategoriBarang::firstOrCreate(['kode' => 'KAT-BHP-TF'], ['nama' => 'Kategori BHP', 'status' => 'AKTIF'])->id;
         $this->barangBhp = Barang::firstOrCreate(
             ['kode' => 'BRG-BHP-TF-01'],
             [

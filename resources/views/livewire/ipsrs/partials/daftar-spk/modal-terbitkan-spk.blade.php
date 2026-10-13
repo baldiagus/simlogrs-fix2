@@ -65,7 +65,7 @@
                     <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                         Tahap 2: Penugasan Teknisi & Target Waktu Pengerjaan
                     </div>
-                    <x-searchable-select
+                    <x-ui.searchable-select
                         model="teknisi_id"
                         label="Teknisi Pelaksana Ditugaskan"
                         placeholder="-- Cari & Pilih Teknisi IPSRS... --"

@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Auth;
 
-use App\Models\LogAudit;
+use App\Models\Audit\LogAudit;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;

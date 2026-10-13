@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PenugasanMaintenance;
+use App\Models\Ipsrs\PenugasanMaintenance;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;

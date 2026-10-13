@@ -12,7 +12,7 @@ class PersediaanHubNavigationTest extends TestCase
         $user = User::where('email', 'superadmin@simlogrs.local')->first();
         $this->actingAs($user);
 
-        $view = $this->blade('<x-persediaan-monitoring-tabs active="fefo" />');
+        $view = $this->blade('<x-tabs.persediaan-monitoring active="fefo" />');
         $view->assertSee('Monitoring Saldo & FEFO', false);
         $view->assertSee('Kartu Mutasi Stok', false);
         $view->assertDontSee('/livewire/');
@@ -23,7 +23,7 @@ class PersediaanHubNavigationTest extends TestCase
         $user = User::where('email', 'superadmin@simlogrs.local')->first();
         $this->actingAs($user);
 
-        $view = $this->blade('<x-persediaan-opname-tabs active="opname" />');
+        $view = $this->blade('<x-tabs.persediaan-opname active="opname" />');
         $view->assertSee('Sesi Stock Opname', false);
         $view->assertSee('Otorisasi Penyesuaian', false);
         $view->assertDontSee('/livewire/');

@@ -4,9 +4,9 @@ namespace App\Livewire\Persediaan;
 
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\StokBatch;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Persediaan\StokBatch;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Url;

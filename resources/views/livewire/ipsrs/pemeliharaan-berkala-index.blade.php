@@ -15,7 +15,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Rutin & Rekam Medis --}}
-        <x-ipsrs-rutin-tabs active="preventif" />
+        <x-tabs.ipsrs-rutin active="preventif" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -121,7 +121,7 @@
 
                         {{-- Status --}}
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$item->status" />
+                            <x-ui.status-badge :status="$item->status" />
                         </flux:table.cell>
 
                         {{-- Aksi --}}
@@ -149,12 +149,12 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada jadwal pemeliharaan preventif yang terdaftar." cols="7" />
+                    <x-ui.empty-state message="Belum ada jadwal pemeliharaan preventif yang terdaftar." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
-        <x-table-pagination :paginator="$daftarJadwal" />
+        <x-ui.table-pagination :paginator="$daftarJadwal" />
     </flux:card>
 
     {{-- Modal Form Tambah / Ubah Jadwal Servis Rutin --}}
@@ -166,7 +166,7 @@
             </div>
 
             {{-- 1. Pilih Aset --}}
-            <x-searchable-select
+            <x-ui.searchable-select
                 model="aset_id"
                 label="Fasilitas / Sarana Aset yang Diservis"
                 placeholder="-- Cari Inventaris Aset... --"
@@ -224,7 +224,7 @@
             {{-- 4. Teknisi PIC & Tanggal Servis Pertama --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <x-searchable-select
+                    <x-ui.searchable-select
                         model="teknisi_id"
                         label="Teknisi Penanggung Jawab (PIC)"
                         placeholder="-- Cari & Pilih Teknisi IPSRS... --"
@@ -263,7 +263,7 @@
         </form>
     </flux:modal>
 
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

@@ -4,7 +4,7 @@ namespace App\Livewire\Audit;
 
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
-use App\Models\LogAudit;
+use App\Models\Audit\LogAudit;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Url;

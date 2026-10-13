@@ -189,9 +189,9 @@ Buatkan migrasi dan model untuk Grup 1 (Hak Akses & Pengguna):
 1. Tabel `pengguna` (Model `App\Models\User` extends Authenticatable):
    - Kolom: id, unit_id (nullable, FK unit), gudang_id (nullable, FK gudang), nama, nip (nullable), username (unique), email (unique), password, no_telepon, status (default 'AKTIF'), terakhir_login, ip_terakhir, remember_token, dibuat_pada, diperbarui_pada.
    - Gunakan trait HasRoles (Spatie), HasApiTokens, dan Notifiable.
-2. Tabel `peran` (Model `App\Models\Peran`):
+2. Tabel `peran` (Model `App\Models\Auth\Peran`):
    - Kolom: id, kode (unique), nama, deskripsi, dibuat_pada, diperbarui_pada.
-3. Tabel pivot `pengguna_peran` (Model `App\Models\PenggunaPeran`):
+3. Tabel pivot `pengguna_peran` (Model `App\Models\Auth\PenggunaPeran`):
    - Kolom: id, pengguna_id (FK cascade), peran_id (FK cascade), unit_id (nullable), gudang_id (nullable), dibuat_pada.
    - Constraint: UNIQUE(pengguna_id, peran_id, unit_id, gudang_id).
 4. Model BaseModel:

@@ -8,7 +8,7 @@ use App\Support\Rbac\PagePermissionRegistry;
 use Livewire\Component;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use App\Models\LogAudit;
+use App\Models\Audit\LogAudit;
 use Illuminate\Support\Facades\DB;
 
 class RoleManager extends Component

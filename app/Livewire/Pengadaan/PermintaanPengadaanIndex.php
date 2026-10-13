@@ -2,17 +2,17 @@
 
 namespace App\Livewire\Pengadaan;
 
-use App\Enums\StatusPermintaanPengadaan;
+use App\Enums\Pengadaan\StatusPermintaanPengadaan;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Livewire\Pengadaan\Concerns\HasAksiPr;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\PermintaanPengadaan;
-use App\Models\PermintaanPengadaanDetail;
-use App\Models\Unit;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Pengadaan\PermintaanPengadaan;
+use App\Models\Pengadaan\PermintaanPengadaanDetail;
+use App\Models\Master\Unit;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;

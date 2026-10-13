@@ -4,8 +4,8 @@ namespace Tests\Feature\Persediaan;
 
 use App\Livewire\Persediaan\OtorisasiPenyesuaianIndex;
 use App\Livewire\Persediaan\PengalihanBarangIndex;
-use App\Models\Gudang;
-use App\Models\PenyesuaianStok;
+use App\Models\Master\Gudang;
+use App\Models\Persediaan\PenyesuaianStok;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;

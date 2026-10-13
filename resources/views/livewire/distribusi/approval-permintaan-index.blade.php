@@ -1,5 +1,5 @@
-@use('App\Enums\StatusPermintaanDistribusi')
-@use('App\Enums\StatusPengirimanBarang')
+@use('App\Enums\Distribusi\StatusPermintaanDistribusi')
+@use('App\Enums\Distribusi\StatusPengirimanBarang')
 <div class="space-y-6">
     {{-- Header Halaman & Sub-Navigasi --}}
     <div class="space-y-3">
@@ -11,7 +11,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Modul Amprah Ruangan --}}
-        <x-distribusi-amprah-tabs active="approval-karu" />
+        <x-tabs.distribusi-amprah active="approval-karu" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -77,7 +77,7 @@
                         </flux:table.cell>
 
                         <flux:table.cell>
-                            <x-urgency-badge :urgency="$item->urgensi" />
+                            <x-ui.urgency-badge :urgency="$item->urgensi" />
                         </flux:table.cell>
 
                         <flux:table.cell class="text-center font-mono text-xs">
@@ -85,7 +85,7 @@
                         </flux:table.cell>
 
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$item->status" />
+                            <x-ui.status-badge :status="$item->status" />
                         </flux:table.cell>
 
                         <flux:table.cell class="text-right w-16">
@@ -113,13 +113,13 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada permintaan amprah yang memerlukan otorisasi." cols="7" />
+                    <x-ui.empty-state message="Belum ada permintaan amprah yang memerlukan otorisasi." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
         {{-- Navigasi Paginasi --}}
-        <x-table-pagination :paginator="$daftarPermintaan" />
+        <x-ui.table-pagination :paginator="$daftarPermintaan" />
     </flux:card>
 
     {{-- Modal Detail Permintaan Distribusi --}}
@@ -137,8 +137,8 @@
                         </flux:subheading>
                     </div>
                     <div class="flex items-center gap-2" style="margin-right: 2.25rem;">
-                        <x-urgency-badge :urgency="$selectedPermintaan->urgensi" />
-                        <x-status-badge :status="$selectedPermintaan->status" />
+                        <x-ui.urgency-badge :urgency="$selectedPermintaan->urgensi" />
+                        <x-ui.status-badge :status="$selectedPermintaan->status" />
                     </div>
                 </div>
 
@@ -285,7 +285,7 @@
     </flux:modal>
 
     {{-- Modal Konfirmasi Aksi --}}
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

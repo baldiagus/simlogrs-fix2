@@ -17,7 +17,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Peminjaman --}}
-        <x-sirkulasi-peminjaman-tabs active="pinjam" />
+        <x-tabs.sirkulasi-peminjaman active="pinjam" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -61,7 +61,7 @@
                             class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100"
                         >
                             <option value="">Semua Status</option>
-                            @foreach (\App\Enums\StatusPeminjaman::cases() as $statusPinjam)
+                            @foreach (\App\Enums\Aset\StatusPeminjaman::cases() as $statusPinjam)
                                 <option value="{{ $statusPinjam->value }}">{{ $statusPinjam->value }}</option>
                             @endforeach
                         </select>
@@ -137,7 +137,7 @@
                 <flux:table.rows>
                     @forelse ($daftarPeminjaman as $item)
                         @php
-                            $isOverdue = ($item->status === \App\Enums\StatusPeminjaman::Dipinjam->value && now()->startOfDay()->gt($item->tanggal_kembali_rencana));
+                            $isOverdue = ($item->status === \App\Enums\Aset\StatusPeminjaman::Dipinjam->value && now()->startOfDay()->gt($item->tanggal_kembali_rencana));
                         @endphp
                         <flux:table.row :key="$item->id">
                             {{-- Kode PINJ --}}
@@ -191,7 +191,7 @@
 
                             {{-- Status --}}
                             <flux:table.cell class="text-center">
-                                <x-status-badge :status="$item->status" />
+                                <x-ui.status-badge :status="$item->status" />
                             </flux:table.cell>
 
                             {{-- Aksi --}}
@@ -205,13 +205,13 @@
                                         @php
                                             $canSerahTerima = $izin[$item->id]['serah_terima'] ?? false;
                                         @endphp
-                                        @if ($item->status === \App\Enums\StatusPeminjaman::Disetujui->value && $canSerahTerima)
+                                        @if ($item->status === \App\Enums\Aset\StatusPeminjaman::Disetujui->value && $canSerahTerima)
                                             <flux:menu.item wire:click="confirmSerahTerima({{ $item->id }})" icon="arrow-right-start-on-rectangle">
                                                 Serah Terima
                                             </flux:menu.item>
                                         @endif
 
-                                        @if (in_array($item->status, [\App\Enums\StatusPeminjaman::Dipinjam->value], true))
+                                        @if (in_array($item->status, [\App\Enums\Aset\StatusPeminjaman::Dipinjam->value], true))
                                             @can('update_layanan_unit::peminjaman::aset')
                                                 <flux:menu.item wire:click="openPerpanjang({{ $item->id }})" icon="calendar-days">
                                                     Perpanjang
@@ -219,7 +219,7 @@
                                             @endcan
                                         @endif
 
-                                        @if ($item->status === \App\Enums\StatusPeminjaman::Diajukan->value)
+                                        @if ($item->status === \App\Enums\Aset\StatusPeminjaman::Diajukan->value)
                                             @can('create_layanan_unit::peminjaman::aset')
                                                 <flux:menu.separator />
                                                 <flux:menu.item wire:click="confirmBatal({{ $item->id }})" icon="x-mark" variant="danger">
@@ -232,12 +232,12 @@
                             </flux:table.cell>
                         </flux:table.row>
                     @empty
-                        <x-empty-state message="Belum ada transaksi peminjaman aset yang terdaftar." cols="7" />
+                        <x-ui.empty-state message="Belum ada transaksi peminjaman aset yang terdaftar." cols="7" />
                     @endforelse
                 </flux:table.rows>
             </flux:table>
 
-            <x-table-pagination :paginator="$daftarPeminjaman" />
+            <x-ui.table-pagination :paginator="$daftarPeminjaman" />
         @else
             {{-- Tampilan Tab 2: Katalog Aset Tersedia --}}
             <flux:table bleed container:class="mt-4">
@@ -314,12 +314,12 @@
                             </flux:table.cell>
                         </flux:table.row>
                     @empty
-                        <x-empty-state message="Tidak ada aset inventaris yang berstatus TERSEDIA dan kondisi BAIK sesuai filter." cols="6" />
+                        <x-ui.empty-state message="Tidak ada aset inventaris yang berstatus TERSEDIA dan kondisi BAIK sesuai filter." cols="6" />
                     @endforelse
                 </flux:table.rows>
             </flux:table>
 
-            <x-table-pagination :paginator="$daftarKatalogAset" />
+            <x-ui.table-pagination :paginator="$daftarKatalogAset" />
         @endif
     </flux:card>
 
@@ -332,7 +332,7 @@
     @include('livewire.aset.partials.peminjaman-aset.modal-detail-pinjam')
 
     {{-- Modal Konfirmasi Tindakan --}}
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

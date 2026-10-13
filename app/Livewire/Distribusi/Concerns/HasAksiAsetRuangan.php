@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Distribusi\Concerns;
 
-use App\Models\Aset;
+use App\Models\Aset\Aset;
 use Illuminate\Support\Facades\DB;
 
 trait HasAksiAsetRuangan
@@ -65,8 +65,8 @@ trait HasAksiAsetRuangan
         $aset = Aset::with(['barang', 'unit', 'gudang'])->findOrFail($asetId);
         abort_unless($this->ownsAset($aset), 403, 'Anda tidak berwenang melaporkan kerusakan aset milik fasilitas lain.');
 
-        $tiketAktif = \App\Models\PermintaanMaintenance::where('aset_id', $aset->id)
-            ->whereIn('status', [\App\Enums\StatusMaintenance::Dilaporkan->value, 'DISETUJUI', 'DALAM_PENGERJAAN'])
+        $tiketAktif = \App\Models\Ipsrs\PermintaanMaintenance::where('aset_id', $aset->id)
+            ->whereIn('status', [\App\Enums\Ipsrs\StatusMaintenance::Dilaporkan->value, 'DISETUJUI', 'DALAM_PENGERJAAN'])
             ->latest('id')
             ->first();
 
@@ -117,7 +117,7 @@ trait HasAksiAsetRuangan
         $kode = \App\Support\Generator\CodeGenerator::generateMnt();
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($kode, $aset, $user, $fotoPath) {
-            \App\Models\PermintaanMaintenance::create([
+            \App\Models\Ipsrs\PermintaanMaintenance::create([
                 'kode'              => $kode,
                 'aset_id'           => $aset->id,
                 'unit_id'           => $aset->unit_id ?: $user->unit_id,
@@ -125,7 +125,7 @@ trait HasAksiAsetRuangan
                 'deskripsi_masalah' => $this->servisDeskripsi,
                 'foto_kerusakan'    => $fotoPath,
                 'prioritas'         => $this->servisPrioritas,
-                'status'            => \App\Enums\StatusMaintenance::Dilaporkan->value,
+                'status'            => \App\Enums\Ipsrs\StatusMaintenance::Dilaporkan->value,
             ]);
 
             $kondisiAset = match ($this->servisPrioritas) {

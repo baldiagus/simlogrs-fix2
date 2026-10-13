@@ -9,7 +9,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Servis IPSRS --}}
-        <x-ipsrs-servis-tabs active="lk" />
+        <x-tabs.ipsrs-servis active="lk" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -28,7 +28,7 @@
             <div class="w-full sm:w-48">
                 <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="AKTIF">Tugas Aktif Berjalan</option>
-                    <option value="{{ \App\Enums\StatusSpk::Selesai->value }}">Riwayat Selesai</option>
+                    <option value="{{ \App\Enums\Ipsrs\StatusSpk::Selesai->value }}">Riwayat Selesai</option>
                     <option value="SEMUA">Semua SPK</option>
                 </select>
             </div>
@@ -89,7 +89,7 @@
 
                         {{-- Status SPK --}}
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$spk->status" />
+                            <x-ui.status-badge :status="$spk->status" />
                         </flux:table.cell>
 
                         {{-- Aksi --}}
@@ -100,7 +100,7 @@
                                     <flux:menu.item wire:click="showDetail({{ $spk->id }})" icon="eye">
                                         Detail Pengerjaan
                                     </flux:menu.item>
-                                    @if (in_array($spk->status, \App\Enums\StatusSpk::aktif()))
+                                    @if (in_array($spk->status, \App\Enums\Ipsrs\StatusSpk::aktif()))
                                         @if (auth()->user()?->can('create_pemeliharaan::lembar::kerja') && ((int) $spk->teknisi_id === (int) auth()->id() || auth()->user()->hasRole(['super_admin', 'admin_logistik'])))
                                             <flux:menu.separator />
                                             <flux:menu.item wire:click="openLembarKerja({{ $spk->id }})" icon="wrench-screwdriver" class="text-emerald-600 dark:text-emerald-400">
@@ -113,12 +113,12 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Tidak ada SPK perbaikan yang sesuai dengan filter." cols="7" />
+                    <x-ui.empty-state message="Tidak ada SPK perbaikan yang sesuai dengan filter." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
-        <x-table-pagination :paginator="$daftarSpk" />
+        <x-ui.table-pagination :paginator="$daftarSpk" />
     </flux:card>
 
     @include('livewire.ipsrs.partials.lembar-kerja.modal-input-log')

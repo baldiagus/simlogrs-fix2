@@ -21,7 +21,7 @@
                             };
                         @endphp
                         <flux:badge size="sm" :color="$prioCol">{{ $selectedTiket->prioritas }}</flux:badge>
-                        <x-status-badge :status="$selectedTiket->status" />
+                        <x-ui.status-badge :status="$selectedTiket->status" />
                     </div>
                 </div>
 
@@ -95,7 +95,7 @@
                                         <div class="text-zinc-600 dark:text-zinc-300 mt-1 italic">{{ $spk->instruksi_khusus }}</div>
                                     @endif
                                 </div>
-                                <x-status-badge :status="$spk->status" />
+                                <x-ui.status-badge :status="$spk->status" />
                             </div>
                         @endforeach
                     </div>

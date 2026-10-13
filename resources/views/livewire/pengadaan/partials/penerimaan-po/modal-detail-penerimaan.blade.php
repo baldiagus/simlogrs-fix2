@@ -26,7 +26,7 @@
                     </div>
                 </div>
 
-                @if ($selectedPenerimaan->status === \App\Enums\StatusPenerimaanPo::Ditolak->value)
+                @if ($selectedPenerimaan->status === \App\Enums\Pengadaan\StatusPenerimaanPo::Ditolak->value)
                     <div class="p-3.5 bg-red-50 dark:bg-red-950/40 rounded-xl border border-red-200 dark:border-red-800 text-xs text-red-800 dark:text-red-300 space-y-1">
                         <div class="font-bold flex items-center gap-1.5 text-sm text-red-700 dark:text-red-400">
                             <flux:icon.no-symbol class="size-4 shrink-0" />
@@ -68,7 +68,7 @@
                                     <td class="py-2 font-mono">{{ $det->nomor_batch }}</td>
                                     <td class="py-2">{{ $det->tanggal_kedaluwarsa?->format('d/m/Y') ?? '-' }}</td>
                                     <td class="py-2">{{ $det->lokasiGudang?->nama ?? $det->lokasiGudang?->kode ?? '-' }}</td>
-                                    <td class="py-2 text-right"><x-rupiah :value="$det->harga_satuan" /></td>
+                                    <td class="py-2 text-right"><x-ui.rupiah :value="$det->harga_satuan" /></td>
                                 </tr>
                             @endforeach
                         </tbody>

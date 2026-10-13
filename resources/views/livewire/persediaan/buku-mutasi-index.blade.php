@@ -15,7 +15,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Monitoring Persediaan --}}
-        <x-persediaan-monitoring-tabs active="mutasi" />
+        <x-tabs.persediaan-monitoring active="mutasi" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -176,12 +176,12 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada riwayat mutasi kartu stok yang tercatat." cols="8" />
+                    <x-ui.empty-state message="Belum ada riwayat mutasi kartu stok yang tercatat." cols="8" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     {{-- Modal Detail Mutasi Stok --}}

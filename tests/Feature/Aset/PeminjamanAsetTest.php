@@ -3,11 +3,11 @@
 namespace Tests\Feature\Aset;
 
 use App\Livewire\Aset\PeminjamanAsetIndex;
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\PermintaanPeminjaman;
-use App\Models\PermintaanPeminjamanDetail;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Aset\PermintaanPeminjaman;
+use App\Models\Aset\PermintaanPeminjamanDetail;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -43,8 +43,8 @@ class PeminjamanAsetTest extends TestCase
             'create_layanan_unit::peminjaman::aset',
             'view_any_layanan_unit::peminjaman::aset',
         ]);
-        $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'UNIT-PINJ'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
-        $kategoriId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-PINJ'], ['nama' => 'Kategori Pinjam', 'status' => 'AKTIF'])->id;
+        $satuanId = \App\Models\Master\SatuanBarang::firstOrCreate(['kode' => 'UNIT-PINJ'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
+        $kategoriId = \App\Models\Master\KategoriBarang::firstOrCreate(['kode' => 'KAT-PINJ'], ['nama' => 'Kategori Pinjam', 'status' => 'AKTIF'])->id;
         $this->barangAset = Barang::firstOrCreate(
             ['kode' => 'BRG-PINJ-ISOLATED'],
             [
@@ -243,7 +243,7 @@ class PeminjamanAsetTest extends TestCase
         ]);
 
         // 2. Buat tiket laporan kerusakan aktif untuk aset tersebut
-        \App\Models\PermintaanMaintenance::create([
+        \App\Models\Ipsrs\PermintaanMaintenance::create([
             'kode'              => CodeGenerator::generateMnt(),
             'aset_id'           => $aset->id,
             'unit_id'           => $this->unitPenyedia->id,
@@ -277,7 +277,7 @@ class PeminjamanAsetTest extends TestCase
             'status' => 'TERSEDIA',
         ]);
 
-        \App\Models\PermintaanMaintenance::create([
+        \App\Models\Ipsrs\PermintaanMaintenance::create([
             'kode'              => CodeGenerator::generateMnt(),
             'aset_id'           => $aset->id,
             'unit_id'           => $this->unitPenyedia->id,

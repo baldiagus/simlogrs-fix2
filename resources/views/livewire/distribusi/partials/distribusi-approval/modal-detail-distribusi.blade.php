@@ -1,5 +1,5 @@
-@use('App\Enums\StatusPermintaanDistribusi')
-@use('App\Enums\StatusPengirimanBarang')
+@use('App\Enums\Distribusi\StatusPermintaanDistribusi')
+@use('App\Enums\Distribusi\StatusPengirimanBarang')
     {{-- Modal Detail Permintaan Distribusi --}}
     <flux:modal name="modal-detail-distribusi" wire:model="showDetailModal" class="md:w-[54rem] max-w-[95vw]">
         @if ($selectedPermintaan)
@@ -39,13 +39,13 @@
                     <div>
                         <span class="text-zinc-500 dark:text-zinc-400 block">Tingkat Urgensi</span>
                         <div class="mt-0.5">
-                            <x-urgency-badge :urgency="$selectedPermintaan->urgensi" />
+                            <x-ui.urgency-badge :urgency="$selectedPermintaan->urgensi" />
                         </div>
                     </div>
                     <div>
                         <span class="text-zinc-500 dark:text-zinc-400 block">Status Terakhir</span>
                         <div class="mt-0.5">
-                            <x-status-badge :status="$selectedPermintaan->status" />
+                            <x-ui.status-badge :status="$selectedPermintaan->status" />
                         </div>
                     </div>
                 </div>

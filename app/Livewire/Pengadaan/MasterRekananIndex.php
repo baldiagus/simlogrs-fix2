@@ -2,12 +2,12 @@
 
 namespace App\Livewire\Pengadaan;
 
-use App\Enums\StatusPesananPembelian;
+use App\Enums\Pengadaan\StatusPesananPembelian;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Pemasok;
-use App\Models\PesananPembelian;
+use App\Models\Master\Pemasok;
+use App\Models\Pengadaan\PesananPembelian;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;

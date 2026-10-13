@@ -3,9 +3,9 @@
 namespace Tests\Feature\Distribusi;
 
 use App\Livewire\Distribusi\StokRuanganIndex;
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -85,7 +85,7 @@ class StokRuanganTest extends TestCase
         $barangBhp = Barang::where('status', 'AKTIF')->where('tipe', 'HABIS_PAKAI')->first()
             ?: Barang::first();
 
-        $stok = \App\Models\StokRuangan::updateOrCreate(
+        $stok = \App\Models\Distribusi\StokRuangan::updateOrCreate(
             ['unit_id' => $this->unit->id, 'barang_id' => $barangBhp->id],
             ['jumlah' => 10, 'stok_minimum' => 2, 'stok_maksimum' => 20]
         );
@@ -103,7 +103,7 @@ class StokRuanganTest extends TestCase
         $this->assertEquals(7, $stok->jumlah);
 
         // 2. Keterangan pemakaian HARUS tercatat di log_audit
-        $auditLog = \App\Models\LogAudit::where('referensi_id', $stok->id)
+        $auditLog = \App\Models\Audit\LogAudit::where('referensi_id', $stok->id)
             ->where('aksi', 'PEMAKAIAN')
             ->latest('id')
             ->first();
@@ -221,7 +221,7 @@ class StokRuanganTest extends TestCase
 
     public function test_warehouse_user_can_view_their_warehouse_assets_in_asset_tab(): void
     {
-        $gudang = \App\Models\Gudang::where('status', 'AKTIF')->first();
+        $gudang = \App\Models\Master\Gudang::where('status', 'AKTIF')->first();
         $userGudang = User::create([
             'nama' => 'Petugas Gudang Persediaan',
             'username' => 'petugas_gdg_stk',
@@ -257,7 +257,7 @@ class StokRuanganTest extends TestCase
 
     public function test_warehouse_user_can_view_their_warehouse_inventory_in_goods_tab(): void
     {
-        $gudang = \App\Models\Gudang::where('status', 'AKTIF')->first();
+        $gudang = \App\Models\Master\Gudang::where('status', 'AKTIF')->first();
         $userGudang = User::create([
             'nama' => 'Petugas Gudang Persediaan BHP',
             'username' => 'petugas_gdg_bhp',
@@ -272,8 +272,8 @@ class StokRuanganTest extends TestCase
             'page_StokRuanganIndex',
         ]);
 
-        $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'UNT-STK-GDG'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
-        $kategoriId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-STK-GDG'], ['nama' => 'Kategori BHP', 'status' => 'AKTIF'])->id;
+        $satuanId = \App\Models\Master\SatuanBarang::firstOrCreate(['kode' => 'UNT-STK-GDG'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
+        $kategoriId = \App\Models\Master\KategoriBarang::firstOrCreate(['kode' => 'KAT-STK-GDG'], ['nama' => 'Kategori BHP', 'status' => 'AKTIF'])->id;
         $barangBhp = Barang::firstOrCreate(
             ['kode' => 'BRG-BHP-GDG-01'],
             [
@@ -285,7 +285,7 @@ class StokRuanganTest extends TestCase
             ]
         );
 
-        \App\Models\StokBatch::create([
+        \App\Models\Persediaan\StokBatch::create([
             'barang_id' => $barangBhp->id,
             'gudang_id' => $gudang->id,
             'nomor_batch' => 'BATCH-TEST-GDG-01',
@@ -304,7 +304,7 @@ class StokRuanganTest extends TestCase
 
     public function test_warehouse_user_can_manage_status_and_report_service_for_warehouse_asset(): void
     {
-        $gudang = \App\Models\Gudang::where('status', 'AKTIF')->first();
+        $gudang = \App\Models\Master\Gudang::where('status', 'AKTIF')->first();
         $userGudang = User::create([
             'nama' => 'Petugas Gudang Aset Manage',
             'username' => 'petugas_gdg_mng',

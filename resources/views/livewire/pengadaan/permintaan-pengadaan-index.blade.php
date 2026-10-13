@@ -15,7 +15,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Pengadaan --}}
-        <x-pengadaan-transaksi-tabs active="pr" />
+        <x-tabs.pengadaan-transaksi active="pr" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -34,11 +34,11 @@
             <div class="w-full sm:w-56">
                 <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                     <option value="">Semua Status</option>
-                    <option value="{{ \App\Enums\StatusPermintaanPengadaan::Diajukan->value }}">{{ \App\Enums\StatusPermintaanPengadaan::Diajukan->value }}</option>
-                    <option value="{{ \App\Enums\StatusPermintaanPengadaan::DiteruskanKePengadaan->value }}">DITERUSKAN KE PENGADAAN</option>
-                    <option value="{{ \App\Enums\StatusPermintaanPengadaan::Diproses->value }}">DIPROSES (PO)</option>
-                    <option value="{{ \App\Enums\StatusPermintaanPengadaan::Selesai->value }}">SELESAI</option>
-                    <option value="{{ \App\Enums\StatusPermintaanPengadaan::Ditolak->value }}">{{ \App\Enums\StatusPermintaanPengadaan::Ditolak->value }}</option>
+                    <option value="{{ \App\Enums\Pengadaan\StatusPermintaanPengadaan::Diajukan->value }}">{{ \App\Enums\Pengadaan\StatusPermintaanPengadaan::Diajukan->value }}</option>
+                    <option value="{{ \App\Enums\Pengadaan\StatusPermintaanPengadaan::DiteruskanKePengadaan->value }}">DITERUSKAN KE PENGADAAN</option>
+                    <option value="{{ \App\Enums\Pengadaan\StatusPermintaanPengadaan::Diproses->value }}">DIPROSES (PO)</option>
+                    <option value="{{ \App\Enums\Pengadaan\StatusPermintaanPengadaan::Selesai->value }}">SELESAI</option>
+                    <option value="{{ \App\Enums\Pengadaan\StatusPermintaanPengadaan::Ditolak->value }}">{{ \App\Enums\Pengadaan\StatusPermintaanPengadaan::Ditolak->value }}</option>
                 </select>
             </div>
 
@@ -93,11 +93,11 @@
                         </flux:table.cell>
                         <flux:table.cell class="text-xs tabular-nums">{{ $item->tanggal_permintaan?->format('d/m/Y') }}</flux:table.cell>
                         <flux:table.cell>
-                            <x-urgency-badge :urgency="$item->urgensi" />
+                            <x-ui.urgency-badge :urgency="$item->urgensi" />
                         </flux:table.cell>
                         <flux:table.cell class="text-center font-mono text-xs">{{ $item->detail->count() }}</flux:table.cell>
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$item->status" />
+                            <x-ui.status-badge :status="$item->status" />
                         </flux:table.cell>
                         <flux:table.cell class="text-right w-16">
                             <flux:dropdown position="bottom" align="end">
@@ -114,7 +114,7 @@
 
                                     {{-- MEJA 1: Otorisasi Kepala Ruangan / Unit / Gudang (Khusus status DIAJUKAN) --}}
                                     @can('update_pengadaan::permintaan::pengadaan')
-                                        @if ($item->status === \App\Enums\StatusPermintaanPengadaan::Diajukan->value && $canApproveThis)
+                                        @if ($item->status === \App\Enums\Pengadaan\StatusPermintaanPengadaan::Diajukan->value && $canApproveThis)
                                             <flux:menu.item wire:click="confirmApprove({{ $item->id }})" icon="check-circle" class="text-emerald-600 dark:text-emerald-400">
                                                 Setujui ({{ $approverRoleLabel }})
                                             </flux:menu.item>
@@ -126,7 +126,7 @@
 
                                     {{-- MEJA 2: Meja Bagian Pengadaan (Khusus status DITERUSKAN_KE_PENGADAAN) --}}
                                     @can('create_pengadaan::pesanan::pembelian')
-                                        @if ($item->status === \App\Enums\StatusPermintaanPengadaan::DiteruskanKePengadaan->value)
+                                        @if ($item->status === \App\Enums\Pengadaan\StatusPermintaanPengadaan::DiteruskanKePengadaan->value)
                                             <flux:menu.item
                                                 href="/{{ \App\Support\Portal\PortalResolver::resolve() }}/pesanan-pembelian?konversi_pr={{ $item->id }}"
                                                 icon="shopping-cart"
@@ -147,13 +147,13 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada permintaan pengadaan atau sesuai kriteria pencarian." cols="7" />
+                    <x-ui.empty-state message="Belum ada permintaan pengadaan atau sesuai kriteria pencarian." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
         {{-- Pagination --}}
-        <x-table-pagination :paginator="$daftarPr" />
+        <x-ui.table-pagination :paginator="$daftarPr" />
     </flux:card>
 
     @include('livewire.pengadaan.partials.permintaan-pengadaan.modal-pr-form')
@@ -161,7 +161,7 @@
     @include('livewire.pengadaan.partials.permintaan-pengadaan.modal-pr-detail')
 
     @include('livewire.pengadaan.partials.permintaan-pengadaan.modal-reject-pengadaan')
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

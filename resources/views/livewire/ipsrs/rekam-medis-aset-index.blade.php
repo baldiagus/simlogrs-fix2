@@ -9,7 +9,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Rutin & Rekam Medis --}}
-        <x-ipsrs-rutin-tabs active="rekam-medis" />
+        <x-tabs.ipsrs-rutin active="rekam-medis" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -99,7 +99,7 @@
 
                         {{-- Status Operasional --}}
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$aset->status" />
+                            <x-ui.status-badge :status="$aset->status" />
                         </flux:table.cell>
 
                         {{-- Total Histori Servis --}}
@@ -128,12 +128,12 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada unit inventaris aset yang terdaftar." cols="7" />
+                    <x-ui.empty-state message="Belum ada unit inventaris aset yang terdaftar." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
-        <x-table-pagination :paginator="$daftarAset" />
+        <x-ui.table-pagination :paginator="$daftarAset" />
     </flux:card>
 
     {{-- Modal Buku Riwayat Rekam Medis Aset --}}
@@ -155,7 +155,7 @@
                         </flux:subheading>
                     </div>
                     <div class="flex items-center gap-2" style="margin-right: 2.25rem;">
-                        <x-status-badge :status="$selectedAset->status" />
+                        <x-ui.status-badge :status="$selectedAset->status" />
                     </div>
                 </div>
 
@@ -202,7 +202,7 @@
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <flux:badge size="xs" color="blue">{{ $pm->prioritas }}</flux:badge>
-                                    <x-status-badge :status="$pm->status" />
+                                    <x-ui.status-badge :status="$pm->status" />
                                 </div>
                             </div>
 

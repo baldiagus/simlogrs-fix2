@@ -4,8 +4,8 @@ namespace App\Livewire\Dashboard;
 
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Gudang;
-use App\Models\Unit;
+use App\Models\Master\Gudang;
+use App\Models\Master\Unit;
 use App\Support\Auth\ContextManager;
 use Livewire\Component;
 

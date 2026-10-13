@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Pengadaan\Concerns;
 
-use App\Models\Gudang;
+use App\Models\Master\Gudang;
 use App\Services\Pengadaan\PenerimaanPoService;
 use Illuminate\Validation\Rule;
 

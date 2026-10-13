@@ -2,13 +2,13 @@
 
 namespace App\Livewire\Ipsrs\Concerns;
 
-use App\Enums\StatusMaintenance;
-use App\Enums\StatusSpk;
-use App\Models\Barang;
-use App\Models\LogMaintenance;
-use App\Models\PergerakanStok;
-use App\Models\StokBatch;
-use App\Models\SukuCadangMaintenance;
+use App\Enums\Ipsrs\StatusMaintenance;
+use App\Enums\Ipsrs\StatusSpk;
+use App\Models\Master\Barang;
+use App\Models\Ipsrs\LogMaintenance;
+use App\Models\Persediaan\PergerakanStok;
+use App\Models\Persediaan\StokBatch;
+use App\Models\Ipsrs\SukuCadangMaintenance;
 use Illuminate\Support\Facades\DB;
 
 trait HasSparepartLembarKerja

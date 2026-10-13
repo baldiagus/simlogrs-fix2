@@ -23,14 +23,14 @@
                     </div>
                     <div>
                         <div class="text-zinc-500 dark:text-zinc-400 font-medium">Status PO</div>
-                        <div><x-status-badge :status="$selectedPo->status" /></div>
+                        <div><x-ui.status-badge :status="$selectedPo->status" /></div>
                     </div>
                 </div>
 
                 @php
                     $isLate = $selectedPo->estimasi_tanggal_kirim
                         && $selectedPo->estimasi_tanggal_kirim->isPast()
-                        && $selectedPo->status !== \App\Enums\StatusPesananPembelian::DiterimaLengkap->value;
+                        && $selectedPo->status !== \App\Enums\Pengadaan\StatusPesananPembelian::DiterimaLengkap->value;
                 @endphp
                 @if ($isLate)
                     <div class="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300">
@@ -68,10 +68,10 @@
                                         @endif
                                     </td>
                                     <td class="py-2 px-3 text-right font-mono text-xs tabular-nums">
-                                        <x-rupiah :value="$detail->harga_satuan" />
+                                        <x-ui.rupiah :value="$detail->harga_satuan" />
                                     </td>
                                     <td class="py-2 px-3 text-right font-mono text-xs tabular-nums">
-                                        <x-rupiah :value="$detail->subtotal" class="font-semibold" />
+                                        <x-ui.rupiah :value="$detail->subtotal" class="font-semibold" />
                                     </td>
                                 </tr>
                             @empty
@@ -86,7 +86,7 @@
                 {{-- Total Biaya --}}
                 <div class="flex justify-end p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800">
                     <div class="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                        Total: <x-rupiah :value="$selectedPo->total_biaya" class="text-blue-600 dark:text-blue-400" />
+                        Total: <x-ui.rupiah :value="$selectedPo->total_biaya" class="text-blue-600 dark:text-blue-400" />
                     </div>
                 </div>
 
@@ -100,7 +100,7 @@
                                 <div>
                                     <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $penerimaan->kode ?? 'Penerimaan' }}</div>
                                     <div class="text-zinc-500 dark:text-zinc-400">{{ $penerimaan->tanggal_terima?->format('d/m/Y') ?? '-' }} &bull; Surat Jalan: {{ $penerimaan->nomor_surat_jalan }}</div>
-                                    <div class="text-zinc-500 mt-0.5"><x-status-badge :status="$penerimaan->status" /></div>
+                                    <div class="text-zinc-500 mt-0.5"><x-ui.status-badge :status="$penerimaan->status" /></div>
                                 </div>
                             </div>
                         @endforeach
@@ -108,7 +108,7 @@
                 @endif
 
                 @can('create_gudang_stok::penerimaan::po')
-                    @if (in_array($selectedPo->status, \App\Enums\StatusPesananPembelian::bisaDiterima()))
+                    @if (in_array($selectedPo->status, \App\Enums\Pengadaan\StatusPesananPembelian::bisaDiterima()))
                         <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
                             <flux:button
                                 type="button"

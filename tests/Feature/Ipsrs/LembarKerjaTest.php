@@ -3,14 +3,14 @@
 namespace Tests\Feature\Ipsrs;
 
 use App\Livewire\Ipsrs\LembarKerjaPengerjaanIndex;
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\LokasiGudang;
-use App\Models\PenugasanMaintenance;
-use App\Models\PermintaanMaintenance;
-use App\Models\StokBatch;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Master\LokasiGudang;
+use App\Models\Ipsrs\PenugasanMaintenance;
+use App\Models\Ipsrs\PermintaanMaintenance;
+use App\Models\Persediaan\StokBatch;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;

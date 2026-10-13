@@ -9,7 +9,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Peminjaman --}}
-        <x-sirkulasi-peminjaman-tabs active="approval" />
+        <x-tabs.sirkulasi-peminjaman active="approval" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -25,24 +25,24 @@
                 Semua
             </flux:tab>
             <flux:tab
-                wire:click="setFilterTab('{{ \App\Enums\StatusPeminjaman::Diajukan->value }}')"
-                :current="$filterStatus === \App\Enums\StatusPeminjaman::Diajukan->value"
+                wire:click="setFilterTab('{{ \App\Enums\Aset\StatusPeminjaman::Diajukan->value }}')"
+                :current="$filterStatus === \App\Enums\Aset\StatusPeminjaman::Diajukan->value"
                 icon="clock"
                 :badge="$countMenunggu"
             >
                 Menunggu Otorisasi
             </flux:tab>
             <flux:tab
-                wire:click="setFilterTab('{{ \App\Enums\StatusPeminjaman::Disetujui->value }}')"
-                :current="$filterStatus === \App\Enums\StatusPeminjaman::Disetujui->value"
+                wire:click="setFilterTab('{{ \App\Enums\Aset\StatusPeminjaman::Disetujui->value }}')"
+                :current="$filterStatus === \App\Enums\Aset\StatusPeminjaman::Disetujui->value"
                 icon="check-circle"
                 :badge="$countSiapSerahTerima"
             >
                 Siap Serah Terima
             </flux:tab>
             <flux:tab
-                wire:click="setFilterTab('{{ \App\Enums\StatusPeminjaman::Dipinjam->value }}')"
-                :current="$filterStatus === \App\Enums\StatusPeminjaman::Dipinjam->value"
+                wire:click="setFilterTab('{{ \App\Enums\Aset\StatusPeminjaman::Dipinjam->value }}')"
+                :current="$filterStatus === \App\Enums\Aset\StatusPeminjaman::Dipinjam->value"
                 icon="arrow-path"
                 :badge="$countDipinjam"
             >
@@ -114,7 +114,7 @@
                             <div>{{ $item->tanggal_pinjam?->format('d/m/Y') ?? '-' }} &rarr; {{ $item->tanggal_kembali_rencana?->format('d/m/Y') ?? '-' }}</div>
                         </flux:table.cell>
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$item->status" />
+                            <x-ui.status-badge :status="$item->status" />
                         </flux:table.cell>
 
                         <flux:table.cell class="text-right w-16">
@@ -124,7 +124,7 @@
                                     <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
                                         Detail Permintaan
                                     </flux:menu.item>
-                                    @if ($item->status === \App\Enums\StatusPeminjaman::Diajukan->value && $canApproveItem)
+                                    @if ($item->status === \App\Enums\Aset\StatusPeminjaman::Diajukan->value && $canApproveItem)
                                         <flux:menu.item wire:click="confirmApprove({{ $item->id }})" icon="check-circle" class="text-emerald-600 dark:text-emerald-400">
                                             Setujui
                                         </flux:menu.item>
@@ -132,7 +132,7 @@
                                             Tolak
                                         </flux:menu.item>
                                     @endif
-                                    @if ($item->status === \App\Enums\StatusPeminjaman::Disetujui->value && $canHandoverItem)
+                                    @if ($item->status === \App\Enums\Aset\StatusPeminjaman::Disetujui->value && $canHandoverItem)
                                         <flux:menu.item wire:click="confirmSerahTerima({{ $item->id }})" icon="arrow-right-start-on-rectangle">
                                             Serah Terima
                                         </flux:menu.item>
@@ -142,18 +142,18 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Tidak ada permohonan peminjaman aset yang sesuai filter." cols="6" />
+                    <x-ui.empty-state message="Tidak ada permohonan peminjaman aset yang sesuai filter." cols="6" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
-        <x-table-pagination :paginator="$daftarPermintaan" />
+        <x-ui.table-pagination :paginator="$daftarPermintaan" />
     </flux:card>
 
     @include('livewire.aset.partials.approval-peminjaman.modal-detail')
 
     {{-- Modal konfirmasi tindakan --}}
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

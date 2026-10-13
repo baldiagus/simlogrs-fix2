@@ -13,7 +13,7 @@ class PengadaanHubNavigationTest extends TestCase
         $user = User::where('email', 'superadmin@simlogrs.local')->first();
         $this->actingAs($user);
 
-        $view = $this->blade('<x-pengadaan-transaksi-tabs active="pr" />');
+        $view = $this->blade('<x-tabs.pengadaan-transaksi active="pr" />');
         $view->assertSee('Permintaan (PR)');
         $view->assertSee('Pesanan (PO)');
         $view->assertSee('Penerimaan (Inbound)');
@@ -25,7 +25,7 @@ class PengadaanHubNavigationTest extends TestCase
         $user = User::where('email', 'superadmin@simlogrs.local')->first();
         $this->actingAs($user);
 
-        $view = $this->blade('<x-pengadaan-evaluasi-tabs active="anggaran" />');
+        $view = $this->blade('<x-tabs.pengadaan-evaluasi active="anggaran" />');
         $view->assertSee('Pagu & Realisasi', false);
         $view->assertSee('Evaluasi Rekanan', false);
         $view->assertDontSee('/livewire/');

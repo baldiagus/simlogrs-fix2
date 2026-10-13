@@ -2,18 +2,18 @@
 
 namespace App\Livewire\Distribusi;
 
-use App\Enums\StatusPermintaanDistribusi;
-use App\Enums\StatusPengirimanBarang;
+use App\Enums\Distribusi\StatusPermintaanDistribusi;
+use App\Enums\Distribusi\StatusPengirimanBarang;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Livewire\Distribusi\Concerns\AuthorizesDistribusiScope;
-use App\Models\PenerimaanDistribusi;
-use App\Models\PenerimaanDistribusiDetail;
-use App\Models\PengirimanBarang;
-use App\Models\StokRuangan;
-use App\Models\Aset;
+use App\Models\Distribusi\PenerimaanDistribusi;
+use App\Models\Distribusi\PenerimaanDistribusiDetail;
+use App\Models\Distribusi\PengirimanBarang;
+use App\Models\Distribusi\StokRuangan;
+use App\Models\Aset\Aset;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;

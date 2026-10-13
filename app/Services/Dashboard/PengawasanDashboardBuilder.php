@@ -2,11 +2,11 @@
 
 namespace App\Services\Dashboard;
 
-use App\Models\PermintaanMaintenance;
-use App\Models\PesananPembelian;
-use App\Models\StokOpname;
-use App\Models\TemuanAudit;
-use App\Models\Unit;
+use App\Models\Ipsrs\PermintaanMaintenance;
+use App\Models\Pengadaan\PesananPembelian;
+use App\Models\Persediaan\StokOpname;
+use App\Models\Audit\TemuanAudit;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Services\Anggaran\AnggaranRealtimeService;
 

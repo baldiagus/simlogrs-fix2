@@ -2,6 +2,11 @@
 
 namespace Database\Seeders;
 
+use Database\Seeders\Master\GudangSeeder;
+use Database\Seeders\Master\UnitSeeder;
+use Database\Seeders\Rbac\PenggunaSeeder;
+use Database\Seeders\Rbac\PeranSeeder;
+use Database\Seeders\Rbac\ShieldRolePermissionSeeder;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder

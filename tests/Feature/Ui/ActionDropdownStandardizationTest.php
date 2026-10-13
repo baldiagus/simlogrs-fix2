@@ -2,16 +2,16 @@
 
 namespace Tests\Feature\Ui;
 
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\KategoriBarang;
-use App\Models\Pemasok;
-use App\Models\PengirimanBarang;
-use App\Models\PermintaanDistribusi;
-use App\Models\PermintaanMaintenance;
-use App\Models\PesananPembelian;
-use App\Models\SatuanBarang;
-use App\Models\Unit;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Master\KategoriBarang;
+use App\Models\Master\Pemasok;
+use App\Models\Distribusi\PengirimanBarang;
+use App\Models\Distribusi\PermintaanDistribusi;
+use App\Models\Ipsrs\PermintaanMaintenance;
+use App\Models\Pengadaan\PesananPembelian;
+use App\Models\Master\SatuanBarang;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -132,10 +132,10 @@ class ActionDropdownStandardizationTest extends TestCase
         $resPoRcv->assertSee('title="Menu Opsi"', false);
 
         // 3. Lapor Servis
-        $aset = \App\Models\Aset::create([
+        $aset = \App\Models\Aset\Aset::create([
             'barang_id' => $this->barang->id,
             'unit_id' => $this->unit->id,
-            'kode_aset' => CodeGenerator::generate('AST', \App\Models\Aset::class, 'kode_aset'),
+            'kode_aset' => CodeGenerator::generate('AST', \App\Models\Aset\Aset::class, 'kode_aset'),
             'nomor_seri' => 'SN-UI-001',
             'tanggal_perolehan' => now()->toDateString(),
             'nilai_perolehan' => 5000000,

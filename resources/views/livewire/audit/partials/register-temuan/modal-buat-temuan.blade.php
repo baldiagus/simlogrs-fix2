@@ -50,14 +50,14 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <x-searchable-select
+                <x-ui.searchable-select
                     model="unit_id"
                     label="Unit Terperiksa (Opsional)"
                     placeholder="-- Pilih Unit Terperiksa --"
                     :options="$daftarUnit"
                 />
 
-                <x-searchable-select
+                <x-ui.searchable-select
                     model="gudang_id"
                     label="Gudang Terperiksa (Opsional)"
                     placeholder="-- Pilih Fasilitas Gudang --"

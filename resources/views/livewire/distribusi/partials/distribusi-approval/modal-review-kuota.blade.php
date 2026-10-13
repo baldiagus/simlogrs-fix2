@@ -26,7 +26,7 @@
                     <div>
                         <span class="text-zinc-500 dark:text-zinc-400 block">Tingkat Urgensi</span>
                         <div class="mt-0.5">
-                            <x-urgency-badge :urgency="$selectedPermintaan->urgensi" />
+                            <x-ui.urgency-badge :urgency="$selectedPermintaan->urgensi" />
                         </div>
                     </div>
                 </div>

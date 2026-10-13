@@ -12,7 +12,7 @@ class SirkulasiAsetHubNavigationTest extends TestCase
         $user = User::where('email', 'superadmin@simlogrs.local')->first();
         $this->actingAs($user);
 
-        $view = $this->blade('<x-sirkulasi-peminjaman-tabs active="pinjam" />');
+        $view = $this->blade('<x-tabs.sirkulasi-peminjaman active="pinjam" />');
         $view->assertSee('Permohonan Pinjam');
         $view->assertSee('Otorisasi Peminjaman');
         $view->assertDontSee('Pengalihan & Mutasi', false);

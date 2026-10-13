@@ -2,13 +2,13 @@
 
 namespace App\Livewire\Ipsrs;
 
-use App\Enums\StatusMaintenance;
+use App\Enums\Ipsrs\StatusMaintenance;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Aset;
-use App\Models\PermintaanMaintenance;
+use App\Models\Aset\Aset;
+use App\Models\Ipsrs\PermintaanMaintenance;
 use App\Support\File\FileOptimizer;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\DB;

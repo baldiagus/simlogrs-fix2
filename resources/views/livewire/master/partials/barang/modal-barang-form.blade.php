@@ -34,7 +34,7 @@
                 <flux:input wire:model="nama" label="Nama Lengkap Komoditas" placeholder="misal: Kertas HVS A4 80gr Sinar Dunia" required />
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <x-searchable-select
+                    <x-ui.searchable-select
                         model="kategori_id"
                         label="Kategori Komoditas"
                         placeholder="Pilih Kategori..."
@@ -42,7 +42,7 @@
                         required
                     />
 
-                    <x-searchable-select
+                    <x-ui.searchable-select
                         model="satuan_id"
                         label="Satuan Kemasan"
                         placeholder="Pilih Satuan..."
@@ -52,14 +52,14 @@
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <x-searchable-select
+                    <x-ui.searchable-select
                         model="merek_id"
                         label="Merek / Brand (Opsional)"
                         placeholder="Tanpa Merek / Generic"
                         :options="$daftarMerek"
                     />
 
-                    <x-searchable-select
+                    <x-ui.searchable-select
                         model="pemasok_default_id"
                         label="Pemasok Rekanan Utama (Opsional)"
                         placeholder="Pilih Vendor Default..."
@@ -73,14 +73,14 @@
                     Tahap 2: Parameter Pengendalian Stok & Estimasi Harga
                 </div>
                 <div class="grid grid-cols-3 gap-3">
-                    <x-number-input model="stok_minimum" label="Stok Minimum" placeholder="Tanpa Batas" />
-                    <x-number-input model="titik_pesan" label="Titik Pesan (ROP)" placeholder="Tanpa Batas" />
-                    <x-number-input model="stok_maksimum" label="Stok Maksimum" placeholder="Tanpa Batas" />
+                    <x-ui.number-input model="stok_minimum" label="Stok Minimum" placeholder="Tanpa Batas" />
+                    <x-ui.number-input model="titik_pesan" label="Titik Pesan (ROP)" placeholder="Tanpa Batas" />
+                    <x-ui.number-input model="stok_maksimum" label="Stok Maksimum" placeholder="Tanpa Batas" />
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                    <x-number-input model="harga_beli_terakhir" label="Harga Beli Terakhir" prefix="Rp" required />
-                    <x-number-input model="harga_estimasi" label="Harga Estimasi Pengadaan" prefix="Rp" required />
+                    <x-ui.number-input model="harga_beli_terakhir" label="Harga Beli Terakhir" prefix="Rp" required />
+                    <x-ui.number-input model="harga_estimasi" label="Harga Estimasi Pengadaan" prefix="Rp" required />
                 </div>
             </div>
 

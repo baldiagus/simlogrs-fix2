@@ -2,11 +2,11 @@
 
 namespace App\Services\Aset;
 
-use App\Enums\StatusAset;
-use App\Enums\StatusPengalihan;
-use App\Models\Aset;
-use App\Models\PengalihanAset;
-use App\Models\PengalihanAsetDetail;
+use App\Enums\Aset\StatusAset;
+use App\Enums\Aset\StatusPengalihan;
+use App\Models\Aset\Aset;
+use App\Models\Aset\PengalihanAset;
+use App\Models\Aset\PengalihanAsetDetail;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;

@@ -2,12 +2,12 @@
 
 namespace Tests\Feature\Aset;
 
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\LokasiGudang;
-use App\Models\PengalihanAset;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Master\LokasiGudang;
+use App\Models\Aset\PengalihanAset;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Services\Aset\PengalihanAsetService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -67,8 +67,8 @@ class PengalihanAsetServiceTest extends TestCase
             'status' => 'AKTIF',
         ]);
 
-        $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'UNIT-TF'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
-        $kategoriId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-TF'], ['nama' => 'Kategori TF', 'status' => 'AKTIF'])->id;
+        $satuanId = \App\Models\Master\SatuanBarang::firstOrCreate(['kode' => 'UNIT-TF'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
+        $kategoriId = \App\Models\Master\KategoriBarang::firstOrCreate(['kode' => 'KAT-TF'], ['nama' => 'Kategori TF', 'status' => 'AKTIF'])->id;
         $barang = Barang::firstOrCreate(
             ['kode' => 'BRG-TF-001'],
             [

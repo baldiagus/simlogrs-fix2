@@ -9,7 +9,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Pengawasan Kepatuhan --}}
-        <x-audit-kepatuhan-tabs active="kepatuhan" />
+        <x-tabs.audit-kepatuhan active="kepatuhan" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -122,7 +122,7 @@
 
                         {{-- Nilai Dokumen --}}
                         <flux:table.cell class="text-right font-mono font-semibold text-xs tabular-nums text-zinc-900 dark:text-zinc-100">
-                            <x-rupiah :value="$po->total_biaya" />
+                            <x-ui.rupiah :value="$po->total_biaya" />
                         </flux:table.cell>
 
                         {{-- Estimasi Kirim --}}
@@ -166,12 +166,12 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Tidak ada transaksi pesanan pembelian yang sesuai filter." cols="7" />
+                    <x-ui.empty-state message="Tidak ada transaksi pesanan pembelian yang sesuai filter." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     {{-- Modal Terbitkan Temuan CAPA dari Hasil Audit --}}

@@ -2,7 +2,7 @@
 
 namespace App\Traits;
 
-use App\Models\LogAudit;
+use App\Models\Audit\LogAudit;
 
 trait HasAuditLog
 {

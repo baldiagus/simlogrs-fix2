@@ -2,12 +2,12 @@
 
 namespace App\Services\Persediaan;
 
-use App\Enums\StatusPengalihan;
-use App\Models\PengalihanBarang;
-use App\Models\PengalihanBarangDetail;
-use App\Models\PergerakanStok;
-use App\Models\StokBatch;
-use App\Models\StokRuangan;
+use App\Enums\Aset\StatusPengalihan;
+use App\Models\Persediaan\PengalihanBarang;
+use App\Models\Persediaan\PengalihanBarangDetail;
+use App\Models\Persediaan\PergerakanStok;
+use App\Models\Persediaan\StokBatch;
+use App\Models\Distribusi\StokRuangan;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;

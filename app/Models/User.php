@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Auth\PenggunaPeran;
+use App\Models\Master\Gudang;
+use App\Models\Master\Unit;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;

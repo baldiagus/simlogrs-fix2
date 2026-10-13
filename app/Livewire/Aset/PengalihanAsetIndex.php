@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Aset;
 
-use App\Enums\StatusPengalihan;
+use App\Enums\Aset\StatusPengalihan;
 use App\Livewire\Aset\Concerns\HasPenyediaPengalihan;
 use App\Livewire\Aset\Concerns\HasFilterPenyediaPengalihan;
 use App\Livewire\Concerns\AuthorizesPengalihan;
@@ -10,11 +10,11 @@ use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Aset;
-use App\Models\Gudang;
-use App\Models\LokasiGudang;
-use App\Models\PengalihanAset;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Gudang;
+use App\Models\Master\LokasiGudang;
+use App\Models\Aset\PengalihanAset;
+use App\Models\Master\Unit;
 use App\Services\Aset\PengalihanAsetService;
 use Livewire\Attributes\Url;
 use Livewire\Component;

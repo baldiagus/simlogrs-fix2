@@ -10,11 +10,15 @@ services:
       - ./:/var/www/html
       - app_vendor:/var/www/html/vendor
       - app_node_modules:/var/www/html/node_modules
+      # Compiled Blade views di named volume (hindari stat lambat bind-mount Windows).
+      # Setelah start pertama: docker exec -u root simrslogv2-app chown -R www-data:www-data /var/www/html/storage/framework/views
+      - app_storage_views:/var/www/html/storage/framework/views
+      - ./docker/php/zz-tuning.ini:/usr/local/etc/php/conf.d/zz-tuning.ini:ro
     ports:
       - "5173:5173"
     environment:
       - APP_ENV=local
-      - APP_DEBUG=true
+      - APP_DEBUG=false
       - TZ=Asia/Jakarta
     networks:
       - simrslog-net
@@ -76,4 +80,6 @@ volumes:
   app_vendor:
     driver: local
   app_node_modules:
+    driver: local
+  app_storage_views:
     driver: local

@@ -17,7 +17,7 @@
         </div>
 
         {{-- Sub-Navigasi Modul Pengalihan & Mutasi --}}
-        <x-pengalihan-hub-tabs active="barang" />
+        <x-tabs.pengalihan-hub active="barang" />
     </div>
 
     {{-- Metrik KPI Ringkasan --}}
@@ -205,7 +205,7 @@
                         </flux:table.cell>
 
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$row->status" />
+                            <x-ui.status-badge :status="$row->status" />
                         </flux:table.cell>
 
                         <flux:table.cell class="text-right">
@@ -285,7 +285,7 @@
         </flux:table>
 
         <div class="p-3 border-t border-zinc-200 dark:border-zinc-800">
-            <x-table-pagination :paginator="$items" />
+            <x-ui.table-pagination :paginator="$items" />
         </div>
     </flux:card>
 

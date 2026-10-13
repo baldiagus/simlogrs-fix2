@@ -16,7 +16,7 @@
                             };
                         @endphp
                         <flux:badge size="sm" :color="$detailTipeColor">{{ str_replace('_', ' ', $selectedBarang->tipe) }}</flux:badge>
-                        <x-status-badge :status="$selectedBarang->status" />
+                        <x-ui.status-badge :status="$selectedBarang->status" />
                     </div>
                     <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 flex items-center gap-2 flex-wrap">
                         <span class="font-mono font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
@@ -78,11 +78,11 @@
                         <div class="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-200/40 dark:border-zinc-700/40">
                             <div>
                                 <span class="text-zinc-500 dark:text-zinc-400 block text-[11px]">Harga Beli Terakhir</span>
-                                <span class="font-semibold text-zinc-900 dark:text-zinc-100"><x-rupiah :value="$selectedBarang->harga_beli_terakhir" /></span>
+                                <span class="font-semibold text-zinc-900 dark:text-zinc-100"><x-ui.rupiah :value="$selectedBarang->harga_beli_terakhir" /></span>
                             </div>
                             <div>
                                 <span class="text-zinc-500 dark:text-zinc-400 block text-[11px]">Harga Estimasi</span>
-                                <span class="font-semibold text-zinc-900 dark:text-zinc-100"><x-rupiah :value="$selectedBarang->harga_estimasi" /></span>
+                                <span class="font-semibold text-zinc-900 dark:text-zinc-100"><x-ui.rupiah :value="$selectedBarang->harga_estimasi" /></span>
                             </div>
                         </div>
                     </div>
@@ -152,7 +152,7 @@
                             <flux:badge size="sm" :color="$ketersediaanBadge['color']">{{ $ketersediaanBadge['label'] }}</flux:badge>
                         </div>
                         <div class="text-lg font-bold font-mono text-zinc-900 dark:text-zinc-100">
-                            <x-rupiah :value="$valuasiGudang" />
+                            <x-ui.rupiah :value="$valuasiGudang" />
                         </div>
                         <div class="text-[11px] text-zinc-400">Total estimasi valuasi saldo gudang</div>
                     </div>

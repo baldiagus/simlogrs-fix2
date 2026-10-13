@@ -9,7 +9,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Monitoring Persediaan --}}
-        <x-persediaan-monitoring-tabs active="fefo" />
+        <x-tabs.persediaan-monitoring active="fefo" />
     </div>
 
     {{-- Kartu Metrik Monitoring FEFO --}}
@@ -188,7 +188,7 @@
 
                         {{-- Harga Satuan & Subtotal --}}
                         <flux:table.cell class="text-right font-mono text-xs tabular-nums">
-                            <div><x-rupiah :value="$item->harga_satuan" /></div>
+                            <div><x-ui.rupiah :value="$item->harga_satuan" /></div>
                             <div class="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">
                                 Total: Rp {{ number_format($item->jumlah * (float) $item->harga_satuan, 0, ',', '.') }}
                             </div>
@@ -225,12 +225,12 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Tidak ada batch persediaan yang sesuai dengan kriteria monitoring." cols="8" />
+                    <x-ui.empty-state message="Tidak ada batch persediaan yang sesuai dengan kriteria monitoring." cols="8" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     {{-- Modal Detail Batch Persediaan --}}
@@ -247,7 +247,7 @@
                         </flux:subheading>
                     </div>
                     <div style="margin-right: 2.25rem;">
-                        <x-status-badge :status="$selectedBatch->status" />
+                        <x-ui.status-badge :status="$selectedBatch->status" />
                     </div>
                 </div>
 
@@ -280,7 +280,7 @@
                     <div>
                         <div class="text-zinc-500 dark:text-zinc-400">Harga Beli Satuan</div>
                         <div class="font-bold text-sm font-mono text-zinc-900 dark:text-zinc-100 mt-0.5">
-                            <x-rupiah :value="$selectedBatch->harga_satuan" />
+                            <x-ui.rupiah :value="$selectedBatch->harga_satuan" />
                         </div>
                     </div>
                     <div class="sm:col-span-2">

@@ -12,7 +12,7 @@ class IpsrsHubNavigationTest extends TestCase
         $user = User::where('email', 'superadmin@simlogrs.local')->first();
         $this->actingAs($user);
 
-        $view = $this->blade('<x-ipsrs-servis-tabs active="lapor" />');
+        $view = $this->blade('<x-tabs.ipsrs-servis active="lapor" />');
         $view->assertSee('Lapor Kerusakan');
         $view->assertSee('Perintah Kerja (SPK)');
         $view->assertSee('Lembar Kerja Servis');
@@ -24,7 +24,7 @@ class IpsrsHubNavigationTest extends TestCase
         $user = User::where('email', 'superadmin@simlogrs.local')->first();
         $this->actingAs($user);
 
-        $view = $this->blade('<x-ipsrs-rutin-tabs active="preventif" />');
+        $view = $this->blade('<x-tabs.ipsrs-rutin active="preventif" />');
         $view->assertSee('Jadwal Preventif');
         $view->assertSee('Rekam Medis Aset');
         $view->assertDontSee('/livewire/');

@@ -7,7 +7,7 @@ use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\User;
-use App\Models\Unit;
+use App\Models\Master\Unit;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -179,10 +179,10 @@ class UnitIndex extends Component
         $unit = Unit::findOrFail($id);
 
         $hasDependencies = \App\Models\User::where('unit_id', $id)->exists()
-            || \App\Models\StokRuangan::where('unit_id', $id)->exists()
-            || \App\Models\PermintaanDistribusi::where('unit_id', $id)->exists()
-            || \App\Models\PermintaanPengadaan::where('unit_id', $id)->exists()
-            || \App\Models\Aset::where('unit_id', $id)->exists();
+            || \App\Models\Distribusi\StokRuangan::where('unit_id', $id)->exists()
+            || \App\Models\Distribusi\PermintaanDistribusi::where('unit_id', $id)->exists()
+            || \App\Models\Pengadaan\PermintaanPengadaan::where('unit_id', $id)->exists()
+            || \App\Models\Aset\Aset::where('unit_id', $id)->exists();
 
         if ($hasDependencies) {
             $this->toast("Unit '{$unit->nama}' tidak dapat dihapus karena masih memiliki riwayat transaksi, pegawai, atau aset terkait. Silakan nonaktifkan status unit.", 'danger');

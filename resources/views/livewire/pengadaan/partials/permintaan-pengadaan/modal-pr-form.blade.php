@@ -43,7 +43,7 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <x-searchable-select
+                            <x-ui.searchable-select
                                 model="unit_id"
                                 label="Unit / Ruangan Pemohon"
                                 placeholder="-- Pilih Unit Ruangan --"
@@ -57,7 +57,7 @@
                         </div>
 
                         <div>
-                            <x-searchable-select
+                            <x-ui.searchable-select
                                 model="gudang_id"
                                 label="Gudang Pemohon"
                                 placeholder="-- Pilih Gudang Logistik --"
@@ -89,7 +89,7 @@
                             @if ($loop->first)
                                 <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Barang</label>
                             @endif
-                            <x-searchable-select
+                            <x-ui.searchable-select
                                 model="items.{{ $index }}.barang_id"
                                 placeholder="Pilih Barang..."
                                 :options="$daftarBarang"

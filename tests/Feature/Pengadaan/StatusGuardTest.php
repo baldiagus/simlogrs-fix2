@@ -3,13 +3,13 @@
 namespace Tests\Feature\Pengadaan;
 
 use App\Livewire\Pengadaan\PenerimaanPoIndex;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\Pemasok;
-use App\Models\PermintaanPengadaan;
-use App\Models\PesananPembelian;
-use App\Models\PesananPembelianDetail;
-use App\Models\StokBatch;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Master\Pemasok;
+use App\Models\Pengadaan\PermintaanPengadaan;
+use App\Models\Pengadaan\PesananPembelian;
+use App\Models\Pengadaan\PesananPembelianDetail;
+use App\Models\Persediaan\StokBatch;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;

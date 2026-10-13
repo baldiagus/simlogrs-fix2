@@ -8,9 +8,9 @@ use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Livewire\Distribusi\Concerns\AuthorizesDistribusiScope;
 use App\Livewire\Distribusi\Concerns\HasAksiAsetRuangan;
-use App\Models\Aset;
-use App\Models\StokRuangan;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Distribusi\StokRuangan;
+use App\Models\Master\Unit;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -145,7 +145,7 @@ class StokRuanganIndex extends Component
                 $sisaBaru = max(0, $stok->jumlah - $this->jumlah_pakai);
                 $stok->update(['jumlah' => $sisaBaru]);
 
-                \App\Models\LogAudit::create([
+                \App\Models\Audit\LogAudit::create([
                     'pengguna_id'     => $user?->id,
                     'peran_id'        => $user?->roles?->first()?->id,
                     'referensi_jenis' => 'PemakaianStokRuangan',
@@ -237,7 +237,7 @@ class StokRuanganIndex extends Component
 
         // 1. Kueri Persediaan Barang
         if ($isWarehouseUser) {
-            $baseQuery = \App\Models\StokBatch::query()
+            $baseQuery = \App\Models\Persediaan\StokBatch::query()
                 ->where('gudang_id', $user->gudang_id);
         } elseif ($effectiveUnitId) {
             $baseQuery = StokRuangan::query()

@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Distribusi;
 
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\LokasiGudang;
-use App\Models\PermintaanDistribusi;
-use App\Models\PermintaanDistribusiDetail;
-use App\Models\StokBatch;
-use App\Models\Unit;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Master\LokasiGudang;
+use App\Models\Distribusi\PermintaanDistribusi;
+use App\Models\Distribusi\PermintaanDistribusiDetail;
+use App\Models\Persediaan\StokBatch;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Services\Distribusi\DistribusiService;
 use App\Support\Generator\CodeGenerator;
@@ -38,8 +38,8 @@ class DistribusiPickingTest extends TestCase
             ['nama' => 'Rak Picking Test', 'status' => 'AKTIF']
         );
 
-        $kategori = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-PICK'], ['nama' => 'Kategori Pick', 'status' => 'AKTIF']);
-        $satuan = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'PCS-PICK'], ['nama' => 'Pcs', 'status' => 'AKTIF']);
+        $kategori = \App\Models\Master\KategoriBarang::firstOrCreate(['kode' => 'KAT-PICK'], ['nama' => 'Kategori Pick', 'status' => 'AKTIF']);
+        $satuan = \App\Models\Master\SatuanBarang::firstOrCreate(['kode' => 'PCS-PICK'], ['nama' => 'Pcs', 'status' => 'AKTIF']);
 
         $this->barangA = Barang::firstOrCreate(
             ['kode' => 'BRG-PICK-A'],

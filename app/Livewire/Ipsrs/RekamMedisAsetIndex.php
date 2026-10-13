@@ -4,7 +4,7 @@ namespace App\Livewire\Ipsrs;
 
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
-use App\Models\Aset;
+use App\Models\Aset\Aset;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 

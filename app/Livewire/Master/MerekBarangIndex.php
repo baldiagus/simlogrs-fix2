@@ -6,7 +6,7 @@ use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\MerekBarang;
+use App\Models\Master\MerekBarang;
 use App\Support\Generator\CodeGenerator;
 use Livewire\Attributes\Validate;
 use Livewire\Component;

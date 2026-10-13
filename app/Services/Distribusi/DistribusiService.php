@@ -2,13 +2,13 @@
 
 namespace App\Services\Distribusi;
 
-use App\Enums\StatusPermintaanDistribusi;
-use App\Enums\StatusPengirimanBarang;
-use App\Models\PengirimanBarang;
-use App\Models\PengirimanBarangDetail;
-use App\Models\PergerakanStok;
-use App\Models\PermintaanDistribusi;
-use App\Models\StokBatch;
+use App\Enums\Distribusi\StatusPermintaanDistribusi;
+use App\Enums\Distribusi\StatusPengirimanBarang;
+use App\Models\Distribusi\PengirimanBarang;
+use App\Models\Distribusi\PengirimanBarangDetail;
+use App\Models\Persediaan\PergerakanStok;
+use App\Models\Distribusi\PermintaanDistribusi;
+use App\Models\Persediaan\StokBatch;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Exception;

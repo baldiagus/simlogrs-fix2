@@ -2,14 +2,14 @@
 
 namespace App\Livewire\Ipsrs;
 
-use App\Enums\StatusSpk;
+use App\Enums\Ipsrs\StatusSpk;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Livewire\Ipsrs\Concerns\HasSparepartLembarKerja;
-use App\Models\Barang;
-use App\Models\PenugasanMaintenance;
+use App\Models\Master\Barang;
+use App\Models\Ipsrs\PenugasanMaintenance;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\Validate;
 use Livewire\Component;

@@ -4,12 +4,12 @@ namespace Tests\Feature\Distribusi;
 
 use App\Livewire\Distribusi\StokRuanganIndex;
 use App\Livewire\Ipsrs\RekamMedisAsetIndex;
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\LokasiGudang;
-use App\Models\StokBatch;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Master\LokasiGudang;
+use App\Models\Persediaan\StokBatch;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Services\Aset\PengalihanAsetService;
 use App\Services\Persediaan\PengalihanBarangService;
@@ -96,9 +96,9 @@ class PengalihanPersediaanIntegrasiTest extends TestCase
             'view_pemeliharaan::rekam::medis::aset',
         ]);
 
-        $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'UNT-INT'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
-        $kategoriBhpId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-BHP-INT'], ['nama' => 'BHP Int', 'status' => 'AKTIF'])->id;
-        $kategoriAsetId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-AST-INT'], ['nama' => 'Aset Int', 'status' => 'AKTIF'])->id;
+        $satuanId = \App\Models\Master\SatuanBarang::firstOrCreate(['kode' => 'UNT-INT'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
+        $kategoriBhpId = \App\Models\Master\KategoriBarang::firstOrCreate(['kode' => 'KAT-BHP-INT'], ['nama' => 'BHP Int', 'status' => 'AKTIF'])->id;
+        $kategoriAsetId = \App\Models\Master\KategoriBarang::firstOrCreate(['kode' => 'KAT-AST-INT'], ['nama' => 'Aset Int', 'status' => 'AKTIF'])->id;
 
         $this->barangBhp = Barang::firstOrCreate(
             ['kode' => 'BRG-BHP-INT-99'],

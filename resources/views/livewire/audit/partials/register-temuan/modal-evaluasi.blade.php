@@ -13,9 +13,9 @@
                     </div>
                     @php
                         $cColor = match($selectedTemuan->status_capa) {
-                            \App\Enums\StatusCapa::InProgress->value => 'amber',
-                            \App\Enums\StatusCapa::InReview->value   => 'blue',
-                            \App\Enums\StatusCapa::Closed->value      => 'emerald',
+                            \App\Enums\Audit\StatusCapa::InProgress->value => 'amber',
+                            \App\Enums\Audit\StatusCapa::InReview->value   => 'blue',
+                            \App\Enums\Audit\StatusCapa::Closed->value      => 'emerald',
                             default       => 'zinc',
                         };
                     @endphp
@@ -67,8 +67,8 @@
                         required
                         class="w-full h-9 text-xs rounded-lg border {{ $errors->has('hasil_evaluasi') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                     >
-                        <option value="{{ \App\Enums\StatusCapa::Closed->value }}">Closed (Tindakan perbaikan terbukti valid dan tuntas)</option>
-                        <option value="{{ \App\Enums\StatusCapa::InProgress->value }}">Kembalikan ke In Progress (Bukti belum memadai / perlu revisi)</option>
+                        <option value="{{ \App\Enums\Audit\StatusCapa::Closed->value }}">Closed (Tindakan perbaikan terbukti valid dan tuntas)</option>
+                        <option value="{{ \App\Enums\Audit\StatusCapa::InProgress->value }}">Kembalikan ke In Progress (Bukti belum memadai / perlu revisi)</option>
                     </select>
                 </div>
 

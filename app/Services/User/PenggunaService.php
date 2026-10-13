@@ -2,7 +2,7 @@
 
 namespace App\Services\User;
 
-use App\Models\LogAudit;
+use App\Models\Audit\LogAudit;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;

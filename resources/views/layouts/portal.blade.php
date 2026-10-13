@@ -4,16 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'SIMLOG RS Non-Medis v2' }}</title>
-    
-    <!-- Google Fonts: Inter & JetBrains Mono (Non-blocking) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    </noscript>
-
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
     @fluxAppearance
@@ -65,14 +55,22 @@
         };
         // Visibilitas menu = guard halaman: permission page_* rute (PortalAccessMiddleware)
         // DAN view_any_* / view_* modul (guard komponen), sesuai ADR 0001.
-        $entityPageMap = [];
-        foreach (\App\Support\Rbac\PagePermissionRegistry::getDomains() as $domain) {
-            foreach ($domain['modules'] as $mod) {
-                if (! empty($mod['entity']) && ! empty($mod['page'])) {
-                    $entityPageMap[$mod['entity']] = $mod['page'];
+        $entityPageMap = \Illuminate\Support\Facades\Cache::remember(
+            'rbac.entity_page_map.' . md5_file(app_path('Support/Rbac/PagePermissionRegistry.php')),
+            86400,
+            function () {
+                $map = [];
+                foreach (\App\Support\Rbac\PagePermissionRegistry::getDomains() as $domain) {
+                    foreach ($domain['modules'] as $mod) {
+                        if (! empty($mod['entity']) && ! empty($mod['page'])) {
+                            $map[$mod['entity']] = $mod['page'];
+                        }
+                    }
                 }
+
+                return $map;
             }
-        }
+        );
         $canPage = function (string $entity) use ($user, $entityPageMap): bool {
             if (! $user) {
                 return false;
@@ -486,7 +484,7 @@
 
     {{-- Main Container Langsung di Bawah Header Konten --}}
     <flux:main container>
-        <x-context-banner />
+        <x-ui.context-banner />
         {{ $slot }}
     </flux:main>
 

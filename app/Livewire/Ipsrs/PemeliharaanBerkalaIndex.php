@@ -2,16 +2,16 @@
 
 namespace App\Livewire\Ipsrs;
 
-use App\Enums\StatusMaintenance;
-use App\Enums\StatusSpk;
+use App\Enums\Ipsrs\StatusMaintenance;
+use App\Enums\Ipsrs\StatusSpk;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Aset;
-use App\Models\JadwalMaintenance;
-use App\Models\PenugasanMaintenance;
-use App\Models\PermintaanMaintenance;
+use App\Models\Aset\Aset;
+use App\Models\Ipsrs\JadwalMaintenance;
+use App\Models\Ipsrs\PenugasanMaintenance;
+use App\Models\Ipsrs\PermintaanMaintenance;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Carbon\Carbon;

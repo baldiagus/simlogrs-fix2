@@ -2,13 +2,13 @@
 
 namespace App\Livewire\Distribusi;
 
-use App\Enums\StatusPermintaanDistribusi;
+use App\Enums\Distribusi\StatusPermintaanDistribusi;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Livewire\Distribusi\Concerns\AuthorizesDistribusiScope;
-use App\Models\PermintaanDistribusi;
+use App\Models\Distribusi\PermintaanDistribusi;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;

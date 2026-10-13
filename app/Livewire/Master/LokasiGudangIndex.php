@@ -6,8 +6,8 @@ use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Gudang;
-use App\Models\LokasiGudang;
+use App\Models\Master\Gudang;
+use App\Models\Master\LokasiGudang;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
@@ -18,7 +18,7 @@ class LokasiGudangIndex extends Component
     public bool $showModal = false;
     public ?int $editingId = null;
     public bool $showDetailModal = false;
-    public ?\App\Models\LokasiGudang $selectedItem = null;
+    public ?\App\Models\Master\LokasiGudang $selectedItem = null;
     public ?int $filterGudangId = null;
 
     #[Validate('required|exists:gudang,id')]
@@ -169,9 +169,9 @@ class LokasiGudangIndex extends Component
 
         $lokasi = LokasiGudang::findOrFail($id);
 
-        $hasDependencies = \App\Models\StokBatch::where('lokasi_gudang_id', $id)->exists()
-            || \App\Models\PenerimaanBarangDetail::where('lokasi_gudang_id', $id)->exists()
-            || \App\Models\Aset::where('lokasi_gudang_id', $id)->exists();
+        $hasDependencies = \App\Models\Persediaan\StokBatch::where('lokasi_gudang_id', $id)->exists()
+            || \App\Models\Pengadaan\PenerimaanBarangDetail::where('lokasi_gudang_id', $id)->exists()
+            || \App\Models\Aset\Aset::where('lokasi_gudang_id', $id)->exists();
 
         if ($hasDependencies) {
             $this->toast("Rak '{$lokasi->nama}' tidak dapat dihapus karena masih memuat stok fisik atau riwayat penerimaan barang. Silakan nonaktifkan status rak.", 'danger');

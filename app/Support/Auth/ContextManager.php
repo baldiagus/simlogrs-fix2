@@ -2,8 +2,8 @@
 
 namespace App\Support\Auth;
 
-use App\Models\Gudang;
-use App\Models\Unit;
+use App\Models\Master\Gudang;
+use App\Models\Master\Unit;
 
 class ContextManager
 {

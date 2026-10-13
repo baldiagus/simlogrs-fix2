@@ -2,19 +2,19 @@
 
 namespace App\Livewire\Distribusi;
 
-use App\Enums\StatusPermintaanDistribusi;
+use App\Enums\Distribusi\StatusPermintaanDistribusi;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Livewire\Distribusi\Concerns\AuthorizesDistribusiScope;
 use App\Livewire\Distribusi\Concerns\HasDraftAmprah;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\PermintaanDistribusi;
-use App\Models\PermintaanDistribusiDetail;
-use App\Models\StokBatch;
-use App\Models\Unit;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Distribusi\PermintaanDistribusi;
+use App\Models\Distribusi\PermintaanDistribusiDetail;
+use App\Models\Persediaan\StokBatch;
+use App\Models\Master\Unit;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -192,7 +192,7 @@ class PermintaanBarangIndex extends Component
 
         // 'DIBATALKAN' bukan nilai status SPPB (yang dipakai BATAL); dipertahankan agar perilaku tidak berubah.
         $canBatal = in_array($permintaan->status, StatusPermintaanDistribusi::dapatDibatalkan())
-            && ! \App\Models\PengirimanBarang::where('permintaan_distribusi_id', $permintaan->id)->where('status', '!=', 'DIBATALKAN')->exists();
+            && ! \App\Models\Distribusi\PengirimanBarang::where('permintaan_distribusi_id', $permintaan->id)->where('status', '!=', 'DIBATALKAN')->exists();
 
         if (! $canBatal) {
             $this->toast('Permintaan amprah ini sudah diproses dan tidak dapat dibatalkan.', 'danger');
@@ -216,7 +216,7 @@ class PermintaanBarangIndex extends Component
 
         // 'DIBATALKAN' bukan nilai status SPPB (yang dipakai BATAL); dipertahankan agar perilaku tidak berubah.
         $canBatal = in_array($permintaan->status, StatusPermintaanDistribusi::dapatDibatalkan())
-            && ! \App\Models\PengirimanBarang::where('permintaan_distribusi_id', $permintaan->id)->where('status', '!=', 'DIBATALKAN')->exists();
+            && ! \App\Models\Distribusi\PengirimanBarang::where('permintaan_distribusi_id', $permintaan->id)->where('status', '!=', 'DIBATALKAN')->exists();
 
         if (! $canBatal) {
             $this->toast('Permintaan amprah ini sudah diproses dan tidak dapat dibatalkan.', 'danger');

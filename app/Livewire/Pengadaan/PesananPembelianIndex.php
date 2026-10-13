@@ -2,16 +2,16 @@
 
 namespace App\Livewire\Pengadaan;
 
-use App\Enums\StatusPermintaanPengadaan;
-use App\Enums\StatusPesananPembelian;
+use App\Enums\Pengadaan\StatusPermintaanPengadaan;
+use App\Enums\Pengadaan\StatusPesananPembelian;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Pemasok;
-use App\Models\PermintaanPengadaan;
-use App\Models\PesananPembelian;
-use App\Models\PesananPembelianDetail;
+use App\Models\Master\Pemasok;
+use App\Models\Pengadaan\PermintaanPengadaan;
+use App\Models\Pengadaan\PesananPembelian;
+use App\Models\Pengadaan\PesananPembelianDetail;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;

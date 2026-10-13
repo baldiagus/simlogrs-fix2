@@ -2,13 +2,13 @@
 
 namespace App\Livewire\Audit;
 
-use App\Enums\StatusCapa;
+use App\Enums\Audit\StatusCapa;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Pemasok;
-use App\Models\PesananPembelian;
-use App\Models\TemuanAudit;
+use App\Models\Master\Pemasok;
+use App\Models\Pengadaan\PesananPembelian;
+use App\Models\Audit\TemuanAudit;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Url;

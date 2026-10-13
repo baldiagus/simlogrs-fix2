@@ -3,10 +3,10 @@
 namespace Tests\Feature\Ipsrs;
 
 use App\Livewire\Ipsrs\LaporServisIndex;
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\PermintaanMaintenance;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Ipsrs\PermintaanMaintenance;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;

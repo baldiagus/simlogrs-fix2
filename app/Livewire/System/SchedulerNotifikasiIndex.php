@@ -5,7 +5,7 @@ namespace App\Livewire\System;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Notifikasi;
+use App\Models\Master\Notifikasi;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
@@ -175,7 +175,7 @@ class SchedulerNotifikasiIndex extends Component
             'ringkasan' => 'Menunggu jadwal cron otomatis (01:00 WIB)',
             'created_count' => 0,
         ]);
-        $jadwalSiapCount = \App\Models\JadwalMaintenance::where('status', 'AKTIF')
+        $jadwalSiapCount = \App\Models\Ipsrs\JadwalMaintenance::where('status', 'AKTIF')
             ->whereDate('tanggal_berikutnya', '<=', now()->toDateString())
             ->count();
 

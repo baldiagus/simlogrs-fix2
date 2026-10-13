@@ -8,13 +8,13 @@ use App\Livewire\Distribusi\PenerimaanBarangIndex;
 use App\Livewire\Distribusi\PermintaanBarangIndex;
 use App\Livewire\Distribusi\PickingDistribusiIndex;
 use App\Livewire\Distribusi\StokRuanganIndex;
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\PengirimanBarang;
-use App\Models\PermintaanDistribusi;
-use App\Models\StokRuangan;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Distribusi\PengirimanBarang;
+use App\Models\Distribusi\PermintaanDistribusi;
+use App\Models\Distribusi\StokRuangan;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -133,12 +133,12 @@ class DistribusiWebAuthorizationTest extends TestCase
             'page_DistribusiApprovalIndex',
         ]);
         $this->actingAs($user);
-        $this->blade('<x-distribusi-amprah-tabs active="permintaan" />')
+        $this->blade('<x-tabs.distribusi-amprah active="permintaan" />')
             ->assertDontSee('Otorisasi Karu')
             ->assertDontSee('Otorisasi Logistik');
 
         $user->givePermissionTo('view_any_layanan_unit::approval::karu');
-        $this->blade('<x-distribusi-amprah-tabs active="permintaan" />')
+        $this->blade('<x-tabs.distribusi-amprah active="permintaan" />')
             ->assertSee('Otorisasi Karu')
             ->assertDontSee('Otorisasi Logistik');
     }

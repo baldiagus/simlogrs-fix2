@@ -2,18 +2,18 @@
 
 namespace App\Services\Aset;
 
-use App\Enums\StatusAset;
-use App\Enums\StatusPeminjaman;
-use App\Models\Aset;
-use App\Models\PengembalianPeminjaman;
-use App\Models\PengembalianPeminjamanDetail;
-use App\Models\PermintaanMaintenance;
-use App\Models\PermintaanPeminjaman;
+use App\Enums\Aset\StatusAset;
+use App\Enums\Aset\StatusPeminjaman;
+use App\Models\Aset\Aset;
+use App\Models\Aset\PengembalianPeminjaman;
+use App\Models\Aset\PengembalianPeminjamanDetail;
+use App\Models\Ipsrs\PermintaanMaintenance;
+use App\Models\Aset\PermintaanPeminjaman;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Exception;
 use Illuminate\Support\Facades\DB;
-use App\Models\PermintaanPeminjamanDetail;
+use App\Models\Aset\PermintaanPeminjamanDetail;
 
 class PeminjamanAsetService
 {
@@ -201,7 +201,7 @@ class PeminjamanAsetService
         ];
 
         if ($pinjam->tipe_penyedia === 'GUDANG') {
-            $defaultRackId = \App\Models\LokasiGudang::where('gudang_id', $pinjam->gudang_penyedia_id)
+            $defaultRackId = \App\Models\Master\LokasiGudang::where('gudang_id', $pinjam->gudang_penyedia_id)
                 ->where('status', 'AKTIF')
                 ->value('id');
 

@@ -6,7 +6,7 @@
                     <div class="flex items-center justify-between">
                         <flux:heading size="lg">Rincian Permintaan Peminjaman</flux:heading>
                         <div style="margin-right: 2.25rem;">
-                            <x-status-badge :status="$selectedPinjam->status" />
+                            <x-ui.status-badge :status="$selectedPinjam->status" />
                         </div>
                     </div>
                     <flux:subheading class="mt-1 font-mono text-xs text-zinc-500">
@@ -136,7 +136,7 @@
 
                 @if ($canApproveSelected || $canHandoverSelected)
                     <div class="flex items-center justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                        @if ($selectedPinjam->status === \App\Enums\StatusPeminjaman::Diajukan->value && $canApproveSelected)
+                        @if ($selectedPinjam->status === \App\Enums\Aset\StatusPeminjaman::Diajukan->value && $canApproveSelected)
                             <flux:button
                                 wire:click="confirmReject({{ $selectedPinjam->id }})"
                                 variant="danger"
@@ -154,7 +154,7 @@
                             >
                                 Setujui Permintaan
                             </flux:button>
-                        @elseif ($selectedPinjam->status === \App\Enums\StatusPeminjaman::Disetujui->value && $canHandoverSelected)
+                        @elseif ($selectedPinjam->status === \App\Enums\Aset\StatusPeminjaman::Disetujui->value && $canHandoverSelected)
                             <flux:button
                                 wire:click="confirmSerahTerima({{ $selectedPinjam->id }})"
                                 variant="primary"

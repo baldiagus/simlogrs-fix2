@@ -11,7 +11,7 @@
                         </flux:subheading>
                     </div>
                     <div style="margin-right: 2.25rem;">
-                        <x-status-badge :status="$selectedSppb->status" />
+                        <x-ui.status-badge :status="$selectedSppb->status" />
                     </div>
                 </div>
 

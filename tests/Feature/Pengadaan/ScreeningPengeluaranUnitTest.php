@@ -3,7 +3,7 @@
 namespace Tests\Feature\Pengadaan;
 
 use App\Livewire\Pengadaan\RealisasiAnggaranIndex;
-use App\Models\Unit;
+use App\Models\Master\Unit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;

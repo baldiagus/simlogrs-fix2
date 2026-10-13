@@ -5,7 +5,7 @@
             <flux:subheading>{{ $portalSubtitle }}</flux:subheading>
         </div>
         <div>
-            <x-status-badge status="AKTIF" />
+            <x-ui.status-badge status="AKTIF" />
         </div>
     </div>
 

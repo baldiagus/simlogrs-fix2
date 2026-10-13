@@ -12,7 +12,7 @@ class AuditHubNavigationTest extends TestCase
         $user = User::where('email', 'superadmin@simlogrs.local')->first();
         $this->actingAs($user);
 
-        $view = $this->blade('<x-audit-kepatuhan-tabs active="trail" />');
+        $view = $this->blade('<x-tabs.audit-kepatuhan active="trail" />');
         $view->assertSee('Audit Trail (Forensik)', false);
         $view->assertSee('Kepatuhan Pengadaan', false);
         $view->assertSee('Selisih Opname (Audit)', false);

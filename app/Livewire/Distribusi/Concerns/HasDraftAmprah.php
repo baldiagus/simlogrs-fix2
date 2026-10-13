@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Distribusi\Concerns;
 
-use App\Models\StokBatch;
+use App\Models\Persediaan\StokBatch;
 
 trait HasDraftAmprah
 {

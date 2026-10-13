@@ -2,16 +2,16 @@
 
 namespace App\Livewire\Persediaan;
 
-use App\Enums\StatusPenyesuaianStok;
-use App\Enums\StatusStokOpname;
+use App\Enums\Persediaan\StatusPenyesuaianStok;
+use App\Enums\Persediaan\StatusStokOpname;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Gudang;
-use App\Models\PenyesuaianStok;
-use App\Models\PergerakanStok;
-use App\Models\StokBatch;
+use App\Models\Master\Gudang;
+use App\Models\Persediaan\PenyesuaianStok;
+use App\Models\Persediaan\PergerakanStok;
+use App\Models\Persediaan\StokBatch;
 use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;

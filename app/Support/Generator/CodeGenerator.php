@@ -51,17 +51,17 @@ class CodeGenerator
     }
 
     protected static array $presets = [
-        'sppb' => ['SPPB', 'App\Models\PengirimanBarang', 'kode', 'Ymd', 4],
-        'pr'   => ['PR', 'App\Models\PermintaanPengadaan', 'kode', 'Y', 3],
-        'po'   => ['PO', 'App\Models\PesananPembelian', 'kode', 'Y', 3],
-        'rcv'  => ['RCV', 'App\Models\PenerimaanDistribusi', 'kode', 'Ym', 3],
-        'pinj' => ['PINJ', 'App\Models\PermintaanPeminjaman', 'kode', 'Y', 3],
-        'mnt'  => ['MNT', 'App\Models\PermintaanMaintenance', 'kode', 'Ym', 3],
-        'spk'  => ['SPK', 'App\Models\PenugasanMaintenance', 'kode', 'Ym', 3],
-        'prv'  => ['PRV', 'App\Models\JadwalMaintenance', 'kode', 'Ym', 3],
-        'opn'  => ['OPN', 'App\Models\StokOpname', 'kode', 'Ym', 3],
-        'adj'  => ['ADJ', 'App\Models\PenyesuaianStok', 'kode', 'Ym', 3],
-        'aud'  => ['AUD', 'App\Models\TemuanAudit', 'kode', 'Ym', 3],
+        'sppb' => ['SPPB', 'App\Models\Distribusi\PengirimanBarang', 'kode', 'Ymd', 4],
+        'pr'   => ['PR', 'App\Models\Pengadaan\PermintaanPengadaan', 'kode', 'Y', 3],
+        'po'   => ['PO', 'App\Models\Pengadaan\PesananPembelian', 'kode', 'Y', 3],
+        'rcv'  => ['RCV', 'App\Models\Distribusi\PenerimaanDistribusi', 'kode', 'Ym', 3],
+        'pinj' => ['PINJ', 'App\Models\Aset\PermintaanPeminjaman', 'kode', 'Y', 3],
+        'mnt'  => ['MNT', 'App\Models\Ipsrs\PermintaanMaintenance', 'kode', 'Ym', 3],
+        'spk'  => ['SPK', 'App\Models\Ipsrs\PenugasanMaintenance', 'kode', 'Ym', 3],
+        'prv'  => ['PRV', 'App\Models\Ipsrs\JadwalMaintenance', 'kode', 'Ym', 3],
+        'opn'  => ['OPN', 'App\Models\Persediaan\StokOpname', 'kode', 'Ym', 3],
+        'adj'  => ['ADJ', 'App\Models\Persediaan\PenyesuaianStok', 'kode', 'Ym', 3],
+        'aud'  => ['AUD', 'App\Models\Audit\TemuanAudit', 'kode', 'Ym', 3],
     ];
 
     public static function __callStatic(string $name, array $args)

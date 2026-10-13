@@ -2,21 +2,21 @@
 
 namespace Tests\Feature\Pengadaan;
 
-use App\Enums\StatusPermintaanPengadaan;
+use App\Enums\Pengadaan\StatusPermintaanPengadaan;
 use App\Livewire\Pengadaan\MasterRekananIndex;
 use App\Livewire\Pengadaan\PenerimaanPoIndex;
 use App\Livewire\Pengadaan\PermintaanPengadaanIndex;
 use App\Livewire\Pengadaan\PesananPembelianIndex;
 use App\Livewire\Pengadaan\RealisasiAnggaranIndex;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\PenerimaanBarang;
-use App\Models\Pemasok;
-use App\Models\PermintaanPengadaan;
-use App\Models\PermintaanPengadaanDetail;
-use App\Models\PesananPembelian;
-use App\Models\PesananPembelianDetail;
-use App\Models\Unit;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Pengadaan\PenerimaanBarang;
+use App\Models\Master\Pemasok;
+use App\Models\Pengadaan\PermintaanPengadaan;
+use App\Models\Pengadaan\PermintaanPengadaanDetail;
+use App\Models\Pengadaan\PesananPembelian;
+use App\Models\Pengadaan\PesananPembelianDetail;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;

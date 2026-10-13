@@ -2,16 +2,16 @@
 
 namespace App\Livewire\Distribusi;
 
-use App\Enums\StatusPermintaanDistribusi;
-use App\Enums\StatusPengirimanBarang;
+use App\Enums\Distribusi\StatusPermintaanDistribusi;
+use App\Enums\Distribusi\StatusPengirimanBarang;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Livewire\Distribusi\Concerns\AuthorizesDistribusiScope;
-use App\Models\Gudang;
-use App\Models\PengirimanBarang;
-use App\Models\PermintaanDistribusi;
+use App\Models\Master\Gudang;
+use App\Models\Distribusi\PengirimanBarang;
+use App\Models\Distribusi\PermintaanDistribusi;
 use App\Services\Distribusi\DistribusiService;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -150,7 +150,7 @@ class PickingDistribusiIndex extends Component
             ->where('status', '!=', StatusPengirimanBarang::Batal->value)
             ->pluck('id');
 
-        $alreadySentMap = \App\Models\PengirimanBarangDetail::whereIn('pengiriman_barang_id', $existingShipments)
+        $alreadySentMap = \App\Models\Distribusi\PengirimanBarangDetail::whereIn('pengiriman_barang_id', $existingShipments)
             ->groupBy('barang_id')
             ->selectRaw('barang_id, sum(jumlah_dikirim) as total_sent')
             ->pluck('total_sent', 'barang_id')
@@ -164,7 +164,7 @@ class PickingDistribusiIndex extends Component
             $terkirim = (int) ($alreadySentMap[$det->barang_id] ?? 0);
             $sisaPicking = max(0, $disetujui - $terkirim);
 
-            $stokGudang = (int) \App\Models\StokBatch::where('barang_id', $det->barang_id)
+            $stokGudang = (int) \App\Models\Persediaan\StokBatch::where('barang_id', $det->barang_id)
                 ->where('status', 'AKTIF')
                 ->where('jumlah', '>', 0)
                 ->when($gudangId, fn ($q) => $q->where('gudang_id', $gudangId))

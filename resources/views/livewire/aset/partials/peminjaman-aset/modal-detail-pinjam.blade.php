@@ -8,7 +8,7 @@
                         <flux:subheading>Informasi lengkap sirkulasi aset, penanggung jawab, dan catatan operasional.</flux:subheading>
                     </div>
                     <div style="margin-right: 2.25rem;">
-                        <x-status-badge :status="$selectedPinjam->status" />
+                        <x-ui.status-badge :status="$selectedPinjam->status" />
                     </div>
                 </div>
 
@@ -129,7 +129,7 @@
                     $canSerahTerimaModal = $izinSelected['serah_terima'] ?? false;
                 @endphp
 
-                @if ($selectedPinjam->status === \App\Enums\StatusPeminjaman::Disetujui->value && $canSerahTerimaModal)
+                @if ($selectedPinjam->status === \App\Enums\Aset\StatusPeminjaman::Disetujui->value && $canSerahTerimaModal)
                     <div class="flex items-center justify-end pt-3 border-t border-zinc-200 dark:border-zinc-700">
                         <flux:button
                             wire:click="confirmSerahTerima({{ $selectedPinjam->id }})"

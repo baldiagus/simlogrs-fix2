@@ -1,11 +1,11 @@
 <?php
 
-use App\Models\JadwalMaintenance;
-use App\Models\Notifikasi;
-use App\Models\PenugasanMaintenance;
-use App\Models\PermintaanMaintenance;
-use App\Models\PermintaanPeminjaman;
-use App\Models\StokBatch;
+use App\Models\Ipsrs\JadwalMaintenance;
+use App\Models\Master\Notifikasi;
+use App\Models\Ipsrs\PenugasanMaintenance;
+use App\Models\Ipsrs\PermintaanMaintenance;
+use App\Models\Aset\PermintaanPeminjaman;
+use App\Models\Persediaan\StokBatch;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\Artisan;

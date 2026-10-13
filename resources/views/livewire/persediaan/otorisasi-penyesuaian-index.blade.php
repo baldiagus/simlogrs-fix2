@@ -9,7 +9,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Opname & Penyesuaian --}}
-        <x-persediaan-opname-tabs active="penyesuaian" />
+        <x-tabs.persediaan-opname active="penyesuaian" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -37,9 +37,9 @@
 
                 <div class="w-44">
                     <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
-                        <option value="{{ \App\Enums\StatusPenyesuaianStok::Menunggu->value }}">Menunggu Persetujuan</option>
-                        <option value="{{ \App\Enums\StatusPenyesuaianStok::Disetujui->value }}">Telah Disahkan (DISETUJUI)</option>
-                        <option value="{{ \App\Enums\StatusPenyesuaianStok::Ditolak->value }}">Ditolak (DITOLAK)</option>
+                        <option value="{{ \App\Enums\Persediaan\StatusPenyesuaianStok::Menunggu->value }}">Menunggu Persetujuan</option>
+                        <option value="{{ \App\Enums\Persediaan\StatusPenyesuaianStok::Disetujui->value }}">Telah Disahkan (DISETUJUI)</option>
+                        <option value="{{ \App\Enums\Persediaan\StatusPenyesuaianStok::Ditolak->value }}">Ditolak (DITOLAK)</option>
                         <option value="SEMUA">Semua Status</option>
                     </select>
                 </div>
@@ -112,7 +112,7 @@
 
                         {{-- Status --}}
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$adj->status" />
+                            <x-ui.status-badge :status="$adj->status" />
                         </flux:table.cell>
 
                         {{-- Aksi --}}
@@ -123,7 +123,7 @@
                                     <flux:menu.item wire:click="showDetail({{ $adj->id }})" icon="eye">
                                         Rincian Selisih
                                     </flux:menu.item>
-                                    @if ($adj->status === \App\Enums\StatusPenyesuaianStok::Menunggu->value && $this->canOtorisasi($adj))
+                                    @if ($adj->status === \App\Enums\Persediaan\StatusPenyesuaianStok::Menunggu->value && $this->canOtorisasi($adj))
                                             <flux:menu.item wire:click="confirmApprove({{ $adj->id }})" icon="check-circle" class="text-emerald-600 dark:text-emerald-400">
                                                 Sahkan Penyesuaian
                                             </flux:menu.item>
@@ -136,12 +136,12 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Tidak ada dokumen penyesuaian stok yang sesuai dengan filter." cols="8" />
+                    <x-ui.empty-state message="Tidak ada dokumen penyesuaian stok yang sesuai dengan filter." cols="8" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     {{-- Modal Rincian Varians & Otorisasi Penyesuaian --}}
@@ -159,7 +159,7 @@
                         </flux:subheading>
                     </div>
                     <div style="margin-right: 2.25rem;">
-                        <x-status-badge :status="$selectedPenyesuaian->status" />
+                        <x-ui.status-badge :status="$selectedPenyesuaian->status" />
                     </div>
                 </div>
 
@@ -223,10 +223,10 @@
                                         {{ $det->jenis_penyesuaian === 'TAMBAH' ? '+' : '-' }}{{ number_format($det->jumlah_penyesuaian, 0, ',', '.') }}
                                     </td>
                                     <td class="p-2.5 text-right font-mono text-zinc-700 dark:text-zinc-300">
-                                        <x-rupiah :value="$det->harga_satuan" />
+                                        <x-ui.rupiah :value="$det->harga_satuan" />
                                     </td>
                                     <td class="p-2.5 text-right font-mono font-semibold text-zinc-900 dark:text-zinc-100">
-                                        <x-rupiah :value="$det->subtotal_nilai" />
+                                        <x-ui.rupiah :value="$det->subtotal_nilai" />
                                     </td>
                                     <td class="p-2.5 text-zinc-600 dark:text-zinc-400">
                                         {{ $det->catatan ?: '-' }}
@@ -237,7 +237,7 @@
                     </table>
                 </div>
 
-                @if ($selectedPenyesuaian->status === \App\Enums\StatusPenyesuaianStok::Menunggu->value && $this->canOtorisasi($selectedPenyesuaian))
+                @if ($selectedPenyesuaian->status === \App\Enums\Persediaan\StatusPenyesuaianStok::Menunggu->value && $this->canOtorisasi($selectedPenyesuaian))
                         <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
                             <flux:button
                                 wire:click="confirmReject({{ $selectedPenyesuaian->id }})"
@@ -260,7 +260,7 @@
         @endif
     </flux:modal>
 
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

@@ -38,7 +38,7 @@
                         @error('nomor_surat_jalan') <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <x-searchable-select
+                        <x-ui.searchable-select
                             model="gudang_id"
                             label="Gudang Simpan"
                             placeholder="Pilih Fasilitas Gudang..."
@@ -173,7 +173,7 @@
                                             </div>
 
                                             <div class="col-span-2" wire:key="rak-select-wrapper-{{ $gudang_id ?? 'empty' }}-{{ $idx }}">
-                                                <x-searchable-select
+                                                <x-ui.searchable-select
                                                     model="itemRows.{{ $idx }}.lokasi_gudang_id"
                                                     label="Rak Simpan (Opsional)"
                                                     placeholder="Pilih Rak (Opsional)..."

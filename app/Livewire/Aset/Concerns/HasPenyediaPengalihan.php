@@ -2,15 +2,15 @@
 
 namespace App\Livewire\Aset\Concerns;
 
-use App\Enums\StatusAset;
-use App\Enums\StatusPeminjaman;
-use App\Enums\StatusPengalihan;
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\PengalihanAset;
-use App\Models\PengalihanAsetDetail;
-use App\Models\Unit;
+use App\Enums\Aset\StatusAset;
+use App\Enums\Aset\StatusPeminjaman;
+use App\Enums\Aset\StatusPengalihan;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Aset\PengalihanAset;
+use App\Models\Aset\PengalihanAsetDetail;
+use App\Models\Master\Unit;
 
 trait HasPenyediaPengalihan
 {

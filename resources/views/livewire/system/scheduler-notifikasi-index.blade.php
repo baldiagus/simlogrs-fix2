@@ -260,7 +260,7 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada notifikasi internal yang diterbitkan." cols="6" />
+                    <x-ui.empty-state message="Belum ada notifikasi internal yang diterbitkan." cols="6" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
@@ -304,7 +304,7 @@
     </flux:modal>
 
     {{-- Modal Konfirmasi Aksi Scheduler --}}
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

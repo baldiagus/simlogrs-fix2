@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Master\Concerns;
 
-use App\Models\Aset;
+use App\Models\Aset\Aset;
 
 trait HasScopeAset
 {

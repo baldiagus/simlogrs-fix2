@@ -3,11 +3,11 @@
 namespace Tests\Feature\Aset;
 
 use App\Livewire\Aset\PengalihanAsetIndex;
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\PengalihanAset;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Aset\PengalihanAset;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Services\Aset\PengalihanAsetService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -33,8 +33,8 @@ class PengalihanAsetIndexTest extends TestCase
         $this->unit1 = $units[0];
         $this->unit2 = $units[1];
 
-        $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'UNT-TRF'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
-        $kategoriId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-TRF'], ['nama' => 'Kategori TRF', 'status' => 'AKTIF'])->id;
+        $satuanId = \App\Models\Master\SatuanBarang::firstOrCreate(['kode' => 'UNT-TRF'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
+        $kategoriId = \App\Models\Master\KategoriBarang::firstOrCreate(['kode' => 'KAT-TRF'], ['nama' => 'Kategori TRF', 'status' => 'AKTIF'])->id;
         $barang = Barang::firstOrCreate(
             ['kode' => 'BRG-TRF-002'],
             ['nama' => 'EKG Mesin Portable', 'tipe' => 'ASET', 'satuan_id' => $satuanId, 'kategori_id' => $kategoriId, 'status' => 'AKTIF']

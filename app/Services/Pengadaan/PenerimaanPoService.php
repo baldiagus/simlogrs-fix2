@@ -2,15 +2,15 @@
 
 namespace App\Services\Pengadaan;
 
-use App\Enums\StatusPenerimaanPo;
-use App\Enums\StatusPermintaanPengadaan;
-use App\Enums\StatusPesananPembelian;
-use App\Models\Barang;
-use App\Models\PenerimaanBarang;
-use App\Models\PenerimaanBarangDetail;
-use App\Models\PergerakanStok;
-use App\Models\PesananPembelian;
-use App\Models\StokBatch;
+use App\Enums\Pengadaan\StatusPenerimaanPo;
+use App\Enums\Pengadaan\StatusPermintaanPengadaan;
+use App\Enums\Pengadaan\StatusPesananPembelian;
+use App\Models\Master\Barang;
+use App\Models\Pengadaan\PenerimaanBarang;
+use App\Models\Pengadaan\PenerimaanBarangDetail;
+use App\Models\Persediaan\PergerakanStok;
+use App\Models\Pengadaan\PesananPembelian;
+use App\Models\Persediaan\StokBatch;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\DB;

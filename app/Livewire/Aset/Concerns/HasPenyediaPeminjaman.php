@@ -2,11 +2,11 @@
 
 namespace App\Livewire\Aset\Concerns;
 
-use App\Enums\StatusAset;
-use App\Enums\StatusPeminjaman;
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\PermintaanPeminjaman;
+use App\Enums\Aset\StatusAset;
+use App\Enums\Aset\StatusPeminjaman;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Aset\PermintaanPeminjaman;
 
 trait HasPenyediaPeminjaman
 {

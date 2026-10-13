@@ -110,10 +110,10 @@
                             </flux:table.cell>
                         </flux:table.row>
                     @empty
-                        <x-empty-state message="Belum ada aset fisik atau sarana inventaris yang terdaftar pada unit ruangan ini." cols="7" />
+                        <x-ui.empty-state message="Belum ada aset fisik atau sarana inventaris yang terdaftar pada unit ruangan ini." cols="7" />
                     @endforelse
                 </flux:table.rows>
             </flux:table>
 
             {{-- Pagination Aset --}}
-            <x-table-pagination :paginator="$daftarAset" />
+            <x-ui.table-pagination :paginator="$daftarAset" />

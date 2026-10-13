@@ -6,7 +6,7 @@ use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\SatuanBarang;
+use App\Models\Master\SatuanBarang;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 

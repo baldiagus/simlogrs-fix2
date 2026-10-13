@@ -103,10 +103,10 @@
                             </flux:table.cell>
                         </flux:table.row>
                     @empty
-                        <x-empty-state message="Belum ada persediaan barang yang tercatat di lemari ruangan ini. Lakukan amprah dan konfirmasi terima barang terlebih dahulu." cols="7" />
+                        <x-ui.empty-state message="Belum ada persediaan barang yang tercatat di lemari ruangan ini. Lakukan amprah dan konfirmasi terima barang terlebih dahulu." cols="7" />
                     @endforelse
                 </flux:table.rows>
             </flux:table>
 
             {{-- Pagination BHP --}}
-            <x-table-pagination :paginator="$daftarStok" />
+            <x-ui.table-pagination :paginator="$daftarStok" />

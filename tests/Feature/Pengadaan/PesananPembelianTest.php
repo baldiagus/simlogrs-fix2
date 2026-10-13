@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Pengadaan;
 
-use App\Enums\StatusPermintaanPengadaan;
+use App\Enums\Pengadaan\StatusPermintaanPengadaan;
 use App\Livewire\Pengadaan\PesananPembelianIndex;
-use App\Models\Barang;
-use App\Models\Pemasok;
-use App\Models\PermintaanPengadaan;
-use App\Models\PermintaanPengadaanDetail;
-use App\Models\PesananPembelian;
+use App\Models\Master\Barang;
+use App\Models\Master\Pemasok;
+use App\Models\Pengadaan\PermintaanPengadaan;
+use App\Models\Pengadaan\PermintaanPengadaanDetail;
+use App\Models\Pengadaan\PesananPembelian;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;

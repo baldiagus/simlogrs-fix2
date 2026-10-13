@@ -7,7 +7,7 @@ use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Models\User;
-use App\Models\Gudang;
+use App\Models\Master\Gudang;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -19,7 +19,7 @@ class GudangIndex extends Component
     public bool $showModal = false;
     public ?int $editingId = null;
     public bool $showDetailModal = false;
-    public ?\App\Models\Gudang $selectedItem = null;
+    public ?\App\Models\Master\Gudang $selectedItem = null;
 
     public function showDetail(int $id): void
     {
@@ -180,9 +180,9 @@ class GudangIndex extends Component
         $gudang = Gudang::findOrFail($id);
 
         $hasDependencies = $gudang->lokasiGudang()->exists()
-            || \App\Models\StokBatch::where('gudang_id', $id)->exists()
-            || \App\Models\PenerimaanBarang::where('gudang_id', $id)->exists()
-            || \App\Models\PermintaanDistribusi::where('gudang_id', $id)->exists()
+            || \App\Models\Persediaan\StokBatch::where('gudang_id', $id)->exists()
+            || \App\Models\Pengadaan\PenerimaanBarang::where('gudang_id', $id)->exists()
+            || \App\Models\Distribusi\PermintaanDistribusi::where('gudang_id', $id)->exists()
             || \App\Models\User::where('gudang_id', $id)->exists();
 
         if ($hasDependencies) {

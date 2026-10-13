@@ -15,7 +15,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Pengawasan Kepatuhan --}}
-        <x-audit-kepatuhan-tabs active="trail" />
+        <x-tabs.audit-kepatuhan active="trail" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -172,12 +172,12 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada rekaman audit trail digital yang tercatat." cols="7" />
+                    <x-ui.empty-state message="Belum ada rekaman audit trail digital yang tercatat." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     {{-- Modal Inspeksi Diff Perubahan Data (Forensik) --}}

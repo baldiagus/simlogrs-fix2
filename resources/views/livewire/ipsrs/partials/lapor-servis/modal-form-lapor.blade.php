@@ -12,7 +12,7 @@
                     Tahap 1: Identifikasi Sarana & Tingkat Urgensi Kerusakan
                 </div>
 
-                <x-searchable-select
+                <x-ui.searchable-select
                     model="aset_id"
                     label="Pilih Fasilitas / Alat yang Bermasalah"
                     placeholder="-- Cari Inventaris Aset... --"

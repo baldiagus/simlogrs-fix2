@@ -9,7 +9,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Pengawasan Kepatuhan --}}
-        <x-audit-kepatuhan-tabs active="selisih" />
+        <x-tabs.audit-kepatuhan active="selisih" />
     </div>
 
     {{-- Ringkasan Metrik Pengawasan Opname Fisik --}}
@@ -187,13 +187,13 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada sesi stock opname yang terdaftar atau sesuai kriteria filter." cols="7" />
+                    <x-ui.empty-state message="Belum ada sesi stock opname yang terdaftar atau sesuai kriteria filter." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
         {{-- Footer Paginasi Kartu --}}
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     {{-- Modal 1: Rincian Selisih Hitung Fisik Opname --}}

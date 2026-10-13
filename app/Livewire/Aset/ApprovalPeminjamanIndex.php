@@ -2,16 +2,16 @@
 
 namespace App\Livewire\Aset;
 
-use App\Enums\StatusAset;
-use App\Enums\StatusPeminjaman;
+use App\Enums\Aset\StatusAset;
+use App\Enums\Aset\StatusPeminjaman;
 use App\Livewire\Concerns\AuthorizesPeminjaman;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\PermintaanPeminjaman;
+use App\Models\Aset\PermintaanPeminjaman;
 use App\Services\Aset\PeminjamanAsetService;
-use App\Models\Aset;
+use App\Models\Aset\Aset;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -199,7 +199,7 @@ class ApprovalPeminjamanIndex extends Component
             }
 
             // Kunci integritas: periksa apakah ada aset di permohonan ini yang sedang dalam perbaikan IPSRS
-            $isMaintenance = \App\Models\PermintaanMaintenance::whereIn('aset_id', $asetIds)
+            $isMaintenance = \App\Models\Ipsrs\PermintaanMaintenance::whereIn('aset_id', $asetIds)
                 ->whereNotIn('status', ['SELESAI', 'DIBATALKAN'])
                 ->exists() || Aset::whereIn('id', $asetIds)->where('status', StatusAset::DalamMaintenance->value)->exists();
 

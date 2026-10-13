@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Concerns;
 
-use App\Models\PermintaanPeminjaman;
+use App\Models\Aset\PermintaanPeminjaman;
 use App\Models\User;
 
 /**

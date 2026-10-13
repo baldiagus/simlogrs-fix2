@@ -3,12 +3,12 @@
 namespace Tests\Feature\Persediaan;
 
 use App\Livewire\Persediaan\PengalihanBarangIndex;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\LokasiGudang;
-use App\Models\PengalihanBarang;
-use App\Models\StokBatch;
-use App\Models\Unit;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Master\LokasiGudang;
+use App\Models\Persediaan\PengalihanBarang;
+use App\Models\Persediaan\StokBatch;
+use App\Models\Master\Unit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
@@ -67,8 +67,8 @@ class PengalihanBarangIndexTest extends TestCase
             'create_layanan_unit::pengalihan::aset',
         ]);
 
-        $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'UNT-TRF-BRG'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
-        $kategoriId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-TRF-BRG'], ['nama' => 'Kategori BHP', 'status' => 'AKTIF'])->id;
+        $satuanId = \App\Models\Master\SatuanBarang::firstOrCreate(['kode' => 'UNT-TRF-BRG'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
+        $kategoriId = \App\Models\Master\KategoriBarang::firstOrCreate(['kode' => 'KAT-TRF-BRG'], ['nama' => 'Kategori BHP', 'status' => 'AKTIF'])->id;
         $this->barangBhp = Barang::firstOrCreate(
             ['kode' => 'BRG-BHP-INDEX-01'],
             [

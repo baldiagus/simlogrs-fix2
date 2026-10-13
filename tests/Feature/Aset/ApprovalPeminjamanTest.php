@@ -3,11 +3,11 @@
 namespace Tests\Feature\Aset;
 
 use App\Livewire\Aset\ApprovalPeminjamanIndex;
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\PermintaanPeminjaman;
-use App\Models\PermintaanPeminjamanDetail;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Aset\PermintaanPeminjaman;
+use App\Models\Aset\PermintaanPeminjamanDetail;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;

@@ -110,13 +110,13 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Tidak ada transaksi peminjaman aktif yang memerlukan pengembalian." cols="7" />
+                    <x-ui.empty-state message="Tidak ada transaksi peminjaman aktif yang memerlukan pengembalian." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
         {{-- Navigasi Paginasi Peminjaman Aktif --}}
-        <x-table-pagination :paginator="$daftarPeminjaman" />
+        <x-ui.table-pagination :paginator="$daftarPeminjaman" />
     </flux:card>
 
     {{-- Card 2: Riwayat Pengembalian Selesai (PengembalianPeminjaman) --}}
@@ -201,7 +201,7 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada riwayat transaksi pengembalian aset yang tercatat." cols="8" />
+                    <x-ui.empty-state message="Belum ada riwayat transaksi pengembalian aset yang tercatat." cols="8" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
@@ -218,7 +218,7 @@
     @include('livewire.aset.partials.pengembalian.modal-detail')
 
     {{-- Modal Konfirmasi Tindakan --}}
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

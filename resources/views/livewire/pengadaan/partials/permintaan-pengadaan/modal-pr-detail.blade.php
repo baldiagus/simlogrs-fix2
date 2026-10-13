@@ -29,11 +29,11 @@
                     </div>
                     <div>
                         <div class="text-xs text-zinc-500 dark:text-zinc-400">Urgensi</div>
-                        <div><x-urgency-badge :urgency="$selectedPr->urgensi" /></div>
+                        <div><x-ui.urgency-badge :urgency="$selectedPr->urgensi" /></div>
                     </div>
                     <div>
                         <div class="text-xs text-zinc-500 dark:text-zinc-400">Status</div>
-                        <div><x-status-badge :status="$selectedPr->status" /></div>
+                        <div><x-ui.status-badge :status="$selectedPr->status" /></div>
                     </div>
                     @if ($selectedPr->penyetuju)
                         <div>

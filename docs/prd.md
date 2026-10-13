@@ -1305,7 +1305,7 @@ Setiap modul operasional diimplementasikan sebagai Livewire Component:
 ```php
 namespace App\Livewire\Master;
 
-use App\Models\Barang;
+use App\Models\Master\Barang;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Url;

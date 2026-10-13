@@ -3,16 +3,16 @@
 namespace Tests\Feature\Distribusi;
 
 use App\Livewire\Distribusi\PenerimaanBarangIndex;
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\LokasiGudang;
-use App\Models\PengirimanBarang;
-use App\Models\PengirimanBarangDetail;
-use App\Models\PermintaanDistribusi;
-use App\Models\PermintaanDistribusiDetail;
-use App\Models\StokBatch;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Master\LokasiGudang;
+use App\Models\Distribusi\PengirimanBarang;
+use App\Models\Distribusi\PengirimanBarangDetail;
+use App\Models\Distribusi\PermintaanDistribusi;
+use App\Models\Distribusi\PermintaanDistribusiDetail;
+use App\Models\Persediaan\StokBatch;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -41,8 +41,8 @@ class PenerimaanBarangDistribusiTest extends TestCase
             ['nama' => 'Rak Aset Test', 'status' => 'AKTIF']
         );
 
-        $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'UNIT-AST'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
-        $kategoriId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-AST-TEST'], ['nama' => 'Kategori Aset Test', 'status' => 'AKTIF'])->id;
+        $satuanId = \App\Models\Master\SatuanBarang::firstOrCreate(['kode' => 'UNIT-AST'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
+        $kategoriId = \App\Models\Master\KategoriBarang::firstOrCreate(['kode' => 'KAT-AST-TEST'], ['nama' => 'Kategori Aset Test', 'status' => 'AKTIF'])->id;
 
         // Cari atau buat komoditas aset
         $this->barangAset = Barang::firstOrCreate(

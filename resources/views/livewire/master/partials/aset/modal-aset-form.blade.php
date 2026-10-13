@@ -12,7 +12,7 @@
                     Tahap 1: Komoditas Aset & Penempatan Lokasi Fisik
                 </div>
 
-                <x-searchable-select
+                <x-ui.searchable-select
                     model="barang_id"
                     label="Komoditas Aset"
                     placeholder="Pilih Barang (Tipe Aset)..."
@@ -35,7 +35,7 @@
                     </div>
 
                     @if ($lokasi_tipe === 'RUANGAN')
-                        <x-searchable-select
+                        <x-ui.searchable-select
                             model="unit_id"
                             label="Ruangan / Instalasi Dinas"
                             placeholder="Pilih Ruangan..."
@@ -44,7 +44,7 @@
                         />
                     @else
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <x-searchable-select
+                            <x-ui.searchable-select
                                 model="gudang_id"
                                 label="Gudang Logistik"
                                 placeholder="Pilih Gudang..."
@@ -53,7 +53,7 @@
                                 required
                             />
 
-                            <x-searchable-select
+                            <x-ui.searchable-select
                                 model="lokasi_gudang_id"
                                 label="Rak Simpan (Opsional)"
                                 placeholder="Tanpa Rak Khusus"
@@ -76,7 +76,7 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <flux:input wire:model="tanggal_perolehan" label="Tanggal Perolehan" type="date" required />
-                    <x-number-input model="nilai_perolehan" label="Nilai Perolehan" prefix="Rp" required />
+                    <x-ui.number-input model="nilai_perolehan" label="Nilai Perolehan" prefix="Rp" required />
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -93,7 +93,7 @@
                     <div>
                         <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Status Aset <span class="text-red-500">*</span></label>
                         <select wire:model="status" required class="w-full text-sm rounded-lg border {{ $errors->has('status') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100">
-                            @foreach (\App\Enums\StatusAset::dapatDiaturManual() as $statusAset)
+                            @foreach (\App\Enums\Aset\StatusAset::dapatDiaturManual() as $statusAset)
                                 <option value="{{ $statusAset }}">{{ str_replace('_', ' ', $statusAset) }}</option>
                             @endforeach
                         </select>

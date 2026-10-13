@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Concerns;
 
-use App\Models\Aset;
+use App\Models\Aset\Aset;
 
 trait FormatsPengalihanAset
 {

@@ -58,7 +58,7 @@
                         </flux:table.cell>
                         <flux:table.cell class="text-zinc-500">{{ $item->kota ?? '-' }}</flux:table.cell>
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$item->status" />
+                            <x-ui.status-badge :status="$item->status" />
                         </flux:table.cell>
                         <flux:table.cell class="text-right w-16">
                             <flux:dropdown position="bottom" align="end">
@@ -86,13 +86,13 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada data rekanan vendor yang terdaftar." cols="7" />
+                    <x-ui.empty-state message="Belum ada data rekanan vendor yang terdaftar." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
         {{-- Footer Pagination Terpadu: Kiri (Showing), Tengah (Baris per halaman), Kanan (Tombol) --}}
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     {{-- Modal Form Tambah / Ubah Pemasok --}}
@@ -184,7 +184,7 @@
                     </div>
                     <div>
                         <dt class="text-zinc-500 dark:text-zinc-400">Status</dt>
-                        <dd class="mt-1"><x-status-badge :status="$selectedItem->status" /></dd>
+                        <dd class="mt-1"><x-ui.status-badge :status="$selectedItem->status" /></dd>
                     </div>
                     <div>
                         <dt class="text-zinc-500 dark:text-zinc-400">Jumlah PO Pernah Diterbitkan</dt>
@@ -196,7 +196,7 @@
         </div>
     </flux:modal>
 
-    <x-confirm-modal
+    <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
         :confirmText="$confirmButtonText"

@@ -2,14 +2,14 @@
 
 namespace App\Livewire\Persediaan\Concerns;
 
-use App\Enums\StatusPenyesuaianStok;
-use App\Enums\StatusStokOpname;
-use App\Models\Gudang;
-use App\Models\PenyesuaianStok;
-use App\Models\PenyesuaianStokDetail;
-use App\Models\StokBatch;
-use App\Models\StokOpname;
-use App\Models\StokOpnameDetail;
+use App\Enums\Persediaan\StatusPenyesuaianStok;
+use App\Enums\Persediaan\StatusStokOpname;
+use App\Models\Master\Gudang;
+use App\Models\Persediaan\PenyesuaianStok;
+use App\Models\Persediaan\PenyesuaianStokDetail;
+use App\Models\Persediaan\StokBatch;
+use App\Models\Persediaan\StokOpname;
+use App\Models\Persediaan\StokOpnameDetail;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\DB;
 

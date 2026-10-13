@@ -17,7 +17,7 @@
                         </flux:subheading>
                     </div>
                     <div class="flex items-center gap-2" style="margin-right: 2.25rem;">
-                        <x-status-badge :status="$selectedAset->status" />
+                        <x-ui.status-badge :status="$selectedAset->status" />
                     </div>
                 </div>
 
@@ -38,7 +38,7 @@
                     <div>
                         <div class="text-zinc-500 dark:text-zinc-400">Nilai Perolehan</div>
                         <div class="font-mono font-bold text-sm text-zinc-900 dark:text-zinc-100 mt-0.5">
-                            <x-rupiah :value="$selectedAset->nilai_perolehan" />
+                            <x-ui.rupiah :value="$selectedAset->nilai_perolehan" />
                         </div>
                     </div>
                 </div>
@@ -78,7 +78,7 @@
                                             {{ $pinjam?->keperluan ?: '-' }}
                                         </td>
                                         <td class="p-3 text-center">
-                                            <x-status-badge :status="$pinjam?->status ?? \App\Enums\StatusPeminjaman::Selesai->value" />
+                                            <x-ui.status-badge :status="$pinjam?->status ?? \App\Enums\Aset\StatusPeminjaman::Selesai->value" />
                                         </td>
                                         <td class="p-3">
                                             @if ($kembali)
@@ -89,7 +89,7 @@
                                                 @if ($kembali->catatan)
                                                     <div class="text-[11px] text-zinc-500 italic mt-0.5">"{{ $kembali->catatan }}"</div>
                                                 @endif
-                                            @elseif ($pinjam?->status === \App\Enums\StatusPeminjaman::Dipinjam->value)
+                                            @elseif ($pinjam?->status === \App\Enums\Aset\StatusPeminjaman::Dipinjam->value)
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                                                     Sedang Digunakan
                                                 </span>

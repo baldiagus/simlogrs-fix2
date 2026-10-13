@@ -2,19 +2,19 @@
 
 namespace App\Livewire\Persediaan;
 
-use App\Enums\StatusPengalihan;
+use App\Enums\Aset\StatusPengalihan;
 use App\Livewire\Concerns\AuthorizesPengalihan;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Livewire\Persediaan\Concerns\HasFormPengalihanBarang;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\LokasiGudang;
-use App\Models\PengalihanBarang;
-use App\Models\StokBatch;
-use App\Models\Unit;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Master\LokasiGudang;
+use App\Models\Persediaan\PengalihanBarang;
+use App\Models\Persediaan\StokBatch;
+use App\Models\Master\Unit;
 use App\Services\Persediaan\PengalihanBarangService;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -400,7 +400,7 @@ class PengalihanBarangIndex extends Component
             ->whereYear('tanggal_serah_terima', now()->year)
             ->count();
 
-        $kpiTotalItem = \App\Models\PengalihanBarangDetail::whereHas('pengalihanBarang', function ($q) use ($isGlobalAdmin, $user) {
+        $kpiTotalItem = \App\Models\Persediaan\PengalihanBarangDetail::whereHas('pengalihanBarang', function ($q) use ($isGlobalAdmin, $user) {
             $q->where('status', StatusPengalihan::Selesai->value);
             if (! $isGlobalAdmin && $user?->gudang_id) {
                 $q->where(function ($sub) use ($user) {

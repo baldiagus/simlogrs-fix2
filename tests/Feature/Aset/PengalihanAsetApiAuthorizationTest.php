@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Aset;
 
-use App\Models\PengalihanAset;
-use App\Models\Unit;
+use App\Models\Aset\PengalihanAset;
+use App\Models\Master\Unit;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use App\Models\User;

@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Aset;
 
-use App\Enums\StatusAset;
-use App\Enums\StatusPeminjaman;
+use App\Enums\Aset\StatusAset;
+use App\Enums\Aset\StatusPeminjaman;
 use App\Livewire\Aset\Concerns\HasAksiPeminjaman;
 use App\Livewire\Aset\Concerns\HasPenyediaPeminjaman;
 use App\Livewire\Aset\Concerns\HasFilterPenyediaPeminjaman;
@@ -12,10 +12,10 @@ use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Aset;
-use App\Models\Gudang;
-use App\Models\PermintaanPeminjaman;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Gudang;
+use App\Models\Aset\PermintaanPeminjaman;
+use App\Models\Master\Unit;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -146,7 +146,7 @@ class PeminjamanAsetIndex extends Component
         abort_unless(auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
 
         $aset = Aset::with('barang')->findOrFail($asetId);
-        $isMaintenance = \App\Models\PermintaanMaintenance::where('aset_id', $aset->id)
+        $isMaintenance = \App\Models\Ipsrs\PermintaanMaintenance::where('aset_id', $aset->id)
             ->whereNotIn('status', ['SELESAI', 'DIBATALKAN'])
             ->exists();
         if ($isMaintenance || $aset->status === StatusAset::DalamMaintenance->value || $aset->kondisi !== 'BAIK') {
@@ -263,7 +263,7 @@ class PeminjamanAsetIndex extends Component
             return;
         }
 
-        $isMaintenance = \App\Models\PermintaanMaintenance::where('aset_id', $aset->id)
+        $isMaintenance = \App\Models\Ipsrs\PermintaanMaintenance::where('aset_id', $aset->id)
             ->whereNotIn('status', ['SELESAI', 'DIBATALKAN'])
             ->exists();
         if ($isMaintenance || $aset->status === StatusAset::DalamMaintenance->value) {

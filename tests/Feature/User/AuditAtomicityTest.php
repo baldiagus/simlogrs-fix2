@@ -5,7 +5,7 @@ namespace Tests\Feature\User;
 use App\Livewire\Auth\GantiPasswordWajib;
 use App\Livewire\User\PenggunaIndex;
 use App\Livewire\User\RoleManager;
-use App\Models\LogAudit;
+use App\Models\Audit\LogAudit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;

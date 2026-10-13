@@ -15,7 +15,7 @@
         </div>
 
         {{-- Navigasi Sub-Tab Hub Opname & Penyesuaian --}}
-        <x-persediaan-opname-tabs active="opname" />
+        <x-tabs.persediaan-opname active="opname" />
     </div>
 
     {{-- Workspace Card Utama --}}
@@ -44,10 +44,10 @@
                 <div class="w-44">
                     <select wire:model.live="filterStatus" class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100">
                         <option value="">Semua Status</option>
-                        <option value="{{ \App\Enums\StatusStokOpname::Berjalan->value }}">BERJALAN (Hitung Fisik)</option>
-                        <option value="{{ \App\Enums\StatusStokOpname::MenungguApproval->value }}">MENUNGGU APPROVAL</option>
-                        <option value="{{ \App\Enums\StatusStokOpname::Disetujui->value }}">DISETUJUI (Selesai)</option>
-                        <option value="{{ \App\Enums\StatusStokOpname::Ditolak->value }}">DITOLAK</option>
+                        <option value="{{ \App\Enums\Persediaan\StatusStokOpname::Berjalan->value }}">BERJALAN (Hitung Fisik)</option>
+                        <option value="{{ \App\Enums\Persediaan\StatusStokOpname::MenungguApproval->value }}">MENUNGGU APPROVAL</option>
+                        <option value="{{ \App\Enums\Persediaan\StatusStokOpname::Disetujui->value }}">DISETUJUI (Selesai)</option>
+                        <option value="{{ \App\Enums\Persediaan\StatusStokOpname::Ditolak->value }}">DITOLAK</option>
                     </select>
                 </div>
             </div>
@@ -109,7 +109,7 @@
 
                         {{-- Status --}}
                         <flux:table.cell class="text-center">
-                            <x-status-badge :status="$opn->status" />
+                            <x-ui.status-badge :status="$opn->status" />
                         </flux:table.cell>
 
                         {{-- Aksi --}}
@@ -120,7 +120,7 @@
                                     <flux:menu.item wire:click="showDetail({{ $opn->id }})" icon="eye">
                                         Rincian Sesi Opname
                                     </flux:menu.item>
-                                    @if ($opn->status === \App\Enums\StatusStokOpname::Berjalan->value)
+                                    @if ($opn->status === \App\Enums\Persediaan\StatusStokOpname::Berjalan->value)
                                         @canany(['update_gudang_stok::stok::opname', 'create_gudang_stok::stok::opname'])
                                             <flux:menu.separator />
                                             <flux:menu.item wire:click="openHitungFisik({{ $opn->id }})" icon="clipboard-document-list" class="text-blue-600 dark:text-blue-400">
@@ -133,12 +133,12 @@
                         </flux:table.cell>
                     </flux:table.row>
                 @empty
-                    <x-empty-state message="Belum ada siklus stock opname yang tercatat." cols="7" />
+                    <x-ui.empty-state message="Belum ada siklus stock opname yang tercatat." cols="7" />
                 @endforelse
             </flux:table.rows>
         </flux:table>
 
-        <x-table-pagination :paginator="$items" />
+        <x-ui.table-pagination :paginator="$items" />
     </flux:card>
 
     @include('livewire.persediaan.partials.stock-opname.modal-inisiasi')

@@ -2,12 +2,12 @@
 
 namespace Tests\Feature\Pengadaan;
 
-use App\Enums\StatusPermintaanPengadaan;
+use App\Enums\Pengadaan\StatusPermintaanPengadaan;
 use App\Livewire\Pengadaan\PermintaanPengadaanIndex;
-use App\Models\Barang;
-use App\Models\PermintaanPengadaan;
-use App\Models\PermintaanPengadaanDetail;
-use App\Models\Unit;
+use App\Models\Master\Barang;
+use App\Models\Pengadaan\PermintaanPengadaan;
+use App\Models\Pengadaan\PermintaanPengadaanDetail;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -70,7 +70,7 @@ class PermintaanPengadaanTest extends TestCase
     public function test_pr_submitted_by_kepala_gudang_or_unit_leader_is_automatically_forwarded_to_pengadaan(): void
     {
         $barang = Barang::first();
-        $gudang = \App\Models\Gudang::where('status', 'AKTIF')->first();
+        $gudang = \App\Models\Master\Gudang::where('status', 'AKTIF')->first();
         $unit = Unit::where('status', 'AKTIF')->first();
 
         // 1. Kepala Gudang mengajukan PR stok gudang

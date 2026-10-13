@@ -14,7 +14,7 @@
                     </div>
 
                     <div>
-                        <x-searchable-select
+                        <x-ui.searchable-select
                             model="selected_barang_id"
                             label="Aset / Komoditas yang Ingin Dialihkan"
                             placeholder="-- Cari Aset Inventaris Tersedia... --"

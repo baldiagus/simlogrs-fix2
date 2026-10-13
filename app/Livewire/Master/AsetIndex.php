@@ -2,17 +2,17 @@
 
 namespace App\Livewire\Master;
 
-use App\Enums\StatusAset;
+use App\Enums\Aset\StatusAset;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
 use App\Livewire\Master\Concerns\HasScopeAset;
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\LokasiGudang;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Master\LokasiGudang;
+use App\Models\Master\Unit;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Url;

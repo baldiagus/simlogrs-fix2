@@ -29,7 +29,7 @@
 
                     @if ($isGlobalAdmin)
                         <div>
-                            <x-searchable-select
+                            <x-ui.searchable-select
                                 model="unit_id"
                                 label="Unit Pemohon"
                                 placeholder="Pilih Unit Ruangan..."
@@ -51,7 +51,7 @@
                     @endif
 
                     <div>
-                        <x-searchable-select
+                        <x-ui.searchable-select
                             model="gudang_id"
                             label="Gudang Tujuan"
                             placeholder="Pilih Gudang..."
@@ -116,7 +116,7 @@
                             <div class="w-full grid grid-cols-12 gap-3 items-start">
                                 {{-- Kolom 1 (1x3): Barang & Informasi Stok Gudang (col-span-5) --}}
                                 <div class="col-span-5 w-full min-w-0">
-                                    <x-searchable-select
+                                    <x-ui.searchable-select
                                         model="items.{{ $index }}.barang_id"
                                         label="Komoditas Barang"
                                         placeholder="Pilih Komoditas Barang..."

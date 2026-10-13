@@ -2,14 +2,14 @@
 
 namespace Tests\Feature\Aset;
 
-use App\Models\Aset;
-use App\Models\Barang;
-use App\Models\Gudang;
-use App\Models\LokasiGudang;
-use App\Models\PermintaanMaintenance;
-use App\Models\PermintaanPeminjaman;
-use App\Models\PermintaanPeminjamanDetail;
-use App\Models\Unit;
+use App\Models\Aset\Aset;
+use App\Models\Master\Barang;
+use App\Models\Master\Gudang;
+use App\Models\Master\LokasiGudang;
+use App\Models\Ipsrs\PermintaanMaintenance;
+use App\Models\Aset\PermintaanPeminjaman;
+use App\Models\Aset\PermintaanPeminjamanDetail;
+use App\Models\Master\Unit;
 use App\Models\User;
 use App\Services\Aset\PeminjamanAsetService;
 use App\Support\Generator\CodeGenerator;
@@ -38,8 +38,8 @@ class PeminjamanAsetServiceTest extends TestCase
             ['nama' => 'Rak Pinjam Srv', 'status' => 'AKTIF']
         );
 
-        $satuanId = \App\Models\SatuanBarang::firstOrCreate(['kode' => 'UNIT-PINJ'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
-        $kategoriId = \App\Models\KategoriBarang::firstOrCreate(['kode' => 'KAT-PINJ'], ['nama' => 'Kategori Pinjam', 'status' => 'AKTIF'])->id;
+        $satuanId = \App\Models\Master\SatuanBarang::firstOrCreate(['kode' => 'UNIT-PINJ'], ['nama' => 'Unit', 'status' => 'AKTIF'])->id;
+        $kategoriId = \App\Models\Master\KategoriBarang::firstOrCreate(['kode' => 'KAT-PINJ'], ['nama' => 'Kategori Pinjam', 'status' => 'AKTIF'])->id;
         $this->barangAset = Barang::firstOrCreate(
             ['kode' => 'BRG-PINJ-SRV'],
             ['nama' => 'Barang Pinjam Srv', 'tipe' => 'ASET', 'satuan_id' => $satuanId, 'kategori_id' => $kategoriId, 'status' => 'AKTIF']

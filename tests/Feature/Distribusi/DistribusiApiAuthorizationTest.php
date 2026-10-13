@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Distribusi;
 
-use App\Models\Barang;
+use App\Models\Master\Barang;
 use App\Support\Generator\CodeGenerator;
-use App\Models\Gudang;
-use App\Models\KategoriBarang;
-use App\Models\SatuanBarang;
-use App\Models\PengirimanBarang;
-use App\Models\Unit;
+use App\Models\Master\Gudang;
+use App\Models\Master\KategoriBarang;
+use App\Models\Master\SatuanBarang;
+use App\Models\Distribusi\PengirimanBarang;
+use App\Models\Master\Unit;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -93,7 +93,7 @@ class DistribusiApiAuthorizationTest extends TestCase
         $user->save();
         $user->givePermissionTo('update_layanan_unit::penerimaan::barang');
 
-        $request = \App\Models\PermintaanDistribusi::create([
+        $request = \App\Models\Distribusi\PermintaanDistribusi::create([
             'kode' => 'REQ-AUTH-' . uniqid(),
             'unit_id' => $this->unit->id,
             'gudang_id' => $this->gudang->id,
@@ -160,7 +160,7 @@ class DistribusiApiAuthorizationTest extends TestCase
         $user->gudang_id = $this->gudang->id;
         $user->save();
         $user->givePermissionTo('update_gudang_stok::stok::opname');
-        $opname = \App\Models\StokOpname::create([
+        $opname = \App\Models\Persediaan\StokOpname::create([
             'kode' => CodeGenerator::generateOpn(),
             'gudang_id' => $otherWarehouse->id,
             'tanggal_opname' => now()->toDateString(),
@@ -186,7 +186,7 @@ class DistribusiApiAuthorizationTest extends TestCase
         $user->assignRole('kepala_unit');
         $user->givePermissionTo('update_layanan_unit::approval::peminjaman');
         $user->save();
-        $pinjam = \App\Models\PermintaanPeminjaman::create([
+        $pinjam = \App\Models\Aset\PermintaanPeminjaman::create([
             'kode' => 'PINJAM-AUTH-' . uniqid(),
             'tipe_penyedia' => 'RUANGAN',
             'unit_penyedia_id' => $otherUnit->id,
@@ -209,7 +209,7 @@ class DistribusiApiAuthorizationTest extends TestCase
     {
         $user = $this->user('permission-only-borrow-approval');
         $user->givePermissionTo('update_layanan_unit::approval::peminjaman');
-        $pinjam = \App\Models\PermintaanPeminjaman::create([
+        $pinjam = \App\Models\Aset\PermintaanPeminjaman::create([
             'kode' => 'PINJAM-AUTH-' . uniqid(),
             'tipe_penyedia' => 'RUANGAN',
             'unit_penyedia_id' => $this->unit->id,

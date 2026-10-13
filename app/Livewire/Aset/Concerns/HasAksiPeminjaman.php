@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Aset\Concerns;
 
-use App\Enums\StatusPeminjaman;
-use App\Models\Aset;
-use App\Models\PermintaanPeminjaman;
+use App\Enums\Aset\StatusPeminjaman;
+use App\Models\Aset\Aset;
+use App\Models\Aset\PermintaanPeminjaman;
 use Carbon\Carbon;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 

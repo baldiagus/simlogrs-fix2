@@ -6,11 +6,11 @@ use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\Barang;
-use App\Models\KategoriBarang;
-use App\Models\MerekBarang;
-use App\Models\Pemasok;
-use App\Models\SatuanBarang;
+use App\Models\Master\Barang;
+use App\Models\Master\KategoriBarang;
+use App\Models\Master\MerekBarang;
+use App\Models\Master\Pemasok;
+use App\Models\Master\SatuanBarang;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Url;
@@ -24,7 +24,7 @@ class BarangIndex extends Component
     public bool $showModal = false;
     public ?int $editingId = null;
     public bool $showDetailModal = false;
-    public ?\App\Models\Barang $selectedBarang = null;
+    public ?\App\Models\Master\Barang $selectedBarang = null;
 
     #[Url(history: true)]
     public string $filterTipe = '';
@@ -280,9 +280,9 @@ class BarangIndex extends Component
         $hasDependencies = $barang->stokBatch()->exists()
             || $barang->aset()->exists()
             || $barang->stokRuangan()->exists()
-            || \App\Models\PesananPembelianDetail::where('barang_id', $id)->exists()
-            || \App\Models\PermintaanPengadaanDetail::where('barang_id', $id)->exists()
-            || \App\Models\PermintaanDistribusiDetail::where('barang_id', $id)->exists();
+            || \App\Models\Pengadaan\PesananPembelianDetail::where('barang_id', $id)->exists()
+            || \App\Models\Pengadaan\PermintaanPengadaanDetail::where('barang_id', $id)->exists()
+            || \App\Models\Distribusi\PermintaanDistribusiDetail::where('barang_id', $id)->exists();
 
         if ($hasDependencies) {
             $this->toast("Komoditas '{$barang->nama}' tidak dapat dihapus karena masih digunakan dalam riwayat transaksi/stok. Silakan nonaktifkan status barang.", 'danger');

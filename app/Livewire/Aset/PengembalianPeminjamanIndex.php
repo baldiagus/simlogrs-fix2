@@ -2,13 +2,13 @@
 
 namespace App\Livewire\Aset;
 
-use App\Enums\StatusPeminjaman;
+use App\Enums\Aset\StatusPeminjaman;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
 use App\Livewire\Concerns\HasToast;
-use App\Models\PengembalianPeminjaman;
-use App\Models\PermintaanPeminjaman;
+use App\Models\Aset\PengembalianPeminjaman;
+use App\Models\Aset\PermintaanPeminjaman;
 use App\Services\Aset\PeminjamanAsetService;
 use Livewire\Component;
 
