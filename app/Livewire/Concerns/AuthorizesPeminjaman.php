@@ -14,6 +14,9 @@ use App\Models\User;
  */
 trait AuthorizesPeminjaman
 {
+    /**
+     * Periksa apakah peminjaman aset berada dalam unit penyedia yang menjadi wewenang pengguna.
+     */
     protected function dalamScopePenyedia(?User $user, PermintaanPeminjaman $p): bool
     {
         if (! $user) {
@@ -27,6 +30,9 @@ trait AuthorizesPeminjaman
         };
     }
 
+    /**
+     * Periksa kelayakan izin pengguna untuk melakukan tindakan pada transaksi peminjaman aset.
+     */
     protected function bolehPeminjaman(?User $user, PermintaanPeminjaman $p, string $aksi): bool
     {
         if (! $user) {
@@ -49,6 +55,9 @@ trait AuthorizesPeminjaman
         };
     }
 
+    /**
+     * Verifikasi otorisasi aksi peminjaman aset atau hentikan dengan 403 jika tidak berwenang.
+     */
     protected function authorizePeminjaman(PermintaanPeminjaman $p, string $aksi, string $pesan): void
     {
         abort_unless($this->bolehPeminjaman(auth()->user(), $p, $aksi), 403, $pesan);

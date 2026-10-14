@@ -27,6 +27,9 @@ class PengembalianPeminjamanIndex extends Component
     public ?PengembalianPeminjaman $selectedPengembalian = null;
     public bool $showDetailPengembalianModal = false;
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         $this->checkAccess();
@@ -69,6 +72,9 @@ class PengembalianPeminjamanIndex extends Component
         }
     }
 
+    /**
+     * Buka modal formulir pencatatan pengembalian aset pinjaman.
+     */
     public function openPengembalianModal(int $id): void
     {
         $this->checkAccess();
@@ -260,6 +266,9 @@ class PengembalianPeminjamanIndex extends Component
         return $query->where($scopeCallback);
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $this->checkAccess();

@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\DB;
 
 trait HasAksiPr
 {
+    /**
+     * Tampilkan modal konfirmasi persetujuan transaksi.
+     */
     public function confirmApprove(int $id): void
     {
         $pr = PermintaanPengadaan::with(['unit', 'gudang'])->findOrFail($id);
@@ -22,6 +25,9 @@ trait HasAksiPr
         );
     }
 
+    /**
+     * Tampilkan modal konfirmasi penolakan transaksi.
+     */
     public function confirmReject(int $id): void
     {
         $pr = PermintaanPengadaan::findOrFail($id);
@@ -35,6 +41,9 @@ trait HasAksiPr
         );
     }
 
+    /**
+     * Proses persetujuan transaksi dan perbarui status pada database.
+     */
     public function approve(int $id)
     {
         abort_unless(auth()->user()?->can('update_pengadaan::permintaan::pengadaan'), 403);
@@ -62,6 +71,9 @@ trait HasAksiPr
         $this->toast("PR '{$pr->kode}' telah disetujui dan diteruskan ke bagian pengadaan.", 'success');
     }
 
+    /**
+     * Proses penolakan transaksi beserta catatan alasan penolakan.
+     */
     public function reject(int $id)
     {
         abort_unless(auth()->user()?->can('update_pengadaan::permintaan::pengadaan'), 403);
@@ -84,6 +96,9 @@ trait HasAksiPr
         $this->toast("PR '{$pr->kode}' telah ditolak.", 'info');
     }
 
+    /**
+     * Buka modal penolakan pengadaan barang beserta input alasan penolakan.
+     */
     public function openRejectPengadaan(int $id): void
     {
         abort_unless(auth()->user()?->can('create_pengadaan::pesanan::pembelian'), 403);
@@ -107,6 +122,9 @@ trait HasAksiPr
         $this->showRejectPengadaanModal = true;
     }
 
+    /**
+     * Eksekusi penolakan permintaan pengadaan oleh tim pengadaan.
+     */
     public function submitRejectPengadaan(): void
     {
         abort_unless(auth()->user()?->can('create_pengadaan::pesanan::pembelian'), 403);

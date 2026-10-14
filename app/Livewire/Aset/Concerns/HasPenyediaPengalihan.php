@@ -14,6 +14,9 @@ use App\Models\Master\Unit;
 
 trait HasPenyediaPengalihan
 {
+    /**
+     * Computed property Livewire untuk mengakses data max quantity.
+     */
     public function getMaxQuantityProperty(): int
     {
         if (! $this->selected_penyedia_key) {
@@ -26,6 +29,9 @@ trait HasPenyediaPengalihan
         return $provider ? max(1, $provider['jumlah']) : 1;
     }
 
+    /**
+     * Dapatkan koleksi barang kategori aset yang tersedia untuk transaksi.
+     */
     public function getDaftarBarangAsetTersedia()
     {
         $user = auth()->user();
@@ -54,6 +60,9 @@ trait HasPenyediaPengalihan
             ->get();
     }
 
+    /**
+     * Dapatkan daftar entitas penyedia yang memiliki ketersediaan aset terkait.
+     */
     public function getPenyediaAsetList(): array
     {
         if (! $this->selected_barang_id) {
@@ -135,6 +144,9 @@ trait HasPenyediaPengalihan
         return $providers;
     }
 
+    /**
+     * Hook saat tipe entitas asal diubah untuk menyesuaikan pilihan lokasi.
+     */
     public function updatedTipeAsal(): void
     {
         $this->selected_aset_ids = [];
@@ -147,16 +159,25 @@ trait HasPenyediaPengalihan
         }
     }
 
+    /**
+     * Hook saat unit asal dipilih untuk memuat aset yang tersedia.
+     */
     public function updatedUnitAsalId(): void
     {
         $this->selected_aset_ids = [];
     }
 
+    /**
+     * Hook saat gudang asal pengalihan diubah untuk memuat stok barang terkait.
+     */
     public function updatedGudangAsalId(): void
     {
         $this->selected_aset_ids = [];
     }
 
+    /**
+     * Hook saat tipe entitas tujuan diubah untuk menyesuaikan pilihan lokasi.
+     */
     public function updatedTipeTujuan(): void
     {
         if ($this->tipe_tujuan === 'RUANGAN') {
@@ -167,6 +188,9 @@ trait HasPenyediaPengalihan
         }
     }
 
+    /**
+     * Tentukan daftar lokasi asal dan tujuan yang diizinkan untuk pengalihan.
+     */
     protected function resolveLokasiPengalihan($user, bool $isGlobalAdmin): bool
     {
         if ($this->selected_penyedia_key) {
@@ -225,6 +249,9 @@ trait HasPenyediaPengalihan
         return true;
     }
 
+    /**
+     * Kalkulasi indikator kinerja utama (KPI) status pengalihan aset.
+     */
     protected function hitungKpiPengalihan($user, bool $isGlobalAdmin): array
     {
         $countAktifQuery = PengalihanAset::whereIn('status', StatusPengalihan::aktif());
@@ -308,6 +335,9 @@ trait HasPenyediaPengalihan
         ];
     }
 
+    /**
+     * Query daftar aset fisik yang siap dialihkan pada modal input.
+     */
     protected function queryAsetTersediaModal()
     {
         if (! $this->showCreateModal) {

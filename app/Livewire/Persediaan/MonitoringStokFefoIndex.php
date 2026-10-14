@@ -25,18 +25,27 @@ class MonitoringStokFefoIndex extends Component
     public bool $showDetailModal = false;
     public ?StokBatch $selectedBatch = null;
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         $this->selectedBatch = StokBatch::with(['barang.kategori', 'barang.satuan', 'gudang', 'lokasiGudang'])->findOrFail($id);
         $this->showDetailModal = true;
     }
 
+    /**
+     * Ubah filter kategori status FEFO (semua, kedaluwarsa, atau mendekati kedaluwarsa).
+     */
     public function setFilter(string $kategori): void
     {
         $this->filterKategoriKedaluwarsa = $kategori;
         $this->resetPage();
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(

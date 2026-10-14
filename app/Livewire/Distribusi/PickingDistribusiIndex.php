@@ -32,22 +32,34 @@ class PickingDistribusiIndex extends Component
     public bool $showPermintaanDetailModal = false;
     public ?PermintaanDistribusi $selectedPermintaanDetail = null;
     public array $ringkasanPermintaanDetail = [];
+    /**
+     * Ubah tab navigasi yang sedang aktif.
+     */
     public function setTab(string $tab): void
     {
         $this->activeTab = $tab;
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat properti active tab diperbarui.
+     */
     public function updatedActiveTab(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter urgensi diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterUrgensi(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Tampilkan dialog konfirmasi pengambilan (picking) barang gudang.
+     */
     public function confirmPicking(int $permintaanId): void
     {
         abort_unless($this->canPick(), 403, 'Anda tidak memiliki wewenang untuk melakukan picking FEFO.');
@@ -77,6 +89,9 @@ class PickingDistribusiIndex extends Component
         );
     }
 
+    /**
+     * Eksekusi pengambilan barang (picking) dari stok gudang berdasarkan FEFO.
+     */
     public function executePicking(int $permintaanId): void
     {
         $user = auth()->user();
@@ -112,6 +127,9 @@ class PickingDistribusiIndex extends Component
         }
     }
 
+    /**
+     * Buka modal rincian Surat Perintah Pengiriman Barang (SPPB).
+     */
     public function showSppbDetail(int $id): void
     {
         $this->checkAccess();
@@ -130,6 +148,9 @@ class PickingDistribusiIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Buka modal rincian data permintaan distribusi barang.
+     */
     public function showPermintaanDetail(int $id): void
     {
         $this->checkAccess();
@@ -186,6 +207,9 @@ class PickingDistribusiIndex extends Component
         $this->showPermintaanDetailModal = true;
     }
 
+    /**
+     * Tutup modal rincian data permintaan distribusi.
+     */
     public function closePermintaanDetailModal(): void
     {
         $this->showPermintaanDetailModal = false;
@@ -193,6 +217,9 @@ class PickingDistribusiIndex extends Component
         $this->ringkasanPermintaanDetail = [];
     }
 
+    /**
+     * Tampilkan konfirmasi proses picking langsung dari modal detail.
+     */
     public function confirmPickingFromDetail(): void
     {
         if (! $this->selectedPermintaanDetail) {
@@ -204,6 +231,9 @@ class PickingDistribusiIndex extends Component
         $this->confirmPicking($id);
     }
 
+    /**
+     * Validasi izin dan hak akses pengguna saat ini.
+     */
     protected function checkAccess(): void
     {
         abort_unless(
@@ -213,6 +243,9 @@ class PickingDistribusiIndex extends Component
         );
     }
 
+    /**
+     * Periksa apakah pengguna berwenang melakukan picking barang di gudang.
+     */
     protected function canPick(): bool
     {
         return (bool) auth()->user()?->can('create_gudang_stok::picking::distribusi');
@@ -236,6 +269,9 @@ class PickingDistribusiIndex extends Component
         );
     }
 
+    /**
+     * Periksa hak akses baca petugas terhadap dokumen permintaan distribusi.
+     */
     protected function canReadPermintaan(PermintaanDistribusi $permintaan): bool
     {
         if (! $permintaan->gudang_id && ! $this->isGlobalOperator() && $this->ownGudangIds()) {
@@ -262,6 +298,9 @@ class PickingDistribusiIndex extends Component
         return $this->applyReadScope($query, null, 'gudang_id');
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $this->checkAccess();

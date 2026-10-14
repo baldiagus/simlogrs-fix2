@@ -6,11 +6,17 @@ use App\Models\Persediaan\StokBatch;
 
 trait HasDraftAmprah
 {
+    /**
+     * Tambahkan baris item barang baru pada formulir.
+     */
     public function addItem(): void
     {
         $this->items[] = ['barang_id' => null, 'jumlah' => 1, 'catatan' => ''];
     }
 
+    /**
+     * Hapus baris item barang dari daftar formulir.
+     */
     public function removeItem(int $index): void
     {
         if (count($this->items) > 1) {

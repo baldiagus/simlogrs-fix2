@@ -37,6 +37,9 @@ class PermintaanPengadaanIndex extends Component
     #[Url(history: true)]
     public string $filterUrgensi = '';
 
+    /**
+     * Reset seluruh parameter filter dan pencarian ke kondisi default.
+     */
     public function resetFilters(): void
     {
         $this->search = '';
@@ -52,6 +55,9 @@ class PermintaanPengadaanIndex extends Component
     public string $catatan = '';
     public array $items = [];
 
+    /**
+     * Hook Livewire saat properti unit id diperbarui.
+     */
     public function updatedUnitId($value): void
     {
         if (! empty($value)) {
@@ -59,6 +65,9 @@ class PermintaanPengadaanIndex extends Component
         }
     }
 
+    /**
+     * Hook Livewire saat properti gudang id diperbarui.
+     */
     public function updatedGudangId($value): void
     {
         if (! empty($value)) {
@@ -66,6 +75,9 @@ class PermintaanPengadaanIndex extends Component
         }
     }
 
+    /**
+     * Reset pilihan entitas pemohon, unit, atau gudang pada formulir.
+     */
     public function resetPemohon(): void
     {
         $this->unit_id = null;
@@ -89,6 +101,9 @@ class PermintaanPengadaanIndex extends Component
         return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen', 'pengadaan']);
     }
 
+    /**
+     * Periksa apakah pengguna berwenang pada cakupan unit atau gudang terkait.
+     */
     private function ownsScope(?int $unitId, ?int $gudangId): bool
     {
         $user = auth()->user();
@@ -97,6 +112,9 @@ class PermintaanPengadaanIndex extends Component
             || ($gudangId && $user?->gudang_id && (int) $user->gudang_id === (int) $gudangId);
     }
 
+    /**
+     * Periksa hak akses baca pengguna terhadap dokumen Permintaan Pengadaan (PR).
+     */
     private function canReadPr(PermintaanPengadaan $pr): bool
     {
         return $this->hasGlobalRead()
@@ -125,16 +143,25 @@ class PermintaanPengadaanIndex extends Component
         return false;
     }
 
+    /**
+     * Hook Livewire saat filter status diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter urgensi diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterUrgensi(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Buka modal dialog formulir untuk penambahan data baru.
+     */
     public function create()
     {
         abort_unless(auth()->user()?->can('create_pengadaan::permintaan::pengadaan'), 403);
@@ -149,17 +176,26 @@ class PermintaanPengadaanIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Tambahkan baris item barang baru pada formulir.
+     */
     public function addItem()
     {
         $this->items[] = ['barang_id' => null, 'jumlah' => 1];
     }
 
+    /**
+     * Hapus baris item barang dari daftar formulir.
+     */
     public function removeItem(int $index)
     {
         unset($this->items[$index]);
         $this->items = array_values($this->items);
     }
 
+    /**
+     * Validasi isian formulir dan simpan data ke database.
+     */
     public function save()
     {
         abort_unless(auth()->user()?->can('create_pengadaan::permintaan::pengadaan'), 403);
@@ -233,6 +269,9 @@ class PermintaanPengadaanIndex extends Component
         $this->toast($toastMsg, 'success');
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id)
     {
         abort_unless(auth()->user()?->can('view_any_pengadaan::permintaan::pengadaan') || auth()->user()?->can('view_pengadaan::permintaan::pengadaan'), 403);
@@ -244,6 +283,9 @@ class PermintaanPengadaanIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Periksa apakah pengguna memiliki wewenang approval Permintaan Pengadaan (PR).
+     */
     public function canUserApprovePr(PermintaanPengadaan $item): bool
     {
         $user = auth()->user();
@@ -256,6 +298,9 @@ class PermintaanPengadaanIndex extends Component
         return $this->isGlobalAdmin() || $this->isWorkflowLeaderFor($item->unit_id, $item->gudang_id);
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_pengadaan::permintaan::pengadaan') || auth()->user()?->can('view_pengadaan::permintaan::pengadaan'), 403);

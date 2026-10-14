@@ -31,6 +31,9 @@ class PermintaanBarangIndex extends Component
 
     #[Url(history: true)]
     public string $filterUrgensi = '';
+    /**
+     * Reset seluruh parameter filter dan pencarian ke kondisi default.
+     */
     public function resetFilters(): void
     {
         $this->search = '';
@@ -52,16 +55,25 @@ class PermintaanBarangIndex extends Component
     public string $catatan = '';
     public array $items = [];
 
+    /**
+     * Hook Livewire saat filter status diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter urgensi diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterUrgensi(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Buka modal dialog formulir untuk penambahan data baru.
+     */
     public function create(): void
     {
         abort_unless(auth()->user()?->can('create_layanan_unit::permintaan::barang'), 403);
@@ -77,6 +89,9 @@ class PermintaanBarangIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Validasi isian formulir dan simpan data ke database.
+     */
     public function save(): void
     {
         abort_unless(auth()->user()?->can('create_layanan_unit::permintaan::barang'), 403);
@@ -167,6 +182,9 @@ class PermintaanBarangIndex extends Component
         $this->toast($toastMsg, 'success');
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         $permintaan = PermintaanDistribusi::with([
@@ -185,6 +203,9 @@ class PermintaanBarangIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Tampilkan modal dialog konfirmasi pembatalan transaksi.
+     */
     public function confirmBatal(int $id): void
     {
         $permintaan = PermintaanDistribusi::with('unit')->findOrFail($id);
@@ -209,6 +230,9 @@ class PermintaanBarangIndex extends Component
         );
     }
 
+    /**
+     * Batalkan transaksi terpilih dan catat log perubahan.
+     */
     public function batal(int $id): void
     {
         $permintaan = PermintaanDistribusi::findOrFail($id);
@@ -232,6 +256,9 @@ class PermintaanBarangIndex extends Component
         $this->toast("Permintaan amprah '{$permintaan->kode}' berhasil dibatalkan.", 'info');
     }
 
+    /**
+     * Tampilkan dialog konfirmasi penutupan sisa barang pada pesanan pembelian (PO).
+     */
     public function confirmTutupSisaHutang(int $id): void
     {
         $permintaan = PermintaanDistribusi::findOrFail($id);
@@ -252,6 +279,9 @@ class PermintaanBarangIndex extends Component
         );
     }
 
+    /**
+     * Tutup sisa kuantitas PO yang tidak akan dikirim oleh pemasok.
+     */
     public function tutupSisaHutang(int $id): void
     {
         DB::transaction(function () use ($id) {
@@ -273,6 +303,9 @@ class PermintaanBarangIndex extends Component
         });
     }
 
+    /**
+     * Verifikasi wewenang pengguna untuk melihat data pada halaman ini.
+     */
     protected function authorizeView(): void
     {
         abort_unless(
@@ -293,11 +326,17 @@ class PermintaanBarangIndex extends Component
             && ($this->isGlobalOperator() || ($user->unit_id && (int) $user->unit_id === (int) $unitId)));
     }
 
+    /**
+     * Verifikasi wewenang pemohon sebelum mengubah atau membatalkan permintaan.
+     */
     protected function authorizeRequesterAction(PermintaanDistribusi $permintaan, string $message): void
     {
         abort_unless($this->canRequesterAct($permintaan->unit_id), 403, $message);
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $this->authorizeView();

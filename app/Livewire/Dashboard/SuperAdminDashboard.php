@@ -18,12 +18,18 @@ class SuperAdminDashboard extends Component
     public ?int $selectedGudangId = null;
     public ?int $selectedUnitId = null;
 
+    /**
+     * Verifikasi hak akses Super Admin untuk melakukan emulasi konteks gudang atau unit.
+     */
     protected function authorizeEmulasi(): void
     {
         // Emulasi konteks hanya untuk super_admin di portalnya; page_Dashboard bukan bypass tanpa role (ADR 0001).
         abort_unless(auth()->user()?->hasRole('super_admin') && auth()->user()->can('page_Dashboard'), 403);
     }
 
+    /**
+     * Tetapkan ID gudang aktif untuk simulasi pandangan Super Admin.
+     */
     public function setGudangEmulasi(int $id)
     {
         $this->authorizeEmulasi();
@@ -32,6 +38,9 @@ class SuperAdminDashboard extends Component
         $this->toast('Mode emulasi gudang aktif: ' . Gudang::find($id)?->nama, 'info');
     }
 
+    /**
+     * Tetapkan ID unit aktif untuk simulasi pandangan Super Admin.
+     */
     public function setUnitEmulasi(int $id)
     {
         $this->authorizeEmulasi();
@@ -39,6 +48,9 @@ class SuperAdminDashboard extends Component
         $this->showUnitModal = false;
         $this->toast('Mode emulasi unit aktif: ' . Unit::find($id)?->nama, 'info');
     }
+    /**
+     * Tampilkan dialog konfirmasi untuk mereset konteks emulasi global.
+     */
     public function confirmResetKonteksGlobal(): void
     {
         $this->askConfirmation(
@@ -52,6 +64,9 @@ class SuperAdminDashboard extends Component
     }
 
 
+    /**
+     * Kembalikan konteks pandangan Super Admin ke tampilan global tanpa filter unit/gudang.
+     */
     public function resetKonteksGlobal()
     {
         $this->authorizeEmulasi();
@@ -59,6 +74,9 @@ class SuperAdminDashboard extends Component
         $this->toast('Konteks dikembalikan ke mode global seluruh rumah sakit.', 'success');
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(auth()->user()?->can('page_Dashboard') || auth()->user()?->can('page_SuperAdminDashboard'), 403);

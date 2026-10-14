@@ -18,6 +18,9 @@ class LoginGateway extends Component
 
     public bool $remember = false;
 
+    /**
+     * Otentikasi kredensial pengguna, terapkan rate limit login, catat audit log, dan arahkan ke portal peran.
+     */
     public function login()
     {
         $this->validate();
@@ -69,6 +72,9 @@ class LoginGateway extends Component
         return redirect()->intended($this->resolvePortalUrl($user));
     }
 
+    /**
+     * Tentukan URL pengalihan portal tujuan berdasarkan peran utama pengguna.
+     */
     protected function resolvePortalUrl($user): string
     {
         if ($user->hasRole('kepala_teknisi')) {
@@ -97,6 +103,9 @@ class LoginGateway extends Component
         return '/login';
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         return view('livewire.auth.login-gateway')

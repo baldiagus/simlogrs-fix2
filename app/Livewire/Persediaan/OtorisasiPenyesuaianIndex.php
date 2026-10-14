@@ -31,6 +31,9 @@ class OtorisasiPenyesuaianIndex extends Component
     public bool $showDetailModal = false;
     public ?PenyesuaianStok $selectedPenyesuaian = null;
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         $this->authorizeView();
@@ -48,6 +51,9 @@ class OtorisasiPenyesuaianIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Tampilkan modal konfirmasi persetujuan transaksi.
+     */
     public function confirmApprove(int $id): void
     {
         $adj = PenyesuaianStok::with(['gudang', 'detail.barang'])->findOrFail($id);
@@ -64,6 +70,9 @@ class OtorisasiPenyesuaianIndex extends Component
         );
     }
 
+    /**
+     * Eksekusi persetujuan penyesuaian stok dan mutasikan kuantitas batch gudang.
+     */
     public function approvePenyesuaian(int $id): void
     {
         $adj = PenyesuaianStok::with(['stokOpname', 'detail.stokBatch', 'detail.barang'])->findOrFail($id);
@@ -148,6 +157,9 @@ class OtorisasiPenyesuaianIndex extends Component
         }
     }
 
+    /**
+     * Tampilkan modal konfirmasi penolakan transaksi.
+     */
     public function confirmReject(int $id): void
     {
         $adj = PenyesuaianStok::findOrFail($id);
@@ -163,6 +175,9 @@ class OtorisasiPenyesuaianIndex extends Component
         );
     }
 
+    /**
+     * Eksekusi penolakan usulan penyesuaian stok beserta alasan penolakan.
+     */
     public function rejectPenyesuaian(int $id): void
     {
         $adj = PenyesuaianStok::with('stokOpname')->findOrFail($id);
@@ -202,6 +217,9 @@ class OtorisasiPenyesuaianIndex extends Component
         abort_unless($this->canOtorisasi($adj), 403);
     }
 
+    /**
+     * Periksa apakah pengguna memiliki hak otorisasi penyesuaian stok.
+     */
     public function canOtorisasi(PenyesuaianStok $adj): bool
     {
         $user = auth()->user();
@@ -214,6 +232,9 @@ class OtorisasiPenyesuaianIndex extends Component
         return $hasPermission && ($isGlobalAdmin || $isKepalaGudangPemilik);
     }
 
+    /**
+     * Verifikasi wewenang pengguna untuk melihat data pada halaman ini.
+     */
     private function authorizeView(): void
     {
         abort_unless(
@@ -224,12 +245,18 @@ class OtorisasiPenyesuaianIndex extends Component
         );
     }
 
+    /**
+     * Periksa apakah pengguna memiliki hak akses baca secara global.
+     */
     private function hasGlobalRead(): bool
     {
         // Auditor/manajemen membaca global hanya lewat permission view yang sudah dicek di render().
         return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']);
     }
 
+    /**
+     * Periksa wewenang pengguna untuk melihat informasi gudang terpilih.
+     */
     private function canViewGudang(int $gudangId): bool
     {
         $user = auth()->user();
@@ -237,6 +264,9 @@ class OtorisasiPenyesuaianIndex extends Component
         return $this->hasGlobalRead() || ($user?->gudang_id && (int) $user->gudang_id === $gudangId);
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $this->authorizeView();

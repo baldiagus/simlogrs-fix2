@@ -21,7 +21,7 @@ class GudangDashboardBuilder
      */
     public function buildPetugasGudang(User $user): array
     {
-        $siapPicking = PermintaanDistribusi::whereIn('status', [StatusPermintaanDistribusi::DisetujuiGudang->value, StatusPermintaanDistribusi::DisetujuiKaru->value])
+        $siapPicking = PermintaanDistribusi::whereIn('status', StatusPermintaanDistribusi::siapPicking())
             ->when($user->gudang_id, fn ($q) => $q->where('gudang_id', $user->gudang_id))
             ->count();
         $poInbound = PesananPembelian::whereIn('status', ['DIKIRIM_VENDOR', 'DITERIMA_SEBAGIAN'])->count();
@@ -96,9 +96,12 @@ class GudangDashboardBuilder
         ];
     }
 
+    /**
+     * Daftar amprah yang siap dipicking (sudah disetujui gudang), maksimal 15 terbaru.
+     */
     private function pickingAmprahList(User $user): Collection
     {
-        return PermintaanDistribusi::whereIn('status', [StatusPermintaanDistribusi::DisetujuiGudang->value, StatusPermintaanDistribusi::DisetujuiKaru->value])
+        return PermintaanDistribusi::whereIn('status', StatusPermintaanDistribusi::siapPicking())
             ->when($user->gudang_id, fn ($q) => $q->where('gudang_id', $user->gudang_id))
             ->with(['unit:id,kode,nama', 'detail'])
             ->latest('id')
@@ -136,6 +139,9 @@ class GudangDashboardBuilder
             ]);
     }
 
+    /**
+     * Daftar permintaan pinjam aset berstatus DIAJUKAN yang dilayani gudang petugas, maksimal 10 terbaru.
+     */
     private function pinjamGudangPetugasList(User $user): Collection
     {
         return PermintaanPeminjaman::where('tipe_penyedia', 'GUDANG')
@@ -157,6 +163,9 @@ class GudangDashboardBuilder
             ]);
     }
 
+    /**
+     * Daftar amprah DISETUJUI_KARU yang menunggu otorisasi (Meja 2) kepala gudang, maksimal 15 terbaru.
+     */
     private function otorisasiAmprahList(array $filterGudang): Collection
     {
         return PermintaanDistribusi::where('status', StatusPermintaanDistribusi::DisetujuiKaru->value)
@@ -177,6 +186,9 @@ class GudangDashboardBuilder
             ]);
     }
 
+    /**
+     * Daftar penyesuaian stok berstatus MENUNGGU persetujuan, maksimal 10 terbaru.
+     */
     private function penyesuaianMenungguList(): Collection
     {
         return PenyesuaianStok::where('status', 'MENUNGGU')
@@ -196,6 +208,9 @@ class GudangDashboardBuilder
             ]);
     }
 
+    /**
+     * Daftar permintaan pinjam aset DIAJUKAN pada gudang yang dipimpin kepala gudang, maksimal 10 terbaru.
+     */
     private function pinjamGudangKepalaList(array $filterGudang): Collection
     {
         return PermintaanPeminjaman::where('tipe_penyedia', 'GUDANG')

@@ -230,6 +230,9 @@ class DistribusiPengirimanApiController extends ApiController
         }
     }
 
+    /**
+     * Set status permintaan menjadi SELESAI bila semua barang diterima, selain itu DIKIRIM_SEBAGIAN.
+     */
     private function perbaruiStatusPermintaanSetelahTerima(PengirimanBarang $sppb): void
     {
         if ($sppb->permintaanDistribusi) {
@@ -244,6 +247,9 @@ class DistribusiPengirimanApiController extends ApiController
         }
     }
 
+    /**
+     * Catat detail penerimaan dan tambah stok ruangan; barang aset ditangani terpisah. Mengembalikan true bila aset.
+     */
     protected function prosesDetailPenerimaan($detail, $sppb, int $penerimaanId): bool
     {
         PenerimaanDistribusiDetail::create([
@@ -270,6 +276,9 @@ class DistribusiPengirimanApiController extends ApiController
         return false;
     }
 
+    /**
+     * Pindahkan aset gudang yang tersedia menjadi milik unit penerima sesuai jumlah diterima.
+     */
     protected function prosesPenerimaanAset($detail, $sppb, $barang, int $qty): void
     {
         $existingGudangAsets = Aset::where('barang_id', $detail->barang_id)

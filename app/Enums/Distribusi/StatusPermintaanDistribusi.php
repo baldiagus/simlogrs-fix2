@@ -17,7 +17,7 @@ enum StatusPermintaanDistribusi: string
 
     /**
      * Transisi yang saat ini diizinkan kode. Pembatalan oleh pemohon menulis DITOLAK.
-     * Picking FEFO (service/API) juga menerima DISETUJUI_KARU, dan picking/penerimaan
+     * Picking hanya boleh setelah otorisasi gudang (Meja 2), dan picking/penerimaan
      * berulang dapat menulis ulang DIKIRIM_SEBAGIAN.
      *
      * @return list<self>
@@ -26,7 +26,7 @@ enum StatusPermintaanDistribusi: string
     {
         return match ($this) {
             self::Diajukan => [self::DisetujuiKaru, self::Ditolak],
-            self::DisetujuiKaru => [self::DisetujuiGudang, self::Ditolak, self::SedangDikirim, self::DikirimSebagian],
+            self::DisetujuiKaru => [self::DisetujuiGudang, self::Ditolak],
             self::DisetujuiGudang => [self::SedangDikirim, self::DikirimSebagian],
             self::SedangDikirim => [self::Selesai, self::DikirimSebagian],
             self::DikirimSebagian => [self::SedangDikirim, self::DikirimSebagian, self::Selesai],
@@ -34,6 +34,7 @@ enum StatusPermintaanDistribusi: string
         };
     }
 
+    /** Memeriksa apakah status ini boleh berpindah ke status tujuan menurut transisiSah(). */
     public function bolehKe(self $tujuan): bool
     {
         return in_array($tujuan, $this->transisiSah(), true);
@@ -69,9 +70,9 @@ enum StatusPermintaanDistribusi: string
         return [self::DisetujuiGudang->value, self::DikirimSebagian->value];
     }
 
-    /** Status yang diterima eksekusi picking FEFO (service dan API). @return list<string> */
+    /** Status yang diterima eksekusi picking FEFO (service dan API); sama dengan siapPicking(). @return list<string> */
     public static function dapatDikirim(): array
     {
-        return [self::DisetujuiGudang->value, self::DikirimSebagian->value, self::DisetujuiKaru->value];
+        return self::siapPicking();
     }
 }

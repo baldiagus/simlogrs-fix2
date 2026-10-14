@@ -10,6 +10,9 @@ use App\Models\Aset\PermintaanPeminjaman;
 
 trait HasPenyediaPeminjaman
 {
+    /**
+     * Menjalankan proses apply peminjaman scope pada komponen HasPenyediaPeminjaman.
+     */
     protected function applyPeminjamanScope($query, $user, bool $isGlobalAdmin): void
     {
         if ($user?->unit_id) {
@@ -30,6 +33,9 @@ trait HasPenyediaPeminjaman
         $query->whereRaw('1 = 0');
     }
 
+    /**
+     * Menjalankan proses apply katalog scope pada komponen HasPenyediaPeminjaman.
+     */
     protected function applyKatalogScope($query, $user, bool $isGlobalAdmin): void
     {
         if ($isGlobalAdmin) {
@@ -43,6 +49,9 @@ trait HasPenyediaPeminjaman
         }
     }
 
+    /**
+     * Pilih unit atau gudang penyedia aset berdasarkan kunci entitas.
+     */
     public function selectPenyediaKey(?string $key): void
     {
         $this->selected_penyedia_key = $key;
@@ -103,6 +112,9 @@ trait HasPenyediaPeminjaman
         }
     }
 
+    /**
+     * Computed property Livewire untuk mengakses data max quantity.
+     */
     public function getMaxQuantityProperty(): int
     {
         if (! $this->selected_penyedia_key) {
@@ -115,6 +127,9 @@ trait HasPenyediaPeminjaman
         return $provider ? max(1, $provider['jumlah']) : 1;
     }
 
+    /**
+     * Dapatkan koleksi barang kategori aset yang tersedia untuk transaksi.
+     */
     public function getDaftarBarangAsetTersedia()
     {
         $user = auth()->user();
@@ -146,6 +161,9 @@ trait HasPenyediaPeminjaman
             ->get();
     }
 
+    /**
+     * Dapatkan daftar entitas penyedia yang memiliki ketersediaan aset terkait.
+     */
     public function getPenyediaAsetList(): array
     {
         if (! $this->selected_barang_id) {
@@ -225,6 +243,9 @@ trait HasPenyediaPeminjaman
         return $providers;
     }
 
+    /**
+     * Hitung ringkasan statistik dan metrik peminjaman aset pengguna.
+     */
     protected function hitungStatistikPeminjaman($user, bool $isGlobalAdmin): array
     {
         $countAktifQuery = PermintaanPeminjaman::whereIn('status', StatusPeminjaman::aktif());
@@ -244,6 +265,9 @@ trait HasPenyediaPeminjaman
         return [$countAktif, $countKatalog];
     }
 
+    /**
+     * Dapatkan builder query daftar peminjaman aset terfilter.
+     */
     protected function queryDaftarPeminjaman($user, bool $isGlobalAdmin)
     {
         $query = PermintaanPeminjaman::with([
@@ -274,6 +298,9 @@ trait HasPenyediaPeminjaman
             ->paginate($this->perPage);
     }
 
+    /**
+     * Dapatkan builder query katalog aset yang siap dipinjam.
+     */
     protected function queryDaftarKatalogAset($user, bool $isGlobalAdmin)
     {
         $queryKatalog = Aset::with(['barang.satuan', 'unit', 'gudang', 'lokasiGudang'])

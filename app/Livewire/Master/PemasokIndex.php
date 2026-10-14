@@ -49,11 +49,17 @@ class PemasokIndex extends Component
     public string $status = 'AKTIF';
 
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         $this->selectedItem = Pemasok::withCount('pesananPembelian')->findOrFail($id);
         $this->showDetailModal = true;
     }
+    /**
+     * Buka modal dialog formulir untuk penambahan data baru.
+     */
     public function create()
     {
         abort_unless(auth()->user()?->can('create_master::pemasok'), 403);
@@ -64,6 +70,9 @@ class PemasokIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Buka modal dialog formulir dan muat data record yang akan disunting.
+     */
     public function edit(int $id)
     {
         abort_unless(auth()->user()?->can('update_master::pemasok'), 403);
@@ -82,6 +91,9 @@ class PemasokIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Validasi isian formulir dan simpan data ke database.
+     */
     public function save()
     {
         $this->validate([
@@ -124,6 +136,9 @@ class PemasokIndex extends Component
         Cache::forget('dropdown_pemasok_aktif');
         $this->showModal = false;
     }
+    /**
+     * Tampilkan dialog konfirmasi untuk mengubah status aktif/nonaktif record.
+     */
     public function confirmToggleStatus(int $id): void
     {
         $pemasok = Pemasok::findOrFail($id);
@@ -140,6 +155,9 @@ class PemasokIndex extends Component
         );
     }
 
+    /**
+     * Ubah status aktif atau nonaktif record pada database.
+     */
     public function toggleStatus(int $id)
     {
         abort_unless(auth()->user()?->can('update_master::pemasok'), 403);
@@ -151,6 +169,9 @@ class PemasokIndex extends Component
         $this->toast("Status pemasok '{$pemasok->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    /**
+     * Tampilkan modal dialog konfirmasi sebelum menghapus data.
+     */
     public function confirmDelete(int $id): void
     {
         $pemasok = Pemasok::findOrFail($id);
@@ -165,6 +186,9 @@ class PemasokIndex extends Component
         );
     }
 
+    /**
+     * Hapus record terpilih dari database.
+     */
     public function delete(int $id)
     {
         abort_unless(auth()->user()?->can('delete_master::pemasok') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus data pemasok.');
@@ -185,6 +209,9 @@ class PemasokIndex extends Component
         $this->toast("Pemasok '{$namaPemasok}' berhasil dihapus.", 'success');
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_master::pemasok') || auth()->user()?->can('view_master::pemasok'), 403);

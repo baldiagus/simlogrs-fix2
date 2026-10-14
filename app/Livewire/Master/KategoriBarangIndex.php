@@ -31,6 +31,9 @@ class KategoriBarangIndex extends Component
     #[Validate('required|in:AKTIF,NONAKTIF')]
     public string $status = 'AKTIF';
 
+    /**
+     * Buka modal dialog formulir untuk penambahan data baru.
+     */
     public function create()
     {
         abort_unless(auth()->user()?->can('create_master::kategori::barang'), 403);
@@ -40,6 +43,9 @@ class KategoriBarangIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Buka modal dialog formulir dan muat data record yang akan disunting.
+     */
     public function edit(int $id)
     {
         abort_unless(auth()->user()?->can('update_master::kategori::barang'), 403);
@@ -53,6 +59,9 @@ class KategoriBarangIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Validasi isian formulir dan simpan data ke database.
+     */
     public function save()
     {
         $this->validate([
@@ -86,6 +95,9 @@ class KategoriBarangIndex extends Component
 
         $this->showModal = false;
     }
+    /**
+     * Tampilkan dialog konfirmasi untuk mengubah status aktif/nonaktif record.
+     */
     public function confirmToggleStatus(int $id): void
     {
         $kat = KategoriBarang::findOrFail($id);
@@ -102,6 +114,9 @@ class KategoriBarangIndex extends Component
         );
     }
 
+    /**
+     * Ubah status aktif atau nonaktif record pada database.
+     */
     public function toggleStatus(int $id)
     {
         abort_unless(auth()->user()?->can('update_master::kategori::barang'), 403);
@@ -113,6 +128,9 @@ class KategoriBarangIndex extends Component
         $this->toast("Status kategori '{$kat->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    /**
+     * Tampilkan modal dialog konfirmasi sebelum menghapus data.
+     */
     public function confirmDelete(int $id): void
     {
         $kat = KategoriBarang::findOrFail($id);
@@ -127,6 +145,9 @@ class KategoriBarangIndex extends Component
         );
     }
 
+    /**
+     * Hapus record terpilih dari database.
+     */
     public function delete(int $id)
     {
         abort_unless(auth()->user()?->can('delete_master::kategori::barang') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus kategori barang.');
@@ -144,12 +165,18 @@ class KategoriBarangIndex extends Component
         $this->toast("Kategori '{$namaKat}' berhasil dihapus.", 'success');
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         $this->selectedItem = KategoriBarang::withCount('barang')->findOrFail($id);
         $this->showDetailModal = true;
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_master::kategori::barang') || auth()->user()?->can('view_master::kategori::barang'), 403);

@@ -74,20 +74,32 @@ class BarangIndex extends Component
     #[Validate('required|in:AKTIF,NONAKTIF')]
     public string $status = 'AKTIF';
 
+    /**
+     * Hook Livewire saat filter tipe diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterTipe(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter kategori id diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterKategoriId(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter status diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
     }
+    /**
+     * Reset seluruh parameter filter dan pencarian ke kondisi default.
+     */
     public function resetFilters(): void
     {
         $this->search = '';
@@ -97,6 +109,9 @@ class BarangIndex extends Component
         $this->resetPage();
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         $this->selectedBarang = Barang::with([
@@ -113,6 +128,9 @@ class BarangIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Buka modal dialog formulir untuk penambahan data baru.
+     */
     public function create()
     {
         abort_unless(auth()->user()?->can('create_master::barang'), 403);
@@ -139,6 +157,9 @@ class BarangIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Buka modal dialog formulir dan muat data record yang akan disunting.
+     */
     public function edit(int $id)
     {
         abort_unless(auth()->user()?->can('update_master::barang'), 403);
@@ -161,6 +182,9 @@ class BarangIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Validasi isian formulir dan simpan data ke database.
+     */
     public function save()
     {
         $this->validate([
@@ -229,6 +253,9 @@ class BarangIndex extends Component
         Cache::forget('dropdown_barang_aset_aktif');
         $this->showModal = false;
     }
+    /**
+     * Tampilkan dialog konfirmasi untuk mengubah status aktif/nonaktif record.
+     */
     public function confirmToggleStatus(int $id): void
     {
         $barang = Barang::findOrFail($id);
@@ -245,6 +272,9 @@ class BarangIndex extends Component
         );
     }
 
+    /**
+     * Ubah status aktif atau nonaktif record pada database.
+     */
     public function toggleStatus(int $id)
     {
         abort_unless(auth()->user()?->can('update_master::barang'), 403);
@@ -257,6 +287,9 @@ class BarangIndex extends Component
         $this->toast("Status barang '{$barang->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    /**
+     * Tampilkan modal dialog konfirmasi sebelum menghapus data.
+     */
     public function confirmDelete(int $id): void
     {
         $barang = Barang::findOrFail($id);
@@ -271,6 +304,9 @@ class BarangIndex extends Component
         );
     }
 
+    /**
+     * Hapus record terpilih dari database.
+     */
     public function delete(int $id)
     {
         abort_unless(auth()->user()?->can('delete_master::barang') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus data barang.');
@@ -296,6 +332,9 @@ class BarangIndex extends Component
         $this->toast("Komoditas '{$namaBarang}' berhasil dihapus.", 'success');
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_master::barang') || auth()->user()?->can('view_master::barang'), 403);

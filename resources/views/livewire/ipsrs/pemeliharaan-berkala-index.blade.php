@@ -129,6 +129,9 @@
                             <flux:dropdown position="bottom" align="end">
                                 <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
                                 <flux:menu class="min-w-44">
+                                    <flux:menu.item wire:click="lihatDetail({{ $item->id }})" icon="eye">
+                                        Detail
+                                    </flux:menu.item>
                                     @if ($item->status === 'AKTIF')
                                         @if ($this->canTerbitkanSpk())
                                             <flux:menu.item wire:click="confirmEksekusi({{ $item->id }})" icon="bolt">
@@ -261,6 +264,61 @@
                 </flux:button>
             </div>
         </form>
+    </flux:modal>
+
+    {{-- Modal Detail Jadwal Servis Rutin --}}
+    <flux:modal name="modal-jadwal-detail" wire:model="showDetail" class="md:w-[36rem]">
+        @if ($detail)
+            <div class="space-y-4">
+                <div style="padding-right: 2.5rem;">
+                    <flux:heading size="lg">Detail Jadwal {{ $detail->kode }}</flux:heading>
+                    <flux:subheading>Rincian jadwal servis preventif berkala.</flux:subheading>
+                </div>
+
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                    <div>
+                        <dt class="text-xs font-semibold text-zinc-500">Aset</dt>
+                        <dd class="text-zinc-900 dark:text-zinc-100">{{ $detail->aset?->barang?->nama ?? '-' }} ({{ $detail->aset?->kode_aset ?? '-' }})</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-zinc-500">Jenis Maintenance</dt>
+                        <dd class="text-zinc-900 dark:text-zinc-100">{{ $detail->jenis_maintenance }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-zinc-500">Interval</dt>
+                        <dd class="text-zinc-900 dark:text-zinc-100">{{ $detail->label_interval }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-zinc-500">Teknisi PIC</dt>
+                        <dd class="text-zinc-900 dark:text-zinc-100">{{ $detail->teknisi?->nama ?? 'Belum Ditunjuk' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-zinc-500">Jatuh Tempo</dt>
+                        <dd class="text-zinc-900 dark:text-zinc-100">{{ $detail->tanggal_berikutnya?->format('d/m/Y') ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-zinc-500">Servis Terakhir</dt>
+                        <dd class="text-zinc-900 dark:text-zinc-100">{{ $detail->tanggal_terakhir?->format('d/m/Y') ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-zinc-500">Status</dt>
+                        <dd><x-ui.status-badge :status="$detail->status" /></dd>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <dt class="text-xs font-semibold text-zinc-500">Catatan</dt>
+                        <dd class="text-zinc-900 dark:text-zinc-100">{{ $detail->catatan ?: '-' }}</dd>
+                    </div>
+                </dl>
+
+                @if ($detail->status === 'AKTIF' && $this->canTerbitkanSpk())
+                    <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                        <flux:button wire:click="confirmEksekusi({{ $detail->id }})" variant="primary" icon="bolt">
+                            Terbitkan SPK
+                        </flux:button>
+                    </div>
+                @endif
+            </div>
+        @endif
     </flux:modal>
 
     <x-ui.confirm-modal

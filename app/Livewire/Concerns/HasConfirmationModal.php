@@ -33,6 +33,9 @@ trait HasConfirmationModal
         $this->showConfirmModal = true;
     }
 
+    /**
+     * Eksekusi aksi yang telah dikonfirmasi pengguna melalui modal konfirmasi.
+     */
     public function executeConfirmedAction(): void
     {
         $action = $this->confirmAction;

@@ -7,10 +7,13 @@ use App\Models\Distribusi\PermintaanDistribusi;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Pemicu notifikasi amprah: approval Karu (APPROVAL_AMPRAH), antrean picking (ANTREAN_PICKING, ke gudang tujuan), penolakan (AMPRAH_DIPUTUSKAN).
+ * Pemicu notifikasi amprah: approval Karu dan otorisasi gudang (APPROVAL_AMPRAH), antrean picking (ANTREAN_PICKING, ke gudang tujuan), penolakan (AMPRAH_DIPUTUSKAN).
  */
 class PermintaanDistribusiObserver extends ObserverNotifikasi
 {
+    /**
+     * Kirim notifikasi sesuai status amprah: Diajukan ke Karu, DisetujuiKaru ke kepala gudang (Meja 2), DisetujuiGudang ke staf gudang, Ditolak ke pengaju.
+     */
     protected function tangani(Model $model, bool $baru): void
     {
         /** @var PermintaanDistribusi $a */
@@ -20,7 +23,8 @@ class PermintaanDistribusiObserver extends ObserverNotifikasi
 
         match ($a->status) {
             S::Diajukan->value => $this->kirim($r->karuUnit((int) $a->unit_id), 'Amprah Baru', "{$a->kode} dari {$unit} menunggu persetujuan Anda.", 'APPROVAL_AMPRAH', $a, '/kepala-unit/approval-permintaan'),
-            S::DisetujuiKaru->value => $this->kirim($r->gudangStaf((int) $a->gudang_id), 'Antrean Picking', "{$a->kode} untuk {$unit} siap diproses gudang.", 'ANTREAN_PICKING', $a, '/petugas-gudang/picking-distribusi'),
+            S::DisetujuiKaru->value => $this->kirim($r->kepalaGudang((int) $a->gudang_id), 'Amprah Menunggu Otorisasi Gudang', "{$a->kode} untuk {$unit} menunggu otorisasi gudang.", 'APPROVAL_AMPRAH', $a, '/kepala-gudang/distribusi-approval'),
+            S::DisetujuiGudang->value => $this->kirim($r->gudangStaf((int) $a->gudang_id), 'Antrean Picking', "{$a->kode} untuk {$unit} siap diproses gudang.", 'ANTREAN_PICKING', $a, '/petugas-gudang/picking-distribusi'),
             S::Ditolak->value => $this->kirim($r->pengguna($a->diajukan_oleh), 'Amprah Ditolak', "{$a->kode} untuk {$unit} ditolak.", 'AMPRAH_DIPUTUSKAN', $a, '/petugas-unit/permintaan-barang'),
             default => null,
         };

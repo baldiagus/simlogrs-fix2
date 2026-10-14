@@ -31,16 +31,25 @@ class DistribusiApprovalIndex extends Component
     public ?PermintaanDistribusi $selectedPermintaan = null;
     public array $itemQtys = [];
 
+    /**
+     * Hook Livewire saat filter status diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter urgensi diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterUrgensi(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Buka modal review rincian sebelum persetujuan transaksi.
+     */
     public function openReview(int $id): void
     {
         $this->selectedPermintaan = PermintaanDistribusi::with(['unit', 'gudang', 'detail.barang.satuan'])
@@ -76,6 +85,9 @@ class DistribusiApprovalIndex extends Component
         $this->showReviewModal = true;
     }
 
+    /**
+     * Dapatkan jumlah stok barang yang saat ini tersedia di gudang.
+     */
     protected function getStokTersediaGudang(int $barangId, ?int $gudangId, ?int $excludePermintaanId = null): int
     {
         $stokQuery = StokBatch::where('barang_id', $barangId)
@@ -103,6 +115,9 @@ class DistribusiApprovalIndex extends Component
         return max(0, $stokFisik - $stokCommitted);
     }
 
+    /**
+     * Tampilkan modal konfirmasi persetujuan distribusi oleh pihak gudang.
+     */
     public function confirmApproveGudang(): void
     {
         $this->validate([
@@ -133,6 +148,9 @@ class DistribusiApprovalIndex extends Component
         );
     }
 
+    /**
+     * Eksekusi persetujuan distribusi oleh petugas gudang.
+     */
     public function submitApproveGudang(): void
     {
         abort_unless($this->canApproveGudang(), 403);
@@ -175,6 +193,9 @@ class DistribusiApprovalIndex extends Component
         $this->reset(['selectedId', 'itemQtys', 'selectedPermintaan']);
     }
 
+    /**
+     * Tampilkan modal konfirmasi penolakan distribusi oleh pihak gudang.
+     */
     public function confirmRejectGudang(int $id): void
     {
         $permintaan = PermintaanDistribusi::findOrFail($id);
@@ -190,6 +211,9 @@ class DistribusiApprovalIndex extends Component
         );
     }
 
+    /**
+     * Eksekusi penolakan distribusi oleh pihak gudang beserta alasan.
+     */
     public function rejectGudang(int $id): void
     {
         $permintaan = PermintaanDistribusi::findOrFail($id);
@@ -208,6 +232,9 @@ class DistribusiApprovalIndex extends Component
         $this->toast("Permintaan distribusi {$permintaan->kode} berhasil ditolak.", 'success');
     }
 
+    /**
+     * Buka modal dialog untuk menampilkan rincian data terpilih.
+     */
     public function openDetail(int $id): void
     {
         $this->authorizeView();
@@ -220,6 +247,9 @@ class DistribusiApprovalIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Verifikasi wewenang pengguna untuk melihat data pada halaman ini.
+     */
     protected function authorizeView(): void
     {
         abort_unless(
@@ -240,17 +270,26 @@ class DistribusiApprovalIndex extends Component
             && ($this->isGlobalOperator() || $user->hasRole('kepala_gudang')));
     }
 
+    /**
+     * Verifikasi wewenang operasional pengguna pada gudang terkait.
+     */
     protected function authorizeGudangAction(PermintaanDistribusi $permintaan): void
     {
         abort_unless($this->canApproveGudang(), 403, 'Anda tidak memiliki wewenang otorisasi distribusi gudang.');
         abort_unless($this->inGudangScope($permintaan->gudang_id), 403, 'Anda hanya berhak memproses permohonan untuk gudang Anda sendiri.');
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         $this->openDetail($id);
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $this->authorizeView();

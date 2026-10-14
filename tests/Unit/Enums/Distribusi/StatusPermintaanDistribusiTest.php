@@ -13,7 +13,6 @@ class StatusPermintaanDistribusiTest extends TestCase
         $this->assertTrue(S::Diajukan->bolehKe(S::Ditolak), 'tolak karu / batal pemohon');
         $this->assertTrue(S::DisetujuiKaru->bolehKe(S::DisetujuiGudang));
         $this->assertTrue(S::DisetujuiKaru->bolehKe(S::Ditolak));
-        $this->assertTrue(S::DisetujuiKaru->bolehKe(S::SedangDikirim), 'picking FEFO service menerima DISETUJUI_KARU');
         $this->assertTrue(S::DisetujuiGudang->bolehKe(S::SedangDikirim));
         $this->assertTrue(S::DisetujuiGudang->bolehKe(S::DikirimSebagian));
         $this->assertTrue(S::SedangDikirim->bolehKe(S::Selesai));
@@ -24,6 +23,8 @@ class StatusPermintaanDistribusiTest extends TestCase
 
         $this->assertFalse(S::Diajukan->bolehKe(S::DisetujuiGudang), 'gudang wajib lewat persetujuan karu');
         $this->assertFalse(S::Diajukan->bolehKe(S::SedangDikirim));
+        $this->assertFalse(S::DisetujuiKaru->bolehKe(S::SedangDikirim), 'picking wajib lewat otorisasi gudang (Meja 2)');
+        $this->assertFalse(S::DisetujuiKaru->bolehKe(S::DikirimSebagian));
         $this->assertFalse(S::DisetujuiGudang->bolehKe(S::Ditolak), 'yang sudah disetujui gudang tidak bisa dibatalkan');
         $this->assertFalse(S::SedangDikirim->bolehKe(S::Ditolak));
     }
@@ -39,7 +40,7 @@ class StatusPermintaanDistribusiTest extends TestCase
     {
         $this->assertSame(['DIAJUKAN', 'DISETUJUI_KARU'], S::dapatDibatalkan());
         $this->assertSame(['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN'], S::siapPicking());
-        $this->assertSame(['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN', 'DISETUJUI_KARU'], S::dapatDikirim());
+        $this->assertSame(['DISETUJUI_GUDANG', 'DIKIRIM_SEBAGIAN'], S::dapatDikirim());
         $this->assertSame(['SELESAI', 'DITOLAK'], S::riwayat());
         $this->assertSame([], array_intersect(S::aktif(), S::riwayat()));
         $this->assertCount(count(S::cases()), array_merge(S::aktif(), S::riwayat()));

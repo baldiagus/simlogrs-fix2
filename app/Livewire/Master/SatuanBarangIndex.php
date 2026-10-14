@@ -19,6 +19,9 @@ class SatuanBarangIndex extends Component
     public bool $showDetailModal = false;
     public ?SatuanBarang $selectedItem = null;
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         abort_unless(auth()->user()?->canAny(['view_any_master::satuan::barang', 'view_master::satuan::barang']), 403);
@@ -39,6 +42,9 @@ class SatuanBarangIndex extends Component
     #[Validate('required|in:AKTIF,NONAKTIF')]
     public string $status = 'AKTIF';
 
+    /**
+     * Buka modal dialog formulir untuk penambahan data baru.
+     */
     public function create()
     {
         abort_unless(auth()->user()?->can('create_master::satuan::barang'), 403);
@@ -48,6 +54,9 @@ class SatuanBarangIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Buka modal dialog formulir dan muat data record yang akan disunting.
+     */
     public function edit(int $id)
     {
         abort_unless(auth()->user()?->can('update_master::satuan::barang'), 403);
@@ -61,6 +70,9 @@ class SatuanBarangIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Validasi isian formulir dan simpan data ke database.
+     */
     public function save()
     {
         $this->validate([
@@ -94,6 +106,9 @@ class SatuanBarangIndex extends Component
 
         $this->showModal = false;
     }
+    /**
+     * Tampilkan dialog konfirmasi untuk mengubah status aktif/nonaktif record.
+     */
     public function confirmToggleStatus(int $id): void
     {
         $sat = SatuanBarang::findOrFail($id);
@@ -110,6 +125,9 @@ class SatuanBarangIndex extends Component
         );
     }
 
+    /**
+     * Ubah status aktif atau nonaktif record pada database.
+     */
     public function toggleStatus(int $id)
     {
         abort_unless(auth()->user()?->can('update_master::satuan::barang'), 403);
@@ -121,6 +139,9 @@ class SatuanBarangIndex extends Component
         $this->toast("Status satuan '{$sat->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    /**
+     * Tampilkan modal dialog konfirmasi sebelum menghapus data.
+     */
     public function confirmDelete(int $id): void
     {
         $sat = SatuanBarang::findOrFail($id);
@@ -135,6 +156,9 @@ class SatuanBarangIndex extends Component
         );
     }
 
+    /**
+     * Hapus record terpilih dari database.
+     */
     public function delete(int $id)
     {
         abort_unless(auth()->user()?->can('delete_master::satuan::barang') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus satuan barang.');
@@ -152,6 +176,9 @@ class SatuanBarangIndex extends Component
         $this->toast("Satuan '{$namaSat}' berhasil dihapus.", 'success');
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_master::satuan::barang') || auth()->user()?->can('view_master::satuan::barang'), 403);

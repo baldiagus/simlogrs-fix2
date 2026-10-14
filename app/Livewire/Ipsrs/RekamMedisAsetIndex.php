@@ -18,6 +18,9 @@ class RekamMedisAsetIndex extends Component
     #[Url(history: true)]
     public string $filterKondisi = '';
 
+    /**
+     * Buka modal dialog riwayat pemeliharaan dan mutasi aset.
+     */
     public function showBukuRiwayat(int $asetId): void
     {
         abort_unless(
@@ -42,11 +45,17 @@ class RekamMedisAsetIndex extends Component
 
         $this->showDetailModal = true;
     }
+    /**
+     * Buka riwayat rekam medis teknis lengkap aset terpilih.
+     */
     public function openRekamMedis(int $asetId): void
     {
         $this->showBukuRiwayat($asetId);
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(

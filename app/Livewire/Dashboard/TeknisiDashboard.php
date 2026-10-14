@@ -6,6 +6,9 @@ use Livewire\Component;
 
 class TeknisiDashboard extends Component
 {
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $user = auth()->user();

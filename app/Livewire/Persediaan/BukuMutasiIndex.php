@@ -33,6 +33,9 @@ class BukuMutasiIndex extends Component
     public bool $showDetailModal = false;
     public ?PergerakanStok $selectedMutasi = null;
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         $this->authorizeBaca();
@@ -51,6 +54,9 @@ class BukuMutasiIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Verifikasi hak akses pengguna untuk melihat data.
+     */
     protected function authorizeBaca(): void
     {
         abort_unless(
@@ -65,6 +71,9 @@ class BukuMutasiIndex extends Component
         return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']);
     }
 
+    /**
+     * Periksa apakah data gudang berada dalam cakupan wewenang pengguna.
+     */
     protected function dalamScopeGudang(?int $gudangId): bool
     {
         if ($this->bacaGlobal()) {
@@ -76,12 +85,18 @@ class BukuMutasiIndex extends Component
         return $own && $gudangId && (int) $own === (int) $gudangId;
     }
 
+    /**
+     * Reset seluruh parameter filter dan pencarian ke kondisi default.
+     */
     public function resetFilters(): void
     {
         $this->reset(['filterJenis', 'filterGudangId', 'filterBarangId', 'tanggalMulai', 'tanggalSelesai', 'search']);
         $this->resetPage();
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $this->authorizeBaca();

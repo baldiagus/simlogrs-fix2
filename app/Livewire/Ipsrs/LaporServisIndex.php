@@ -51,6 +51,9 @@ class LaporServisIndex extends Component
     #[Url(history: true)]
     public string $filterPrioritas = '';
 
+    /**
+     * Dapatkan aturan validasi formulir pelaporan servis alat.
+     */
     protected function rules(): array
     {
         return [
@@ -58,6 +61,9 @@ class LaporServisIndex extends Component
         ];
     }
 
+    /**
+     * Dapatkan pesan galat kustom untuk validasi pelaporan servis alat.
+     */
     protected function messages(): array
     {
         return [
@@ -73,6 +79,9 @@ class LaporServisIndex extends Component
         $this->validateOnly('foto');
     }
 
+    /**
+     * Buka modal dialog formulir untuk penambahan data baru.
+     */
     public function create(): void
     {
         abort_unless(auth()->user()?->can('create_layanan_unit::lapor::servis'), 403);
@@ -82,6 +91,9 @@ class LaporServisIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Validasi isian formulir dan simpan data ke database.
+     */
     public function save(): void
     {
         abort_unless(auth()->user()?->can('create_layanan_unit::lapor::servis'), 403);
@@ -142,12 +154,18 @@ class LaporServisIndex extends Component
         $this->reset(['aset_id', 'prioritas', 'deskripsi_masalah', 'foto']);
         $this->toast("Laporan kerusakan '{$kode}' berhasil dikirim ke IPSRS.", 'success');
     }
+    /**
+     * Hapus berkas foto kerusakan alat dari pratinjau upload.
+     */
     public function hapusFotoPratinjau(): void
     {
         $this->foto = null;
     }
 
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         $this->selectedTiket = PermintaanMaintenance::with([
@@ -164,6 +182,9 @@ class LaporServisIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Tampilkan modal dialog konfirmasi pembatalan transaksi.
+     */
     public function confirmBatal(int $id): void
     {
         $tiket = PermintaanMaintenance::with('aset')->findOrFail($id);
@@ -184,6 +205,9 @@ class LaporServisIndex extends Component
         );
     }
 
+    /**
+     * Batalkan transaksi terpilih dan catat log perubahan.
+     */
     public function batal(int $id): void
     {
         $tiket = PermintaanMaintenance::with('aset')->findOrFail($id);
@@ -260,6 +284,9 @@ class LaporServisIndex extends Component
             && ($user->can('view_any_pemeliharaan::spk::perbaikan') || $user->hasRole(['auditor', 'manajemen']));
     }
 
+    /**
+     * Periksa apakah pengguna memiliki izin akses terhadap data unit kerja terkait.
+     */
     private function canAccessUnit(?int $unitId): bool
     {
         $user = auth()->user();
@@ -268,6 +295,9 @@ class LaporServisIndex extends Component
             || ($user?->unit_id && (int) $user->unit_id === (int) $unitId);
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(

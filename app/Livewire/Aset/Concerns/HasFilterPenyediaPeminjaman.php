@@ -4,6 +4,9 @@ namespace App\Livewire\Aset\Concerns;
 
 trait HasFilterPenyediaPeminjaman
 {
+    /**
+     * Hook Livewire saat filter katalog lokasi diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterKatalogLokasi(): void
     {
         $this->filterKatalogUnitId = null;
@@ -11,16 +14,25 @@ trait HasFilterPenyediaPeminjaman
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter katalog unit id diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterKatalogUnitId(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter katalog gudang id diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterKatalogGudangId(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat pilihan barang id berubah untuk memuat data terkait.
+     */
     public function updatedSelectedBarangId(): void
     {
         $this->selected_penyedia_key = null;
@@ -35,11 +47,17 @@ trait HasFilterPenyediaPeminjaman
         }
     }
 
+    /**
+     * Hook Livewire saat pilihan penyedia key berubah untuk memuat data terkait.
+     */
     public function updatedSelectedPenyediaKey($value): void
     {
         $this->selectPenyediaKey($value);
     }
 
+    /**
+     * Hook Livewire saat properti quantity diperbarui.
+     */
     public function updatedQuantity($value): void
     {
         $max = $this->maxQuantity;

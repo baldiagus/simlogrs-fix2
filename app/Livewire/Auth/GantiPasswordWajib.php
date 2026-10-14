@@ -18,6 +18,9 @@ class GantiPasswordWajib extends Component
     public string $password_baru = '';
     public string $password_baru_confirmation = '';
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount()
     {
         $user = Auth::user();
@@ -31,6 +34,9 @@ class GantiPasswordWajib extends Component
         }
     }
 
+    /**
+     * Validasi kata sandi lama dan baru, simpan perubahan dalam transaksi database, dan perbarui sesi.
+     */
     public function gantiPassword()
     {
         $this->validate([
@@ -96,6 +102,9 @@ class GantiPasswordWajib extends Component
         return redirect()->to($this->resolvePortalUrl($user));
     }
 
+    /**
+     * Tentukan URL pengalihan portal tujuan berdasarkan peran utama pengguna.
+     */
     protected function resolvePortalUrl($user): string
     {
         if ($user->hasRole('kepala_teknisi')) {
@@ -124,6 +133,9 @@ class GantiPasswordWajib extends Component
         return '/login';
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         return view('livewire.auth.ganti-password-wajib')

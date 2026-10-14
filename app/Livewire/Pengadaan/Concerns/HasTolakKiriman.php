@@ -8,6 +8,9 @@ use Illuminate\Validation\Rule;
 
 trait HasTolakKiriman
 {
+    /**
+     * Buka modal formulir penolakan kiriman barang.
+     */
     public function openRejectModal(): void
     {
         abort_unless(auth()->user()?->can('create_gudang_stok::penerimaan::po'), 403);
@@ -27,6 +30,9 @@ trait HasTolakKiriman
         $this->showRejectModal = true;
     }
 
+    /**
+     * Eksekusi penolakan kiriman barang beserta alasan dan pencatatan audit.
+     */
     public function executeTolakKiriman(): void
     {
         abort_unless(auth()->user()?->can('create_gudang_stok::penerimaan::po'), 403);

@@ -58,11 +58,17 @@ class StockOpnameIndex extends Component
     // Excel Upload
     public $fileExcel = null;
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         $this->tanggal_opname = now()->toDateString();
     }
 
+    /**
+     * Ekspor data tabel ke format spreadsheet Excel.
+     */
     public function exportExcel(int $opnameId)
     {
         $opname = StokOpname::with(['gudang', 'detail.barang.satuan', 'detail.stokBatch.lokasiGudang'])->findOrFail($opnameId);
@@ -82,6 +88,9 @@ class StockOpnameIndex extends Component
         return (new FastExcel($rows))->download($fileName);
     }
 
+    /**
+     * Import data hasil perhitungan fisik stock opname dari file Excel.
+     */
     public function importExcel(): void
     {
         $this->validate([
@@ -126,6 +135,9 @@ class StockOpnameIndex extends Component
         }
     }
 
+    /**
+     * Tampilkan kode QR untuk identifikasi batch persediaan barang.
+     */
     public function showQrBatch(int $batchId): void
     {
         $this->selectedBatchQr = StokBatch::with(['barang', 'gudang', 'lokasiGudang'])->findOrFail($batchId);
@@ -137,6 +149,9 @@ class StockOpnameIndex extends Component
         $this->showQrModal = true;
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $opnameId): void
     {
         $this->selectedOpname = StokOpname::with([
@@ -151,6 +166,9 @@ class StockOpnameIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(

@@ -76,25 +76,40 @@ class AsetIndex extends Component
     #[Validate('required|in:TERSEDIA,DIGUNAKAN,DIPINJAM,DALAM_MAINTENANCE,DIHAPUSKAN')]
     public string $status = StatusAset::Tersedia->value;
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount()
     {
         $this->tanggal_perolehan = date('Y-m-d');
     }
 
+    /**
+     * Hook Livewire saat filter lokasi diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterLokasi(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter status diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter kondisi diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterKondisi(): void
     {
         $this->resetPage();
     }
+    /**
+     * Reset seluruh parameter filter dan pencarian ke kondisi default.
+     */
     public function resetFilters(): void
     {
         $this->search = '';
@@ -106,6 +121,9 @@ class AsetIndex extends Component
         $this->resetPage();
     }
 
+    /**
+     * Reset pilihan unit atau gudang ketika tipe lokasi diubah.
+     */
     public function updatedLokasiTipe(): void
     {
         if ($this->lokasi_tipe === 'RUANGAN') {
@@ -118,6 +136,9 @@ class AsetIndex extends Component
         }
     }
 
+    /**
+     * Buka modal dialog formulir untuk penambahan data baru.
+     */
     public function create()
     {
         abort_unless(auth()->user()?->can('create_master::aset'), 403);
@@ -141,6 +162,9 @@ class AsetIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Buka modal dialog formulir dan muat data record yang akan disunting.
+     */
     public function edit(int $id)
     {
         $aset = Aset::with(['barang', 'unit', 'gudang', 'lokasiGudang'])->findOrFail($id);
@@ -175,6 +199,9 @@ class AsetIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Validasi isian formulir dan simpan data ke database.
+     */
     public function save()
     {
         $this->validate([
@@ -268,6 +295,9 @@ class AsetIndex extends Component
         $this->showModal = false;
     }
 
+    /**
+     * Tampilkan kode QR atau barcode aset terpilih.
+     */
     public function showQr(int $id)
     {
         $this->selectedAset = Aset::with(['barang', 'unit', 'gudang'])->findOrFail($id);
@@ -278,6 +308,9 @@ class AsetIndex extends Component
         $this->showQrModal = true;
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         $this->selectedAset = Aset::with([
@@ -293,6 +326,9 @@ class AsetIndex extends Component
         $this->authorizeViewAset($this->selectedAset);
         $this->showDetailModal = true;
     }
+    /**
+     * Buka modal riwayat sirkulasi dan perpindahan aset.
+     */
     public function openSirkulasiModal(int $id): void
     {
         $this->selectedAset = Aset::with([
@@ -310,6 +346,9 @@ class AsetIndex extends Component
         $this->showSirkulasiModal = true;
     }
 
+    /**
+     * Tampilkan modal dialog konfirmasi sebelum menghapus data.
+     */
     public function confirmDelete(int $id): void
     {
         $aset = Aset::with('barang')->findOrFail($id);
@@ -325,6 +364,9 @@ class AsetIndex extends Component
         );
     }
 
+    /**
+     * Hapus record terpilih dari database.
+     */
     public function delete(int $id)
     {
         $aset = Aset::findOrFail($id);
@@ -348,6 +390,9 @@ class AsetIndex extends Component
         $this->toast("Register aset '{$kodeAset}' berhasil dihapus.", 'success');
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_master::aset') || auth()->user()?->can('view_master::aset'), 403);

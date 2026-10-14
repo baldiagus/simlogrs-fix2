@@ -49,6 +49,9 @@ class PemeriksaanSelisihOpnameIndex extends Component
 
     public ?int $targetGudangId = null;
 
+    /**
+     * Lifecycle hook boot Livewire untuk inisialisasi awal dan validasi otorisasi.
+     */
     public function boot(): void
     {
         abort_unless(
@@ -59,11 +62,17 @@ class PemeriksaanSelisihOpnameIndex extends Component
         );
     }
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         $this->due_date_capa = now()->addDays(30)->toDateString();
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $opnameId): void
     {
         $this->selectedOpname = StokOpname::with([
@@ -77,6 +86,9 @@ class PemeriksaanSelisihOpnameIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Buka modal penerbitan Corrective and Preventive Action (CAPA).
+     */
     public function openTerbitkanCapa(int $opnameId): void
     {
         abort_unless(
@@ -103,6 +115,9 @@ class PemeriksaanSelisihOpnameIndex extends Component
         $this->showCapaModal = true;
     }
 
+    /**
+     * Simpan data tindak lanjut CAPA terhadap temuan audit.
+     */
     public function saveCapa(): void
     {
         abort_unless(auth()->user()?->hasRole('auditor') && auth()->user()?->can('create_audit_manajemen::temuan::capa'), 403);
@@ -129,6 +144,9 @@ class PemeriksaanSelisihOpnameIndex extends Component
         $this->toast("Temuan audit '{$kodeAud}' berhasil diterbitkan ke register CAPA.", 'success');
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $query = StokOpname::with([

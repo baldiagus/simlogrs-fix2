@@ -62,6 +62,9 @@ class PeminjamanAsetIndex extends Component
     public ?Aset $selectedAsetQr = null;
     public string $qrCodeSvg = '';
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         $this->tanggal_pinjam = date('Y-m-d');
@@ -72,21 +75,33 @@ class PeminjamanAsetIndex extends Component
         }
     }
 
+    /**
+     * Ubah tab navigasi yang sedang aktif.
+     */
     public function setTab(string $tab): void
     {
         $this->activeTab = in_array($tab, ['aktif', 'katalog'], true) ? $tab : 'aktif';
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat properti active tab diperbarui.
+     */
     public function updatedActiveTab(): void
     {
         $this->resetPage();
     }
+    /**
+     * Hook Livewire saat filter perspektif diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterPerspektif(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Dapatkan judul halaman sesuai dengan konteks komponen.
+     */
     public function getPageTitle(): string
     {
         $user = auth()->user();
@@ -111,6 +126,9 @@ class PeminjamanAsetIndex extends Component
         return 'Sirkulasi Aset Global (Logistik Rumah Sakit)';
     }
 
+    /**
+     * Dapatkan subjudul penjelasan konteks halaman peminjaman aset.
+     */
     public function getPageSubtitle(): string
     {
         $user = auth()->user();
@@ -126,11 +144,17 @@ class PeminjamanAsetIndex extends Component
         return 'Pengawasan perputaran seluruh inventaris dan deteksi keterlambatan se-rumah sakit.';
     }
 
+    /**
+     * Hook Livewire saat filter status diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Buka formulir pembuatan permohonan peminjaman aset baru.
+     */
     public function createPinjam(): void
     {
         abort_unless(auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
@@ -141,6 +165,9 @@ class PeminjamanAsetIndex extends Component
         $this->showPinjamModal = true;
     }
 
+    /**
+     * Inisialisasi peminjaman dengan aset terpilih dari katalog.
+     */
     public function pinjamAset(int $asetId): void
     {
         abort_unless(auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
@@ -164,6 +191,9 @@ class PeminjamanAsetIndex extends Component
         $this->showPinjamModal = true;
     }
 
+    /**
+     * Kosongkan seluruh isian formulir peminjaman aset.
+     */
     public function resetPinjamForm(): void
     {
         $this->resetValidation();
@@ -181,6 +211,9 @@ class PeminjamanAsetIndex extends Component
         $this->tipe_penyedia = 'RUANGAN';
     }
 
+    /**
+     * Validasi isian formulir dan ajukan permohonan peminjaman aset ke database.
+     */
     public function savePinjam(): void
     {
         abort_unless(auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
@@ -291,6 +324,9 @@ class PeminjamanAsetIndex extends Component
         $this->toast("Permintaan peminjaman '{$kode}' berhasil diajukan.", 'success');
     }
 
+    /**
+     * Buka modal dialog untuk menampilkan rincian data terpilih.
+     */
     public function openDetail(int $id): void
     {
         $this->selectedPinjam = PermintaanPeminjaman::with([
@@ -307,6 +343,9 @@ class PeminjamanAsetIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $user = auth()->user();

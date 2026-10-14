@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\DB;
 
 trait HasAksiAsetRuangan
 {
+    /**
+     * Buka modal dialog untuk memperbarui status kondisi aset ruangan.
+     */
     public function openUbahStatusAset(int $asetId): void
     {
         $aset = Aset::with(['barang', 'unit'])->findOrFail($asetId);
@@ -24,6 +27,9 @@ trait HasAksiAsetRuangan
         $this->showUbahStatusAsetModal = true;
     }
 
+    /**
+     * Simpan pembaruan status kondisi aset ruangan ke database.
+     */
     public function simpanStatusAset(): void
     {
         $this->validate([
@@ -58,6 +64,9 @@ trait HasAksiAsetRuangan
         $this->selectedAset = null;
     }
 
+    /**
+     * Buka modal formulir permohonan pelaporan servis aset ruangan.
+     */
     public function openLaporServis(int $asetId): void
     {
         abort_unless($this->canLaporServis(), 403, 'Anda tidak memiliki wewenang untuk melaporkan kerusakan sarana.');
@@ -84,6 +93,9 @@ trait HasAksiAsetRuangan
         $this->showLaporServisModal = true;
     }
 
+    /**
+     * Simpan laporan permohonan servis aset ruangan ke sistem IPSRS.
+     */
     public function simpanLaporServis(): void
     {
         $this->validate([
@@ -145,12 +157,18 @@ trait HasAksiAsetRuangan
         $this->toast("Laporan kerusakan '{$kode}' untuk {$aset->kode_aset} berhasil dikirim ke IPSRS.", 'success');
     }
 
+    /**
+     * Batalkan formulir pelaporan servis aset dan bersihkan data upload.
+     */
     public function batalLaporServis(): void
     {
         $this->showLaporServisModal = false;
         $this->reset(['servisAsetId', 'selectedAsetServis', 'servisPrioritas', 'servisDeskripsi', 'servisFoto']);
     }
 
+    /**
+     * Hapus berkas foto bukti kerusakan alat yang telah diunggah sementara.
+     */
     public function hapusFotoServis(): void
     {
         $this->servisFoto = null;

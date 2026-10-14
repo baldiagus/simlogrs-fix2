@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api\V1\Ipsrs;
 
 use App\Http\Controllers\Api\ApiController;
+use App\Enums\Ipsrs\StatusMaintenance;
+use App\Enums\Ipsrs\StatusSpk;
 use App\Models\Ipsrs\JadwalMaintenance;
 use App\Models\Ipsrs\PenugasanMaintenance;
 use App\Models\Ipsrs\PermintaanMaintenance;
 use App\Support\Generator\CodeGenerator;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -67,6 +70,9 @@ class IpsrsJadwalApiController extends ApiController
         return $this->jsonSuccess($items, 'Jadwal preventif berkala berhasil dimuat.');
     }
 
+    /**
+     * Format satu jadwal preventif menjadi array respons API beserta status jatuh tempo.
+     */
     private function formatJadwalPreventif($j, string $today): array
     {
         $tgl = $j->tanggal_berikutnya;
@@ -119,13 +125,13 @@ class IpsrsJadwalApiController extends ApiController
     {
         $user = $request->user();
 
-        $canExecute = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik']) ||
-            $user->can('create_pemeliharaan::spk::perbaikan')
-        );
+        // Sama dengan web (canTerbitkanSpk): izin SPK DAN peran koordinator/admin.
+        $canExecute = $user
+            && $user->can('create_pemeliharaan::spk::perbaikan')
+            && $user->hasRole(['kepala_teknisi', 'super_admin', 'admin_logistik']);
 
         if (! $canExecute) {
-            return $this->jsonError('Hanya teknisi IPSRS dan admin logistik yang berwenang menerbitkan SPK preventif.', 403);
+            return $this->jsonError('Hanya kepala teknisi dan admin logistik yang berwenang menerbitkan SPK preventif.', 403);
         }
 
         $jadwal = JadwalMaintenance::with(['aset', 'teknisi'])->find($id);

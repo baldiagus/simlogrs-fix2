@@ -37,6 +37,9 @@ class PenerimaanPoIndex extends Component
     #[Url(history: true)]
     public string $filterStatus = '';
 
+    /**
+     * Pindah tab tampilan aktif pada komponen.
+     */
     public function switchTab(string $tab): void
     {
         $this->activeTab = in_array($tab, ['tracking', 'riwayat'], true) ? $tab : 'tracking';
@@ -55,6 +58,9 @@ class PenerimaanPoIndex extends Component
     public ?int $gudang_id = null;
     public array $itemRows = [];
 
+    /**
+     * Hook Livewire saat filter status diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
@@ -77,6 +83,9 @@ class PenerimaanPoIndex extends Component
         return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']);
     }
 
+    /**
+     * Periksa apakah pengguna memiliki wewenang pada gudang tertentu.
+     */
     private function ownsGudang(?int $gudangId): bool
     {
         $userGudangId = auth()->user()?->gudang_id;
@@ -84,6 +93,9 @@ class PenerimaanPoIndex extends Component
         return $gudangId && $userGudangId && (int) $userGudangId === (int) $gudangId;
     }
 
+    /**
+     * Verifikasi wewenang pengguna sebagai petugas penerima di gudang.
+     */
     private function authorizeGudangPenerima(): void
     {
         abort_unless(
@@ -93,6 +105,9 @@ class PenerimaanPoIndex extends Component
         );
     }
 
+    /**
+     * Hook Livewire saat properti gudang id diperbarui.
+     */
     public function updatedGudangId(): void
     {
         foreach ($this->itemRows as $idx => $row) {
@@ -100,6 +115,9 @@ class PenerimaanPoIndex extends Component
         }
     }
 
+    /**
+     * Buka formulir pencatatan penerimaan barang untuk PO yang dipilih.
+     */
     public function terima(int $poId): void
     {
         abort_unless(auth()->user()?->can('create_gudang_stok::penerimaan::po'), 403);
@@ -141,6 +159,9 @@ class PenerimaanPoIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Validasi dan simpan data penerimaan barang ke gudang.
+     */
     public function savePenerimaan(): void
     {
         abort_unless(auth()->user()?->can('create_gudang_stok::penerimaan::po'), 403);
@@ -246,6 +267,9 @@ class PenerimaanPoIndex extends Component
         $this->toast("Penerimaan barang {$this->kode} berhasil disimpan.", 'success');
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         abort_unless(auth()->user()?->can('view_any_gudang_stok::penerimaan::po') || auth()->user()?->can('view_gudang_stok::penerimaan::po'), 403);
@@ -262,6 +286,9 @@ class PenerimaanPoIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Buka modal dialog untuk melihat rincian dokumen Pesanan Pembelian (PO).
+     */
     public function showDetailPo(int $id): void
     {
         abort_unless(auth()->user()?->can('view_any_gudang_stok::penerimaan::po') || auth()->user()?->can('view_gudang_stok::penerimaan::po') || auth()->user()?->can('create_gudang_stok::penerimaan::po'), 403);
@@ -271,6 +298,9 @@ class PenerimaanPoIndex extends Component
         $this->showDetailPoModal = true;
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_gudang_stok::penerimaan::po') || auth()->user()?->can('view_gudang_stok::penerimaan::po'), 403);

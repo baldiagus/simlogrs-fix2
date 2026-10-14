@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\DB;
 
 trait HasSparepartLembarKerja
 {
+    /**
+     * Tambahkan baris pilihan suku cadang baru pada lembar kerja pengerjaan.
+     */
     public function addSparepartRow(): void
     {
         $this->sparepartItems[] = [
@@ -21,12 +24,18 @@ trait HasSparepartLembarKerja
         ];
     }
 
+    /**
+     * Hapus baris suku cadang terpilih dari lembar kerja teknisi.
+     */
     public function removeSparepartRow(int $index): void
     {
         unset($this->sparepartItems[$index]);
         $this->sparepartItems = array_values($this->sparepartItems);
     }
 
+    /**
+     * Dapatkan jumlah stok barang yang saat ini tersedia untuk diamprah.
+     */
     public function getStokTersedia(int $barangId): int
     {
         return (int) StokBatch::where('barang_id', $barangId)
@@ -39,6 +48,9 @@ trait HasSparepartLembarKerja
             ->sum('jumlah');
     }
 
+    /**
+     * Validasi kecukupan stok suku cadang di gudang sebelum mutasi pemakaian.
+     */
     protected function validasiKetersediaanSparepart(): bool
     {
         foreach ($this->sparepartItems as $index => $item) {
@@ -68,6 +80,9 @@ trait HasSparepartLembarKerja
         return true;
     }
 
+    /**
+     * Validasi dan simpan lembar kerja teknisi serta penggunaan suku cadang.
+     */
     protected function eksekusiSimpanLembarKerja($user, $spk, $tiket): void
     {
         DB::transaction(function () use ($user, $spk, $tiket) {

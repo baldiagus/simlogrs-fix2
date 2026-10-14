@@ -6,6 +6,9 @@ use Flux;
 
 trait HasToast
 {
+    /**
+     * Kirim event notifikasi toast kilat ke antarmuka pengguna.
+     */
     public function toast(string $message, string $variant = 'success', string $heading = ''): void
     {
         if (app()->bound('livewire') && app('livewire')->current()) {

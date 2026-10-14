@@ -31,6 +31,9 @@ class ApprovalController extends ApiController
         ], 'Daftar antrean approval berhasil diambil.');
     }
 
+    /**
+     * Antrean PR yang menunggu approval sesuai peran dan cakupan unit/gudang pengguna.
+     */
     private function antreanPr($user)
     {
         $isCrossUnitViewer = $user && (
@@ -92,6 +95,9 @@ class ApprovalController extends ApiController
             ]);
     }
 
+    /**
+     * Antrean amprah yang menunggu approval sesuai peran: Karu (DIAJUKAN), gudang/admin logistik (DISETUJUI_KARU).
+     */
     private function antreanAmprah($user)
     {
         $isKaruOnly = $user && ($user->hasRole('kepala_unit') || $user->unit_id) && ! $user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang']);
@@ -149,6 +155,9 @@ class ApprovalController extends ApiController
         return DB::transaction(fn () => $this->prosesApprovePr($request, $id));
     }
 
+    /**
+     * Proses approval PR dengan cek wewenang, kepemilikan, dan aksi (setujui/tolak/serahkan/teruskan).
+     */
     protected function prosesApprovePr(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
@@ -210,6 +219,9 @@ class ApprovalController extends ApiController
         return null;
     }
 
+    /**
+     * Serahkan PR yang sudah disetujui ke bagian pengadaan.
+     */
     private function serahkanPr(Request $request, PermintaanPengadaan $pr): JsonResponse
     {
         if ($pr->status !== 'DISETUJUI' && $pr->status !== StatusPermintaanPengadaan::DiteruskanKePengadaan->value) {
@@ -227,6 +239,9 @@ class ApprovalController extends ApiController
         ], "PR {$pr->kode} berhasil diserahkan ke bagian pengadaan.");
     }
 
+    /**
+     * Setujui PR dari ruangan/unit lalu teruskan ke bagian pengadaan.
+     */
     private function setujuiPr(Request $request, $user, PermintaanPengadaan $pr): JsonResponse
     {
         if ($user->hasRole('pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik', 'kepala_unit', 'kepala_gudang'])) {
@@ -249,6 +264,9 @@ class ApprovalController extends ApiController
         ], "PR {$pr->kode} berhasil disetujui dan diteruskan ke bagian pengadaan.");
     }
 
+    /**
+     * Tolak PR sesuai wewenang peran dan status; menyimpan alasan penolakan pada catatan.
+     */
     private function tolakPr(Request $request, $user, PermintaanPengadaan $pr): JsonResponse
     {
         if (! $user->hasRole(['pengadaan', 'super_admin', 'admin_logistik']) && $pr->status !== StatusPermintaanPengadaan::Diajukan->value) {
@@ -287,6 +305,9 @@ class ApprovalController extends ApiController
         return DB::transaction(fn () => $this->prosesApproveAmprah($request, $id));
     }
 
+    /**
+     * Proses approval amprah dalam transaksi: arahkan ke Meja 1 (DIAJUKAN) atau Meja 2 (DISETUJUI_KARU) sesuai status.
+     */
     protected function prosesApproveAmprah(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
@@ -297,8 +318,11 @@ class ApprovalController extends ApiController
         }
 
         $request->validate([
-            'aksi'    => 'required|in:setujui,tolak',
-            'catatan' => 'nullable|string|max:500',
+            'aksi'                     => 'required|in:setujui,tolak',
+            'catatan'                  => 'nullable|string|max:500',
+            'items'                    => 'nullable|array',
+            'items.*.id'               => 'required_with:items|integer',
+            'items.*.jumlah_disetujui' => 'required_with:items|integer|min:0',
         ]);
 
         $aksi = $request->input('aksi');
@@ -358,7 +382,7 @@ class ApprovalController extends ApiController
     }
 
     /**
-     * Meja 2: Approval Admin Logistik (status DISETUJUI_KARU).
+     * Meja 2: Kepala Gudang / Admin Logistik menyetujui (opsional mengisi jumlah_disetujui per item) atau menolak amprah berstatus DISETUJUI_KARU.
      */
     private function prosesAmprahMeja2(Request $request, $user, PermintaanDistribusi $amprah, string $aksi): JsonResponse
     {
@@ -375,6 +399,19 @@ class ApprovalController extends ApiController
         }
 
         if ($aksi === 'setujui') {
+            $items = $request->input('items');
+            if (is_array($items)) {
+                $idDetail = $amprah->detail->pluck('id')->all();
+                foreach ($items as $item) {
+                    if (! in_array((int) $item['id'], $idDetail, true)) {
+                        return $this->jsonError('Item tidak termasuk dalam amprah ini.', 422);
+                    }
+                }
+                foreach ($items as $item) {
+                    $amprah->detail->firstWhere('id', (int) $item['id'])->update(['jumlah_disetujui' => (int) $item['jumlah_disetujui']]);
+                }
+            }
+
             $amprah->update([
                 'status'         => 'DISETUJUI_GUDANG',
                 'disetujui_oleh' => $user->id,

@@ -19,6 +19,9 @@ class DaftarNotifikasi extends Component
     #[Url(history: true)]
     public string $filter = 'semua';
 
+    /**
+     * Hook Livewire saat filter  diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilter(): void
     {
         if (! in_array($this->filter, ['semua', 'belum'], true)) {
@@ -27,6 +30,9 @@ class DaftarNotifikasi extends Component
         $this->resetPage();
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $query = $this->milikSaya()->orderByDesc('dibuat_pada')->orderByDesc('id');

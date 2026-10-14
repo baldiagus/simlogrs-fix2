@@ -18,11 +18,17 @@ trait AuthorizesPengalihan
     /** Entitas permission modul, mis. 'layanan_unit::pengalihan::aset'. */
     abstract protected function entitasPengalihan(): string;
 
+    /**
+     * Periksa kelayakan izin pengguna untuk melakukan aksi pada transaksi pengalihan.
+     */
     protected function bolehPengalihan(?User $user, object $p, string $aksi): bool
     {
         return PengalihanAccess::boleh($user, $p, $aksi, $this->entitasPengalihan());
     }
 
+    /**
+     * Verifikasi otorisasi aksi pengalihan atau hentikan dengan 403 jika tidak berwenang.
+     */
     protected function authorizePengalihan(object $p, string $aksi, string $pesan): void
     {
         abort_unless($this->bolehPengalihan(auth()->user(), $p, $aksi), 403, $pesan);

@@ -41,6 +41,9 @@ class AuditKepatuhanPengadaanIndex extends Component
     #[Validate('required|date|after_or_equal:today')]
     public string $due_date_capa = '';
 
+    /**
+     * Lifecycle hook boot Livewire untuk inisialisasi awal dan validasi otorisasi.
+     */
     public function boot(): void
     {
         abort_unless(
@@ -51,11 +54,17 @@ class AuditKepatuhanPengadaanIndex extends Component
         );
     }
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         $this->due_date_capa = now()->addDays(14)->toDateString();
     }
 
+    /**
+     * Buka modal penerbitan Corrective and Preventive Action (CAPA).
+     */
     public function openTerbitkanCapa(int $poId, string $tipeAnomali): void
     {
         abort_unless(
@@ -85,6 +94,9 @@ class AuditKepatuhanPengadaanIndex extends Component
         $this->showCapaModal = true;
     }
 
+    /**
+     * Simpan data tindak lanjut CAPA terhadap temuan audit.
+     */
     public function saveCapa(): void
     {
         abort_unless(
@@ -115,6 +127,9 @@ class AuditKepatuhanPengadaanIndex extends Component
         $this->toast("Temuan audit '{$kodeAud}' berhasil diterbitkan ke register CAPA.", 'success');
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(

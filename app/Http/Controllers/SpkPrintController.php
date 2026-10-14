@@ -9,6 +9,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SpkPrintController extends Controller
 {
+    /**
+     * Generate dan unduh dokumen dalam format PDF.
+     */
     public function cetakPdf(Request $request, int $id): Response
     {
         $user = $request->user();

@@ -42,12 +42,18 @@ class LokasiGudangIndex extends Component
     #[Validate('required|in:AKTIF,NONAKTIF')]
     public string $status = 'AKTIF';
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         $this->selectedItem = LokasiGudang::with('gudang')->findOrFail($id);
         $this->showDetailModal = true;
     }
 
+    /**
+     * Buka modal dialog formulir untuk penambahan data baru.
+     */
     public function create()
     {
         abort_unless(auth()->user()?->can('create_master::lokasi::gudang'), 403);
@@ -58,6 +64,9 @@ class LokasiGudangIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Buka modal dialog formulir dan muat data record yang akan disunting.
+     */
     public function edit(int $id)
     {
         abort_unless(auth()->user()?->can('update_master::lokasi::gudang'), 403);
@@ -74,6 +83,9 @@ class LokasiGudangIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Validasi isian formulir dan simpan data ke database.
+     */
     public function save()
     {
         $this->validate([
@@ -122,6 +134,9 @@ class LokasiGudangIndex extends Component
 
         $this->showModal = false;
     }
+    /**
+     * Tampilkan dialog konfirmasi untuk mengubah status aktif/nonaktif record.
+     */
     public function confirmToggleStatus(int $id): void
     {
         $lokasi = LokasiGudang::findOrFail($id);
@@ -138,6 +153,9 @@ class LokasiGudangIndex extends Component
         );
     }
 
+    /**
+     * Ubah status aktif atau nonaktif record pada database.
+     */
     public function toggleStatus(int $id)
     {
         abort_unless(auth()->user()?->can('update_master::lokasi::gudang'), 403);
@@ -149,6 +167,9 @@ class LokasiGudangIndex extends Component
         $this->toast("Status rak '{$lokasi->nama}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    /**
+     * Tampilkan modal dialog konfirmasi sebelum menghapus data.
+     */
     public function confirmDelete(int $id): void
     {
         $lokasi = LokasiGudang::findOrFail($id);
@@ -163,6 +184,9 @@ class LokasiGudangIndex extends Component
         );
     }
 
+    /**
+     * Hapus record terpilih dari database.
+     */
     public function delete(int $id)
     {
         abort_unless(auth()->user()?->can('delete_master::lokasi::gudang') || auth()->user()?->hasRole('super_admin'), 403, 'Anda tidak memiliki hak akses menghapus rak gudang.');
@@ -184,6 +208,9 @@ class LokasiGudangIndex extends Component
         $this->toast("Rak '{$namaRak}' berhasil dihapus.", 'success');
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_master::lokasi::gudang') || auth()->user()?->can('view_master::lokasi::gudang'), 403);

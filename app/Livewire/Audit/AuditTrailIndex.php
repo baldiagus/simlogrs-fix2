@@ -32,6 +32,9 @@ class AuditTrailIndex extends Component
     public bool $showDetailModal = false;
     public ?LogAudit $selectedLog = null;
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         abort_unless(
@@ -43,12 +46,18 @@ class AuditTrailIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Reset seluruh parameter filter dan pencarian ke kondisi default.
+     */
     public function resetFilters(): void
     {
         $this->reset(['filterAksi', 'filterEntitas', 'filterPenggunaId', 'tanggalMulai', 'tanggalSelesai', 'search']);
         $this->resetPage();
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(

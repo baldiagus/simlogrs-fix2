@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\DB;
 
 trait HasFormOpname
 {
+    /**
+     * Buka modal formulir inisiasi sesi stock opname baru.
+     */
     public function openInisiasi(): void
     {
         abort_unless(auth()->user()?->can('create_gudang_stok::stok::opname'), 403);
@@ -28,6 +31,9 @@ trait HasFormOpname
         $this->showInisiasiModal = true;
     }
 
+    /**
+     * Validasi dan inisialisasi sesi stock opname pada gudang yang dipilih.
+     */
     public function inisiasiOpname(): void
     {
         abort_unless(auth()->user()?->can('create_gudang_stok::stok::opname'), 403);
@@ -84,6 +90,9 @@ trait HasFormOpname
         $this->toast("Siklus Stock Opname '{$kodeOpn}' berhasil dibuka dengan status BERJALAN.", 'success');
     }
 
+    /**
+     * Buka formulir dialog pengisian hasil perhitungan fisik opname.
+     */
     public function openHitungFisik(int $opnameId): void
     {
         abort_unless(auth()->user()?->can('update_gudang_stok::stok::opname') || auth()->user()?->can('create_gudang_stok::stok::opname'), 403, 'Anda tidak memiliki wewenang mengakses formulir hitung fisik.');
@@ -114,6 +123,9 @@ trait HasFormOpname
         $this->showCountModal = true;
     }
 
+    /**
+     * Simpan hasil perhitungan fisik stok opname dan kalkulasi selisih.
+     */
     public function saveHitungFisik(): void
     {
         if (! $this->activeOpname) {

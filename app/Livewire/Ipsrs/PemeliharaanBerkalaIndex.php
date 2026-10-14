@@ -25,6 +25,8 @@ class PemeliharaanBerkalaIndex extends Component
     use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
 
     public bool $showModal = false;
+    public bool $showDetail = false;
+    public ?int $detailId = null;
     public ?int $editingId = null;
 
     // Form Jadwal Servis Rutin
@@ -71,11 +73,17 @@ class PemeliharaanBerkalaIndex extends Component
     #[Url(history: true)]
     public string $filterTipe = '';
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         $this->tanggal_berikutnya = now()->addMonth()->toDateString();
     }
 
+    /**
+     * Buka modal dialog formulir untuk penambahan data baru.
+     */
     public function create(): void
     {
         abort_unless(auth()->user()?->can('create_pemeliharaan::pemeliharaan::berkala'), 403);
@@ -87,6 +95,9 @@ class PemeliharaanBerkalaIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Buka modal dialog formulir dan muat data record yang akan disunting.
+     */
     public function edit(int $id): void
     {
         abort_unless(auth()->user()?->can('update_pemeliharaan::pemeliharaan::berkala'), 403);
@@ -104,6 +115,24 @@ class PemeliharaanBerkalaIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Buka modal detail jadwal preventif (aset, interval, teknisi, jatuh tempo, status, catatan).
+     */
+    public function lihatDetail(int $id): void
+    {
+        abort_unless(
+            auth()->user()?->can('view_any_pemeliharaan::pemeliharaan::berkala') ||
+            auth()->user()?->can('view_pemeliharaan::pemeliharaan::berkala'),
+            403
+        );
+
+        $this->detailId = JadwalMaintenance::findOrFail($id)->id;
+        $this->showDetail = true;
+    }
+
+    /**
+     * Validasi isian formulir dan simpan data ke database.
+     */
     public function save(): void
     {
         $this->validate();
@@ -173,6 +202,9 @@ class PemeliharaanBerkalaIndex extends Component
         $this->reset(['editingId', 'aset_id', 'jenis_maintenance', 'catatan', 'teknisi_id']);
     }
 
+    /**
+     * Tampilkan dialog konfirmasi untuk mengubah status aktif/nonaktif record.
+     */
     public function confirmToggleStatus(int $id): void
     {
         abort_unless(auth()->user()?->can('update_pemeliharaan::pemeliharaan::berkala'), 403);
@@ -190,6 +222,9 @@ class PemeliharaanBerkalaIndex extends Component
         );
     }
 
+    /**
+     * Ubah status aktif atau nonaktif record pada database.
+     */
     public function toggleStatus(int $id): void
     {
         abort_unless(auth()->user()?->can('update_pemeliharaan::pemeliharaan::berkala'), 403);
@@ -201,6 +236,9 @@ class PemeliharaanBerkalaIndex extends Component
         $this->toast("Status jadwal servis '{$jadwal->kode}' diubah menjadi {$newStatus}.", 'info');
     }
 
+    /**
+     * Tampilkan dialog konfirmasi eksekusi jadwal pemeliharaan preventif.
+     */
     public function confirmEksekusi(int $id): void
     {
         abort_unless($this->canTerbitkanSpk(), 403);
@@ -217,6 +255,9 @@ class PemeliharaanBerkalaIndex extends Component
         );
     }
 
+    /**
+     * Eksekusi pembaruan pengerjaan servis alat.
+     */
     public function eksekusiServis(int $id): void
     {
         abort_unless($this->canTerbitkanSpk(), 403);
@@ -277,6 +318,9 @@ class PemeliharaanBerkalaIndex extends Component
             && $user->hasRole(['kepala_teknisi', 'super_admin', 'admin_logistik']));
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(
@@ -323,10 +367,15 @@ class PemeliharaanBerkalaIndex extends Component
             ->orderBy('nama')
             ->get();
 
+        $detail = $this->detailId
+            ? JadwalMaintenance::with(['aset.barang', 'aset.unit', 'teknisi', 'pembuat'])->find($this->detailId)
+            : null;
+
         return view('livewire.ipsrs.pemeliharaan-berkala-index', [
             'daftarJadwal'  => $daftarJadwal,
             'daftarAset'    => $daftarAset,
             'daftarTeknisi' => $daftarTeknisi,
+            'detail'        => $detail,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Jadwal Pemeliharaan Preventif']);
     }
 }

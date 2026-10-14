@@ -27,6 +27,9 @@ class RealisasiAnggaranIndex extends Component
     public ?int $selectedAnggaranId = null;
     public bool $showDetailModal = false;
 
+    /**
+     * Lifecycle hook boot Livewire untuk inisialisasi awal dan validasi otorisasi.
+     */
     public function boot(): void
     {
         $user = auth()->user();
@@ -46,6 +49,9 @@ class RealisasiAnggaranIndex extends Component
         return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen', 'pengadaan']);
     }
 
+    /**
+     * Periksa wewenang pengguna untuk melihat data anggaran unit terkait.
+     */
     private function canReadUnit(int $unitId): bool
     {
         $userUnitId = auth()->user()?->unit_id;
@@ -53,6 +59,9 @@ class RealisasiAnggaranIndex extends Component
         return $this->hasGlobalRead() || ($userUnitId && (int) $userUnitId === $unitId);
     }
 
+    /**
+     * Buka modal dialog untuk menampilkan rincian data terpilih.
+     */
     public function openDetail(int $id): void
     {
         abort_unless($this->canReadUnit($id), 403, 'Akses ditolak: Anda hanya dapat melihat realisasi anggaran unit Anda sendiri.');
@@ -62,6 +71,9 @@ class RealisasiAnggaranIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Computed property Livewire untuk mengakses data selected unit.
+     */
     public function getSelectedUnitProperty(): ?Unit
     {
         $id = $this->selectedUnitId ?? $this->selectedAnggaranId;
@@ -72,11 +84,17 @@ class RealisasiAnggaranIndex extends Component
         return Unit::find($id);
     }
 
+    /**
+     * Computed property Livewire untuk mengakses data selected anggaran.
+     */
     public function getSelectedAnggaranProperty(): ?Unit
     {
         return $this->selectedUnit;
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         // getRingkasanEksekutif() sudah melakukan sinkronisasi; tidak perlu dipanggil ganda di setiap render cycle.

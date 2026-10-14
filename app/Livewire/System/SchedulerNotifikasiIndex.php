@@ -19,12 +19,18 @@ class SchedulerNotifikasiIndex extends Component
     public bool $showDetailNotifModal = false;
     public ?Notifikasi $selectedNotifikasi = null;
 
+    /**
+     * Buka modal detail notifikasi sistem yang dihasilkan scheduler.
+     */
     public function showDetailNotif(int $id): void
     {
         $this->selectedNotifikasi = Notifikasi::with('pengguna')->find($id);
         $this->showDetailNotifModal = true;
     }
 
+    /**
+     * Lifecycle hook boot Livewire untuk inisialisasi awal dan validasi otorisasi.
+     */
     public function boot(): void
     {
         abort_unless(
@@ -36,6 +42,9 @@ class SchedulerNotifikasiIndex extends Component
         );
     }
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         abort_unless(
@@ -46,6 +55,9 @@ class SchedulerNotifikasiIndex extends Component
             'Akses ditolak: Anda tidak memiliki wewenang mengelola Task Scheduler.'
         );
     }
+    /**
+     * Tampilkan dialog konfirmasi sweep barang yang telah kedaluwarsa.
+     */
     public function confirmSweepExpired(): void
     {
         $this->askConfirmation(
@@ -58,6 +70,9 @@ class SchedulerNotifikasiIndex extends Component
         );
     }
 
+    /**
+     * Tampilkan dialog konfirmasi untuk tindakan alert overdue.
+     */
     public function confirmAlertOverdue(): void
     {
         $this->askConfirmation(
@@ -70,6 +85,9 @@ class SchedulerNotifikasiIndex extends Component
         );
     }
 
+    /**
+     * Tampilkan konfirmasi pembuatan jadwal pemeliharaan berkala preventif.
+     */
     public function confirmGeneratePreventive(): void
     {
         $this->askConfirmation(
@@ -82,6 +100,9 @@ class SchedulerNotifikasiIndex extends Component
         );
     }
 
+    /**
+     * Eksekusi manual scheduler pemeriksaan dan penyesuaian barang kedaluwarsa.
+     */
     public function triggerSweepExpired(): void
     {
         abort_unless(
@@ -103,6 +124,9 @@ class SchedulerNotifikasiIndex extends Component
         }
     }
 
+    /**
+     * Eksekusi manual scheduler pengiriman peringatan transaksi jatuh tempo (overdue).
+     */
     public function triggerAlertOverdue(): void
     {
         abort_unless(
@@ -124,6 +148,9 @@ class SchedulerNotifikasiIndex extends Component
         }
     }
 
+    /**
+     * Eksekusi manual scheduler pembuatan jadwal pemeliharaan preventif alat.
+     */
     public function triggerGeneratePreventive(): void
     {
         abort_unless(
@@ -145,6 +172,9 @@ class SchedulerNotifikasiIndex extends Component
         }
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(

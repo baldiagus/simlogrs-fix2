@@ -10,6 +10,9 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 trait HasAksiPeminjaman
 {
+    /**
+     * Buka modal formulir permohonan perpanjangan masa peminjaman aset.
+     */
     public function openPerpanjang(int $id): void
     {
         abort_unless(auth()->user()?->can('update_layanan_unit::peminjaman::aset') || auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
@@ -28,6 +31,9 @@ trait HasAksiPeminjaman
         $this->showPerpanjangModal = true;
     }
 
+    /**
+     * Validasi dan ajukan perpanjangan durasi peminjaman aset.
+     */
     public function submitPerpanjang(): void
     {
         abort_unless(auth()->user()?->can('update_layanan_unit::peminjaman::aset') || auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
@@ -69,6 +75,9 @@ trait HasAksiPeminjaman
         $this->toast("Rencana pengembalian '{$pinjam->kode}' berhasil diperpanjang.", 'success');
     }
 
+    /**
+     * Tampilkan modal dialog konfirmasi pembatalan transaksi.
+     */
     public function confirmBatal(int $id): void
     {
         $pinjam = PermintaanPeminjaman::findOrFail($id);
@@ -87,6 +96,9 @@ trait HasAksiPeminjaman
         );
     }
 
+    /**
+     * Eksekusi pembatalan transaksi peminjaman aset di database.
+     */
     public function batalkanPinjam(int $id): void
     {
         abort_unless(auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
@@ -112,6 +124,9 @@ trait HasAksiPeminjaman
         $this->toast("Pengajuan peminjaman '{$pinjam->kode}' berhasil dibatalkan.", 'success');
     }
 
+    /**
+     * Tampilkan modal konfirmasi serah terima peminjaman aset.
+     */
     public function confirmSerahTerima(int $id): void
     {
         $pinjam = PermintaanPeminjaman::with(['unitPeminjam', 'detail.aset'])->findOrFail($id);
@@ -131,6 +146,9 @@ trait HasAksiPeminjaman
         );
     }
 
+    /**
+     * Eksekusi serah terima fisik aset kepada peminjam.
+     */
     public function serahTerima(int $id): void
     {
         $user = auth()->user();
@@ -152,6 +170,9 @@ trait HasAksiPeminjaman
         }
     }
 
+    /**
+     * Tampilkan kode QR atau barcode aset terpilih.
+     */
     public function showQr(int $asetId): void
     {
         $this->selectedAsetQr = Aset::with(['barang', 'unit', 'gudang'])->findOrFail($asetId);

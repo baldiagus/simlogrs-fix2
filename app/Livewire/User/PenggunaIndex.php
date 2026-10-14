@@ -29,6 +29,9 @@ class PenggunaIndex extends Component
 
     #[Url(history: true)]
     public string $filterStatus = '';
+    /**
+     * Reset seluruh parameter filter dan pencarian ke kondisi default.
+     */
     public function resetFilters(): void
     {
         $this->search = '';
@@ -59,11 +62,17 @@ class PenggunaIndex extends Component
     public string $selectedRole = 'petugas_unit';
     public string $status = 'AKTIF';
 
+    /**
+     * Lifecycle hook boot Livewire untuk inisialisasi awal dan validasi otorisasi.
+     */
     public function boot(): void
     {
         $this->authorizeBaca();
     }
 
+    /**
+     * Verifikasi hak akses pengguna untuk melihat data.
+     */
     protected function authorizeBaca(): void
     {
         abort_unless(
@@ -73,11 +82,17 @@ class PenggunaIndex extends Component
         );
     }
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         $this->authorizeBaca();
     }
 
+    /**
+     * Reset unit atau gudang ketika tipe penugasan diubah.
+     */
     public function updatedPenugasanTipe(string $value): void
     {
         if ($value === 'unit') {
@@ -90,6 +105,9 @@ class PenggunaIndex extends Component
         }
     }
 
+    /**
+     * Buka modal formulir penambahan data baru setelah validasi wewenang.
+     */
     public function openCreate(): void
     {
         abort_unless(
@@ -117,6 +135,9 @@ class PenggunaIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Buka modal formulir penyuntingan data terpilih setelah validasi wewenang.
+     */
     public function openEdit(int $id): void
     {
         abort_unless(
@@ -159,6 +180,9 @@ class PenggunaIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Validasi isian formulir dan simpan data ke database.
+     */
     public function save(): void
     {
         // Mode menentukan permission: create tidak boleh mengubah akun, update tidak boleh membuat akun.
@@ -251,6 +275,9 @@ class PenggunaIndex extends Component
         $this->showModal = false;
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $this->authorizeBaca();

@@ -14,6 +14,9 @@ class Lonceng extends Component
 
     public const BATAS_DROPDOWN = 10;
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $pengguna = auth()->user();

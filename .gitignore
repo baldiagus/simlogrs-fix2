@@ -17,6 +17,7 @@
 !/storage/logs/.gitignore
 /storage/app/firebase/*
 !/storage/app/firebase/.gitignore
+/storage/framework/testing/*
 /vendor
 .env
 .env.backup

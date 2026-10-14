@@ -52,17 +52,26 @@ class DaftarSpkPerbaikanIndex extends Component
     #[Validate('nullable|string')]
     public ?string $instruksi_khusus = null;
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         $this->tanggal_penugasan = now()->toDateString();
     }
 
+    /**
+     * Ubah tab navigasi yang sedang aktif.
+     */
     public function setTab(string $tab): void
     {
         $this->activeTab = $tab;
         $this->resetPage();
     }
 
+    /**
+     * Buka modal dialog untuk menerbitkan Surat Perintah Kerja (SPK).
+     */
     public function openTerbitkanSpk(int $tiketId): void
     {
         abort_unless($this->canTerbitkanSpk(), 403);
@@ -78,6 +87,9 @@ class DaftarSpkPerbaikanIndex extends Component
         $this->showSpkModal = true;
     }
 
+    /**
+     * Validasi dan terbitkan SPK perbaikan alat ke teknisi.
+     */
     public function saveSpk(): void
     {
         abort_unless($this->canTerbitkanSpk(), 403);
@@ -138,6 +150,9 @@ class DaftarSpkPerbaikanIndex extends Component
         $this->activeTab = 'spk';
     }
 
+    /**
+     * Buka modal detail informasi Surat Perintah Kerja (SPK).
+     */
     public function showDetailSpk(int $id): void
     {
         $this->authorizeView();
@@ -177,6 +192,9 @@ class DaftarSpkPerbaikanIndex extends Component
         return ! auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_teknisi', 'auditor', 'manajemen']);
     }
 
+    /**
+     * Verifikasi wewenang pengguna untuk melihat data pada halaman ini.
+     */
     private function authorizeView(): void
     {
         abort_unless(
@@ -186,6 +204,9 @@ class DaftarSpkPerbaikanIndex extends Component
         );
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $this->authorizeView();

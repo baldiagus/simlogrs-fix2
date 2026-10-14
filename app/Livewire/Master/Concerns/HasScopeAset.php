@@ -6,11 +6,17 @@ use App\Models\Aset\Aset;
 
 trait HasScopeAset
 {
+    /**
+     * Periksa apakah pengguna memiliki wewenang untuk menyunting data aset.
+     */
     public function canUserEditAset($user, Aset $aset): bool
     {
         return $user && $user->can('update_master::aset') && $this->isInUserScope($user, $aset->unit_id, $aset->gudang_id);
     }
 
+    /**
+     * Periksa apakah pengguna memiliki wewenang untuk menghapus data aset.
+     */
     public function canUserDeleteAset($user, Aset $aset): bool
     {
         return $user && $user->can('delete_master::aset') && $this->isInUserScope($user, $aset->unit_id, $aset->gudang_id);
@@ -45,6 +51,9 @@ trait HasScopeAset
             || $user?->can('view_any_pemeliharaan::spk::perbaikan'));
     }
 
+    /**
+     * Verifikasi wewenang pengguna untuk melihat data rincian aset terpilih.
+     */
     private function authorizeViewAset(Aset $aset): void
     {
         abort_unless(auth()->user()?->can('view_any_master::aset') || auth()->user()?->can('view_master::aset'), 403);

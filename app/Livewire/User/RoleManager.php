@@ -24,11 +24,17 @@ class RoleManager extends Component
         'delete' => [],
     ];
 
+    /**
+     * Lifecycle hook boot Livewire untuk inisialisasi awal dan validasi otorisasi.
+     */
     public function boot(): void
     {
         abort_unless(auth()->user()?->can('view_any_user::role') || auth()->user()?->can('view_user::role') || auth()->user()?->hasRole('super_admin'), 403);
     }
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount()
     {
         $firstRole = Role::first();
@@ -37,6 +43,9 @@ class RoleManager extends Component
         }
     }
 
+    /**
+     * Pilih peran tertentu dan muat daftar permission yang terkait.
+     */
     public function selectRole(int $roleId)
     {
         $role = Role::with('permissions')->findOrFail($roleId);
@@ -44,6 +53,9 @@ class RoleManager extends Component
         $this->state = PagePermissionRegistry::fromRole($role);
     }
 
+    /**
+     * Periksa apakah peran yang sedang dipilih dapat dikelola oleh pengguna aktif.
+     */
     public function canManageSelectedRole(): bool
     {
         if (! $this->selectedRoleId) {
@@ -191,6 +203,9 @@ class RoleManager extends Component
         );
     }
 
+    /**
+     * Hapus seluruh izin akses pada suatu domain untuk peran yang dipilih.
+     */
     public function clearDomain(string $domainKey)
     {
         abort_unless($this->canManageSelectedRole(), 403, 'Anda tidak diizinkan mengubah wewenang peran ini.');
@@ -216,6 +231,9 @@ class RoleManager extends Component
         }
     }
 
+    /**
+     * Validasi isian formulir dan simpan data ke database.
+     */
     public function save()
     {
         abort_unless(
@@ -305,6 +323,9 @@ class RoleManager extends Component
         $this->toast("Wewenang untuk peran '{$role->name}' berhasil diperbarui.", 'success');
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_user::role') || auth()->user()?->can('view_user::role'), 403);

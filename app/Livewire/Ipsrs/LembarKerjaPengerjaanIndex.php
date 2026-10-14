@@ -65,11 +65,17 @@ class LembarKerjaPengerjaanIndex extends Component
     // Suku Cadang yang Digunakan
     public array $sparepartItems = [];
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         $this->tanggal_pengerjaan = now()->format('Y-m-d\TH:i');
     }
 
+    /**
+     * Buka formulir modal pengisian lembar kerja pengerjaan teknisi.
+     */
     public function openLembarKerja(int $spkId): void
     {
         abort_unless(auth()->user()?->can('create_pemeliharaan::lembar::kerja'), 403);
@@ -94,6 +100,9 @@ class LembarKerjaPengerjaanIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Validasi dan simpan hasil pengerjaan servis serta pemakaian suku cadang.
+     */
     public function saveLembarKerja(): void
     {
         abort_unless(auth()->user()?->can('create_pemeliharaan::lembar::kerja'), 403);
@@ -122,6 +131,9 @@ class LembarKerjaPengerjaanIndex extends Component
         }
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $spkId): void
     {
         $this->authorizeView();
@@ -150,6 +162,9 @@ class LembarKerjaPengerjaanIndex extends Component
         return ! auth()->user()?->hasRole(['super_admin', 'admin_logistik', 'kepala_teknisi', 'auditor', 'manajemen']);
     }
 
+    /**
+     * Verifikasi wewenang pengguna untuk melihat data pada halaman ini.
+     */
     private function authorizeView(): void
     {
         abort_unless(
@@ -159,6 +174,9 @@ class LembarKerjaPengerjaanIndex extends Component
         );
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $this->authorizeView();

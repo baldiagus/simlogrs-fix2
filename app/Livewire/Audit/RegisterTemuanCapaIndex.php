@@ -72,12 +72,18 @@ class RegisterTemuanCapaIndex extends Component
     #[Validate('required|string|min:5')]
     public string $catatan_evaluasi = '';
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         $this->tanggal_audit = now()->toDateString();
         $this->due_date_capa = now()->addDays(30)->toDateString();
     }
 
+    /**
+     * Buka modal formulir penambahan data baru setelah validasi wewenang.
+     */
     public function openCreate(): void
     {
         abort_unless(auth()->user()?->can('create_audit_manajemen::temuan::capa'), 403);
@@ -89,6 +95,9 @@ class RegisterTemuanCapaIndex extends Component
         $this->showCreateModal = true;
     }
 
+    /**
+     * Validasi dan simpan penerbitan temuan audit baru ke database.
+     */
     public function saveCreate(): void
     {
         abort_unless(auth()->user()?->can('create_audit_manajemen::temuan::capa'), 403);
@@ -128,6 +137,9 @@ class RegisterTemuanCapaIndex extends Component
         $this->reset(['objek_audit', 'ringkasan', 'unit_id', 'gudang_id']);
         $this->toast("Temuan audit '{$kode}' berhasil didaftarkan.", 'success');
     }
+    /**
+     * Computed property untuk mendapatkan data temuan audit yang sedang dipilih.
+     */
     public function getSelectedTemuanProperty(): ?TemuanAudit
     {
         return $this->selectedTemuanId
@@ -135,6 +147,9 @@ class RegisterTemuanCapaIndex extends Component
             : null;
     }
 
+    /**
+     * Verifikasi wewenang auditee untuk melihat dan menindaklanjuti temuan audit.
+     */
     protected function authorizeAuditeeAccess(TemuanAudit $temuan): void
     {
         $user = auth()->user();
@@ -146,6 +161,9 @@ class RegisterTemuanCapaIndex extends Component
         abort_unless($isAuthorized, 403, 'Anda tidak memiliki wewenang mengelola tindak lanjut temuan audit unit ini.');
     }
 
+    /**
+     * Buka modal dialog pencatatan tindak lanjut temuan audit.
+     */
     public function openTindakLanjut(int $id): void
     {
         $this->selectedTemuanId = $id;
@@ -157,6 +175,9 @@ class RegisterTemuanCapaIndex extends Component
         $this->showTindakLanjutModal = true;
     }
 
+    /**
+     * Validasi dan simpan laporan tindak lanjut perbaikan beserta berkas bukti pendukung.
+     */
     public function saveTindakLanjut(): void
     {
         if (! $this->selectedTemuanId) {
@@ -199,12 +220,18 @@ class RegisterTemuanCapaIndex extends Component
         $this->toast("Tindak lanjut perbaikan untuk {$temuan->kode} berhasil dikirim (Status: In Review).", 'success');
     }
 
+    /**
+     * Hapus berkas bukti sementara yang baru diunggah pada formulir.
+     */
     public function removeTempFile(int $index): void
     {
         unset($this->fileBuktiList[$index]);
         $this->fileBuktiList = array_values($this->fileBuktiList);
     }
 
+    /**
+     * Hapus berkas bukti yang sebelumnya telah tersimpan pada database.
+     */
     public function deleteExistingBukti(int $index): void
     {
         if (! $this->selectedTemuanId) {
@@ -225,6 +252,9 @@ class RegisterTemuanCapaIndex extends Component
         }
     }
 
+    /**
+     * Buka modal formulir evaluasi verifikasi penutupan (closing) temuan audit.
+     */
     public function openEvaluasiClosing(int $id): void
     {
         abort_unless(auth()->user()?->can('update_audit_manajemen::temuan::capa'), 403);
@@ -236,6 +266,9 @@ class RegisterTemuanCapaIndex extends Component
         $this->showEvaluasiModal = true;
     }
 
+    /**
+     * Validasi dan simpan keputusan penutupan status temuan audit oleh auditor.
+     */
     public function saveEvaluasiClosing(): void
     {
         abort_unless(auth()->user()?->can('update_audit_manajemen::temuan::capa'), 403);
@@ -269,6 +302,9 @@ class RegisterTemuanCapaIndex extends Component
 
         $this->toast($toastMsg, $this->hasil_evaluasi === StatusCapa::Closed->value ? 'success' : 'info');
     }
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $user = auth()->user();

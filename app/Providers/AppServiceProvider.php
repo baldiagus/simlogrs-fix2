@@ -45,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Ipsrs\PenugasanMaintenance::observe(\App\Observers\PenugasanMaintenanceObserver::class);
         \App\Models\Aset\PermintaanPeminjaman::observe(\App\Observers\PermintaanPeminjamanObserver::class);
         \App\Models\Aset\PengalihanAset::observe(\App\Observers\PengalihanAsetObserver::class);
+        \App\Models\Persediaan\PengalihanBarang::observe(\App\Observers\PengalihanBarangObserver::class);
         \App\Models\Persediaan\PenyesuaianStok::observe(\App\Observers\PenyesuaianStokObserver::class);
     }
 }

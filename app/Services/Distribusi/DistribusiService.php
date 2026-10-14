@@ -105,6 +105,9 @@ class DistribusiService
             ->toArray();
     }
 
+    /**
+     * Hitung sisa jumlah yang masih harus dikirim untuk satu detail (disetujui dikurangi yang sudah terkirim).
+     */
     private function hitungSisaTerhutang($detail, array $alreadySentMap): int
     {
         $approvedQty = $detail->jumlah_disetujui !== null ? (int) $detail->jumlah_disetujui : (int) $detail->jumlah;

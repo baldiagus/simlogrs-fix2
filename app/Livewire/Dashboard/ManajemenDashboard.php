@@ -11,6 +11,9 @@ use Livewire\Component;
 
 class ManajemenDashboard extends Component
 {
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(auth()->user()?->can('page_ManajemenDashboard') || auth()->user()?->can('page_' . class_basename(static::class)), 403);

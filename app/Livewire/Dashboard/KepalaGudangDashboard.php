@@ -6,6 +6,9 @@ use Livewire\Component;
 
 class KepalaGudangDashboard extends Component
 {
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(auth()->user()?->can('page_KepalaGudangDashboard'), 403);

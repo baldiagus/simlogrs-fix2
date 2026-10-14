@@ -7,6 +7,9 @@ use App\Services\User\PenggunaService;
 
 trait HasAksiPengguna
 {
+    /**
+     * Tampilkan modal konfirmasi reset kata sandi pengguna.
+     */
     public function confirmResetPassword(int $id): void
     {
         $user = User::findOrFail($id);
@@ -32,6 +35,9 @@ trait HasAksiPengguna
         );
     }
 
+    /**
+     * Eksekusi reset kata sandi akun pengguna ke kata sandi sementara.
+     */
     public function executeResetPassword(int $id): void
     {
         abort_unless(
@@ -64,12 +70,18 @@ trait HasAksiPengguna
         $this->showResetSuccessModal = true;
     }
 
+    /**
+     * Tutup modal tampilan kata sandi sementara.
+     */
     public function closeResetSuccessModal(): void
     {
         $this->reset('tempPasswordData');
         $this->showResetSuccessModal = false;
     }
 
+    /**
+     * Tampilkan dialog konfirmasi untuk mengubah status aktif/nonaktif record.
+     */
     public function confirmToggleStatus(int $id): void
     {
         if (auth()->id() === $id) {
@@ -96,6 +108,9 @@ trait HasAksiPengguna
         );
     }
 
+    /**
+     * Eksekusi pembaruan status aktif/nonaktif akun pada database.
+     */
     public function executeToggleStatus(int $id): void
     {
         abort_unless(
@@ -121,6 +136,9 @@ trait HasAksiPengguna
         $this->toast("Status akun {$user->nama} diubah menjadi {$newStatus}.", 'info');
     }
 
+    /**
+     * Tampilkan modal dialog konfirmasi sebelum menghapus data.
+     */
     public function confirmDelete(int $id): void
     {
         $user = User::findOrFail($id);
@@ -145,6 +163,9 @@ trait HasAksiPengguna
         );
     }
 
+    /**
+     * Hapus record terpilih dari database.
+     */
     public function delete(int $id): void
     {
         abort_unless(

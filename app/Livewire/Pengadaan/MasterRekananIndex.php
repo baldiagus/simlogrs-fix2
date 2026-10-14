@@ -36,12 +36,18 @@ class MasterRekananIndex extends Component
         );
     }
 
+    /**
+     * Buka modal dialog untuk menampilkan rincian data terpilih.
+     */
     public function openDetail(int $id): void
     {
         $this->selectedPemasokId = $id;
         $this->showDetailModal = true;
     }
 
+    /**
+     * Computed property Livewire untuk mengakses data selected pemasok.
+     */
     public function getSelectedPemasokProperty(): ?Pemasok
     {
         return $this->selectedPemasokId
@@ -51,6 +57,9 @@ class MasterRekananIndex extends Component
             : null;
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $query = Pemasok::withCount(['pesananPembelian' => fn ($q) => $q->where('status', '!=', StatusPesananPembelian::Dibatalkan->value)])

@@ -4,6 +4,9 @@ namespace App\Livewire\Aset\Concerns;
 
 trait HasFilterPenyediaPengalihan
 {
+    /**
+     * Hook Livewire saat pilihan barang id berubah untuk memuat data terkait.
+     */
     public function updatedSelectedBarangId(): void
     {
         $this->selected_penyedia_key = null;
@@ -13,6 +16,9 @@ trait HasFilterPenyediaPengalihan
         $this->selected_aset_ids = [];
     }
 
+    /**
+     * Hook Livewire saat pilihan penyedia key berubah untuk memuat data terkait.
+     */
     public function updatedSelectedPenyediaKey(): void
     {
         if (! $this->selected_penyedia_key) {
@@ -44,6 +50,9 @@ trait HasFilterPenyediaPengalihan
         }
     }
 
+    /**
+     * Hook Livewire saat properti quantity diperbarui.
+     */
     public function updatedQuantity($value): void
     {
         $max = $this->maxQuantity;

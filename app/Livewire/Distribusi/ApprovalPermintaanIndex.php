@@ -26,16 +26,25 @@ class ApprovalPermintaanIndex extends Component
     public bool $showDetailModal = false;
     public ?PermintaanDistribusi $selectedPermintaan = null;
 
+    /**
+     * Hook Livewire saat filter status diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter urgensi diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterUrgensi(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Tampilkan modal konfirmasi persetujuan oleh Kepala Ruangan (Karu).
+     */
     public function confirmApproveKaru(int $id): void
     {
         $permintaan = PermintaanDistribusi::with('unit')->findOrFail($id);
@@ -58,6 +67,9 @@ class ApprovalPermintaanIndex extends Component
         );
     }
 
+    /**
+     * Eksekusi persetujuan permintaan oleh Kepala Ruangan.
+     */
     public function approveKaru(int $id): void
     {
         $user = auth()->user();
@@ -84,6 +96,9 @@ class ApprovalPermintaanIndex extends Component
         });
     }
 
+    /**
+     * Tampilkan modal konfirmasi penolakan permintaan oleh Kepala Ruangan.
+     */
     public function confirmRejectKaru(int $id): void
     {
         $permintaan = PermintaanDistribusi::with('unit')->findOrFail($id);
@@ -106,6 +121,9 @@ class ApprovalPermintaanIndex extends Component
         );
     }
 
+    /**
+     * Eksekusi penolakan permintaan oleh Kepala Ruangan beserta alasan.
+     */
     public function rejectKaru(int $id): void
     {
         $user = auth()->user();
@@ -128,6 +146,9 @@ class ApprovalPermintaanIndex extends Component
         });
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         $this->authorizeView();
@@ -139,6 +160,9 @@ class ApprovalPermintaanIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Verifikasi wewenang pengguna untuk melihat data pada halaman ini.
+     */
     protected function authorizeView(): void
     {
         abort_unless(
@@ -159,12 +183,18 @@ class ApprovalPermintaanIndex extends Component
             && ($this->isGlobalOperator() || $user->hasRole('kepala_unit')));
     }
 
+    /**
+     * Verifikasi wewenang pengguna untuk melakukan tindakan operasional.
+     */
     protected function authorizeAction(PermintaanDistribusi $permintaan): void
     {
         abort_unless($this->canApproveKaru(), 403, 'Anda tidak memiliki wewenang untuk memproses otorisasi amprah ruangan.');
         abort_unless($this->inUnitScope($permintaan->unit_id), 403, 'Anda tidak memiliki wewenang untuk memproses permohonan dari unit ini.');
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $this->authorizeView();
@@ -202,6 +232,9 @@ class ApprovalPermintaanIndex extends Component
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => $pageTitle]);
     }
 
+    /**
+     * Dapatkan judul halaman sesuai dengan konteks komponen.
+     */
     public function getPageTitle(): string
     {
         $portal = $this->getPortalName();

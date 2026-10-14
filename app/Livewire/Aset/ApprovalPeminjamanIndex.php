@@ -26,6 +26,9 @@ class ApprovalPeminjamanIndex extends Component
     public bool $showDetailModal = false;
     public ?PermintaanPeminjaman $selectedPinjam = null;
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         $this->checkAccess();
@@ -117,6 +120,9 @@ class ApprovalPeminjamanIndex extends Component
         $this->authorizePeminjaman($pinjam, $aksi, 'Anda tidak memiliki wewenang untuk memproses permintaan dari fasilitas penyedia ini.');
     }
 
+    /**
+     * Hook Livewire saat filter status diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
@@ -327,12 +333,18 @@ class ApprovalPeminjamanIndex extends Component
             })(),
         };
     }
+    /**
+     * Ubah tab filter status yang sedang aktif.
+     */
     public function setFilterTab(string $status = ''): void
     {
         $this->filterStatus = $status;
         $this->resetPage();
     }
 
+    /**
+     * Reset seluruh parameter filter dan pencarian ke kondisi default.
+     */
     public function resetFilters(): void
     {
         $this->search = '';
@@ -340,6 +352,9 @@ class ApprovalPeminjamanIndex extends Component
         $this->resetPage();
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $this->checkAccess();

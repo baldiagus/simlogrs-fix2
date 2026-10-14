@@ -167,13 +167,14 @@ class PemicuNotifikasiTest extends TestCase
         $this->assertSame($this->ids('kepalaunit'), $this->penerima('APPROVAL_AMPRAH', $a->id));
     }
 
-    public function test_amprah_disetujui_karu_ke_staf_gudang_sama_bukan_gudang_lain(): void
+    public function test_amprah_disetujui_karu_ke_kepala_gudang_sama_bukan_gudang_lain(): void
     {
         $a = $this->amprah();
         $this->actingAs($this->u('kepalaunit'));
         $a->update(['status' => 'DISETUJUI_KARU']);
 
-        $this->assertSame($this->ids('kepalagudang', 'petugasgudang'), $this->penerima('ANTREAN_PICKING', $a->id));
+        // APPROVAL_AMPRAH juga berisi notifikasi Diajukan ke Karu; kepala gudang ikut menerima saat DISETUJUI_KARU.
+        $this->assertSame($this->ids('kepalaunit', 'kepalagudang'), $this->penerima('APPROVAL_AMPRAH', $a->id));
         $this->assertNull(Notifikasi::where('pengguna_id', $this->u('kagud_ipsrs')->id)->first());
     }
 

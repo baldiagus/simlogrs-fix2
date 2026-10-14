@@ -6,23 +6,35 @@ use App\Models\Persediaan\StokBatch;
 
 trait HasFormPengalihanBarang
 {
+    /**
+     * Hook Livewire saat pilihan barang id berubah untuk memuat data terkait.
+     */
     public function updatedSelectedBarangId(): void
     {
         $this->selected_stok_batch_id = null;
         $this->quantity = 1;
     }
 
+    /**
+     * Hook saat gudang asal pengalihan diubah untuk memuat stok barang terkait.
+     */
     public function updatedGudangAsalId(): void
     {
         $this->selected_stok_batch_id = null;
         $this->quantity = 1;
     }
 
+    /**
+     * Hook saat batch stok dipilih untuk menetapkan batas kuantitas transfer.
+     */
     public function updatedSelectedStokBatchId(): void
     {
         $this->quantity = 1;
     }
 
+    /**
+     * Hook Livewire saat properti quantity diperbarui.
+     */
     public function updatedQuantity($value): void
     {
         $max = $this->maxQuantity;
@@ -37,6 +49,9 @@ trait HasFormPengalihanBarang
         }
     }
 
+    /**
+     * Computed property Livewire untuk mengakses data max quantity.
+     */
     public function getMaxQuantityProperty(): int
     {
         if (! $this->selected_stok_batch_id) {

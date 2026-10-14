@@ -54,10 +54,39 @@ class PenerimaResolver
         return $this->aktif()->role(['kepala_gudang', 'petugas_gudang'])->pluck('id')->all();
     }
 
-    /** Kepala teknisi IPSRS. @return list<int> */
-    public function kepalaTeknisi(): array
+    /** Kepala teknisi IPSRS; bila $unitId diisi, hanya yang berada di unit tersebut. @return list<int> */
+    public function kepalaTeknisi(?int $unitId = null): array
     {
-        return $this->role('kepala_teknisi');
+        if ($unitId === null) {
+            return $this->role('kepala_teknisi');
+        }
+
+        return $this->aktif()->role('kepala_teknisi')->where('unit_id', $unitId)->pluck('id')->all();
+    }
+
+    /** Petugas unit pada unit tertentu. @return list<int> */
+    public function petugasUnit(int $unitId): array
+    {
+        return $this->aktif()->role('petugas_unit')->where('unit_id', $unitId)->pluck('id')->all();
+    }
+
+    /**
+     * Penerima pengalihan masuk: kepala gudang bila tujuan GUDANG; bila RUANGAN kepala unit,
+     * kepala teknisi, dan petugas unit di unit tujuan. Hasil unik. @return list<int>
+     */
+    public function tujuanPengalihan(?string $tipeTujuan, ?int $unitId, ?int $gudangId): array
+    {
+        if ($tipeTujuan === 'GUDANG') {
+            return $this->kepalaGudang((int) $gudangId);
+        }
+
+        $unitId = (int) $unitId;
+
+        return array_values(array_unique([
+            ...$this->karuUnit($unitId),
+            ...$this->kepalaTeknisi($unitId),
+            ...$this->petugasUnit($unitId),
+        ]));
     }
 
     /** Satu pengguna bila masih AKTIF. @return list<int> */

@@ -19,6 +19,9 @@ trait HasTableFilters
 
     #[Url(history: true)]
     public string $sortDirection = 'desc';
+    /**
+     * Inisialisasi konfigurasi filter tabel, pencarian, dan pengurutan bawaan.
+     */
     public function mountHasTableFilters(): void
     {
         if (! preg_match('/^[a-zA-Z0-9_]+$/', $this->sortBy)) {
@@ -27,6 +30,9 @@ trait HasTableFilters
         $this->sortDirection = strtolower($this->sortDirection) === 'asc' ? 'asc' : 'desc';
     }
 
+    /**
+     * Terapkan pengurutan baris data tabel berdasarkan kolom yang dipilih.
+     */
     public function sort(string $column): void
     {
         if (! preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
@@ -42,6 +48,9 @@ trait HasTableFilters
         $this->resetPage();
     }
 
+    /**
+     * Hook saat kolom sorting diubah untuk memperbarui tampilan tabel.
+     */
     public function updatedSortBy(): void
     {
         if (! preg_match('/^[a-zA-Z0-9_]+$/', $this->sortBy)) {
@@ -49,6 +58,9 @@ trait HasTableFilters
         }
     }
 
+    /**
+     * Hook saat arah pengurutan sorting (asc/desc) diubah.
+     */
     public function updatedSortDirection(): void
     {
         $this->sortDirection = strtolower($this->sortDirection) === 'asc' ? 'asc' : 'desc';
@@ -76,11 +88,17 @@ trait HasTableFilters
     {
         return strtolower($this->sortDirection) === 'asc' ? 'asc' : 'desc';
     }
+    /**
+     * Hook saat kata kunci pencarian diubah untuk mereset paginasi tabel.
+     */
     public function updatedSearch(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook saat jumlah baris per halaman diubah untuk mereset paginasi tabel.
+     */
     public function updatedPerPage(): void
     {
         $this->resetPage();

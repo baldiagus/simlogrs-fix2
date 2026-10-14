@@ -29,11 +29,17 @@ class PenerimaanBarangIndex extends Component
     public bool $showDetailModal = false;
     public ?PengirimanBarang $selectedSppb = null;
 
+    /**
+     * Hook Livewire saat filter status diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $sppbId): void
     {
         $sppb = PengirimanBarang::with([
@@ -53,6 +59,9 @@ class PenerimaanBarangIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Tampilkan modal konfirmasi penerimaan barang/distribusi.
+     */
     public function confirmTerima(int $sppbId): void
     {
         $this->authorizePenerimaan();
@@ -76,6 +85,9 @@ class PenerimaanBarangIndex extends Component
         );
     }
 
+    /**
+     * Buka formulir pencatatan penerimaan barang untuk PO yang dipilih.
+     */
     public function terima(int $sppbId): void
     {
         $this->authorizePenerimaan();
@@ -149,6 +161,9 @@ class PenerimaanBarangIndex extends Component
         $this->toast($msg, 'success');
     }
 
+    /**
+     * Proses mutasi masuk stok dan pencatatan per item penerimaan barang.
+     */
     protected function prosesDetailPenerimaan($detail, $sppb, int $penerimaanId): bool
     {
         PenerimaanDistribusiDetail::create([
@@ -175,6 +190,9 @@ class PenerimaanBarangIndex extends Component
         return false;
     }
 
+    /**
+     * Registrasi dan buat data aset baru saat barang kategori aset diterima unit.
+     */
     protected function prosesPenerimaanAset($detail, $sppb, $barang, int $qty): void
     {
         $existingGudangAsets = Aset::where('barang_id', $detail->barang_id)
@@ -225,6 +243,9 @@ class PenerimaanBarangIndex extends Component
         }
     }
 
+    /**
+     * Verifikasi wewenang pengguna untuk melihat data pada halaman ini.
+     */
     protected function authorizeView(): void
     {
         abort_unless(
@@ -234,16 +255,25 @@ class PenerimaanBarangIndex extends Component
         );
     }
 
+    /**
+     * Periksa apakah pengguna memiliki wewenang mencatat penerimaan barang.
+     */
     protected function canTerima(): bool
     {
         return (bool) auth()->user()?->can('update_layanan_unit::penerimaan::barang');
     }
 
+    /**
+     * Verifikasi wewenang otorisasi pengguna untuk menerima distribusi barang.
+     */
     protected function authorizePenerimaan(): void
     {
         abort_unless($this->canTerima(), 403, 'Anda tidak memiliki wewenang untuk memproses penerimaan barang.');
     }
 
+    /**
+     * Validasi kecocokan unit penerima pengiriman dengan unit kerja pengguna.
+     */
     protected function validateUnitAccess(PengirimanBarang $sppb): void
     {
         $user = auth()->user();
@@ -253,6 +283,9 @@ class PenerimaanBarangIndex extends Component
         }
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $this->authorizeView();

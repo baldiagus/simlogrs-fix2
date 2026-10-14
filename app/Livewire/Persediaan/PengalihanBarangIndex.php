@@ -24,6 +24,9 @@ class PengalihanBarangIndex extends Component
     use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal, AuthorizesPengalihan;
     use HasFormPengalihanBarang;
 
+    /**
+     * Dapatkan referensi entitas model pengalihan persediaan barang.
+     */
     protected function entitasPengalihan(): string
     {
         return 'gudang_stok::pengalihan::barang';
@@ -64,6 +67,9 @@ class PengalihanBarangIndex extends Component
     public string $actionType = ''; // 'APPROVE' | 'REJECT'
     public string $catatanApproval = '';
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         $this->tanggal_pengalihan = now()->toDateString();
@@ -94,12 +100,18 @@ class PengalihanBarangIndex extends Component
         }
     }
 
+    /**
+     * Ubah tab navigasi yang sedang aktif.
+     */
     public function setTab(string $tab): void
     {
         $this->activeTab = in_array($tab, ['aktif', 'otorisasi', 'riwayat'], true) ? $tab : 'aktif';
         $this->resetPage();
     }
 
+    /**
+     * Buka modal formulir permohonan pengalihan barang antar-gudang.
+     */
     public function openCreateModal(): void
     {
         $user = auth()->user();
@@ -136,6 +148,9 @@ class PengalihanBarangIndex extends Component
         $this->showCreateModal = true;
     }
 
+    /**
+     * Validasi dan ajukan permohonan pengalihan stok barang antar-gudang.
+     */
     public function submitPengalihan(): void
     {
         $user = auth()->user();
@@ -211,6 +226,9 @@ class PengalihanBarangIndex extends Component
         }
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         $this->selectedTransfer = PengalihanBarang::with([
@@ -222,6 +240,9 @@ class PengalihanBarangIndex extends Component
         $this->showDetailModal = true;
     }
 
+    /**
+     * Buka modal dialog konfirmasi persetujuan pengalihan barang.
+     */
     public function openApprovalModal(int $id, string $type): void
     {
         $this->actionTransferId = $id;
@@ -230,6 +251,9 @@ class PengalihanBarangIndex extends Component
         $this->showApprovalModal = true;
     }
 
+    /**
+     * Eksekusi persetujuan atau penolakan pengalihan barang di database.
+     */
     public function executeApproval(): void
     {
         $user = auth()->user();
@@ -270,6 +294,9 @@ class PengalihanBarangIndex extends Component
         }
     }
 
+    /**
+     * Eksekusi pencatatan penerimaan barang di ruangan atau gudang tujuan.
+     */
     public function executeTerima(int $id): void
     {
         $user = auth()->user();
@@ -285,6 +312,9 @@ class PengalihanBarangIndex extends Component
         }
     }
 
+    /**
+     * Batalkan transaksi pengalihan sebelum disetujui.
+     */
     public function cancelPengalihan(int $id): void
     {
         $user = auth()->user();
@@ -299,6 +329,9 @@ class PengalihanBarangIndex extends Component
         }
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $user = auth()->user();

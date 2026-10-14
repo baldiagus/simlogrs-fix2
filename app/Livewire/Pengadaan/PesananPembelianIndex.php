@@ -37,10 +37,16 @@ class PesananPembelianIndex extends Component
     public string $kode = '';
     public array $itemRows = [];
 
+    /**
+     * Hook Livewire saat filter status diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
     }
+    /**
+     * Reset seluruh parameter filter dan pencarian ke kondisi default.
+     */
     public function resetFilters(): void
     {
         $this->search = '';
@@ -48,6 +54,9 @@ class PesananPembelianIndex extends Component
         $this->resetPage();
     }
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         if (request()->has('konversi_pr')) {
@@ -58,6 +67,9 @@ class PesananPembelianIndex extends Component
         }
     }
 
+    /**
+     * Buka formulir penerbitan PO hasil konversi dari PR yang telah disetujui.
+     */
     public function konversiPo(int $prId): void
     {
         abort_unless(auth()->user()?->can('create_pengadaan::pesanan::pembelian'), 403);
@@ -99,6 +111,9 @@ class PesananPembelianIndex extends Component
         $this->showModal = true;
     }
 
+    /**
+     * Kalkulasi ulang subtotal dan total biaya saat baris item PO berubah.
+     */
     public function updatedItemRows(): void
     {
         foreach ($this->itemRows as $i => $row) {
@@ -108,6 +123,9 @@ class PesananPembelianIndex extends Component
         }
     }
 
+    /**
+     * Validasi dan terbitkan dokumen Pesanan Pembelian (PO) ke database.
+     */
     public function savePo(): void
     {
         abort_unless(auth()->user()?->can('create_pengadaan::pesanan::pembelian'), 403);
@@ -193,6 +211,9 @@ class PesananPembelianIndex extends Component
         $this->toast('Pesanan Pembelian berhasil dibuat.', 'success');
     }
 
+    /**
+     * Buka modal dialog dan muat data rincian record terpilih.
+     */
     public function showDetail(int $id): void
     {
         abort_unless(auth()->user()?->can('view_any_pengadaan::pesanan::pembelian') || auth()->user()?->can('view_pengadaan::pesanan::pembelian'), 403);
@@ -201,6 +222,9 @@ class PesananPembelianIndex extends Component
             ->findOrFail($id);
         $this->showDetailModal = true;
     }
+    /**
+     * Tampilkan modal konfirmasi pembaruan status pengiriman barang.
+     */
     public function confirmUpdateStatusKirim(int $id): void
     {
         abort_unless(auth()->user()?->can('update_pengadaan::pesanan::pembelian'), 403);
@@ -217,6 +241,9 @@ class PesananPembelianIndex extends Component
     }
 
 
+    /**
+     * Perbarui status perjalanan pengiriman distribusi barang.
+     */
     public function updateStatusKirim(int $id): void
     {
         abort_unless(auth()->user()?->can('update_pengadaan::pesanan::pembelian'), 403);
@@ -232,6 +259,9 @@ class PesananPembelianIndex extends Component
         $this->toast("PO {$po->kode} telah diperbarui ke status DIKIRIM VENDOR.", 'success');
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         abort_unless(auth()->user()?->can('view_any_pengadaan::pesanan::pembelian') || auth()->user()?->can('view_pengadaan::pesanan::pembelian'), 403);

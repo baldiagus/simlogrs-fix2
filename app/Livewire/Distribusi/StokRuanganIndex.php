@@ -56,6 +56,9 @@ class StokRuanganIndex extends Component
     public int $jumlah_pakai = 1;
     public string $keterangan = '';
 
+    /**
+     * Inisialisasi komponen dan persiapan data awal.
+     */
     public function mount(): void
     {
         $user = auth()->user();
@@ -66,32 +69,50 @@ class StokRuanganIndex extends Component
         }
     }
 
+    /**
+     * Hook Livewire saat filter kondisi diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterKondisi(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter unit id diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterUnitId(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Ubah tab navigasi yang sedang aktif.
+     */
     public function setTab(string $tab): void
     {
         $this->activeTab = $tab;
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter kondisi aset diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterKondisiAset(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Hook Livewire saat filter status aset diubah untuk memperbarui data dan mereset paginasi.
+     */
     public function updatedFilterStatusAset(): void
     {
         $this->resetPage();
     }
 
+    /**
+     * Buka modal formulir pencatatan pemakaian barang di ruangan.
+     */
     public function openCatatPemakaian(int $id): void
     {
         $stok = StokRuangan::with(['barang.satuan', 'unit'])->findOrFail($id);
@@ -111,6 +132,9 @@ class StokRuanganIndex extends Component
         $this->showPakaiModal = true;
     }
 
+    /**
+     * Validasi dan simpan pencatatan pengurangan stok pemakaian ruangan.
+     */
     public function simpanPemakaian(): void
     {
         $this->validate([
@@ -182,16 +206,25 @@ class StokRuanganIndex extends Component
         $this->selectedStok = null;
     }
 
+    /**
+     * Periksa wewenang pengguna untuk melakukan perubahan stok barang.
+     */
     protected function canUpdateStok(): bool
     {
         return (bool) auth()->user()?->can('update_layanan_unit::stok::ruangan');
     }
 
+    /**
+     * Periksa wewenang pengguna untuk membuat laporan kerusakan alat.
+     */
     protected function canLaporServis(): bool
     {
         return (bool) auth()->user()?->can('create_layanan_unit::lapor::servis');
     }
 
+    /**
+     * Periksa apakah aset yang dimaksud berada dalam lingkup unit kerja pengguna.
+     */
     protected function ownsAset(Aset $aset): bool
     {
         $user = auth()->user();
@@ -201,6 +234,9 @@ class StokRuanganIndex extends Component
             || ($user?->gudang_id && $aset->gudang_id && (int) $user->gudang_id === (int) $aset->gudang_id);
     }
 
+    /**
+     * Periksa apakah data stok barang berada dalam unit kerja pengguna.
+     */
     protected function ownsUnitStok(?int $unitId): bool
     {
         $user = auth()->user();
@@ -208,6 +244,9 @@ class StokRuanganIndex extends Component
         return $this->isGlobalOperator() || ($user?->unit_id && (int) $user->unit_id === (int) $unitId);
     }
 
+    /**
+     * Render tampilan blade komponen Livewire.
+     */
     public function render()
     {
         $user = auth()->user();

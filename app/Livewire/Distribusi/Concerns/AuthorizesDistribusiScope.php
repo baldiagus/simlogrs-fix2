@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\Builder;
  */
 trait AuthorizesDistribusiScope
 {
+    /**
+     * Periksa apakah pengguna berstatus operator distribusi tingkat global.
+     */
     protected function isGlobalOperator(): bool
     {
         return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik']);
@@ -25,6 +28,9 @@ trait AuthorizesDistribusiScope
         return (bool) auth()->user()?->hasRole(['auditor', 'manajemen']);
     }
 
+    /**
+     * Ambil daftar ID unit yang berada dalam wewenang pengguna saat ini.
+     */
     protected function ownUnitIds(): array
     {
         $user = auth()->user();
@@ -41,6 +47,9 @@ trait AuthorizesDistribusiScope
             ->all();
     }
 
+    /**
+     * Ambil daftar ID gudang yang berada dalam wewenang pengguna saat ini.
+     */
     protected function ownGudangIds(): array
     {
         $user = auth()->user();
@@ -57,11 +66,17 @@ trait AuthorizesDistribusiScope
             ->all();
     }
 
+    /**
+     * Periksa apakah ID unit berada dalam cakupan akses wewenang pengguna.
+     */
     protected function inUnitScope(?int $unitId): bool
     {
         return $this->isGlobalOperator() || ($unitId && in_array((int) $unitId, $this->ownUnitIds(), true));
     }
 
+    /**
+     * Periksa apakah ID gudang berada dalam cakupan akses wewenang pengguna.
+     */
     protected function inGudangScope(?int $gudangId): bool
     {
         return $this->isGlobalOperator() || ($gudangId && in_array((int) $gudangId, $this->ownGudangIds(), true));
@@ -94,6 +109,9 @@ trait AuthorizesDistribusiScope
         return $query;
     }
 
+    /**
+     * Periksa hak akses baca data berdasarkan cakupan unit atau gudang pengguna.
+     */
     protected function canReadScoped(?int $unitId, ?int $gudangId, bool $checkUnit = true, bool $checkGudang = true): bool
     {
         if ($this->isGlobalOperator()) {
@@ -114,6 +132,9 @@ trait AuthorizesDistribusiScope
         return ! $unitIds && ! $gudangIds && $this->isGlobalReader();
     }
 
+    /**
+     * Verifikasi wewenang hak baca data berdasarkan cakupan unit atau gudang.
+     */
     protected function authorizeReadScoped(?int $unitId, ?int $gudangId, bool $checkUnit = true, bool $checkGudang = true): void
     {
         abort_unless(
