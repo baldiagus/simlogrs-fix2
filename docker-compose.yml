@@ -1,3 +1,26 @@
+# Basis bersama untuk container PHP non-web (queue & scheduler): image, kode, env, dan network sama dengan app.
+# image diset ke tag bawaan service app (<project>-app) agar build menghasilkan image yang SAMA, bukan image kedua.
+x-app-base: &app-base
+  image: ${COMPOSE_PROJECT_NAME}-app
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+  restart: unless-stopped
+  working_dir: /var/www/html
+  volumes:
+    - ./:/var/www/html
+    - app_vendor:/var/www/html/vendor
+    - ./docker/php/zz-tuning.ini:/usr/local/etc/php/conf.d/zz-tuning.ini:ro
+  environment:
+    - APP_ENV=local
+    - APP_DEBUG=false
+    - TZ=Asia/Jakarta
+  networks:
+    - simrslog-net
+  depends_on:
+    - postgres
+    - redis
+
 services:
   app:
     build:
@@ -25,6 +48,19 @@ services:
     depends_on:
       - postgres
       - redis
+
+  # Worker antrean redis 'default' (push FCM dll). Restart otomatis; --max-time membuat worker
+  # keluar tiap jam lalu dihidupkan ulang Docker agar memori & kode terbaru ikut termuat.
+  queue:
+    <<: *app-base
+    container_name: simrslogv2-queue
+    command: php artisan queue:work redis --queue=default --tries=3 --sleep=3 --max-time=3600 --memory=192
+
+  # Penjalan jadwal Laravel (cron 00:01, 01:00, 06:00, 07:00) via schedule:work. Restart otomatis.
+  scheduler:
+    <<: *app-base
+    container_name: simrslogv2-scheduler
+    command: php artisan schedule:work
 
   web:
     image: nginx:alpine

@@ -119,6 +119,18 @@ Catatan Fase 2: dari halaman master, hanya Katalog Barang (`Master/BarangDetailS
 
 Lintas modul: kebijakan otorisasi web ([ADR 0001](docs/adr/0001-kebijakan-otorisasi-web.md)), enum transisi status dan atomisitas audit ([ADR 0002](docs/adr/0002-jaminan-pencatatan-audit-dan-transisi-status.md)), serta konfigurasi operasional dan kontrak route ([ADR 0003](docs/adr/0003-konfigurasi-operasional-dan-kontrak-route.md)) sudah diterapkan dan diuji (`RouteRbacTest`, `RouteContractTest`, `AuditAtomicityTransaksiTest`, `User/AuditAtomicityTest`, `KonfigOperasionalTest`).
 
+## Notifikasi & Push (FCM)
+
+Notifikasi ditulis ke tabel `notifikasi` (lonceng web/inbox app) lalu dikirim sebagai push FCM oleh worker antrean.
+Worker (`queue`) dan penjalan cron (`scheduler`) adalah service docker yang hidup otomatis:
+
+```bash
+docker compose up -d queue scheduler
+docker compose ps
+```
+
+Kontrak API/payload: [docs/NOTIFICATION_CONTRACT.md](docs/NOTIFICATION_CONTRACT.md). Kredensial Firebase, pengecekan worker, dan pemecahan masalah "muncul di web tapi tidak di HP": [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md).
+
 ## Pengujian
 
 Tes hanya dijalankan di dalam container (memakai database PostgreSQL hasil seeder):

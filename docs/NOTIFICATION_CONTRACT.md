@@ -101,3 +101,11 @@ Catatan implementasi pemicu (Observer di `app/Observers`, penerima di `PenerimaR
 - Dedup: cron memeriksa `(pengguna_id, tipe, referensi_id, tanggal)` sebelum menulis.
 - Token FCM yang dijawab `UNREGISTERED`/`INVALID_ARGUMENT` dihapus dari `user_device_tokens`.
 - Kegagalan FCM tidak boleh menggagalkan transaksi bisnis; ditulis ke log dan job di-retry terbatas.
+
+## 6. Operasional
+
+- Push dikirim oleh worker antrean (service docker `queue`); cron notifikasi dijalankan service `scheduler`.
+  Keduanya hidup otomatis (`restart: unless-stopped`).
+- Setup kredensial, cara cek worker, layar Status Pengiriman Push, dan pemecahan masalah
+  "muncul di web tapi tidak di HP" (termasuk aturan satu HP = akun yang terakhir login): lihat
+  `docs/FIREBASE_SETUP.md`.

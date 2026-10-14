@@ -195,6 +195,46 @@
         </flux:card>
     </div>
 
+    {{-- Status Pengiriman Push (worker antrean) --}}
+    <flux:card class="space-y-4 shadow-sm">
+        <div class="flex items-start justify-between gap-2">
+            <div>
+                <flux:heading size="lg">Status Pengiriman Push</flux:heading>
+                <flux:subheading class="text-xs text-zinc-500 dark:text-zinc-400">
+                    Push FCM dikirim oleh worker antrean. Antrean menumpuk tanpa detak berarti worker mati.
+                </flux:subheading>
+            </div>
+            @if ($statusPush['sehat'])
+                <flux:badge size="sm" color="emerald" icon="check-circle">Sehat</flux:badge>
+            @else
+                <flux:badge size="sm" color="red" icon="exclamation-triangle">Bermasalah</flux:badge>
+            @endif
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+            <div class="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80">
+                <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Antrean Tertunda</div>
+                <div class="text-base font-bold font-mono {{ $statusPush['tertunda'] > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-800 dark:text-zinc-200' }}">{{ $statusPush['tertunda'] }}</div>
+            </div>
+            <div class="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80">
+                <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Detak Worker Terakhir</div>
+                <div class="text-base font-bold font-mono text-zinc-800 dark:text-zinc-200">{{ $statusPush['detak'] }}</div>
+            </div>
+            <div class="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80">
+                <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Perangkat Terdaftar</div>
+                <div class="text-base font-bold font-mono text-blue-600 dark:text-blue-400">{{ $statusPush['perangkat'] }}</div>
+            </div>
+            <div class="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80">
+                <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Pengguna Ber-token</div>
+                <div class="text-base font-bold font-mono text-indigo-600 dark:text-indigo-400">{{ $statusPush['pengguna'] }}</div>
+            </div>
+        </div>
+
+        <p class="text-[11px] text-zinc-600 dark:text-zinc-400">
+            Bila status Bermasalah, jalankan <code class="font-mono px-1 rounded bg-zinc-100 dark:bg-zinc-800">docker compose up -d queue</code> di server.
+        </p>
+    </flux:card>
+
     {{-- Riwayat Notifikasi Lonceng Internal Terbaru --}}
     <flux:card class="space-y-4 shadow-sm">
         <div class="flex items-center justify-between">

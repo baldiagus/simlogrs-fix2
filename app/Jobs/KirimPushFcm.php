@@ -5,10 +5,12 @@ namespace App\Jobs;
 use App\Models\Auth\UserDeviceToken;
 use App\Models\Master\Notifikasi;
 use App\Services\Notifikasi\PengirimPush;
+use App\Services\Notifikasi\StatusAntrean;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -37,6 +39,8 @@ class KirimPushFcm implements ShouldQueue
 
     public function handle(PengirimPush $pengirim): void
     {
+        Cache::put(StatusAntrean::KUNCI_DETAK, now()->toIso8601String(), now()->addDay());
+
         $notifikasi = Notifikasi::find($this->notifikasiId);
         if (! $notifikasi) {
             return;

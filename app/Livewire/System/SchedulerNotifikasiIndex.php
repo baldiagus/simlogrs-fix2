@@ -6,6 +6,7 @@ use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasToast;
 use App\Models\Master\Notifikasi;
+use App\Services\Notifikasi\StatusAntrean;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
@@ -184,12 +185,23 @@ class SchedulerNotifikasiIndex extends Component
             ->take(10)
             ->get();
 
+        $statusAntrean = app(StatusAntrean::class);
+        $detak = $statusAntrean->detakTerakhir();
+        $statusPush = [
+            'tertunda' => $statusAntrean->jumlahTertunda(),
+            'detak' => $detak?->diffForHumans() ?? '-',
+            'sehat' => $statusAntrean->sehat(),
+            'perangkat' => $statusAntrean->jumlahTokenTerdaftar(),
+            'pengguna' => $statusAntrean->jumlahPenggunaBerToken(),
+        ];
+
         return view('livewire.system.scheduler-notifikasi-index', [
             'lastSweep' => $lastSweep,
             'lastOverdue' => $lastOverdue,
             'lastPreventive' => $lastPreventive,
             'jadwalSiapCount' => $jadwalSiapCount,
             'daftarNotifikasi' => $daftarNotifikasi,
+            'statusPush' => $statusPush,
         ])->layout('layouts.portal', [
             'title' => 'Task Scheduler & Cron Monitor',
             'portal' => $this->getPortalName(),
