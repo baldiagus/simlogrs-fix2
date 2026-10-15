@@ -254,8 +254,7 @@ class DistribusiAmprahApiController extends ApiController
         // Komoditas dengan stok gudang kosong atau kurang tetap diizinkan diajukan via API
         // Selisih kebutuhan akan otomatis dicatat sebagai hutang gudang (backorder)
 
-        $directToGudang = $user->hasRole('kepala_unit')
-            && $user->can('update_layanan_unit::approval::karu');
+        $directToGudang = $user->bolehLangsungKeGudang();
         $statusAwal     = $directToGudang ? StatusPermintaanDistribusi::DisetujuiKaru->value : StatusPermintaanDistribusi::Diajukan->value;
         $disetujuiOleh  = $directToGudang ? $user->id : null;
 

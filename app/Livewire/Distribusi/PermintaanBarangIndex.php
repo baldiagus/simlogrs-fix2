@@ -137,9 +137,8 @@ class PermintaanBarangIndex extends Component
 
         // Komoditas dengan stok gudang kosong atau kurang tetap diizinkan diajukan
         // Selisih kebutuhan akan otomatis dicatat sebagai hutang gudang (backorder)
-        // Hanya Kepala Unit (role + permission otorisasi karu) untuk unitnya sendiri yang melewati Meja 1
-        $directToGudang = $user->hasRole('kepala_unit')
-            && $user->can('update_layanan_unit::approval::karu')
+        // Hanya Kepala Unit / Kepala Teknisi (role + permission otorisasi karu) untuk unitnya sendiri yang melewati Meja 1
+        $directToGudang = $user->bolehLangsungKeGudang()
             && $this->inUnitScope($this->unit_id);
         $initialStatus  = $directToGudang ? StatusPermintaanDistribusi::DisetujuiKaru->value : StatusPermintaanDistribusi::Diajukan->value;
         $disetujuiOleh  = $directToGudang ? $user->id : null;

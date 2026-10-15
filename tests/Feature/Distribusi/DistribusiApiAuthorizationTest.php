@@ -85,6 +85,43 @@ class DistribusiApiAuthorizationTest extends TestCase
 
         $this->assertSame('DISETUJUI_KARU', $response->json('data.status'));
     }
+
+    public function test_kepala_teknisi_role_and_approval_permission_submit_directly_to_warehouse(): void
+    {
+        $user = $this->user('katek-can-approve');
+        $user->assignRole('kepala_teknisi');
+        $user->givePermissionTo([
+            'create_layanan_unit::permintaan::barang',
+            'update_layanan_unit::approval::karu',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/v1/distribusi/amprah', $this->payload())
+            ->assertCreated();
+
+        $this->assertSame('DISETUJUI_KARU', $response->json('data.status'));
+        $this->assertDatabaseHas('permintaan_distribusi', [
+            'id' => $response->json('data.id'),
+            'disetujui_oleh' => $user->id,
+        ]);
+    }
+
+    public function test_petugas_unit_submits_pending_approval(): void
+    {
+        $user = $this->user('petugas-unit-amprah');
+        $user->assignRole('petugas_unit');
+        $user->givePermissionTo('create_layanan_unit::permintaan::barang');
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/v1/distribusi/amprah', $this->payload())
+            ->assertCreated();
+
+        $this->assertSame('DIAJUKAN', $response->json('data.status'));
+        $this->assertDatabaseHas('permintaan_distribusi', [
+            'id' => $response->json('data.id'),
+            'disetujui_oleh' => null,
+        ]);
+    }
     public function test_receipt_permission_does_not_allow_receiving_another_units_shipment(): void
     {
         $otherUnit = Unit::where('status', 'AKTIF')->where('id', '!=', $this->unit->id)->firstOrFail();

@@ -78,6 +78,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Amprah dari pengguna ini melewati Meja 1 (langsung DISETUJUI_KARU):
+     * Kepala Unit atau Kepala Teknisi yang memiliki permission otorisasi karu.
+     */
+    public function bolehLangsungKeGudang(): bool
+    {
+        return $this->hasAnyRole(['kepala_unit', 'kepala_teknisi'])
+            && $this->can('update_layanan_unit::approval::karu');
+    }
+
+    /**
      * Token FCM perangkat pengguna.
      */
     public function deviceTokens(): HasMany
