@@ -323,4 +323,226 @@ class MaintenanceScopeSecurityTest extends TestCase
         $this->assertContains($this->tiketIgd->id, $ids);
         $this->assertContains($this->tiketOther->id, $ids);
     }
+    public function test_aset_unit_tersedia_for_room_user_includes_own_and_borrowed_assets_but_excludes_other_units(): void
+    {
+        $barang = Barang::where('status', 'AKTIF')->first();
+
+        $asetOwn = Aset::create([
+            'barang_id'         => $barang->id,
+            'unit_id'           => $this->unitIgd->id,
+            'kode_aset'         => 'AST-OWN-' . uniqid(),
+            'nomor_seri'        => 'SN-OWN-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'kondisi'           => 'BAIK',
+            'status'            => 'TERSEDIA',
+        ]);
+
+        $asetPinjam = Aset::create([
+            'barang_id'         => $barang->id,
+            'unit_id'           => $this->unitIgd->id,
+            'kode_aset'         => 'AST-PINJ-' . uniqid(),
+            'nomor_seri'        => 'SN-PINJ-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'kondisi'           => 'BAIK',
+            'status'            => 'DIPINJAM',
+        ]);
+
+        $pinjaman = PermintaanPeminjaman::create([
+            'kode'                    => 'PINJ-TEST-' . uniqid(),
+            'tipe_penyedia'           => 'RUANGAN',
+            'unit_penyedia_id'        => $this->unitOther->id,
+            'unit_id'                 => $this->unitIgd->id,
+            'diajukan_oleh'           => $this->karuIgd->id,
+            'tanggal_pinjam'          => now()->toDateString(),
+            'tanggal_kembali_rencana' => now()->addDays(7)->toDateString(),
+            'status'                  => 'DIPINJAM',
+        ]);
+
+        PermintaanPeminjamanDetail::create([
+            'permintaan_peminjaman_id' => $pinjaman->id,
+            'aset_id'                  => $asetPinjam->id,
+        ]);
+
+        $asetOther = Aset::create([
+            'barang_id'         => $barang->id,
+            'unit_id'           => $this->unitOther->id,
+            'kode_aset'         => 'AST-OTH-AVAIL-' . uniqid(),
+            'nomor_seri'        => 'SN-OTH-AVAIL-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'kondisi'           => 'BAIK',
+            'status'            => 'TERSEDIA',
+        ]);
+
+        $res = $this->actingAs($this->karuIgd)->getJson('/api/v1/maintenance/aset-unit');
+        $res->assertOk();
+
+        $data = $res->json('data');
+        $ids = collect($data)->pluck('id')->all();
+
+        $this->assertContains($asetOwn->id, $ids);
+        $this->assertContains($asetPinjam->id, $ids);
+        $this->assertNotContains($asetOther->id, $ids);
+
+        $ownItem = collect($data)->firstWhere('id', $asetOwn->id);
+        $this->assertFalse($ownItem['is_pinjaman']);
+        $this->assertNull($ownItem['asal_penyedia']);
+
+        $pinjamItem = collect($data)->firstWhere('id', $asetPinjam->id);
+        $this->assertTrue($pinjamItem['is_pinjaman']);
+        $this->assertSame($this->unitOther->nama, $pinjamItem['asal_penyedia']);
+    }
+
+    public function test_aset_unit_tersedia_for_warehouse_user_returns_warehouse_assets_only(): void
+    {
+        $gudang = Gudang::first();
+        $userGudang = User::create([
+            'nama'      => 'Karu Gudang Tester ' . uniqid(),
+            'username'  => 'karu_gudang_' . uniqid(),
+            'email'     => 'karu_gudang_' . uniqid() . '@simlog.test',
+            'password'  => bcrypt('password'),
+            'gudang_id' => $gudang->id,
+            'unit_id'   => null,
+            'status'    => 'AKTIF',
+        ]);
+        $userGudang->assignRole('kepala_gudang');
+
+        $barang = Barang::where('status', 'AKTIF')->first();
+        $asetGudang = Aset::create([
+            'barang_id'         => $barang->id,
+            'gudang_id'         => $gudang->id,
+            'kode_aset'         => 'AST-GDG-' . uniqid(),
+            'nomor_seri'        => 'SN-GDG-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'kondisi'           => 'BAIK',
+            'status'            => 'TERSEDIA',
+        ]);
+
+        $res = $this->actingAs($userGudang)->getJson('/api/v1/maintenance/aset-unit');
+        $res->assertOk();
+
+        $ids = collect($res->json('data'))->pluck('id')->all();
+        $this->assertContains($asetGudang->id, $ids);
+        $this->assertNotContains($this->asetIgd->id, $ids);
+        $this->assertNotContains($this->asetOther->id, $ids);
+    }
+
+    public function test_aset_unit_tersedia_for_user_without_unit_and_gudang_returns_empty(): void
+    {
+        $plainUser = User::create([
+            'nama'     => 'Plain Tester ' . uniqid(),
+            'username' => 'plain_' . uniqid(),
+            'email'    => 'plain_' . uniqid() . '@simlog.test',
+            'password' => bcrypt('password'),
+            'unit_id'  => null,
+            'gudang_id'=> null,
+            'status'   => 'AKTIF',
+        ]);
+
+        $res = $this->actingAs($plainUser)->getJson('/api/v1/maintenance/aset-unit');
+        $res->assertOk();
+        $this->assertEmpty($res->json('data'));
+    }
+
+    public function test_lapor_cepat_allowed_for_own_unit_asset(): void
+    {
+        $res = $this->actingAs($this->karuIgd)->postJson('/api/v1/maintenance/lapor-cepat', [
+            'aset_id'           => $this->asetIgd->id,
+            'deskripsi_masalah' => 'Kerusakan fisik sarana milik unit IGD sendiri',
+        ]);
+
+        $res->assertStatus(201);
+        $tiketId = $res->json('data.id');
+        $this->assertNotNull($tiketId);
+        $this->assertDatabaseHas('permintaan_maintenance', [
+            'id'      => $tiketId,
+            'aset_id' => $this->asetIgd->id,
+            'unit_id' => $this->unitIgd->id,
+        ]);
+    }
+
+    public function test_lapor_cepat_allowed_for_actively_borrowed_asset_option_a(): void
+    {
+        $barang = Barang::where('status', 'AKTIF')->first();
+
+        $asetPinjam = Aset::create([
+            'barang_id'         => $barang->id,
+            'unit_id'           => $this->unitIgd->id,
+            'kode_aset'         => 'AST-PINJ-LAPOR-' . uniqid(),
+            'nomor_seri'        => 'SN-PINJ-LAPOR-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'kondisi'           => 'BAIK',
+            'status'            => 'DIPINJAM',
+        ]);
+
+        $pinjaman = PermintaanPeminjaman::create([
+            'kode'                    => 'PINJ-TEST-' . uniqid(),
+            'tipe_penyedia'           => 'RUANGAN',
+            'unit_penyedia_id'        => $this->unitOther->id,
+            'unit_id'                 => $this->unitIgd->id,
+            'diajukan_oleh'           => $this->karuIgd->id,
+            'tanggal_pinjam'          => now()->toDateString(),
+            'tanggal_kembali_rencana' => now()->addDays(7)->toDateString(),
+            'status'                  => 'DIPINJAM',
+        ]);
+
+        PermintaanPeminjamanDetail::create([
+            'permintaan_peminjaman_id' => $pinjaman->id,
+            'aset_id'                  => $asetPinjam->id,
+        ]);
+
+        // Client passes other unit_id, but it must be ignored and forced to user's unit_id
+        $res = $this->actingAs($this->karuIgd)->postJson('/api/v1/maintenance/lapor-cepat', [
+            'aset_id'           => $asetPinjam->id,
+            'unit_id'           => $this->unitOther->id,
+            'deskripsi_masalah' => 'Kerusakan fisik sarana pinjaman aktif IGD',
+        ]);
+
+        $res->assertStatus(201);
+        $tiketId = $res->json('data.id');
+        $this->assertNotNull($tiketId);
+        $this->assertDatabaseHas('permintaan_maintenance', [
+            'id'      => $tiketId,
+            'aset_id' => $asetPinjam->id,
+            'unit_id' => $this->unitIgd->id,
+        ]);
+    }
+
+    public function test_lapor_cepat_denied_403_for_asset_of_another_unit_not_borrowed(): void
+    {
+        $res = $this->actingAs($this->karuIgd)->postJson('/api/v1/maintenance/lapor-cepat', [
+            'aset_id'           => $this->asetOther->id,
+            'deskripsi_masalah' => 'Mencoba lapor kerusakan sarana unit lain',
+        ]);
+
+        $res->assertStatus(403);
+        $res->assertJsonFragment([
+            'pesan' => 'Anda hanya berhak melaporkan kerusakan untuk aset milik unit Anda atau aset yang sedang aktif dipinjam oleh unit Anda.',
+        ]);
+    }
+
+    public function test_lapor_cepat_denied_403_for_warehouse_asset_by_room_user(): void
+    {
+        $gudang = Gudang::first();
+        $barang = Barang::where('status', 'AKTIF')->first();
+
+        $asetGudang = Aset::create([
+            'barang_id'         => $barang->id,
+            'gudang_id'         => $gudang->id,
+            'kode_aset'         => 'AST-GDG-DENY-' . uniqid(),
+            'nomor_seri'        => 'SN-GDG-DENY-' . uniqid(),
+            'tanggal_perolehan' => now()->toDateString(),
+            'kondisi'           => 'BAIK',
+            'status'            => 'TERSEDIA',
+        ]);
+
+        $res = $this->actingAs($this->karuIgd)->postJson('/api/v1/maintenance/lapor-cepat', [
+            'aset_id'           => $asetGudang->id,
+            'deskripsi_masalah' => 'Mencoba lapor kerusakan sarana gudang oleh user unit',
+        ]);
+
+        $res->assertStatus(403);
+        $res->assertJsonFragment([
+            'pesan' => 'Anda hanya berhak melaporkan kerusakan untuk aset milik unit Anda atau aset yang sedang aktif dipinjam oleh unit Anda.',
+        ]);
+    }
 }

@@ -50,15 +50,17 @@ class MaintenanceTiketApiController extends ApiController
             return $this->jsonError('Aset sarana tidak ditemukan. Harap sertakan aset_id atau kode_aset yang valid.', 404);
         }
         if (! $this->userBerhakAtasAset($user, $aset)) {
-            return $this->jsonError('Anda hanya berhak melaporkan kerusakan untuk aset yang berada di unit atau gudang Anda.', 403);
+            return $this->jsonError('Anda hanya berhak melaporkan kerusakan untuk aset milik unit Anda atau aset yang sedang aktif dipinjam oleh unit Anda.', 403);
         }
 
         [$fotoPath, $fotoUrl] = $this->simpanFotoKerusakan($request);
 
         $kodeTiket = CodeGenerator::generateMnt();
-        $unitId = $validated['unit_id'] ?? $aset->unit_id ?? $user->unit_id;
+        $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
+        $unitId = $isGlobalAdmin
+            ? ($validated['unit_id'] ?? $aset->unit_id ?? $user->unit_id)
+            : ($user->unit_id ?: ($user->gudang_id ? null : $aset->unit_id));
         $prioritas = $validated['prioritas'] ?? 'SEDANG';
-
         $tiket = $this->terbitkanTiket($kodeTiket, $aset, $unitId, $user, $validated, $prioritas, $fotoPath);
 
         return $this->jsonSuccess([
@@ -96,10 +98,15 @@ class MaintenanceTiketApiController extends ApiController
             return true;
         }
 
-        $isAsetUnitUser = $user->unit_id && (int) $aset->unit_id === (int) $user->unit_id;
-        $isAsetGudangUser = $user->gudang_id && (int) $aset->gudang_id === (int) $user->gudang_id;
+        if ($user->unit_id) {
+            return (bool) ($aset->unit_id && (int) $aset->unit_id === (int) $user->unit_id);
+        }
 
-        return $isAsetUnitUser || $isAsetGudangUser;
+        if ($user->gudang_id) {
+            return (bool) ($aset->gudang_id && (int) $aset->gudang_id === (int) $user->gudang_id);
+        }
+
+        return false;
     }
 
     /**
@@ -279,22 +286,46 @@ class MaintenanceTiketApiController extends ApiController
     public function asetUnitTersedia(Request $request): JsonResponse
     {
         $user = $request->user();
-        $userUnitId = $user->unit_id;
+        if (! $user) {
+            return $this->jsonSuccess([], 'Daftar inventaris sarana unit berhasil dimuat.');
+        }
 
-        $asets = Aset::with(['barang.kategori', 'barang.merek'])
-            ->when($userUnitId, fn ($q) => $q->where('unit_id', $userUnitId))
-            ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN', 'DIPINJAM'])
-            ->orderBy('kode_aset')
+        $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
+
+        if ($isGlobalAdmin) {
+            $query = Aset::with(['barang.kategori', 'barang.merek'])
+                ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN', 'DIPINJAM']);
+        } elseif ($user->unit_id) {
+            $query = Aset::with(['barang.kategori', 'barang.merek'])
+                ->where('unit_id', $user->unit_id)
+                ->whereNull('gudang_id')
+                ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN', 'DIPINJAM']);
+        } elseif ($user->gudang_id) {
+            $query = Aset::with(['barang.kategori', 'barang.merek'])
+                ->where('gudang_id', $user->gudang_id)
+                ->whereIn('status', ['TERSEDIA', 'DIGUNAKAN']);
+        } else {
+            return $this->jsonSuccess([], 'Daftar inventaris sarana unit berhasil dimuat.');
+        }
+
+        $asets = $query->orderBy('kode_aset')
             ->get()
-            ->map(fn ($a) => [
-                'id'         => $a->id,
-                'kode_aset'  => $a->kode_aset,
-                'nama'       => $a->barang?->nama ?? 'Aset Fisik',
-                'nomor_seri' => $a->nomor_seri ?? '-',
-                'kategori'   => $a->barang?->kategori?->nama ?? 'Umum',
-                'kondisi'    => $a->kondisi,
-                'status'     => $a->status,
-            ]);
+            ->map(function ($a) {
+                $isPinjaman = (bool) ($a->status === 'DIPINJAM');
+                $penyediaName = $isPinjaman ? $this->resolvePenyediaAsal($a) : null;
+
+                return [
+                    'id'            => $a->id,
+                    'kode_aset'     => $a->kode_aset,
+                    'nama'          => $a->barang?->nama ?? 'Aset Fisik',
+                    'nomor_seri'    => $a->nomor_seri ?? '-',
+                    'kategori'      => $a->barang?->kategori?->nama ?? 'Umum',
+                    'kondisi'       => $a->kondisi,
+                    'status'        => $a->status,
+                    'is_pinjaman'   => $isPinjaman,
+                    'asal_penyedia' => $penyediaName,
+                ];
+            });
 
         return $this->jsonSuccess($asets, 'Daftar inventaris sarana unit berhasil dimuat.');
     }
