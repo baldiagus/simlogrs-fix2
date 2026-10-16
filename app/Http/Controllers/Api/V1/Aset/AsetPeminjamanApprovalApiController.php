@@ -40,7 +40,7 @@ class AsetPeminjamanApprovalApiController extends ApiController
             ]);
 
         if (! $isGlobalAdmin) {
-            if ($user->hasRole('kepala_unit')) {
+            if ($user->hasRole(['kepala_unit', 'kepala_teknisi'])) {
                 $query->where('tipe_penyedia', 'RUANGAN')->where('unit_penyedia_id', $user->unit_id);
             } elseif ($user->hasRole('kepala_gudang')) {
                 $query->where('tipe_penyedia', 'GUDANG')->where('gudang_penyedia_id', $user->gudang_id);
@@ -97,7 +97,7 @@ class AsetPeminjamanApprovalApiController extends ApiController
         $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
         if (! $isGlobalAdmin) {
             $hasProviderRole = $pinjam->tipe_penyedia === 'RUANGAN'
-                ? $user->hasRole('kepala_unit')
+                ? $user->hasRole(['kepala_unit', 'kepala_teknisi'])
                 : $user->hasRole('kepala_gudang');
             $hasProviderScope = $pinjam->tipe_penyedia === 'RUANGAN'
                 ? (int) $user->unit_id === (int) $pinjam->unit_penyedia_id

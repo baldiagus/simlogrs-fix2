@@ -49,7 +49,7 @@ trait AuthorizesPeminjaman
 
         return match ($aksi) {
             'approve'      => $user->can('update_layanan_unit::approval::peminjaman')
-                && $user->hasRole($p->tipe_penyedia === 'RUANGAN' ? 'kepala_unit' : 'kepala_gudang'),
+                && $user->hasRole($p->tipe_penyedia === 'RUANGAN' ? ['kepala_unit', 'kepala_teknisi'] : 'kepala_gudang'),
             'serah_terima' => $user->canAny(['update_layanan_unit::approval::peminjaman', 'update_layanan_unit::peminjaman::aset']),
             default        => false,
         };
