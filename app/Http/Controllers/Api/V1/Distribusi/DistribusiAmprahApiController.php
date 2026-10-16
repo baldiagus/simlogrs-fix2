@@ -228,15 +228,19 @@ class DistribusiAmprahApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengajukan amprah barang ruangan.', 403);
         }
 
-        $validator = $this->validatorAmprah($request);
-
-        if ($validator->fails()) {
-            return $this->jsonError('Validasi data gagal.', 422, $validator->errors());
+        if (! $user->unit_id && ! $user->gudang_id) {
+            return $this->jsonError('Akun Anda belum terhubung dengan unit ruangan atau gudang. Hubungi administrator.', 403);
         }
 
         $unitId = $user->unit_id;
         if (! $unitId) {
             return $this->jsonError('Anda harus terdaftar pada unit/ruangan untuk mengajukan amprah.', 422);
+        }
+
+        $validator = $this->validatorAmprah($request);
+
+        if ($validator->fails()) {
+            return $this->jsonError('Validasi data gagal.', 422, $validator->errors());
         }
 
         // Auto-route ke gudang yang memiliki stok barang pertama jika gudang_id tidak dikirim

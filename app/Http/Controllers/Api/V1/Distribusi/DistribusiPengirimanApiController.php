@@ -15,6 +15,7 @@ use App\Models\Distribusi\PermintaanDistribusi;
 use App\Models\Distribusi\StokRuangan;
 use App\Models\Master\Unit;
 use App\Services\Distribusi\DistribusiService;
+use App\Services\Distribusi\PickingScope;
 use App\Support\Generator\CodeGenerator;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -40,11 +41,10 @@ class DistribusiPengirimanApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang untuk melihat antrean picking FEFO.', 403);
         }
 
-        $isGlobalPickAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
-        $gudangIds = Gudang::where('kepala_gudang_id', $user->id)->pluck('id');
-        $filterGudang = $gudangIds->isNotEmpty() ? $gudangIds->toArray() : ($user->gudang_id ? [$user->gudang_id] : []);
+        $isGlobalPickAdmin = PickingScope::isGlobalOperator($user);
+        $filterGudang = PickingScope::ownGudangIds($user);
 
-        if (! $isGlobalPickAdmin && ! $filterGudang) {
+        if (! $isGlobalPickAdmin && empty($filterGudang)) {
             return $this->jsonError('Akun Anda tidak terhubung dengan fasilitas gudang.', 403);
         }
 
@@ -88,6 +88,7 @@ class DistribusiPengirimanApiController extends ApiController
 
         $request->validate([
             'permintaan_id' => 'required|exists:permintaan_distribusi,id',
+            'gudang_id'     => 'nullable|exists:gudang,id',
         ]);
 
         $permintaan = PermintaanDistribusi::with(['detail.barang', 'unit'])->find($request->input('permintaan_id'));
@@ -96,10 +97,21 @@ class DistribusiPengirimanApiController extends ApiController
             return $this->jsonError("Permintaan {$permintaan->kode} tidak dalam status siap picking (saat ini: {$permintaan->status}).", 422);
         }
 
-        try {
-            $gudangId = $user->gudang_id ?: $permintaan->gudang_id;
-            $sppb = $service->eksekusiPickingFefo($permintaan, $user, $gudangId);
+        PickingScope::authorize($user, $permintaan);
 
+        try {
+            $isGlobal = PickingScope::isGlobalOperator($user);
+            $ownGudangIds = PickingScope::ownGudangIds($user);
+            $gudangId = ($isGlobal && $request->filled('gudang_id'))
+                ? (int) $request->input('gudang_id')
+                : ($user->gudang_id ?: ($permintaan->gudang_id ?: ($ownGudangIds[0] ?? null)));
+
+            if (! $permintaan->gudang_id && $gudangId) {
+                $permintaan->update(['gudang_id' => $gudangId]);
+                $permintaan->refresh();
+            }
+
+            $sppb = $service->eksekusiPickingFefo($permintaan, $user, $gudangId);
             $sppb->load(['detail.barang', 'detail.stokBatch', 'unit']);
 
             return $this->jsonSuccess([

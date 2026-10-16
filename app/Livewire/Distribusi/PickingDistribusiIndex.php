@@ -13,6 +13,7 @@ use App\Models\Master\Gudang;
 use App\Models\Distribusi\PengirimanBarang;
 use App\Models\Distribusi\PermintaanDistribusi;
 use App\Services\Distribusi\DistribusiService;
+use App\Services\Distribusi\PickingScope;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -256,17 +257,7 @@ class PickingDistribusiIndex extends Component
      */
     protected function authorizePickingScope(PermintaanDistribusi $permintaan): void
     {
-        if ($this->isGlobalOperator()) {
-            return;
-        }
-
-        $gudangIds = $this->ownGudangIds();
-        abort_unless($gudangIds, 403, 'Akun Anda tidak terhubung dengan fasilitas gudang.');
-        abort_unless(
-            ! $permintaan->gudang_id || in_array((int) $permintaan->gudang_id, $gudangIds, true),
-            403,
-            'Anda hanya berhak memproses picking untuk gudang Anda sendiri.'
-        );
+        PickingScope::authorize(auth()->user(), $permintaan);
     }
 
     /**

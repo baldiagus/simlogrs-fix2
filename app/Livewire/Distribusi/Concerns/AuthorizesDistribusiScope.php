@@ -4,6 +4,7 @@ namespace App\Livewire\Distribusi\Concerns;
 
 use App\Models\Master\Gudang;
 use App\Models\Master\Unit;
+use App\Services\Distribusi\PickingScope;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -19,7 +20,7 @@ trait AuthorizesDistribusiScope
      */
     protected function isGlobalOperator(): bool
     {
-        return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik']);
+        return PickingScope::isGlobalOperator(auth()->user());
     }
 
     /** Pembaca global read-only (ADR 0001): auditor/manajemen via permission view*; bukan operator. */
@@ -52,18 +53,7 @@ trait AuthorizesDistribusiScope
      */
     protected function ownGudangIds(): array
     {
-        $user = auth()->user();
-        if (! $user) {
-            return [];
-        }
-
-        return Gudang::where('kepala_gudang_id', $user->id)->pluck('id')
-            ->push($user->gudang_id)
-            ->filter()
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
+        return PickingScope::ownGudangIds(auth()->user());
     }
 
     /**
