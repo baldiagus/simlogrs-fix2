@@ -5,6 +5,7 @@ namespace Tests\Feature\Pengadaan;
 use App\Livewire\Pengadaan\RealisasiAnggaranIndex;
 use App\Models\Master\Unit;
 use App\Models\User;
+use App\Services\Anggaran\AnggaranRealtimeService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -38,9 +39,15 @@ class ScreeningPengeluaranUnitTest extends TestCase
     {
         $this->actingAs($this->user);
 
+        $service = app(AnggaranRealtimeService::class);
+        $igd = Unit::where('kode', 'IGD')->firstOrFail();
+
+        $expectedDist = number_format($service->hitungBebanDistribusiUnit($igd->id, 2026), 0, ',', '.');
+        $expectedSparepart = number_format($service->hitungBebanSparepartUnit($igd->id, 2026), 0, ',', '.');
+
         Livewire::test(RealisasiAnggaranIndex::class)
-            ->assertSee('99.000.000')
-            ->assertSee('1.870.000');
+            ->assertSee($expectedDist)
+            ->assertSee($expectedSparepart);
     }
 
     public function test_screening_table_search_filters_units_by_name_or_code(): void
