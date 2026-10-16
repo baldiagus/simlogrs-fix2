@@ -408,6 +408,14 @@ class ApprovalController extends ApiController
                     }
                 }
                 foreach ($items as $item) {
+                    $detail = $amprah->detail->firstWhere('id', (int) $item['id']);
+                    $disetujui = (int) ($item['jumlah_disetujui'] ?? 0);
+                    $diminta = (int) $detail->jumlah;
+                    if ($disetujui > $diminta) {
+                        return $this->jsonError("Jumlah disetujui ({$disetujui}) tidak boleh melebihi jumlah yang diminta ({$diminta}).", 422);
+                    }
+                }
+                foreach ($items as $item) {
                     $amprah->detail->firstWhere('id', (int) $item['id'])->update(['jumlah_disetujui' => (int) $item['jumlah_disetujui']]);
                 }
             }

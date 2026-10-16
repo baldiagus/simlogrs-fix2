@@ -7,11 +7,15 @@ use App\Http\Controllers\Api\ApiController;
 use App\Models\Aset\Aset;
 use App\Models\Master\Barang;
 use App\Models\Master\Gudang;
+use App\Models\Distribusi\PengirimanBarang;
 use App\Models\Distribusi\PermintaanDistribusi;
 use App\Models\Distribusi\PermintaanDistribusiDetail;
-use App\Models\Persediaan\StokBatch;
 use App\Models\Master\Unit;
+use App\Models\Persediaan\StokBatch;
+use App\Models\User;
+use App\Services\Distribusi\PickingScope;
 use App\Support\Generator\CodeGenerator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -85,14 +89,8 @@ class DistribusiAmprahApiController extends ApiController
             return $this->jsonError('Unauthenticated.', 401);
         }
 
-        $isGlobalAdmin = $user->hasRole('super_admin') ||
-            $user->hasRole('admin_logistik') ||
-            $user->can('page_AdminLogistikDashboard');
-
         $filterStatus = $request->query('status'); // DIAJUKAN, DISETUJUI_KARU, DISETUJUI_GUDANG, SELESAI, DITOLAK
         $filterUrgensi = $request->query('urgensi');
-
-        $effectiveUnitId = $user->unit_id ?: ($user->hasRole('pengadaan') ? Unit::where('kode', 'LOGISTIK')->value('id') : null);
 
         $query = PermintaanDistribusi::query()
             ->with([
@@ -102,21 +100,16 @@ class DistribusiAmprahApiController extends ApiController
                 'penyetuju:id,nama',
                 'detail.barang:id,kode,nama,satuan_id',
                 'detail.barang.satuan:id,nama',
+                'pengiriman:id,permintaan_distribusi_id,status',
             ])
-            ->when($effectiveUnitId && ! $isGlobalAdmin, fn ($q) => $q->where('unit_id', $effectiveUnitId))
+            ->tap(fn ($q) => $this->applyReadScope($q, $user))
             ->when($filterStatus, fn ($q) => $q->where('status', $filterStatus))
             ->when($filterUrgensi, fn ($q) => $q->where('urgensi', $filterUrgensi));
 
         $list = $query->latest('id')
             ->limit(100)
             ->get()
-            ->map(function ($item) use ($user, $isGlobalAdmin) {
-                $canCancel = $item->status === StatusPermintaanDistribusi::Diajukan->value && (
-                    (int) $item->diajukan_oleh === (int) $user->id ||
-                    ($user->unit_id && (int) $user->unit_id === (int) $item->unit_id && $user->hasRole('kepala_unit')) ||
-                    $isGlobalAdmin
-                );
-
+            ->map(function ($item) use ($user) {
                 return [
                     'id'                 => $item->id,
                     'kode'               => $item->kode,
@@ -127,7 +120,8 @@ class DistribusiAmprahApiController extends ApiController
                     'urgensi'            => $item->urgensi,
                     'status'             => $item->status,
                     'catatan'            => $item->catatan,
-                    'can_cancel'         => $canCancel,
+                    'can_cancel'         => $this->canCancel($user, $item),
+                    'can_tutup_sisa'     => $this->canTutupSisa($user, $item),
                     'jumlah_item'        => $item->detail->count(),
                     'items'              => $item->detail->map(fn ($d) => [
                         'id'               => $d->id,
@@ -137,6 +131,7 @@ class DistribusiAmprahApiController extends ApiController
                         'satuan'           => $d->barang?->satuan?->nama ?? 'Pcs',
                         'jumlah_diminta'   => (int) $d->jumlah,
                         'jumlah_disetujui' => $d->jumlah_disetujui !== null ? (int) $d->jumlah_disetujui : (int) $d->jumlah,
+                        'stok_tersedia'    => $this->getStokTersediaGudang((int) $d->barang_id, $item->gudang_id ? (int) $item->gudang_id : null, (int) $item->id),
                         'catatan'          => $d->catatan,
                     ]),
                 ];
@@ -152,16 +147,9 @@ class DistribusiAmprahApiController extends ApiController
     public function detailAmprah(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        $isGlobalAdmin = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen', 'kepala_gudang', 'petugas_gudang']) ||
-            $user->can('view_any_layanan_unit::permintaan::barang') ||
-            $user->can('view_any_gudang_stok::distribusi::approval') ||
-            $user->can('page_KepalaGudangDashboard') ||
-            $user->can('page_GudangDashboard') ||
-            $user->can('page_AdminLogistikDashboard') ||
-            $user->can('page_AuditorDashboard') ||
-            $user->can('page_ManajemenDashboard')
-        );
+        if (! $user) {
+            return $this->jsonError('Unauthenticated.', 401);
+        }
 
         $amprah = PermintaanDistribusi::with([
             'unit',
@@ -176,19 +164,9 @@ class DistribusiAmprahApiController extends ApiController
             return $this->jsonError('Data amprah tidak ditemukan.', 404);
         }
 
-        $isUnitOwner = $user && (
-            ($user->unit_id && (int) $user->unit_id === (int) $amprah->unit_id) ||
-            ((int) $amprah->diajukan_oleh === (int) $user->id)
-        );
-
-        if (! $isGlobalAdmin && ! $isUnitOwner) {
-            return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat dokumen amprah unit lain.', 403);
+        if (! $this->canReadScoped($user, $amprah->unit_id, $amprah->gudang_id)) {
+            return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat dokumen amprah di luar unit/gudang Anda.', 403);
         }
-        $canCancel = $amprah->status === StatusPermintaanDistribusi::Diajukan->value && (
-            (int) $amprah->diajukan_oleh === (int) $user->id ||
-            ($user->unit_id && (int) $user->unit_id === (int) $amprah->unit_id && $user->hasRole('kepala_unit')) ||
-            $isGlobalAdmin
-        );
 
         return $this->jsonSuccess([
             'id'                 => $amprah->id,
@@ -200,7 +178,8 @@ class DistribusiAmprahApiController extends ApiController
             'urgensi'            => $amprah->urgensi,
             'status'             => $amprah->status,
             'catatan'            => $amprah->catatan,
-            'can_cancel'         => $canCancel,
+            'can_cancel'         => $this->canCancel($user, $amprah),
+            'can_tutup_sisa'     => $this->canTutupSisa($user, $amprah),
             'items'              => $amprah->detail->map(fn ($d) => [
                 'id'               => $d->id,
                 'barang_id'        => $d->barang_id,
@@ -209,6 +188,7 @@ class DistribusiAmprahApiController extends ApiController
                 'satuan'           => $d->barang?->satuan?->nama ?? 'Pcs',
                 'jumlah_diminta'   => (int) $d->jumlah,
                 'jumlah_disetujui' => $d->jumlah_disetujui !== null ? (int) $d->jumlah_disetujui : (int) $d->jumlah,
+                'stok_tersedia'    => $this->getStokTersediaGudang((int) $d->barang_id, $amprah->gudang_id ? (int) $amprah->gudang_id : null, (int) $amprah->id),
                 'catatan'          => $d->catatan,
             ]),
         ], 'Detail amprah berhasil dimuat.');
@@ -324,36 +304,260 @@ class DistribusiAmprahApiController extends ApiController
     }
 
     /**
-     * Batalkan dokumen amprah yang masih berstatus DIAJUKAN.
+     * Batalkan dokumen amprah yang masih berstatus DIAJUKAN atau DISETUJUI_KARU.
      * POST /v1/distribusi/amprah/{id}/batal
      */
     public function batalAmprah(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
+        if (! $user) {
+            return $this->jsonError('Unauthenticated.', 401);
+        }
+
         $amprah = PermintaanDistribusi::find($id);
 
         if (! $amprah) {
             return $this->jsonError('Data amprah tidak ditemukan.', 404);
         }
 
-        if ($amprah->status !== StatusPermintaanDistribusi::Diajukan->value) {
-            return $this->jsonError("Hanya amprah berstatus DIAJUKAN yang dapat dibatalkan (saat ini: {$amprah->status}).", 422);
-        }
-
-        $isGlobalAdmin = $user->hasRole('super_admin') || $user->hasRole('admin_logistik');
-        $canCancel = (int) $amprah->diajukan_oleh === (int) $user->id ||
-            ($user->unit_id && (int) $user->unit_id === (int) $amprah->unit_id && $user->hasRole('kepala_unit')) ||
-            $isGlobalAdmin;
-
-        if (! $canCancel) {
+        if (! $this->canRequesterAct($user, $amprah->unit_id)) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk membatalkan amprah ini.', 403);
         }
 
+        $canBatal = in_array($amprah->status, StatusPermintaanDistribusi::dapatDibatalkan(), true)
+            && ! PengirimanBarang::where('permintaan_distribusi_id', $amprah->id)->where('status', '!=', 'DIBATALKAN')->exists();
+
+        if (! $canBatal) {
+            return $this->jsonError('Permintaan amprah ini sudah diproses dan tidak dapat dibatalkan.', 422);
+        }
+
+        $catatanAwal = $amprah->catatan ? $amprah->catatan . "\n" : '';
         $amprah->update([
             'status'  => StatusPermintaanDistribusi::Ditolak->value,
-            'catatan' => ($amprah->catatan ? $amprah->catatan . "\n" : '') . '[Dibatalkan oleh pemohon pada ' . now()->format('d/m/Y H:i') . ']',
+            'catatan' => $catatanAwal . '[Dibatalkan oleh pemohon]',
         ]);
 
-        return $this->jsonSuccess(null, "Permintaan amprah {$amprah->kode} berhasil dibatalkan.");
+        return $this->jsonSuccess([
+            'kode'   => $amprah->kode,
+            'status' => $amprah->status,
+        ], "Permintaan amprah {$amprah->kode} berhasil dibatalkan.");
+    }
+
+    /**
+     * Tutup sisa hutang komoditas amprah ruangan yang berstatus DIKIRIM_SEBAGIAN.
+     * POST /v1/distribusi/amprah/{id}/tutup-sisa
+     */
+    public function tutupSisa(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return $this->jsonError('Unauthenticated.', 401);
+        }
+
+        return DB::transaction(function () use ($user, $id) {
+            $amprah = PermintaanDistribusi::lockForUpdate()->find($id);
+
+            if (! $amprah) {
+                return $this->jsonError('Data amprah tidak ditemukan.', 404);
+            }
+
+            if (! $this->canRequesterAct($user, $amprah->unit_id)) {
+                return $this->jsonError('Anda tidak memiliki hak akses untuk menutup sisa permintaan dari unit ini.', 403);
+            }
+
+            if ($amprah->status !== StatusPermintaanDistribusi::DikirimSebagian->value) {
+                return $this->jsonError('Hanya permintaan dengan status DIKIRIM_SEBAGIAN yang dapat ditutup sisa hutangnya.', 422);
+            }
+
+            $catatanAwal = $amprah->catatan ? $amprah->catatan . "\n" : '';
+            $amprah->update([
+                'status'  => StatusPermintaanDistribusi::Selesai->value,
+                'catatan' => $catatanAwal . '[Sisa hutang ditutup oleh pemohon pada ' . now()->format('d/m/Y H:i') . ']',
+            ]);
+
+            return $this->jsonSuccess([
+                'kode'   => $amprah->kode,
+                'status' => $amprah->status,
+            ], "Sisa hutang amprah {$amprah->kode} berhasil ditutup.");
+        });
+    }
+
+    private array $stokTersediaCache = [];
+
+    /**
+     * Operator global (super_admin / admin_logistik) melewati pembatasan gudang & unit.
+     */
+    private function isGlobalOperator(?User $user): bool
+    {
+        return PickingScope::isGlobalOperator($user);
+    }
+
+    /**
+     * Pembaca global read-only: auditor/manajemen (ADR 0001).
+     */
+    private function isGlobalReader(?User $user): bool
+    {
+        return (bool) $user?->hasRole(['auditor', 'manajemen']);
+    }
+
+    /**
+     * Ambil daftar ID unit yang berada dalam wewenang pengguna saat ini.
+     */
+    private function ownUnitIds(?User $user): array
+    {
+        if (! $user) {
+            return [];
+        }
+
+        return Unit::where('kepala_unit_id', $user->id)->pluck('id')
+            ->push($user->unit_id)
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Ambil daftar ID gudang yang berada dalam wewenang pengguna saat ini.
+     */
+    private function ownGudangIds(?User $user): array
+    {
+        return PickingScope::ownGudangIds($user);
+    }
+
+    /**
+     * Scope baca: unit milik pengguna, lalu gudang miliknya; tanpa penempatan = pembaca global via permission view*.
+     * Mereplikasi logika AuthorizesDistribusiScope::applyReadScope.
+     */
+    private function applyReadScope(Builder $query, ?User $user): Builder
+    {
+        if ($this->isGlobalOperator($user)) {
+            return $query;
+        }
+
+        $unitIds = $this->ownUnitIds($user);
+        $gudangIds = $this->ownGudangIds($user);
+
+        if ($unitIds) {
+            return $query->whereIn('unit_id', $unitIds);
+        }
+
+        if ($gudangIds) {
+            return $query->whereIn('gudang_id', $gudangIds);
+        }
+
+        if ($unitIds || $gudangIds || ! $this->isGlobalReader($user)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query;
+    }
+
+    /**
+     * Periksa hak akses baca data berdasarkan cakupan unit atau gudang pengguna.
+     * Mereplikasi logika AuthorizesDistribusiScope::canReadScoped.
+     */
+    private function canReadScoped(?User $user, ?int $unitId, ?int $gudangId): bool
+    {
+        if ($this->isGlobalOperator($user)) {
+            return true;
+        }
+
+        $unitIds = $this->ownUnitIds($user);
+        $gudangIds = $this->ownGudangIds($user);
+
+        if ($unitIds) {
+            return $unitId && in_array((int) $unitId, $unitIds, true);
+        }
+
+        if ($gudangIds) {
+            return $gudangId && in_array((int) $gudangId, $gudangIds, true);
+        }
+
+        return ! $unitIds && ! $gudangIds && $this->isGlobalReader($user);
+    }
+
+    /**
+     * Pembatalan/penutupan amprah oleh pemohon: permission pengajuan amprah dan unit milik sendiri / global operator.
+     * Mereplikasi logika PermintaanBarangIndex::canRequesterAct.
+     */
+    private function canRequesterAct(?User $user, ?int $unitId): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return $user->canAny(['create_layanan_unit::permintaan::barang', 'update_layanan_unit::permintaan::barang'])
+            && ($this->isGlobalOperator($user) || ($user->unit_id && (int) $user->unit_id === (int) $unitId));
+    }
+
+    /**
+     * Dapatkan jumlah stok barang yang saat ini tersedia di gudang.
+     * Mereplikasi formula DistribusiApprovalIndex::getStokTersediaGudang.
+     */
+    private function getStokTersediaGudang(int $barangId, ?int $gudangId, ?int $excludePermintaanId = null): int
+    {
+        $cacheKey = "{$barangId}_{$gudangId}_{$excludePermintaanId}";
+        if (isset($this->stokTersediaCache[$cacheKey])) {
+            return $this->stokTersediaCache[$cacheKey];
+        }
+
+        $stokQuery = StokBatch::where('barang_id', $barangId)
+            ->where('status', 'AKTIF')
+            ->where('jumlah', '>', 0)
+            ->where(function ($q) {
+                $q->whereNull('tanggal_kedaluwarsa')
+                    ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
+            });
+
+        if ($gudangId) {
+            $stokQuery->where('gudang_id', $gudangId);
+        }
+
+        $stokFisik = (int) $stokQuery->sum('jumlah');
+
+        $stokCommitted = (int) PermintaanDistribusiDetail::where('barang_id', $barangId)
+            ->whereHas('permintaanDistribusi', function ($q) use ($gudangId, $excludePermintaanId) {
+                $q->where('status', StatusPermintaanDistribusi::DisetujuiGudang->value)
+                    ->when($gudangId, fn ($sub) => $sub->where('gudang_id', $gudangId))
+                    ->when($excludePermintaanId, fn ($sub) => $sub->where('id', '!=', $excludePermintaanId));
+            })
+            ->sum('jumlah_disetujui');
+
+        return $this->stokTersediaCache[$cacheKey] = max(0, $stokFisik - $stokCommitted);
+    }
+
+    /**
+     * Periksa apakah permohonan amprah dapat dibatalkan oleh pengguna saat ini.
+     * Web rule: status DIAJUKAN/DISETUJUI_KARU, tidak ada SPPB aktif, dan requester diizinkan.
+     */
+    private function canCancel(?User $user, PermintaanDistribusi $amprah): bool
+    {
+        if (! in_array($amprah->status, StatusPermintaanDistribusi::dapatDibatalkan(), true)) {
+            return false;
+        }
+
+        if (! $this->canRequesterAct($user, $amprah->unit_id)) {
+            return false;
+        }
+
+        if ($amprah->relationLoaded('pengiriman')) {
+            return ! $amprah->pengiriman->contains(fn ($p) => $p->status !== 'DIBATALKAN');
+        }
+
+        return ! PengirimanBarang::where('permintaan_distribusi_id', $amprah->id)
+            ->where('status', '!=', 'DIBATALKAN')
+            ->exists();
+    }
+
+    /**
+     * Periksa apakah sisa hutang amprah dapat ditutup oleh pengguna saat ini.
+     * Web rule: status DIKIRIM_SEBAGIAN dan requester diizinkan.
+     */
+    private function canTutupSisa(?User $user, PermintaanDistribusi $amprah): bool
+    {
+        return $amprah->status === StatusPermintaanDistribusi::DikirimSebagian->value
+            && $this->canRequesterAct($user, $amprah->unit_id);
     }
 }

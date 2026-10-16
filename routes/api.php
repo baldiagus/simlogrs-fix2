@@ -129,6 +129,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/distribusi/amprah/{id}', [DistribusiAmprahApiController::class, 'detailAmprah']);
         Route::post('/distribusi/amprah', [DistribusiAmprahApiController::class, 'simpanAmprah']);
         Route::post('/distribusi/amprah/{id}/batal', [DistribusiAmprahApiController::class, 'batalAmprah']);
+        Route::post('/distribusi/amprah/{id}/tutup-sisa', [DistribusiAmprahApiController::class, 'tutupSisa']);
         Route::get('/distribusi/antrean-picking', [DistribusiPengirimanApiController::class, 'antreanPicking']);
         Route::post('/distribusi/picking', [DistribusiPengirimanApiController::class, 'eksekusiPicking']);
         Route::get('/distribusi/sppb-inbound', [DistribusiPengirimanApiController::class, 'sppbInbound']);
