@@ -7,11 +7,10 @@ use App\Enums\Pengadaan\StatusPesananPembelian;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Master\Barang;
 use App\Models\Pengadaan\PermintaanPengadaan;
-use App\Models\Pengadaan\PermintaanPengadaanDetail;
-use App\Support\Generator\CodeGenerator;
+use App\Models\User;
+use App\Services\Pengadaan\PengajuanPrService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -97,12 +96,15 @@ class PengadaanPrApiController extends ApiController
     /**
      * Pengajuan dokumen Permintaan Pengadaan (PR) baru dari gawai mobile.
      * POST /v1/pengadaan/pr
+     *
+     * Otorisasi, scope pemohon, dan status awal mengikuti web (PermintaanPengadaanIndex::save)
+     * melalui PengajuanPrService. Field klien `status`/`auto_approve` tidak pernah dibaca.
      */
-    public function simpanPr(Request $request): JsonResponse
+    public function simpanPr(Request $request, PengajuanPrService $pengajuan): JsonResponse
     {
         $user = $request->user();
 
-        if (! $user->can('create_pengadaan::permintaan::pengadaan') && ! $user->hasRole(['super_admin', 'admin_logistik'])) {
+        if (! $user->can('create_pengadaan::permintaan::pengadaan')) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk mengajukan permintaan pengadaan.', 403);
         }
 
@@ -142,8 +144,16 @@ class PengadaanPrApiController extends ApiController
             $gudangId = null;
         }
 
+        $unitId = $unitId ? (int) $unitId : null;
+        $gudangId = $gudangId ? (int) $gudangId : null;
+
+        // Scope diperiksa setelah default unit/gudang diterapkan, sama seperti web.
+        if (! $pengajuan->bolehMengajukanUntuk($user, $unitId, $gudangId)) {
+            return $this->jsonError(PengajuanPrService::PESAN_DI_LUAR_SCOPE, 403);
+        }
+
         try {
-            $pr = $this->buatPr($request, $user, $unitId, $gudangId);
+            $pr = $this->buatPr($request, $pengajuan, $user, $unitId, $gudangId);
 
             return $this->jsonSuccess([
                 'id'      => $pr->id,
@@ -175,31 +185,24 @@ class PengadaanPrApiController extends ApiController
         ]);
     }
 
-    private function buatPr(Request $request, $user, $unitId, $gudangId): PermintaanPengadaan
+    private function buatPr(Request $request, PengajuanPrService $pengajuan, User $user, ?int $unitId, ?int $gudangId): PermintaanPengadaan
     {
-        return DB::transaction(function () use ($request, $user, $unitId, $gudangId) {
-            $kodePr = CodeGenerator::generatePr();
+        // Hanya field item yang dikenal yang diteruskan; status awal diputuskan service.
+        $items = array_map(fn ($row) => [
+            'barang_id' => (int) $row['barang_id'],
+            'jumlah'    => (int) $row['jumlah'],
+            'catatan'   => $row['catatan'] ?? null,
+        ], array_values($request->input('items')));
 
-            $prHeader = PermintaanPengadaan::create([
-                'kode'               => $kodePr,
-                'unit_id'            => $unitId,
-                'gudang_id'          => $gudangId,
-                'diajukan_oleh'      => $user->id,
-                'tanggal_permintaan' => now()->toDateString(),
-                'urgensi'            => $request->input('urgensi'),
-                'status'             => StatusPermintaanPengadaan::Diajukan->value,
-                'catatan'            => $request->input('catatan'),
-            ]);
-            foreach ($request->input('items') as $row) {
-                PermintaanPengadaanDetail::create([
-                    'permintaan_pengadaan_id' => $prHeader->id,
-                    'barang_id'               => $row['barang_id'],
-                    'jumlah'                  => $row['jumlah'],
-                    'catatan'                 => $row['catatan'] ?? null,
-                ]);
-            }
+        $pr = $pengajuan->ajukan(
+            $user,
+            $unitId,
+            $gudangId,
+            $request->input('urgensi'),
+            $request->input('catatan'),
+            $items,
+        );
 
-            return $prHeader->load(['unit', 'gudang', 'pengaju', 'detail.barang']);
-        });
+        return $pr->load(['unit', 'gudang', 'pengaju', 'detail.barang']);
     }
 }

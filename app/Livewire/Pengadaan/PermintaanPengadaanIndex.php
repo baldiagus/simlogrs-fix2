@@ -3,6 +3,7 @@
 namespace App\Livewire\Pengadaan;
 
 use App\Enums\Pengadaan\StatusPermintaanPengadaan;
+use App\Services\Pengadaan\PengajuanPrService;
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasPortalLayout;
 use App\Livewire\Concerns\HasTableFilters;
@@ -11,10 +12,8 @@ use App\Livewire\Pengadaan\Concerns\HasAksiPr;
 use App\Models\Master\Barang;
 use App\Models\Master\Gudang;
 use App\Models\Pengadaan\PermintaanPengadaan;
-use App\Models\Pengadaan\PermintaanPengadaanDetail;
 use App\Models\Master\Unit;
 use App\Support\Generator\CodeGenerator;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -89,7 +88,7 @@ class PermintaanPengadaanIndex extends Component
      */
     private function isGlobalAdmin(): bool
     {
-        return (bool) auth()->user()?->hasRole(['super_admin', 'admin_logistik']);
+        return app(PengajuanPrService::class)->isGlobalAdmin(auth()->user());
     }
 
     /**
@@ -106,10 +105,7 @@ class PermintaanPengadaanIndex extends Component
      */
     private function ownsScope(?int $unitId, ?int $gudangId): bool
     {
-        $user = auth()->user();
-
-        return ($unitId && $user?->unit_id && (int) $user->unit_id === (int) $unitId)
-            || ($gudangId && $user?->gudang_id && (int) $user->gudang_id === (int) $gudangId);
+        return app(PengajuanPrService::class)->ownsScope(auth()->user(), $unitId, $gudangId);
     }
 
     /**
@@ -127,20 +123,7 @@ class PermintaanPengadaanIndex extends Component
      */
     private function isWorkflowLeaderFor(?int $unitId, ?int $gudangId): bool
     {
-        $user = auth()->user();
-        if (! $user) {
-            return false;
-        }
-
-        if ($gudangId) {
-            return $user->hasRole('kepala_gudang') && $user->gudang_id && (int) $user->gudang_id === (int) $gudangId;
-        }
-
-        if ($unitId) {
-            return $user->hasRole(['kepala_unit', 'kepala_teknisi']) && $user->unit_id && (int) $user->unit_id === (int) $unitId;
-        }
-
-        return false;
+        return app(PengajuanPrService::class)->isWorkflowLeaderFor(auth()->user(), $unitId, $gudangId);
     }
 
     /**
@@ -219,48 +202,23 @@ class PermintaanPengadaanIndex extends Component
             'items.*.jumlah.min'         => 'Kuantitas barang minimal 1 unit.',
         ]);
 
-        $kodeFinal = $this->kode ?: CodeGenerator::generatePr();
-
-        $user = auth()->user();
-        $isGlobalAdmin = $this->isGlobalAdmin();
-
-        // Pemohon non-global hanya boleh mengajukan atas nama unit/gudang miliknya sendiri.
-        abort_unless(
-            $isGlobalAdmin || $this->ownsScope($this->unit_id, $this->gudang_id),
-            403,
-            'Anda hanya dapat mengajukan permintaan pengadaan untuk unit/gudang Anda sendiri.'
+        // Scope pemohon, auto-otorisasi kepala, dan penyimpanan header+detail ada di service bersama
+        // (dipakai juga oleh API mobile) agar aturan web dan mobile tidak berbeda.
+        $pr = app(PengajuanPrService::class)->ajukan(
+            auth()->user(),
+            $this->unit_id,
+            $this->gudang_id,
+            $this->urgensi,
+            $this->catatan,
+            array_map(fn ($item) => [
+                'barang_id' => $item['barang_id'],
+                'jumlah'    => $item['jumlah'],
+            ], $this->items),
+            $this->kode,
         );
 
-        // Auto-otorisasi tahap kepala membutuhkan permission otorisasi DAN role jabatan yang sesuai.
-        $isLeader = $user->can('update_pengadaan::permintaan::pengadaan')
-            && ($isGlobalAdmin || $this->isWorkflowLeaderFor($this->unit_id, $this->gudang_id));
-
-        $initialStatus = $isLeader ? StatusPermintaanPengadaan::DiteruskanKePengadaan->value : StatusPermintaanPengadaan::Diajukan->value;
-        $disetujuiOleh = $isLeader ? $user->id : null;
-
-        // Header dan detail PR satu transaksi (ADR 0002 B).
-        DB::transaction(function () use ($kodeFinal, $user, $disetujuiOleh, $initialStatus, $isLeader) {
-            $pr = PermintaanPengadaan::create([
-                'kode'               => $kodeFinal,
-                'unit_id'            => $this->unit_id,
-                'gudang_id'          => $this->gudang_id,
-                'diajukan_oleh'      => $user->id,
-                'disetujui_oleh'     => $disetujuiOleh,
-                'tanggal_permintaan' => now()->toDateString(),
-                'urgensi'            => $this->urgensi,
-                'status'             => $initialStatus,
-                'catatan'            => $this->catatan ?: null,
-            ]);
-
-            foreach ($this->items as $item) {
-                PermintaanPengadaanDetail::create([
-                    'permintaan_pengadaan_id' => $pr->id,
-                    'barang_id'              => $item['barang_id'],
-                    'jumlah'                 => $item['jumlah'],
-                    'jumlah_disetujui'       => $isLeader ? $item['jumlah'] : null,
-                ]);
-            }
-        });
+        $kodeFinal = $pr->kode;
+        $isLeader = $pr->status === StatusPermintaanPengadaan::DiteruskanKePengadaan->value;
 
         $this->showModal = false;
         $toastMsg = $isLeader
