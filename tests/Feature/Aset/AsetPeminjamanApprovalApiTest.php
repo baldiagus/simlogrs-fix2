@@ -113,6 +113,47 @@ class AsetPeminjamanApprovalApiTest extends TestCase
         );
     }
 
+    public function test_kepala_teknisi_of_borrowing_unit_can_extend_loan(): void
+    {
+        $this->peminjaman->update([
+            'status' => StatusPeminjaman::Dipinjam->value,
+        ]);
+
+        $kepalaTeknisiPeminjam = $this->createUser('karu-tek-peminjam', $this->unitPeminjam->id);
+        $kepalaTeknisiPeminjam->assignRole('kepala_teknisi');
+
+        $tglBaru = now()->addDays(5)->toDateString();
+
+        $response = $this->actingAs($kepalaTeknisiPeminjam)
+            ->postJson("/api/v1/aset/peminjaman/{$this->peminjaman->id}/perpanjang", [
+                'tanggal_kembali_baru' => $tglBaru,
+                'alasan'               => 'Perpanjangan operasional unit peminjam',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('sukses', true);
+
+        $this->assertSame($tglBaru, $this->peminjaman->fresh()->tanggal_kembali_rencana->toDateString());
+    }
+
+    public function test_kepala_teknisi_of_another_unit_is_denied_extending_loan(): void
+    {
+        $this->peminjaman->update([
+            'status' => StatusPeminjaman::Dipinjam->value,
+        ]);
+
+        $tglBaru = now()->addDays(5)->toDateString();
+
+        $response = $this->actingAs($this->kepalaTeknisiLain)
+            ->postJson("/api/v1/aset/peminjaman/{$this->peminjaman->id}/perpanjang", [
+                'tanggal_kembali_baru' => $tglBaru,
+                'alasan'               => 'Perpanjangan dari unit lain',
+            ]);
+
+        $response->assertForbidden();
+        $this->assertNotSame($tglBaru, $this->peminjaman->fresh()->tanggal_kembali_rencana->toDateString());
+    }
+
     private function createUser(string $prefix, ?int $unitId): User
     {
         $uniq = uniqid();

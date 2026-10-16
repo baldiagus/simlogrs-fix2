@@ -266,8 +266,9 @@ class AsetPeminjamanApiController extends ApiController
         }
 
         $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
-        $canExtend = $isGlobalAdmin ||
-            ((int) $pinjam->diajukan_oleh === (int) $user->id && $user->can('update_layanan_unit::peminjaman::aset'));
+        $isUnitLeader = $user->unit_id && (int) $user->unit_id === (int) $pinjam->unit_id && $user->hasRole(['kepala_unit', 'kepala_teknisi']);
+        $isRequesterWithPerm = (int) $pinjam->diajukan_oleh === (int) $user->id && $user->can('update_layanan_unit::peminjaman::aset');
+        $canExtend = $isGlobalAdmin || $isUnitLeader || $isRequesterWithPerm;
 
         if (! $canExtend) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk memperpanjang peminjaman ini.', 403);
