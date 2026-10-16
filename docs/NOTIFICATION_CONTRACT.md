@@ -86,6 +86,10 @@ Semua nilai string. Backend mengirim **notification + data** agar tampil walau a
 | `PINJAM_JATUH_TEMPO` | cron H-1 sebelum `tanggal_kembali_rencana` | peminjam + penyetuju | Peminjaman Saya |
 | `PINJAM_TERLAMBAT` | cron harian: lewat `tanggal_kembali_rencana` | peminjam + penyetuju | Peminjaman Saya |
 | `SPK_PREVENTIF` | cron preventif menugaskan teknisi | `teknisi_id` | Detail SPK |
+| `CAPA_BARU` | `TemuanAudit` dibuat | Karu `unit_id` temuan atau `kepala_gudang` `gudang_id` temuan (auditor pembuat tidak) | Temuan CAPA (auditee) |
+| `CAPA_TINDAK_LANJUT` | `TemuanAudit.status_capa` → `In Review` | `auditor_id` temuan | Audit SPI, tab Temuan & CAPA |
+| `CAPA_DIEVALUASI` | `TemuanAudit.status_capa` `In Review` → `Closed` / `In Progress` | Karu `unit_id` / `kepala_gudang` `gudang_id` temuan | Temuan CAPA (auditee) |
+| `CAPA_JATUH_TEMPO` | cron harian 07:30: `status_capa` = `In Progress` dan `due_date_capa` besok (H-1) atau sudah lewat (judul/pesan berbeda) | Karu `unit_id` / `kepala_gudang` `gudang_id` temuan; dedup harian per pengguna+referensi | Temuan CAPA (auditee) |
 
 `referensi_id` = id baris dokumen yang dimaksud.
 

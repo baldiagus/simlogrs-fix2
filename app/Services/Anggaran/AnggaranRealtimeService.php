@@ -128,7 +128,8 @@ class AnggaranRealtimeService
      */
     public function getTopAsetBiayaPemeliharaan(string|int $tahun = '2026', int $limit = 5): Collection
     {
-        return Aset::select('aset.*')
+        return Aset::with(['barang', 'unit'])
+            ->select('aset.*')
             ->join('permintaan_maintenance', 'aset.id', '=', 'permintaan_maintenance.aset_id')
             ->join('suku_cadang_maintenance', 'permintaan_maintenance.id', '=', 'suku_cadang_maintenance.permintaan_maintenance_id')
             ->whereYear('suku_cadang_maintenance.dibuat_pada', $tahun)

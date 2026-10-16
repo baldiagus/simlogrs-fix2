@@ -36,7 +36,7 @@ abstract class ObserverNotifikasi
         }
     }
 
-    private function aman(Model $model, bool $baru): void
+    protected function aman(Model $model, bool $baru): void
     {
         try {
             $this->tangani($model, $baru);

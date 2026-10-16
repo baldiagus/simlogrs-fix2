@@ -54,6 +54,8 @@ class MaintenanceTiketApiController extends ApiController
         [$fotoPath, $fotoUrl] = $this->simpanFotoKerusakan($request);
 
         $kodeTiket = CodeGenerator::generateMnt();
+        $unitId = $validated['unit_id'] ?? $aset->unit_id ?? $user->unit_id;
+        $prioritas = $validated['prioritas'] ?? 'SEDANG';
 
         $tiket = $this->terbitkanTiket($kodeTiket, $aset, $unitId, $user, $validated, $prioritas, $fotoPath);
 

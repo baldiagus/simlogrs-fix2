@@ -16,8 +16,6 @@
             @endcan
         </div>
 
-        {{-- Sub-Navigasi Modul Pengalihan & Mutasi --}}
-        <x-tabs.pengalihan-hub active="barang" />
     </div>
 
     {{-- Metrik KPI Ringkasan --}}

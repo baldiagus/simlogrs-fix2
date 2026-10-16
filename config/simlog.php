@@ -27,6 +27,13 @@ return [
         'max_login_attempts' => (int) env('SIMLOG_AUTH_MAX_LOGIN_ATTEMPTS', 5),
     ],
 
+    'quick_login' => [
+        // Kartu "Akun Percobaan Cepat" di /login: chip hanya mengisi email & sandi akun seed.
+        // WAJIB false di produksi.
+        'enabled'  => (bool) env('SIMLOG_QUICK_LOGIN', false),
+        'password' => env('SEEDER_DEFAULT_PASSWORD', 'SimlogRS@2026!'),
+    ],
+
     'cache' => [
         // TTL (detik) untuk cache data dropdown master di komponen Livewire.
         'dropdown_ttl' => (int) env('SIMLOG_CACHE_DROPDOWN_TTL', 60),

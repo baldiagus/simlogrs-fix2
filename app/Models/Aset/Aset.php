@@ -28,6 +28,11 @@ class Aset extends BaseModel
         ];
     }
 
+    public function getNamaAttribute(): string
+    {
+        return $this->barang?->nama ?? '-';
+    }
+
     public function barang(): BelongsTo
     {
         return $this->belongsTo(Barang::class, 'barang_id');

@@ -168,6 +168,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/audit/temuan-capa', [AuditTemuanApiController::class, 'registerTemuan']);
         Route::post('/audit/temuan-capa', [AuditTemuanApiController::class, 'simpanTemuan']);
         Route::post('/audit/temuan-capa/{id}/tindak-lanjut', [AuditTemuanApiController::class, 'tindakLanjutTemuan']);
+        Route::post('/audit/temuan-capa/{id}/bukti', [AuditTemuanApiController::class, 'uploadBukti']);
         Route::post('/audit/temuan-capa/{id}/evaluasi', [AuditTemuanApiController::class, 'evaluasiTemuan']);
 
         // 14. Modul Pagu & Realisasi Pengeluaran Logistik & Suku Cadang IPSRS

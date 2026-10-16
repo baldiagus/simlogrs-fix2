@@ -19,6 +19,42 @@ class LoginGateway extends Component
     public bool $remember = false;
 
     /**
+     * Daftar putih chip "Akun Percobaan Cepat" (label => email akun seed).
+     */
+    public const AKUN_PERCOBAAN = [
+        'Super Admin'    => 'superadmin@simlogrs.local',
+        'Admin Logistik' => 'adminlogistik@simlogrs.local',
+        'Kepala Gudang'  => 'kepalagudang@simlogrs.local',
+        'Petugas Gudang' => 'petugasgudang@simlogrs.local',
+        'Pengadaan'      => 'pengadaan@simlogrs.local',
+        'Karu IGD'       => 'kepalaunit@simlogrs.local',
+        'Petugas Unit'   => 'petugasunit@simlogrs.local',
+        'Kepala Teknisi' => 'karu_ipsrs@simlogrs.local',
+        'Teknisi IPSRS'  => 'teknisi@simlogrs.local',
+        'Manajemen'      => 'manajemen@simlogrs.local',
+        'Auditor SPI'    => 'auditor@simlogrs.local',
+    ];
+
+    /**
+     * Isi kolom email & kata sandi dari chip akun percobaan (meniru aplikasi mobile).
+     * Tidak mengautentikasi: pengguna tetap menekan tombol Masuk sehingga alur login() berlaku penuh.
+     */
+    public function isiAkun(string $email): void
+    {
+        if (! config('simlog.quick_login.enabled')) {
+            abort(404);
+        }
+
+        if (! in_array($email, self::AKUN_PERCOBAAN, true)) {
+            abort(404);
+        }
+
+        $this->email = $email;
+        $this->password = (string) config('simlog.quick_login.password');
+        $this->resetValidation();
+    }
+
+    /**
      * Otentikasi kredensial pengguna, terapkan rate limit login, catat audit log, dan arahkan ke portal peran.
      */
     public function login()
@@ -108,7 +144,12 @@ class LoginGateway extends Component
      */
     public function render()
     {
-        return view('livewire.auth.login-gateway')
+        $quickLoginEnabled = (bool) config('simlog.quick_login.enabled');
+
+        return view('livewire.auth.login-gateway', [
+            'quickLoginEnabled' => $quickLoginEnabled,
+            'akunPercobaan'     => $quickLoginEnabled ? self::AKUN_PERCOBAAN : [],
+        ])
             ->layout('layouts.guest', ['title' => 'Masuk - SIMLOG RS Non-Medis']);
     }
 }

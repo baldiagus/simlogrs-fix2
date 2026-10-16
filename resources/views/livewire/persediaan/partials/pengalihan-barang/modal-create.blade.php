@@ -56,9 +56,9 @@
                         Tahap 2: Lokasi Tujuan & Jumlah Kuantitas
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {{-- Pilihan Tujuan: Ruangan / Gudang --}}
-                        <div>
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-start">
+                        {{-- Lokasi Tujuan Penerima (Diperlebar ke 6/12 kolom) --}}
+                        <div class="sm:col-span-6">
                             <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                                 Lokasi Tujuan Penerima <span class="text-red-500">*</span>
                             </label>
@@ -80,25 +80,29 @@
                                 </div>
 
                                 @if ($tipe_tujuan === 'GUDANG')
-                                    <flux:select wire:model.live="gudang_tujuan_id" size="sm" required>
-                                        <option value="">-- Pilih Gudang Tujuan --</option>
-                                        @foreach ($gudangs as $g)
-                                            <option value="{{ $g->id }}" @disabled((int)$gudang_asal_id === (int)$g->id)>{{ $g->nama }}</option>
-                                        @endforeach
-                                    </flux:select>
+                                    <x-ui.searchable-select
+                                        model="gudang_tujuan_id"
+                                        placeholder="-- Cari Gudang Logistik Tujuan --"
+                                        :options="$gudangs->filter(fn($g) => (int)$gudang_asal_id !== (int)$g->id)->map(fn($g) => ['id' => $g->id, 'nama' => $g->nama, 'sub' => $g->kode])"
+                                        live="true"
+                                        required
+                                    />
+                                    @error('gudang_tujuan_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                                 @else
-                                    <flux:select wire:model.live="unit_tujuan_id" size="sm" required>
-                                        <option value="">-- Pilih Ruangan Tujuan --</option>
-                                        @foreach ($units as $u)
-                                            <option value="{{ $u->id }}">{{ $u->nama }}</option>
-                                        @endforeach
-                                    </flux:select>
+                                    <x-ui.searchable-select
+                                        model="unit_tujuan_id"
+                                        placeholder="-- Cari Ruangan / Unit Tujuan --"
+                                        :options="$units->map(fn($u) => ['id' => $u->id, 'nama' => $u->nama, 'sub' => $u->kode])"
+                                        live="true"
+                                        required
+                                    />
+                                    @error('unit_tujuan_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                                 @endif
                             @endif
                         </div>
 
-                        {{-- Jumlah Unit --}}
-                        <div>
+                        {{-- Jumlah Unit (Diringkas ke 3/12 kolom) --}}
+                        <div class="sm:col-span-3">
                             <flux:field>
                                 <flux:label>Jumlah Unit Dialihkan <span class="text-red-500">*</span></flux:label>
                                 <flux:input type="number" min="1" max="{{ $this->maxQuantity }}" wire:model.live="quantity" required />
@@ -109,8 +113,8 @@
                             </flux:field>
                         </div>
 
-                        {{-- Tanggal Pengalihan --}}
-                        <div>
+                        {{-- Tanggal Pengalihan (Diringkas ke 3/12 kolom) --}}
+                        <div class="sm:col-span-3">
                             <flux:field>
                                 <flux:label>Tanggal Eksekusi <span class="text-red-500">*</span></flux:label>
                                 <flux:input type="date" wire:model="tanggal_pengalihan" required />

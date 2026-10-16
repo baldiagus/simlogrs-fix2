@@ -185,25 +185,35 @@
 
                         {{-- Aksi --}}
                         <flux:table.cell class="text-right w-16">
+                            @php
+                                $currentUser = auth()->user();
+                                $canManageThis = $this->canUserManageTindakLanjut($currentUser, $item);
+                            @endphp
                             <flux:dropdown position="bottom" align="end">
                                 <flux:button size="xs" variant="ghost" icon="ellipsis-horizontal" title="Menu Opsi" />
                                 <flux:menu class="min-w-44">
-                                    @if ($item->status_capa === \App\Enums\Audit\StatusCapa::Closed->value)
+                                    @if ($item->status_capa === \App\Enums\Audit\StatusCapa::Closed->value && $canEvaluate)
                                         <flux:menu.item wire:click="openEvaluasiClosing({{ $item->id }})" icon="eye">
                                             Rincian Evaluasi Closing
                                         </flux:menu.item>
                                     @endif
                                     @if ($item->status_capa === \App\Enums\Audit\StatusCapa::InProgress->value)
-                                        <flux:menu.item wire:click="openTindakLanjut({{ $item->id }})" icon="arrow-up-tray" class="text-blue-600 dark:text-blue-400">
-                                            Unggah Tindak Lanjut
-                                        </flux:menu.item>
+                                        @if ($canManageThis)
+                                            <flux:menu.item wire:click="openTindakLanjut({{ $item->id }})" icon="arrow-up-tray" class="text-blue-600 dark:text-blue-400">
+                                                Unggah Tindak Lanjut
+                                            </flux:menu.item>
+                                        @else
+                                            <div class="px-2.5 py-1.5 text-[11px] text-zinc-400 italic">
+                                                Menunggu Respon Auditee
+                                            </div>
+                                        @endif
                                     @endif
                                     @if ($item->status_capa === \App\Enums\Audit\StatusCapa::InReview->value && $canEvaluate)
                                         <flux:menu.item wire:click="openEvaluasiClosing({{ $item->id }})" icon="check-badge" class="text-emerald-600 dark:text-emerald-400">
                                             Evaluasi &amp; Closing SPI
                                         </flux:menu.item>
                                     @endif
-                                    @if ($item->status_capa === \App\Enums\Audit\StatusCapa::InReview->value && ! $canEvaluate)
+                                    @if ($item->status_capa === \App\Enums\Audit\StatusCapa::InReview->value && ! $canEvaluate && $canManageThis)
                                         <flux:menu.item wire:click="openTindakLanjut({{ $item->id }})" icon="eye">
                                             Lihat Tindak Lanjut
                                         </flux:menu.item>

@@ -1,5 +1,5 @@
     {{-- Modal Form Tambah PR --}}
-    <flux:modal name="modal-pr-form" wire:model="showModal" class="md:w-[48rem]">
+    <flux:modal name="modal-pr-form" wire:model="showModal" class="w-full max-w-4xl">
         <form wire:submit="save" class="space-y-4">
             <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">Buat Permintaan Pengadaan Baru</flux:heading>
@@ -97,7 +97,7 @@
                             />
                             @error("items.{$index}.barang_id") <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                         </div>
-                        <div class="w-28">
+                        <div class="w-32">
                             @if ($loop->first)
                                 <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Jumlah</label>
                             @endif

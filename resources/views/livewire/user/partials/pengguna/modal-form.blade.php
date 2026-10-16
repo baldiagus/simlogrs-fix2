@@ -1,7 +1,7 @@
     {{-- Modal Tambah / Edit Pengguna --}}
-    <flux:modal wire:model="showModal" class="md:w-[42rem]">
-        <form wire:submit="save" class="space-y-4">
-            <div class="pb-3 border-b border-zinc-200 dark:border-zinc-800" style="padding-right: 2.5rem;">
+    <flux:modal wire:model="showModal" :dismissible="false" :closable="false" class="w-full max-w-3xl">
+        <form wire:submit="save" class="space-y-3.5">
+            <div class="pb-2.5 border-b border-zinc-200 dark:border-zinc-800">
                 <flux:heading size="lg">
                     {{ $editingId ? 'Ubah Data Akun Pegawai' : 'Registrasi Akun Pegawai Baru' }}
                 </flux:heading>
@@ -11,7 +11,7 @@
             </div>
 
             {{-- Tahap 1: Identitas Pegawai & Kredensial Login --}}
-            <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-3">
+            <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-2.5">
                 <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                     Tahap 1: Identitas Kedinasan & Kredensial Akun
                 </div>
@@ -45,7 +45,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
                             Username Login <span class="text-rose-500">*</span>
@@ -72,6 +72,19 @@
                             class="w-full h-9 text-xs font-mono rounded-lg border {{ $errors->has('email') ? 'border-rose-500 dark:border-rose-500 ring-1 ring-rose-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
                         />
                         @error('email') <p class="text-[10px] text-rose-500 mt-0.5">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                            Nomor Telepon / WhatsApp Dinas
+                        </label>
+                        <input
+                            type="text"
+                            wire:model="no_telepon"
+                            placeholder="081234567890"
+                            class="w-full h-9 text-xs font-mono rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        @error('no_telepon') <p class="text-[10px] text-rose-500 mt-0.5">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
@@ -103,22 +116,10 @@
                         />
                     </div>
                 </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-                        Nomor Telepon / WhatsApp Dinas
-                    </label>
-                    <input
-                        type="text"
-                        wire:model="no_telepon"
-                        placeholder="081234567890"
-                        class="w-full h-9 text-xs font-mono rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
             </div>
 
             {{-- Tahap 2: Hak Akses & Penugasan Kedinasan --}}
-            <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-3">
+            <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-2.5">
                 <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                     Tahap 2: Peran Hak Akses & Konteks Penugasan Kerja
                 </div>
@@ -156,11 +157,10 @@
                     </div>
                 </div>
 
-                <div class="p-3.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/60 space-y-3">
+                <div class="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/60 space-y-2.5">
                     <div class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                         Konteks Penugasan Operasional Pegawai
                     </div>
-
                     <div class="flex items-center gap-4 text-xs">
                         <label class="inline-flex items-center gap-1.5 cursor-pointer">
                             <input type="radio" wire:model.live="penugasan_tipe" value="none" class="text-blue-600" />
@@ -217,7 +217,7 @@
             </div>
 
             {{-- Tombol Aksi Modal --}}
-            <div class="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+            <div class="flex justify-end gap-2.5 pt-3 border-t border-zinc-200 dark:border-zinc-800">
                 <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">
                     Batal
                 </flux:button>

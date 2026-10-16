@@ -6,6 +6,7 @@ use App\Enums\Audit\StatusCapa;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Pengadaan\PesananPembelian;
 use App\Models\Audit\TemuanAudit;
+use App\Support\File\FileOptimizer;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -156,6 +157,8 @@ class AuditTemuanApiController extends ApiController
             'evaluator'          => $t->evaluator?->nama ?? '-',
             'unit'               => $t->unit?->nama ?? '-',
             'gudang'             => $t->gudang?->nama ?? '-',
+            'unit_id'            => $t->unit_id ? (int) $t->unit_id : null,
+            'gudang_id'          => $t->gudang_id ? (int) $t->gudang_id : null,
             'lokasi_terperiksa'  => $t->unit?->nama ?? ($t->gudang?->nama ?? 'Sentral'),
             'analisis_penyebab'  => $t->analisis_penyebab,
             'tindakan_perbaikan' => $t->tindakan_perbaikan,
@@ -259,6 +262,48 @@ class AuditTemuanApiController extends ApiController
             'kode'        => $temuan->kode,
             'status_capa' => $temuan->status_capa,
         ], "Tindak lanjut CAPA berhasil dikirimkan untuk evaluasi auditor.");
+    }
+
+    /**
+     * Unggah berkas bukti perbaikan CAPA oleh Auditee Unit/Gudang.
+     * POST /api/v1/audit/temuan-capa/{id}/bukti
+     */
+    public function uploadBukti(Request $request, int $id): JsonResponse
+    {
+        $temuan = TemuanAudit::find($id);
+
+        if (! $temuan) {
+            return $this->jsonError('Temuan audit tidak ditemukan.', 404);
+        }
+        $user = $request->user();
+        $isTargetAuditee = $user && (
+            $user->hasRole(['super_admin', 'admin_logistik']) ||
+            ($temuan->unit_id && (int) $user->unit_id === (int) $temuan->unit_id) ||
+            ($temuan->gudang_id && (int) $user->gudang_id === (int) $temuan->gudang_id)
+        );
+        if (! $isTargetAuditee) {
+            return $this->jsonError('Anda tidak memiliki wewenang mengunggah bukti untuk temuan audit fasilitas/unit lain.', 403);
+        }
+        if ($temuan->status_capa === StatusCapa::Closed->value) {
+            return $this->jsonError('Temuan audit sudah ditutup (Closed), bukti tidak dapat ditambahkan.', 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'berkas'   => 'required|array',
+            'berkas.*' => 'file|mimes:jpg,jpeg,png,webp,pdf|max:' . config('simlog.upload.max_kb'),
+        ]);
+
+        if ($validator->fails()) {
+            return $this->jsonError('Validasi gagal.', 422, $validator->errors());
+        }
+
+        $bukti = is_array($temuan->bukti_perbaikan) ? $temuan->bukti_perbaikan : [];
+        foreach ($request->file('berkas') as $file) {
+            $bukti[] = FileOptimizer::optimizeAndStore($file, 'audit/capa');
+        }
+        $temuan->update(['bukti_perbaikan' => $bukti]);
+
+        return $this->jsonSuccess(['bukti_perbaikan' => $bukti], 'Bukti perbaikan berhasil diunggah.');
     }
 
     /**

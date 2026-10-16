@@ -22,6 +22,7 @@ class RealisasiAnggaranIndex extends Component
 
     #[Url(history: true)]
     public string $activeTab = 'unit'; // 'unit' | 'sparepart'
+    public string $sparepartSubTab = 'top_aset'; // 'top_aset' | 'log_konsumsi'
 
     public ?int $selectedUnitId = null;
     public ?int $selectedAnggaranId = null;
@@ -127,11 +128,11 @@ class RealisasiAnggaranIndex extends Component
 
         $topAset = $service->getTopAsetBiayaPemeliharaan($this->filterTahun, 5);
 
-        $riwayatSparepartTerbaru = SukuCadangMaintenance::with(['barang', 'stokBatch', 'permintaanMaintenance.aset', 'permintaanMaintenance.unit'])
+        $riwayatSparepartTerbaru = SukuCadangMaintenance::with(['barang', 'stokBatch', 'permintaanMaintenance.aset.barang', 'permintaanMaintenance.unit'])
             ->whereYear('dibuat_pada', $this->filterTahun)
             ->when(! $this->hasGlobalRead(), fn ($q) => $q->whereHas('permintaanMaintenance', fn ($m) => $m->where('unit_id', auth()->user()?->unit_id)))
             ->latest('id')
-            ->take(10)
+            ->take(5)
             ->get();
 
         // 3. Drilldown Data untuk Unit yang Dipilih di Modal
@@ -153,7 +154,7 @@ class RealisasiAnggaranIndex extends Component
                 ->take(10)
                 ->get();
 
-            $riwayatServisUnit = SukuCadangMaintenance::with(['barang', 'permintaanMaintenance.aset'])
+            $riwayatServisUnit = SukuCadangMaintenance::with(['barang', 'permintaanMaintenance.aset.barang'])
                 ->whereHas('permintaanMaintenance', fn ($q) => $q->where('unit_id', $uId))
                 ->whereYear('dibuat_pada', $this->filterTahun)
                 ->latest('id')

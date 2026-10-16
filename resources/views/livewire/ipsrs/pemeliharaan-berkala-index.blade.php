@@ -161,71 +161,89 @@
     </flux:card>
 
     {{-- Modal Form Tambah / Ubah Jadwal Servis Rutin --}}
-    <flux:modal name="modal-jadwal-form" wire:model="showModal" class="md:w-[42rem]">
-        <form wire:submit="save" class="space-y-4">
-            <div style="padding-right: 2.5rem;">
+    <flux:modal name="modal-jadwal-form" wire:model="showModal" :dismissible="false" :closable="false" class="w-full max-w-3xl">
+        <form wire:submit="save" class="space-y-3.5">
+            <div class="pb-2.5 border-b border-zinc-200 dark:border-zinc-800">
                 <flux:heading size="lg">{{ $editingId ? 'Ubah Jadwal Pemeliharaan Preventif' : 'Pendaftaran Jadwal Servis Rutin Baru' }}</flux:heading>
                 <flux:subheading>Tentukan fasilitas aset, siklus interval servis berkala, dan teknisi pelaksana penanggung jawab.</flux:subheading>
             </div>
-
-            {{-- 1. Pilih Aset --}}
-            <x-ui.searchable-select
-                model="aset_id"
-                label="Fasilitas / Sarana Aset yang Diservis"
-                placeholder="-- Cari Inventaris Aset... --"
-                :options="$daftarAset"
-                required
-            />
-
-            {{-- 2. Nama Kegiatan Servis --}}
-            <div>
-                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                    Nama Kegiatan Servis Rutin <span class="text-red-500">*</span>
-                </label>
-                <input
-                    type="text"
-                    wire:model="jenis_maintenance"
-                    required
-                    placeholder="Contoh: Pembersihan Filter & Pengecekan Tekanan Freon AC"
-                    class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-                @error('jenis_maintenance') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            {{-- 3. Interval Fleksibel Berdampingan --}}
-            <div class="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/60 space-y-2">
-                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                    Siklus Pengulangan Servis <span class="text-red-500">*</span>
-                </label>
-                <div class="flex items-center gap-3">
-                    <span class="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Setiap</span>
-                    <div class="w-28">
-                        <input
-                            type="number"
-                            wire:model="interval_nilai"
-                            min="1"
-                            max="365"
-                            required
-                            class="w-full text-sm font-mono text-center rounded-lg border {{ $errors->has('interval_nilai') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none"
-                        />
-                    </div>
-                    <div class="w-36">
-                        <select
-                            wire:model="interval_tipe"
-                            required
-                            class="w-full h-9 text-xs rounded-lg border {{ $errors->has('interval_tipe') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-900 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
-                        >
-                            <option value="HARI">Hari</option>
-                            <option value="MINGGU">Minggu</option>
-                            <option value="BULAN">Bulan</option>
-                        </select>
-                    <span class="text-xs text-zinc-500 dark:text-zinc-400">sekali</span>
+            {{-- Baris 1: Objek Fasilitas Aset & Nama Kegiatan Servis --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                <div>
+                    <x-ui.searchable-select
+                        model="aset_id"
+                        label="Fasilitas / Sarana Aset yang Diservis"
+                        placeholder="-- Cari Inventaris Aset... --"
+                        :options="$daftarAset"
+                        required
+                    />
                 </div>
-                @error('interval_nilai') <p class="text-[10px] text-red-500 mt-0.5">{{ $message }}</p> @enderror
+
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Nama Kegiatan Servis Rutin <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        wire:model="jenis_maintenance"
+                        required
+                        placeholder="Contoh: Pembersihan Filter AC & Pengecekan Freon"
+                        class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                    @error('jenis_maintenance') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                </div>
             </div>
 
-            {{-- 4. Teknisi PIC & Tanggal Servis Pertama --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {{-- Baris 2: Siklus Interval & Tanggal Servis Pertama --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Siklus Pengulangan Servis <span class="text-red-500">*</span>
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-zinc-500 dark:text-zinc-400 font-medium shrink-0">Setiap</span>
+                        <div class="w-24 shrink-0">
+                            <input
+                                type="number"
+                                wire:model="interval_nilai"
+                                min="1"
+                                max="365"
+                                required
+                                class="w-full h-9 text-xs font-mono text-center rounded-lg border {{ $errors->has('interval_nilai') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-2 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                            />
+                        </div>
+                        <div class="grow">
+                            <select
+                                wire:model="interval_tipe"
+                                required
+                                class="w-full h-9 text-xs rounded-lg border {{ $errors->has('interval_tipe') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                            >
+                                <option value="HARI">Hari</option>
+                                <option value="MINGGU">Minggu</option>
+                                <option value="BULAN">Bulan</option>
+                            </select>
+                        </div>
+                        <span class="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">sekali</span>
+                    </div>
+                    @error('interval_nilai') <p class="text-[10px] text-red-500 mt-0.5">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Tanggal Servis Pertama <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="date"
+                        wire:model="tanggal_berikutnya"
+                        required
+                        class="w-full h-9 text-xs rounded-lg border {{ $errors->has('tanggal_berikutnya') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                    />
+                    @error('tanggal_berikutnya') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            {{-- Baris 3: Teknisi PIC & Petunjuk Teknis Pengerjaan --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                 <div>
                     <x-ui.searchable-select
                         model="teknisi_id"
@@ -236,28 +254,25 @@
                     />
                 </div>
 
-                <flux:field>
-                    <flux:label>Tanggal Servis Pertama <span class="text-red-500">*</span></flux:label>
-                    <flux:input type="date" wire:model="tanggal_berikutnya" required />
-                    <flux:error name="tanggal_berikutnya" />
-                </flux:field>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Petunjuk Teknis Pengerjaan (Opsional)
+                    </label>
+                    <textarea
+                        wire:model="catatan"
+                        rows="2"
+                        placeholder="Tuliskan checklist komponen yang wajib diperiksa teknisi saat servis berlangsung..."
+                        class="w-full text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                    ></textarea>
+                    @error('catatan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                </div>
             </div>
 
-            {{-- 5. Catatan / Petunjuk Teknis --}}
-            <div>
-                <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                    Petunjuk Teknis Pengerjaan (Opsional)
-                </label>
-                <textarea
-                    wire:model="catatan"
-                    rows="2"
-                    placeholder="Tuliskan checklist komponen yang wajib diperiksa teknisi saat servis berlangsung..."
-                    class="w-full text-sm rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                ></textarea>
-                @error('catatan') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
+            {{-- Footer Tombol Aksi --}}
+            <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+                <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">
+                    Batal
+                </flux:button>
                 <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="save">{{ $editingId ? 'Simpan Perubahan' : 'Daftarkan Jadwal' }}</span>
                     <span wire:loading wire:target="save">Menyimpan...</span>
@@ -267,10 +282,10 @@
     </flux:modal>
 
     {{-- Modal Detail Jadwal Servis Rutin --}}
-    <flux:modal name="modal-jadwal-detail" wire:model="showDetail" class="md:w-[36rem]">
+    <flux:modal name="modal-jadwal-detail" wire:model="showDetail" :dismissible="false" :closable="false" class="md:w-[38rem]">
         @if ($detail)
             <div class="space-y-4">
-                <div style="padding-right: 2.5rem;">
+                <div class="pb-2.5 border-b border-zinc-200 dark:border-zinc-800">
                     <flux:heading size="lg">Detail Jadwal {{ $detail->kode }}</flux:heading>
                     <flux:subheading>Rincian jadwal servis preventif berkala.</flux:subheading>
                 </div>
@@ -310,13 +325,16 @@
                     </div>
                 </dl>
 
-                @if ($detail->status === 'AKTIF' && $this->canTerbitkanSpk())
-                    <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+                    <flux:button type="button" variant="ghost" wire:click="$set('showDetail', false)">
+                        Tutup Rincian
+                    </flux:button>
+                    @if ($detail->status === 'AKTIF' && $this->canTerbitkanSpk())
                         <flux:button wire:click="confirmEksekusi({{ $detail->id }})" variant="primary" icon="bolt">
                             Terbitkan SPK
                         </flux:button>
-                    </div>
-                @endif
+                    @endif
+                </div>
             </div>
         @endif
     </flux:modal>

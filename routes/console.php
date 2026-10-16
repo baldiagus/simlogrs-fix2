@@ -11,6 +11,9 @@ use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\Artisan;
 use App\Services\Notifikasi\NotifikasiService;
 use Illuminate\Support\Facades\Cache;
+use App\Enums\Audit\StatusCapa;
+use App\Models\Audit\TemuanAudit;
+use App\Services\Notifikasi\PenerimaResolver;
 
 /*
 |--------------------------------------------------------------------------
@@ -158,6 +161,58 @@ Artisan::command('simlog:alert-due-soon-loans', function () use ($kirimPeringata
 
     $this->info("Pemeriksaan selesai: {$dueSoonLoans->count()} jatuh tempo besok, {$notifCount} notifikasi terkirim.");
 })->purpose('Mengingatkan peminjaman aset yang jatuh tempo besok (H-1)')->dailyAt('07:00');
+
+/**
+ * 2c. Alert CAPA Jatuh Tempo (Jadwal: Harian 07:30 WIB)
+ * Temuan audit berstatus In Progress yang due_date_capa-nya besok (H-1) atau sudah lewat diingatkan
+ * ke kepala unit/gudang terperiksa. Dedup harian per (pengguna, tipe, referensi_id).
+ */
+Artisan::command('simlog:alert-capa-jatuh-tempo', function () {
+    $this->info('[' . now()->toDateTimeString() . '] Memeriksa CAPA temuan audit yang jatuh tempo...');
+
+    $besok = now()->addDay()->toDateString();
+    $hari = now()->toDateString();
+    $temuans = TemuanAudit::where('status_capa', StatusCapa::InProgress->value)
+        ->whereDate('due_date_capa', '<=', $besok)
+        ->get();
+
+    $resolver = app(PenerimaResolver::class);
+    $service = app(NotifikasiService::class);
+    $notifCount = 0;
+
+    foreach ($temuans as $t) {
+        $penerima = array_values(array_unique([
+            ...($t->unit_id ? $resolver->karuUnit((int) $t->unit_id) : []),
+            ...($t->gudang_id ? $resolver->kepalaGudang((int) $t->gudang_id) : []),
+        ]));
+
+        $sudah = Notifikasi::where('tipe', 'CAPA_JATUH_TEMPO')
+            ->where('referensi_id', (string) $t->id)
+            ->whereDate('dibuat_pada', $hari)
+            ->pluck('pengguna_id')
+            ->all();
+        $penerima = array_values(array_diff($penerima, $sudah));
+
+        $tgl = $t->due_date_capa->format('d/m/Y');
+        $terlambat = $t->due_date_capa->toDateString() < $hari;
+        $judul = $terlambat ? "CAPA Terlambat ({$t->kode})" : "Pengingat CAPA Jatuh Tempo Besok ({$t->kode})";
+        $pesan = $terlambat
+            ? "Tindakan korektif temuan {$t->kode} pada {$t->objek_audit} telah melewati batas waktu ({$tgl}). Mohon segera kirim tindak lanjut."
+            : "Tindakan korektif temuan {$t->kode} pada {$t->objek_audit} jatuh tempo besok ({$tgl}). Mohon siapkan tindak lanjut.";
+
+        $notifCount += $service->kirim($penerima, $judul, $pesan, 'CAPA_JATUH_TEMPO', (string) $t->id, '/kepala-unit/temuan-capa')->count();
+    }
+
+    Cache::put('simlog:last_run:alert_capa_jatuh_tempo', [
+        'waktu' => now()->toDateTimeString(),
+        'status' => 'Sukses',
+        'ringkasan' => "{$temuans->count()} CAPA jatuh tempo/terlambat, {$notifCount} notifikasi diterbitkan",
+        'capa_count' => $temuans->count(),
+        'notif_count' => $notifCount,
+    ]);
+
+    $this->info("Pemeriksaan selesai: {$temuans->count()} CAPA jatuh tempo/terlambat, {$notifCount} notifikasi terkirim.");
+})->purpose('Mengingatkan auditee atas CAPA yang jatuh tempo besok (H-1) atau terlambat')->dailyAt('07:30');
 
 /**
  * 3. Generate Preventive Maintenance (Jadwal: Harian 01:00 WIB)

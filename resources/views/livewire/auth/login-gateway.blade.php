@@ -35,6 +35,25 @@
         </flux:button>
     </form>
 
+    @if ($quickLoginEnabled)
+        <div class="space-y-3 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
+            <div class="space-y-0.5">
+                <flux:heading size="sm" level="2">Akun Percobaan Cepat</flux:heading>
+                <flux:text size="sm" class="text-zinc-500">Ketuk akun untuk mengisi email &amp; kata sandi, lalu tekan Masuk.</flux:text>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                @foreach ($akunPercobaan as $label => $akunEmail)
+                    <flux:button
+                        size="xs"
+                        variant="filled"
+                        wire:key="akun-percobaan-{{ $loop->index }}"
+                        wire:click="isiAkun('{{ $akunEmail }}')"
+                    >{{ $label }}</flux:button>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <div class="pt-4 border-t border-zinc-200 dark:border-zinc-800 text-center">
         <flux:text size="sm" class="text-zinc-400">
             Keamanan Terpadu Rumah Sakit • Zero-Hardcode RBAC

@@ -1,65 +1,70 @@
     {{-- Modal Formulir Lapor Kerusakan --}}
-    <flux:modal name="modal-lapor-servis" wire:model="showModal" class="md:w-[38rem]">
-        <form wire:submit="save" class="space-y-4">
-            <div style="padding-right: 2.5rem;">
+    <flux:modal name="modal-lapor-servis" wire:model="showModal" :dismissible="false" :closable="false" class="w-full max-w-3xl">
+        <form wire:submit="save" class="space-y-3.5">
+            <div class="pb-2.5 border-b border-zinc-200 dark:border-zinc-800">
                 <flux:heading size="lg">Formulir Lapor Kerusakan Sarana</flux:heading>
                 <flux:subheading>Sampaikan keluhan kendala teknis fasilitas atau alat kerja ruangan untuk ditangani tim IPSRS.</flux:subheading>
             </div>
-
             {{-- Tahap 1: Identifikasi Sarana & Tingkat Urgensi --}}
-            <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-3">
+            <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-2.5">
                 <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                     Tahap 1: Identifikasi Sarana & Tingkat Urgensi Kerusakan
                 </div>
 
-                <x-ui.searchable-select
-                    model="aset_id"
-                    label="Pilih Fasilitas / Alat yang Bermasalah"
-                    placeholder="-- Cari Inventaris Aset... --"
-                    :options="$daftarAsetTersedia"
-                    required
-                />
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                    <div>
+                        <x-ui.searchable-select
+                            model="aset_id"
+                            label="Pilih Fasilitas / Alat yang Bermasalah"
+                            placeholder="-- Cari Inventaris Aset... --"
+                            :options="$daftarAsetTersedia"
+                            required
+                        />
+                    </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Tingkat Urgensi Kerusakan <span class="text-red-500">*</span>
-                    </label>
-                    <select
-                        wire:model="prioritas"
-                        required
-                        class="w-full text-sm rounded-lg border {{ $errors->has('prioritas') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none"
-                    >
-                        <option value="SEDANG">SEDANG (Operasional harian umum)</option>
-                        <option value="RENDAH">RENDAH (Masalah minor / estetik)</option>
-                        <option value="TINGGI">TINGGI (Mengganggu pelayanan unit)</option>
-                        <option value="CITO">CITO (Darurat: Pelayanan kritis berhenti / risiko keselamatan)</option>
-                    </select>
-                    @error('prioritas') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                            Tingkat Urgensi Kerusakan <span class="text-red-500">*</span>
+                        </label>
+                        <select
+                            wire:model="prioritas"
+                            required
+                            class="w-full text-sm rounded-lg border {{ $errors->has('prioritas') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                        >
+                            <option value="SEDANG">SEDANG (Operasional umum)</option>
+                            <option value="RENDAH">RENDAH (Masalah minor)</option>
+                            <option value="TINGGI">TINGGI (Pelayanan terganggu)</option>
+                            <option value="CITO">CITO (Darurat: Pelayanan kritis)</option>
+                        </select>
+                        @error('prioritas') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    </div>
                 </div>
             </div>
 
             {{-- Tahap 2: Rincian Gejala Kerusakan & Bukti Foto Fisik --}}
-            <div class="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-3">
+            <div class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-2.5">
                 <div class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                     Tahap 2: Rincian Gejala Kerusakan & Bukti Foto Fisik
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                        Deskripsi Masalah / Gejala Kerusakan <span class="text-red-500">*</span>
-                    </label>
-                    <textarea
-                        wire:model="deskripsi_masalah"
-                        required
-                        rows="3"
-                        placeholder="Jelaskan secara jelas gejala kerusakan fisik, suara aneh, kebocoran, atau tombol yang tidak berfungsi..."
-                        class="w-full text-sm rounded-lg border {{ $errors->has('deskripsi_masalah') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none"
-                    ></textarea>
-                    @error('deskripsi_masalah') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
+                    {{-- Kolom Kiri: Deskripsi Masalah --}}
+                    <div>
+                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                            Deskripsi Masalah / Gejala Kerusakan <span class="text-red-500">*</span>
+                        </label>
+                        <textarea
+                            wire:model="deskripsi_masalah"
+                            required
+                            rows="4"
+                            placeholder="Jelaskan secara jelas gejala kerusakan fisik, suara aneh, kebocoran, atau tombol yang tidak berfungsi..."
+                            class="w-full text-sm rounded-lg border {{ $errors->has('deskripsi_masalah') ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-2 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none resize-none"
+                        ></textarea>
+                        @error('deskripsi_masalah') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    </div>
 
-                {{-- Foto Bukti Kerusakan --}}
-                <div>
+                    {{-- Kolom Kanan: Foto Bukti Kerusakan --}}
+                    <div>
                     <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                         Foto Bukti Kerusakan (Opsional)
                     </label>
@@ -103,9 +108,10 @@
                     </div>
                     @error('foto') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
-            </div>
+                    </div>
+                </div>
 
-            <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+            <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-200 dark:border-zinc-800">
                 <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">
                     Batal
                 </flux:button>

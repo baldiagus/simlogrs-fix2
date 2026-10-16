@@ -1,5 +1,5 @@
     {{-- Modal Drilldown Pengeluaran Unit (SPPB Distribusi & Pemeliharaan Sparepart) --}}
-    <flux:modal name="modal-drilldown-unit" wire:model="showDetailModal" class="md:w-[48rem]">
+    <flux:modal name="modal-drilldown-unit" wire:model="showDetailModal" class="w-full max-w-5xl">
         @if ($selectedUnit || $selectedAnggaran)
             @php
                 $activeUnit = $selectedUnit ?? $selectedAnggaran;
@@ -51,15 +51,15 @@
                         <flux:badge size="xs" color="emerald">{{ $riwayatSppbUnit->count() }} Dokumen</flux:badge>
                     </div>
 
-                    <div class="overflow-x-auto max-h-48 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                    <div class="overflow-x-auto max-h-56 rounded-lg border border-zinc-200 dark:border-zinc-700">
                         <table class="w-full text-xs text-left">
                             <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-700">
                                 <tr>
-                                    <th class="py-2 px-3">Nomor SPPB</th>
-                                    <th class="py-2 px-3">Tanggal Kirim</th>
-                                    <th class="py-2 px-3">Asal Gudang</th>
+                                    <th class="py-2 px-3 whitespace-nowrap">Nomor SPPB</th>
+                                    <th class="py-2 px-3 whitespace-nowrap">Tanggal Kirim</th>
+                                    <th class="py-2 px-3 whitespace-nowrap">Asal Gudang</th>
                                     <th class="py-2 px-3">Daftar Komoditas</th>
-                                    <th class="py-2 px-3 text-right">Nilai Barang</th>
+                                    <th class="py-2 px-3 text-right whitespace-nowrap">Nilai Barang</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -70,18 +70,17 @@
                                         });
                                     @endphp
                                     <tr>
-                                        <td class="py-2 px-3 font-mono font-semibold">{{ $sppb->kode }}</td>
-                                        <td class="py-2 px-3 font-mono text-zinc-500">{{ $sppb->tanggal_kirim ? $sppb->tanggal_kirim->format('d/m/Y') : '-' }}</td>
+                                        <td class="py-2 px-3 font-mono font-semibold whitespace-nowrap">{{ $sppb->kode }}</td>
+                                        <td class="py-2 px-3 font-mono text-zinc-500 whitespace-nowrap">{{ $sppb->tanggal_kirim ? $sppb->tanggal_kirim->format('d/m/Y') : '-' }}</td>
                                         <td class="py-2 px-3 text-zinc-700 dark:text-zinc-300">{{ $sppb->gudang?->nama ?? '-' }}</td>
                                         <td class="py-2 px-3 text-zinc-600 dark:text-zinc-400">
                                             @foreach ($sppb->detail as $itemDetail)
-                                                <div class="truncate max-w-xs">&bull; {{ $itemDetail->barang?->nama }} ({{ $itemDetail->jumlah_dikirim }})</div>
+                                                <div class="truncate max-w-md">&bull; {{ $itemDetail->barang?->nama }} ({{ $itemDetail->jumlah_dikirim }})</div>
                                             @endforeach
                                         </td>
-                                        <td class="py-2 px-3 font-mono text-right text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">
+                                        <td class="py-2 px-3 font-mono text-right text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums whitespace-nowrap">
                                             Rp {{ number_format($nilaiSppb, 0, ',', '.') }}
                                         </td>
-                                    </tr>
                                 @empty
                                     <tr>
                                         <td colspan="5" class="py-4 text-center text-zinc-500 dark:text-zinc-400 text-xs">
@@ -101,28 +100,27 @@
                         <flux:badge size="xs" color="indigo">{{ $riwayatServisUnit->count() }} Komponen</flux:badge>
                     </div>
 
-                    <div class="overflow-x-auto max-h-48 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                    <div class="overflow-x-auto max-h-56 rounded-lg border border-zinc-200 dark:border-zinc-700">
                         <table class="w-full text-xs text-left">
                             <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-700">
                                 <tr>
-                                    <th class="py-2 px-3">Tiket Servis</th>
-                                    <th class="py-2 px-3">Sarana / Aset</th>
+                                    <th class="py-2 px-3 whitespace-nowrap">Tiket Servis</th>
+                                    <th class="py-2 px-3 whitespace-nowrap">Sarana / Aset</th>
                                     <th class="py-2 px-3">Nama Sparepart</th>
-                                    <th class="py-2 px-3 text-center">Jumlah</th>
-                                    <th class="py-2 px-3 text-right">Subtotal (Rp)</th>
+                                    <th class="py-2 px-3 text-center whitespace-nowrap">Jumlah</th>
+                                    <th class="py-2 px-3 text-right whitespace-nowrap">Subtotal (Rp)</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                                 @forelse ($riwayatServisUnit as $servis)
                                     <tr>
-                                        <td class="py-2 px-3 font-mono font-semibold">{{ $servis->permintaanMaintenance?->kode ?? '-' }}</td>
+                                        <td class="py-2 px-3 font-mono font-semibold whitespace-nowrap">{{ $servis->permintaanMaintenance?->kode ?? '-' }}</td>
                                         <td class="py-2 px-3 text-zinc-800 dark:text-zinc-200">{{ $servis->permintaanMaintenance?->aset?->nama ?? '-' }}</td>
                                         <td class="py-2 px-3 text-zinc-700 dark:text-zinc-300">{{ $servis->barang?->nama ?? '-' }}</td>
-                                        <td class="py-2 px-3 text-center font-mono">{{ $servis->jumlah_digunakan }}</td>
-                                        <td class="py-2 px-3 font-mono text-right text-indigo-600 dark:text-indigo-400 font-semibold tabular-nums">
+                                        <td class="py-2 px-3 text-center font-mono whitespace-nowrap">{{ $servis->jumlah_digunakan }}</td>
+                                        <td class="py-2 px-3 font-mono text-right text-indigo-600 dark:text-indigo-400 font-semibold tabular-nums whitespace-nowrap">
                                             Rp {{ number_format($servis->subtotal ?? 0, 0, ',', '.') }}
                                         </td>
-                                    </tr>
                                 @empty
                                     <tr>
                                         <td colspan="5" class="py-4 text-center text-zinc-500 dark:text-zinc-400 text-xs">

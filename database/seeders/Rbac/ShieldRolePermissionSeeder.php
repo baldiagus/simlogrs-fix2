@@ -97,6 +97,8 @@ class ShieldRolePermissionSeeder extends Seeder
             '%_layanan_unit::pengalihan::aset%',
             '%_layanan_unit::stok::ruangan%',
             '%_pengadaan::permintaan::pengadaan%',
+            'view_audit_manajemen::temuan::capa',
+            'page_RegisterTemuanCapaIndex',
         ]);
 
         // 7. Role: petugas_gudang
@@ -175,6 +177,8 @@ class ShieldRolePermissionSeeder extends Seeder
             'view_master::barang%',
             'view_any_master::aset%',
             'view_master::aset%',
+            'view_audit_manajemen::temuan::capa',
+            'page_RegisterTemuanCapaIndex',
         ]);
 
         // 10. Role: petugas_unit
@@ -247,6 +251,8 @@ class ShieldRolePermissionSeeder extends Seeder
             'view_any_master::%',
             'view_master::%',
             'view_any_gudang_stok::stok::batch%',
+            'view_audit_manajemen::temuan::capa',
+            'page_RegisterTemuanCapaIndex',
             'view_gudang_stok::stok::batch%',
         ]);
 

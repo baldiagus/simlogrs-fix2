@@ -1,5 +1,5 @@
     {{-- Modal 1: Registrasi Temuan Audit Baru --}}
-    <flux:modal name="modal-buat-temuan" wire:model="showCreateModal" class="md:w-[42rem]">
+    <flux:modal name="modal-buat-temuan" wire:model="showCreateModal" class="w-full max-w-4xl">
         <form wire:submit="saveCreate" class="space-y-4">
             <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">Registrasi Temuan Audit Baru</flux:heading>
@@ -49,20 +49,54 @@
                 </flux:field>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <x-ui.searchable-select
-                    model="unit_id"
-                    label="Unit Terperiksa (Opsional)"
-                    placeholder="-- Pilih Unit Terperiksa --"
-                    :options="$daftarUnit"
-                />
+            {{-- Pilihan Entitas Terperiksa: Unit vs Gudang (Mutually Exclusive) --}}
+            <div class="p-3.5 rounded-xl bg-white dark:bg-zinc-900 border {{ $errors->has('auditee') ? 'border-red-500 ring-1 ring-red-500/30' : 'border-zinc-200 dark:border-zinc-700/60' }} space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-zinc-200/60 dark:border-zinc-700/60">
+                    <div>
+                        <div class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">Entitas Terperiksa (Auditee) <span class="text-red-500">*</span></div>
+                        <div class="text-[11px] text-zinc-500 dark:text-zinc-400">Pilih salah satu: Unit Ruangan ATAU Fasilitas Gudang. Memilih salah satu akan menonaktifkan pilihan lainnya.</div>
+                    </div>
+                    @if ($unit_id || $gudang_id)
+                        <button type="button" wire:click="resetAuditee" class="text-xs font-medium text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1">
+                            <flux:icon name="arrow-path" class="size-3" />
+                            Reset Pilihan
+                        </button>
+                    @endif
+                </div>
 
-                <x-ui.searchable-select
-                    model="gudang_id"
-                    label="Gudang Terperiksa (Opsional)"
-                    placeholder="-- Pilih Fasilitas Gudang --"
-                    :options="$daftarGudang"
-                />
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <x-ui.searchable-select
+                            model="unit_id"
+                            label="Unit Terperiksa"
+                            placeholder="-- Pilih Unit Terperiksa --"
+                            :options="$daftarUnit"
+                            :disabled="!empty($gudang_id)"
+                            live="true"
+                        />
+                        @if ($gudang_id)
+                            <p class="text-[10px] text-zinc-400 mt-1 italic">Nonaktif karena Fasilitas Gudang telah dipilih.</p>
+                        @endif
+                    </div>
+
+                    <div>
+                        <x-ui.searchable-select
+                            model="gudang_id"
+                            label="Gudang Terperiksa"
+                            placeholder="-- Pilih Fasilitas Gudang --"
+                            :options="$daftarGudang"
+                            :disabled="!empty($unit_id)"
+                            live="true"
+                        />
+                        @if ($unit_id)
+                            <p class="text-[10px] text-zinc-400 mt-1 italic">Nonaktif karena Unit Ruangan telah dipilih.</p>
+                        @endif
+                    </div>
+                </div>
+
+                @error('auditee')
+                    <p class="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">{{ $message }}</p>
+                @enderror
             </div>
 
             <div>

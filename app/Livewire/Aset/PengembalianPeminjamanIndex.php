@@ -10,6 +10,7 @@ use App\Livewire\Concerns\HasToast;
 use App\Models\Aset\PengembalianPeminjaman;
 use App\Models\Aset\PermintaanPeminjaman;
 use App\Services\Aset\PeminjamanAsetService;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class PengembalianPeminjamanIndex extends Component
@@ -17,6 +18,9 @@ class PengembalianPeminjamanIndex extends Component
     use HasTableFilters, HasToast, HasPortalLayout, HasConfirmationModal;
 
     public string $pageTitle = 'Pengembalian & Inspeksi Fisik Aset';
+    #[Url(history: true)]
+    public string $activeTab = 'menunggu'; // 'menunggu' | 'riwayat'
+
 
     public ?int $selectedPinjamId = null;
     public ?PermintaanPeminjaman $selectedPinjam = null;
@@ -26,6 +30,13 @@ class PengembalianPeminjamanIndex extends Component
 
     public ?PengembalianPeminjaman $selectedPengembalian = null;
     public bool $showDetailPengembalianModal = false;
+
+    public function setTab(string $tab): void
+    {
+        $this->activeTab = $tab;
+        $this->resetPage('pinjam_page');
+        $this->resetPage('kembali_page');
+    }
 
     /**
      * Inisialisasi komponen dan persiapan data awal.

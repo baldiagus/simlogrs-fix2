@@ -10,6 +10,7 @@ use App\Livewire\Concerns\HasToast;
 use App\Models\Master\Gudang;
 use App\Models\Audit\TemuanAudit;
 use App\Models\Master\Unit;
+use App\Models\User;
 use App\Support\File\FileOptimizer;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Support\Facades\Cache;
@@ -50,6 +51,26 @@ class RegisterTemuanCapaIndex extends Component
 
     public ?int $unit_id = null;
     public ?int $gudang_id = null;
+
+    public function updatedUnitId($val): void
+    {
+        if ($val) {
+            $this->gudang_id = null;
+        }
+    }
+
+    public function updatedGudangId($val): void
+    {
+        if ($val) {
+            $this->unit_id = null;
+        }
+    }
+
+    public function resetAuditee(): void
+    {
+        $this->unit_id = null;
+        $this->gudang_id = null;
+    }
 
     // Modal Tindak Lanjut Unit (Auditee)
     public bool $showTindakLanjutModal = false;
@@ -116,6 +137,16 @@ class RegisterTemuanCapaIndex extends Component
             'tingkat_risiko.required' => 'Tingkat klasifikasi risiko temuan wajib ditentukan.',
             'due_date_capa.after_or_equal' => 'Batas waktu CAPA tidak boleh mendahului tanggal audit.',
         ]);
+        if (empty($this->unit_id) && empty($this->gudang_id)) {
+            $this->addError('auditee', 'Wajib memilih salah satu entitas terperiksa: Unit Ruangan atau Fasilitas Gudang.');
+            return;
+        }
+
+        if (!empty($this->unit_id) && !empty($this->gudang_id)) {
+            $this->addError('auditee', 'Pilih salah satu entitas saja: Unit Ruangan atau Fasilitas Gudang, tidak boleh keduanya.');
+            return;
+        }
+
 
         $user = auth()->user();
         $kode = CodeGenerator::generateAud();
@@ -148,17 +179,32 @@ class RegisterTemuanCapaIndex extends Component
     }
 
     /**
+     * Periksa apakah pengguna berhak mengelola tindakan perbaikan CAPA (Auditee / Super Admin).
+     */
+    public function canUserManageTindakLanjut(?User $user, TemuanAudit $temuan): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        // Sama dengan API tindakLanjutTemuan: admin global ATAU auditee pemilik unit/gudang.
+        // Sengaja tanpa syarat permission update (itu membuka Evaluasi & Closing).
+        return $user->hasRole(['super_admin', 'admin_logistik'])
+            || ($temuan->unit_id && (int) $user->unit_id === (int) $temuan->unit_id)
+            || ($temuan->gudang_id && (int) $user->gudang_id === (int) $temuan->gudang_id);
+    }
+
+    /**
      * Verifikasi wewenang auditee untuk melihat dan menindaklanjuti temuan audit.
      */
     protected function authorizeAuditeeAccess(TemuanAudit $temuan): void
     {
         $user = auth()->user();
-        $isAuthorized = $user && (
-            ($user->can('update_audit_manajemen::temuan::capa') && $temuan->unit_id && (int) $user->unit_id === (int) $temuan->unit_id) ||
-            ($user->can('update_audit_manajemen::temuan::capa') && $temuan->gudang_id && (int) $user->gudang_id === (int) $temuan->gudang_id)
+        abort_unless(
+            $this->canUserManageTindakLanjut($user, $temuan),
+            403,
+            'Anda tidak memiliki wewenang mengelola tindak lanjut temuan audit unit ini.'
         );
-
-        abort_unless($isAuthorized, 403, 'Anda tidak memiliki wewenang mengelola tindak lanjut temuan audit unit ini.');
     }
 
     /**
@@ -225,6 +271,11 @@ class RegisterTemuanCapaIndex extends Component
      */
     public function removeTempFile(int $index): void
     {
+        if (! $this->selectedTemuanId) {
+            return;
+        }
+
+        $this->authorizeAuditeeAccess(TemuanAudit::findOrFail($this->selectedTemuanId));
         unset($this->fileBuktiList[$index]);
         $this->fileBuktiList = array_values($this->fileBuktiList);
     }
@@ -314,14 +365,35 @@ class RegisterTemuanCapaIndex extends Component
         );
 
         $today = now()->toDateString();
-        // Metrik Ringkasan CAPA
-        $totalTemuan = TemuanAudit::count();
-        $totalClosed = TemuanAudit::where('status_capa', StatusCapa::Closed->value)->count();
-        $totalMayorOpen = TemuanAudit::where('tingkat_risiko', 'Mayor')->where('status_capa', '!=', StatusCapa::Closed->value)->count();
-        $totalOverdue = TemuanAudit::where('status_capa', '!=', StatusCapa::Closed->value)->where('due_date_capa', '<', $today)->count();
+
+        // Query dasar ber-scope: non-global hanya melihat temuan unit/gudangnya sendiri.
+        $isGlobal = $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen'])
+            || $user->can('view_any_audit_manajemen::temuan::capa');
+
+        $scoped = TemuanAudit::query();
+        if (! $isGlobal) {
+            $scoped->where(function ($q) use ($user) {
+                if ($user->unit_id) {
+                    $q->orWhere('unit_id', $user->unit_id);
+                }
+                if ($user->gudang_id) {
+                    $q->orWhere('gudang_id', $user->gudang_id);
+                }
+                if (! $user->unit_id && ! $user->gudang_id) {
+                    $q->whereRaw('1 = 0');
+                }
+            });
+        }
+
+        // Metrik Ringkasan CAPA (diturunkan dari query ber-scope)
+        $closed = StatusCapa::Closed->value;
+        $totalTemuan = (clone $scoped)->count();
+        $totalClosed = (clone $scoped)->where('status_capa', $closed)->count();
+        $totalMayorOpen = (clone $scoped)->where('tingkat_risiko', 'Mayor')->where('status_capa', '!=', $closed)->count();
+        $totalOverdue = (clone $scoped)->where('status_capa', '!=', $closed)->where('due_date_capa', '<', $today)->count();
         $closingRate = $totalTemuan > 0 ? round(($totalClosed / $totalTemuan) * 100, 1) : 100;
 
-        $query = TemuanAudit::with(['auditor', 'evaluator', 'unit', 'gudang'])
+        $query = (clone $scoped)->with(['auditor', 'evaluator', 'unit', 'gudang'])
             ->when($this->filterStatus, fn ($q) => $q->where('status_capa', $this->filterStatus))
             ->when($this->filterRisiko, fn ($q) => $q->where('tingkat_risiko', $this->filterRisiko))
             ->when($this->search, function ($q) {

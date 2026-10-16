@@ -7,20 +7,6 @@
                 <flux:subheading class="text-zinc-500 dark:text-zinc-400">Kelola pesanan pembelian yang dikonversi dari permintaan pengadaan yang disetujui.</flux:subheading>
             </div>
 
-            @can('create_pengadaan::pesanan::pembelian')
-                @if ($daftarPrSiapKonversi->isNotEmpty())
-                    <flux:dropdown>
-                        <flux:button variant="primary" icon="plus" wire:loading.attr="disabled">Konversi PR ke PO</flux:button>
-                        <flux:menu>
-                            @foreach ($daftarPrSiapKonversi as $pr)
-                                <flux:menu.item wire:click="konversiPo({{ $pr->id }})">
-                                    {{ $pr->kode }} &bull; {{ $pr->nama_pemohon }}
-                                </flux:menu.item>
-                            @endforeach
-                        </flux:menu>
-                    </flux:dropdown>
-                @endif
-            @endcan
         </div>
 
         {{-- Navigasi Sub-Tab Hub Pengadaan --}}

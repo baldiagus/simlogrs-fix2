@@ -16,8 +16,6 @@
             @endcan
         </div>
 
-        {{-- Sub-Navigasi Modul Pengalihan & Mutasi --}}
-        <x-tabs.pengalihan-hub active="aset" />
     </div>
     {{-- Metrik KPI Ringkasan --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">

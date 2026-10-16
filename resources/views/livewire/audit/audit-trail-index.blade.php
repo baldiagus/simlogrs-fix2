@@ -181,7 +181,7 @@
     </flux:card>
 
     {{-- Modal Inspeksi Diff Perubahan Data (Forensik) --}}
-    <flux:modal name="modal-detail-audit" wire:model="showDetailModal" class="w-full max-w-[95vw] lg:max-w-5xl">
+    <flux:modal name="modal-detail-audit" wire:model="showDetailModal" :dismissible="false" :closable="false" class="w-full max-w-[95vw] lg:max-w-5xl">
         @if ($selectedLog)
             <div class="space-y-4">
                 <div class="flex items-start justify-between gap-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
@@ -190,7 +190,7 @@
                             <flux:heading size="lg">Forensik Audit Log #{{ $selectedLog->id }}</flux:heading>
                         </div>
                         <flux:subheading class="mt-0.5">
-                            Model: <span class="font-mono font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedLog->referensi_jenis }} #{{ $selectedLog->referensi_id }}</span> &bull;
+                            Entitas: <span class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedLog->referensi_jenis }} #{{ $selectedLog->referensi_id }}</span> &bull;
                             Aktor: <span class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $selectedLog->pengguna?->nama ?? 'Sistem' }}</span>
                         </flux:subheading>
                     </div>
@@ -213,25 +213,33 @@
                 </div>
 
                 {{-- Metadata Grid --}}
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-xs">
-                    <div>
-                        <div class="text-zinc-500 dark:text-zinc-400">Waktu Transaksi</div>
-                        <div class="font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5">{{ $selectedLog->dibuat_pada?->format('d F Y H:i:s') }}</div>
-                    </div>
-                    <div>
-                        <div class="text-zinc-500 dark:text-zinc-400">Alamat IP</div>
-                        <div class="font-mono font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5">{{ $selectedLog->ip_address ?: '-' }}</div>
-                    </div>
-                    <div>
-                        <div class="text-zinc-500 dark:text-zinc-400">Peran Aktor</div>
-                        <div class="font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5">{{ $selectedLog->peran?->name ?? '-' }}</div>
-                    </div>
-                    <div>
-                        <div class="text-zinc-500 dark:text-zinc-400">User Agent / Perangkat</div>
-                        <div class="font-mono text-[11px] text-zinc-700 dark:text-zinc-300 mt-0.5 truncate" title="{{ $selectedLog->device }}">
-                            {{ $selectedLog->device ?: '-' }}
+                <div class="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/60 text-xs space-y-2.5">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <div class="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Waktu Transaksi</div>
+                            <div class="font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5">{{ $selectedLog->dibuat_pada?->format('d F Y, H:i:s') }} WIB</div>
+                        </div>
+                        <div>
+                            <div class="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Aktor & Peran</div>
+                            <div class="font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                <span>{{ $selectedLog->pengguna?->nama ?? 'Sistem' }}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium">
+                                    {{ $selectedLog->peran?->name ?? 'System' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Alamat IP Klien</div>
+                            <div class="font-mono text-xs font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5">{{ $selectedLog->ip_address ?: '-' }}</div>
                         </div>
                     </div>
+
+                    @if ($selectedLog->device)
+                        <div class="pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60">
+                            <span class="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Perangkat & User Agent:</span>
+                            <span class="text-xs text-zinc-700 dark:text-zinc-300 ml-1 break-all">{{ $selectedLog->device }}</span>
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Tabel Perbandingan Diff (Side-by-Side) --}}
@@ -256,12 +264,12 @@
                             <table class="w-full text-xs text-left">
                                 <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-semibold border-b border-zinc-200 dark:border-zinc-700 sticky top-0">
                                     <tr>
-                                        <th class="p-2.5 w-44">Nama Atribut</th>
-                                        <th class="p-2.5 w-1/2">Nilai Sebelum (Original)</th>
-                                        <th class="p-2.5 w-1/2">Nilai Sesudah (Baru)</th>
+                                        <th class="p-2.5 w-1/4">Nama Atribut</th>
+                                        <th class="p-2.5 w-[37.5%]">Nilai Sebelum (Original)</th>
+                                        <th class="p-2.5 w-[37.5%]">Nilai Sesudah (Baru)</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800 bg-white dark:bg-zinc-900 font-mono text-[11px]">
+                                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800 bg-white dark:bg-zinc-900 text-xs">
                                     @foreach ($allKeys as $key)
                                         @php
                                             $valBefore = $selectedLog->data_sebelum[$key] ?? null;
@@ -269,19 +277,25 @@
                                             $strBefore = is_array($valBefore) ? json_encode($valBefore) : (is_null($valBefore) ? '-' : (string) $valBefore);
                                             $strAfter = is_array($valAfter) ? json_encode($valAfter) : (is_null($valAfter) ? '-' : (string) $valAfter);
                                             $isChanged = ($strBefore !== $strAfter);
+                                            $isJsonBefore = str_starts_with(trim($strBefore), '{') || str_starts_with(trim($strBefore), '[');
+                                            $isJsonAfter = str_starts_with(trim($strAfter), '{') || str_starts_with(trim($strAfter), '[');
                                         @endphp
                                         <tr class="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40 {{ $isChanged ? 'bg-amber-50/30 dark:bg-amber-950/10' : '' }}">
-                                            <td class="p-2.5 font-sans font-medium text-zinc-800 dark:text-zinc-200">
-                                                {{ $key }}
-                                                @if ($isChanged)
-                                                    <span class="inline-block size-1.5 rounded-full bg-amber-500 ml-1" title="Atribut Berubah"></span>
-                                                @endif
+                                            <td class="p-2.5 font-medium text-zinc-800 dark:text-zinc-200 align-top">
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="font-medium">{{ $key }}</span>
+                                                    @if ($isChanged)
+                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                                            Berubah
+                                                        </span>
+                                                    @endif
+                                                </div>
                                             </td>
-                                            <td class="p-2.5 {{ $isChanged && $strBefore !== '-' ? 'bg-rose-50/80 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300' : 'text-zinc-600 dark:text-zinc-400' }}">
-                                                <div class="break-all whitespace-pre-wrap">{{ $strBefore }}</div>
+                                            <td class="p-2.5 align-top {{ $isChanged && $strBefore !== '-' ? 'bg-rose-50/70 text-rose-900 dark:bg-rose-950/40 dark:text-rose-200' : 'text-zinc-600 dark:text-zinc-400' }}">
+                                                <div class="break-all whitespace-pre-wrap leading-relaxed {{ $isJsonBefore ? 'font-mono text-[11px]' : '' }}">{{ $strBefore }}</div>
                                             </td>
-                                            <td class="p-2.5 {{ $isChanged && $strAfter !== '-' ? 'bg-emerald-50/80 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 font-semibold' : 'text-zinc-600 dark:text-zinc-400' }}">
-                                                <div class="break-all whitespace-pre-wrap">{{ $strAfter }}</div>
+                                            <td class="p-2.5 align-top {{ $isChanged && $strAfter !== '-' ? 'bg-emerald-50/70 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200 font-medium' : 'text-zinc-600 dark:text-zinc-400' }}">
+                                                <div class="break-all whitespace-pre-wrap leading-relaxed {{ $isJsonAfter ? 'font-mono text-[11px]' : '' }}">{{ $strAfter }}</div>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -291,6 +305,12 @@
                     @endif
                 </div>
 
+                {{-- Footer Tombol Tutup --}}
+                <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+                    <flux:button type="button" variant="ghost" wire:click="$set('showDetailModal', false)">
+                        Tutup Lembar Forensik
+                    </flux:button>
+                </div>
             </div>
         @endif
     </flux:modal>

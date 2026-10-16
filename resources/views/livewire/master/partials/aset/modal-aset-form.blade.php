@@ -1,5 +1,5 @@
     {{-- Modal Form Tambah / Ubah Aset --}}
-    <flux:modal name="modal-aset-form" wire:model="showModal" class="md:w-[38rem]">
+    <flux:modal name="modal-aset-form" wire:model="showModal" class="w-full max-w-4xl">
         <form wire:submit="save" class="space-y-4">
             <div style="padding-right: 2.5rem;">
                 <flux:heading size="lg">{{ $editingId ? 'Ubah Register Aset' : 'Registrasi Unit Aset Baru' }}</flux:heading>
@@ -103,9 +103,6 @@
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
-                <flux:button type="button" variant="ghost" wire:click="$set('showModal', false)">
-                    Batal
-                </flux:button>
                 <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="save">Simpan Aset</span>
                     <span wire:loading wire:target="save">Menyimpan...</span>
