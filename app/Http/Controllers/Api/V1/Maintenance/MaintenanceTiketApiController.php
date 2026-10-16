@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api\V1\Maintenance;
 
+use App\Enums\Aset\StatusPeminjaman;
 use App\Enums\Ipsrs\StatusMaintenance;
 use App\Http\Controllers\Api\ApiController;
 use App\Models\Aset\Aset;
+use App\Models\Aset\PermintaanPeminjaman;
 use App\Models\Ipsrs\PermintaanMaintenance;
 use App\Support\File\FileOptimizer;
 use App\Support\Generator\CodeGenerator;
@@ -155,7 +157,9 @@ class MaintenanceTiketApiController extends ApiController
 
         $canView = $user->can('view_any_layanan_unit::lapor::servis') ||
             $user->can('view_layanan_unit::lapor::servis') ||
-            $user->hasRole(['super_admin', 'admin_logistik']);
+            $user->hasRole(['super_admin', 'admin_logistik', 'kepala_teknisi', 'teknisi', 'auditor', 'manajemen']) ||
+            $user->can('view_any_pemeliharaan::spk::perbaikan') ||
+            $user->can('create_pemeliharaan::spk::perbaikan');
         if (! $canView) {
             return $this->jsonError('Anda tidak memiliki wewenang melihat daftar tiket kerusakan.', 403);
         }
@@ -170,6 +174,10 @@ class MaintenanceTiketApiController extends ApiController
     private function queryTiketUnit($user, Request $request)
     {
         $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
+        $isIpsrs = $user->hasRole(['kepala_teknisi', 'teknisi']) || $user->can('create_pemeliharaan::spk::perbaikan');
+        $isAuditorOrManajemen = ! $user->unit_id && ($user->can('view_any_pemeliharaan::spk::perbaikan') || $user->hasRole(['auditor', 'manajemen']));
+        $canSeeAll = $isGlobalAdmin || $isIpsrs || $isAuditorOrManajemen;
+
         $userUnitId = $user->unit_id;
         $userGudangId = $user->gudang_id;
         $filterStatus = $request->query('status');
@@ -182,12 +190,17 @@ class MaintenanceTiketApiController extends ApiController
             'pelapor',
             'penugasanAktif.teknisi',
         ])
-        ->when($userUnitId && ! $isGlobalAdmin, fn ($q) => $q->where('unit_id', $userUnitId))
-        ->when($userGudangId && ! $userUnitId && ! $isGlobalAdmin, function ($q) use ($user, $userGudangId) {
-            $q->where(function ($sub) use ($user, $userGudangId) {
-                $sub->where('dilaporkan_oleh', $user->id)
-                    ->orWhereHas('aset', fn ($a) => $a->where('gudang_id', $userGudangId));
-            });
+        ->when(! $canSeeAll, function ($q) use ($user, $userUnitId, $userGudangId) {
+            if ($userUnitId) {
+                $q->where('unit_id', $userUnitId);
+            } elseif ($userGudangId) {
+                $q->where(function ($sub) use ($user, $userGudangId) {
+                    $sub->where('dilaporkan_oleh', $user->id)
+                        ->orWhereHas('aset', fn ($a) => $a->where('gudang_id', $userGudangId));
+                });
+            } else {
+                $q->whereRaw('1 = 0');
+            }
         })
         ->when($filterStatus, fn ($q) => $q->where('status', $filterStatus))
         ->when($filterPrioritas, fn ($q) => $q->where('prioritas', $filterPrioritas))
@@ -214,6 +227,9 @@ class MaintenanceTiketApiController extends ApiController
             $user->hasRole('admin_logistik')
         );
 
+        $isAsetPinjaman = (bool) ($item->aset?->status === 'DIPINJAM');
+        $penyediaAsal = $isAsetPinjaman ? $this->resolvePenyediaAsal($item->aset) : null;
+
         return [
             'id'                => $item->id,
             'kode'              => $item->kode,
@@ -225,6 +241,8 @@ class MaintenanceTiketApiController extends ApiController
             'unit'              => $item->unit?->nama ?? '-',
             'pelapor'           => $item->pelapor?->nama ?? '-',
             'can_cancel'        => $canCancel,
+            'is_aset_pinjaman'  => $isAsetPinjaman,
+            'nama_penyedia_asal'=> $penyediaAsal,
             'aset'              => [
                 'id'         => $item->aset?->id,
                 'kode_aset'  => $item->aset?->kode_aset ?? '-',
@@ -237,6 +255,21 @@ class MaintenanceTiketApiController extends ApiController
                 'status_spk'   => $item->penugasanAktif->status,
             ] : null,
         ];
+    }
+
+    private function resolvePenyediaAsal(?Aset $aset): ?string
+    {
+        if (! $aset) {
+            return null;
+        }
+
+        $activeLoan = PermintaanPeminjaman::whereHas('detail', fn ($q) => $q->where('aset_id', $aset->id))
+            ->whereIn('status', [StatusPeminjaman::Dipinjam->value, StatusPeminjaman::Disetujui->value])
+            ->with(['unitPenyedia', 'gudangPenyedia'])
+            ->latest('id')
+            ->first();
+
+        return $activeLoan?->unitPenyedia?->nama ?? $activeLoan?->gudangPenyedia?->nama;
     }
 
     /**
@@ -272,6 +305,12 @@ class MaintenanceTiketApiController extends ApiController
      */
     public function detailTiketUnit(Request $request, int $id): JsonResponse
     {
+        $user = $request->user();
+
+        if (! $user) {
+            return $this->jsonError('Unauthenticated.', 401);
+        }
+
         $tiket = PermintaanMaintenance::with([
             'aset.barang.kategori',
             'unit',
@@ -285,20 +324,18 @@ class MaintenanceTiketApiController extends ApiController
             return $this->jsonError('Tiket kerusakan tidak ditemukan.', 404);
         }
 
-        $isPrivileged = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik']) ||
-            $user->can('view_any_layanan_unit::lapor::servis')
-        );
+        $isPrivileged = $user->hasRole(['super_admin', 'admin_logistik', 'kepala_teknisi', 'teknisi']) ||
+            ($user->can('view_any_pemeliharaan::spk::perbaikan') && ! $user->unit_id) ||
+            (! $user->unit_id && $user->hasRole(['auditor', 'manajemen']));
 
-        $isUnitOwner = $user && (
-            ($user->unit_id && (int) $user->unit_id === (int) $tiket->unit_id) ||
+        $isUnitOwner = ($user->unit_id && (int) $user->unit_id === (int) $tiket->unit_id) ||
             ($user->gudang_id && (int) $user->gudang_id === (int) $tiket->aset?->gudang_id) ||
-            ((int) $tiket->dilaporkan_oleh === (int) $user->id)
-        );
+            ((int) $tiket->dilaporkan_oleh === (int) $user->id);
 
         if (! $isPrivileged && ! $isUnitOwner) {
             return $this->jsonError('Akses ditolak: Anda tidak memiliki wewenang melihat tiket pemeliharaan unit lain.', 403);
         }
+
         $canCancel = $tiket->status === StatusMaintenance::Dilaporkan->value && (
             (int) $tiket->dilaporkan_oleh === (int) $user->id ||
             ($user->hasRole('kepala_unit') && (int) $user->unit_id === (int) $tiket->unit_id) ||
@@ -306,6 +343,9 @@ class MaintenanceTiketApiController extends ApiController
             $user->hasRole('super_admin') ||
             $user->hasRole('admin_logistik')
         );
+
+        $isAsetPinjaman = (bool) ($tiket->aset?->status === 'DIPINJAM');
+        $penyediaAsal = $isAsetPinjaman ? $this->resolvePenyediaAsal($tiket->aset) : null;
 
         return $this->jsonSuccess([
             'id'                => $tiket->id,
@@ -318,6 +358,8 @@ class MaintenanceTiketApiController extends ApiController
             'unit'              => $tiket->unit?->nama ?? '-',
             'pelapor'           => $tiket->pelapor?->nama ?? '-',
             'can_cancel'        => $canCancel,
+            'is_aset_pinjaman'  => $isAsetPinjaman,
+            'nama_penyedia_asal'=> $penyediaAsal,
             'aset'              => [
                 'id'         => $tiket->aset?->id,
                 'kode_aset'  => $tiket->aset?->kode_aset ?? '-',
