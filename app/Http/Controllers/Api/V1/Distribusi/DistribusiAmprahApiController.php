@@ -30,7 +30,8 @@ class DistribusiAmprahApiController extends ApiController
     public function katalogBarang(Request $request): JsonResponse
     {
         $cari = $request->query('cari');
-        $gudangId = $request->query('gudang_id') ?: Gudang::where('status', 'AKTIF')->value('id');
+        $hasExplicitGudang = $request->has('gudang_id') && !empty($request->query('gudang_id'));
+        $gudangId = $hasExplicitGudang ? (int) $request->query('gudang_id') : null;
 
         $barangs = Barang::query()
             ->whereIn('tipe', ['HABIS_PAKAI', 'SPAREPART', 'ASET'])
@@ -44,16 +45,28 @@ class DistribusiAmprahApiController extends ApiController
             })
             ->limit(50)
             ->get()
-            ->map(function ($b) use ($gudangId) {
-                $stokGudang = (int) StokBatch::where('barang_id', $b->id)
+            ->map(function ($b) use ($hasExplicitGudang, $gudangId) {
+                $stokGudangQuery = StokBatch::where('barang_id', $b->id)
                     ->where('status', 'AKTIF')
                     ->where('jumlah', '>', 0)
-                    ->when($gudangId, fn ($q) => $q->where('gudang_id', $gudangId))
                     ->where(function ($q) {
                         $q->whereNull('tanggal_kedaluwarsa')
-                          ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
-                    })
-                    ->sum('jumlah');
+                            ->orWhere('tanggal_kedaluwarsa', '>=', now()->toDateString());
+                    });
+
+                $stokGudang = $hasExplicitGudang
+                    ? (int) (clone $stokGudangQuery)->where('gudang_id', $gudangId)->sum('jumlah')
+                    : (int) (clone $stokGudangQuery)->sum('jumlah');
+
+                $bestBatch = (clone $stokGudangQuery)
+                    ->groupBy('gudang_id')
+                    ->selectRaw('gudang_id, sum(jumlah) as total')
+                    ->orderByDesc('total')
+                    ->first();
+
+                $bestGudangId = $bestBatch ? (int) $bestBatch->gudang_id : null;
+                $bestGudangNama = $bestGudangId ? \App\Models\Master\Gudang::where('id', $bestGudangId)->value('nama') : null;
+                $bestGudangStok = (int) ($bestBatch?->total ?? 0);
 
                 $tipeLabel = match ($b->tipe) {
                     'ASET'      => 'Aktiva / Aset Inventaris',
@@ -62,16 +75,19 @@ class DistribusiAmprahApiController extends ApiController
                 };
 
                 return [
-                    'id'             => $b->id,
-                    'kode'           => $b->kode,
-                    'nama'           => $b->nama,
-                    'spesifikasi'    => $b->spesifikasi,
-                    'tipe'           => $b->tipe,
-                    'tipe_label'     => $tipeLabel,
-                    'kategori'       => $b->kategori?->nama ?? 'Umum',
-                    'satuan'         => $b->satuan?->nama ?? 'Pcs',
-                    'merek'          => $b->merek?->nama ?? '-',
-                    'stok_tersedia'  => $stokGudang,
+                    'id'               => $b->id,
+                    'kode'             => $b->kode,
+                    'nama'             => $b->nama,
+                    'spesifikasi'      => $b->spesifikasi,
+                    'tipe'             => $b->tipe,
+                    'tipe_label'       => $tipeLabel,
+                    'kategori'         => $b->kategori?->nama ?? 'Umum',
+                    'satuan'           => $b->satuan?->nama ?? 'Pcs',
+                    'merek'            => $b->merek?->nama ?? '-',
+                    'stok_tersedia'    => $stokGudang,
+                    'best_gudang_id'   => $bestGudangId,
+                    'best_gudang_nama' => $bestGudangNama,
+                    'best_gudang_stok' => $bestGudangStok,
                 ];
             });
 
