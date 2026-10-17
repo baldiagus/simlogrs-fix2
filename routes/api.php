@@ -73,6 +73,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/gudang/opname-count', [GudangTataLetakApiController::class, 'opnameCount']);
         Route::get('/gudang/po-inbound', [GudangPenerimaanPoApiController::class, 'poInbound']);
         Route::post('/gudang/penerimaan-po', [GudangPenerimaanPoApiController::class, 'simpanPenerimaanPo']);
+        Route::post('/gudang/penerimaan-po/tolak', [GudangPenerimaanPoApiController::class, 'tolakPenerimaanPo']);
         Route::get('/gudang/pengalihan-barang', [GudangPengalihanBarangApiController::class, 'daftarPengalihanBarang']);
         Route::post('/gudang/pengalihan-barang', [GudangPengalihanBarangApiController::class, 'simpanPengalihanBarang']);
         Route::post('/gudang/pengalihan-barang/{id}/otorisasi', [GudangPengalihanBarangApiController::class, 'otorisasiPengalihanBarang']);

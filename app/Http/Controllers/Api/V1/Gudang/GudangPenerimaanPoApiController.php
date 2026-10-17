@@ -152,6 +152,59 @@ class GudangPenerimaanPoApiController extends ApiController
         }
     }
 
+    /**
+     * Tolak penerimaan fisik barang PO dari vendor.
+     * POST /v1/gudang/penerimaan-po/tolak
+     */
+    public function tolakPenerimaanPo(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $canReject = $user->can('create_gudang_stok::penerimaan::po') ||
+            $user->hasRole(['super_admin', 'admin_logistik']);
+
+        if (! $canReject) {
+            return $this->jsonError('Anda tidak memiliki wewenang untuk menolak penerimaan kiriman PO.', 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'pesanan_pembelian_id' => 'required|integer|exists:pesanan_pembelian,id',
+            'nomor_surat_jalan'    => 'required|string|min:3|max:100',
+            'alasan_penolakan'     => 'required|string|min:5|max:1000',
+            'items'                => 'nullable|array',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->jsonError('Validasi data penolakan gagal.', 422, $validator->errors());
+        }
+
+        $po = PesananPembelian::find($request->input('pesanan_pembelian_id'));
+        if (! in_array($po->status, StatusPesananPembelian::bisaDiterima(), true)) {
+            return $this->jsonError('PO tidak dalam status yang dapat menerima dokumen penolakan (saat ini: ' . $po->status . ').', 422);
+        }
+
+        $gudangId = $user->gudang_id;
+        if (! $gudangId && $user->hasRole(['super_admin', 'admin_logistik'])) {
+            $gudangId = $request->input('gudang_id') ?? \App\Models\Master\Gudang::where('status', 'AKTIF')->value('id');
+        }
+
+        if (! $gudangId) {
+            return $this->jsonError('Akun Anda belum memiliki penugasan fasilitas gudang penerima resmi.', 403);
+        }
+
+        $service = app(\App\Services\Pengadaan\PenerimaanPoService::class);
+        $rcvKode = $service->tolakKiriman($po->id, (int) $gudangId, $request->input('nomor_surat_jalan'), $request->input('alasan_penolakan'), $user);
+
+        if (! $rcvKode) {
+            return $this->jsonError('Pesanan pembelian sudah tidak dalam status yang dapat menerima dokumen penolakan. Muat ulang data PO.', 422);
+        }
+
+        return $this->jsonSuccess([
+            'kode_rcv' => $rcvKode,
+            'status'   => 'DITOLAK',
+        ], 'Kiriman fisik PO berhasil ditolak. Berita acara penolakan diterbitkan dengan nomor ' . $rcvKode . '.');
+    }
+
     protected function eksekusiPenerimaanPo(Request $request, User $user, PesananPembelian $po, int $gudangId): PenerimaanBarang
     {
         return DB::transaction(function () use ($request, $user, $po, $gudangId) {
