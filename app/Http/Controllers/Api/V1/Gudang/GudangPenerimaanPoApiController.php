@@ -37,14 +37,25 @@ class GudangPenerimaanPoApiController extends ApiController
             return $this->jsonError('Anda tidak memiliki wewenang untuk melihat daftar penerimaan PO.', 403);
         }
 
-        $pos = PesananPembelian::query()
-            ->whereIn('status', StatusPesananPembelian::aktif())
+        $status = $request->query('status');
+        $search = $request->query('search');
+
+        $query = PesananPembelian::query()
+            ->when($status && $status !== 'SEMUA', fn ($q) => $q->where('status', $status))
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('kode', 'like', "%{$search}%")
+                        ->orWhereHas('pemasok', fn ($p) => $p->where('nama', 'like', "%{$search}%"));
+                });
+            })
             ->with([
                 'pemasok:id,kode,nama',
                 'detail.barang:id,kode,nama,satuan_id,kategori_id',
                 'detail.barang.satuan:id,nama',
             ])
-            ->latest('id')
+            ->latest('id');
+
+        $pos = $query->limit(100)
             ->get()
             ->map(function ($po) {
                 return [
