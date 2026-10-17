@@ -164,11 +164,12 @@ class ApprovalController extends ApiController
 
         $canApprove = $user && (
             $user->hasRole(['super_admin', 'admin_logistik']) ||
-            ($user->can('update_pengadaan::permintaan::pengadaan') && $user->hasRole(['pengadaan', 'kepala_unit', 'kepala_gudang']))
+            ($user->can('update_pengadaan::permintaan::pengadaan') && $user->hasRole(['kepala_unit', 'kepala_gudang'])) ||
+            ($user->hasRole('pengadaan') || $user->can('create_pengadaan::pesanan::pembelian'))
         );
 
         if (! $canApprove) {
-            return $this->jsonError('Anda tidak memiliki wewenang untuk menyetujui permintaan pengadaan.', 403);
+            return $this->jsonError('Anda tidak memiliki wewenang untuk memproses permohonan pengadaan ini.', 403);
         }
 
         $pr = PermintaanPengadaan::with('detail')->lockForUpdate()->find($id);
@@ -204,7 +205,7 @@ class ApprovalController extends ApiController
      */
     private function cekKepemilikanPr($user, PermintaanPengadaan $pr): ?JsonResponse
     {
-        if ($user->hasRole(['super_admin', 'admin_logistik'])) {
+        if ($user->hasRole(['super_admin', 'admin_logistik', 'pengadaan'])) {
             return null;
         }
 
