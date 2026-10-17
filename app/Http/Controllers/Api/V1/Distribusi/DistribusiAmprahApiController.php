@@ -132,6 +132,7 @@ class DistribusiAmprahApiController extends ApiController
                     'unit'               => $item->unit?->nama ?? 'Unit',
                     'gudang'             => $item->gudang?->nama ?? 'Gudang Sentral',
                     'pengaju'            => $item->pengaju?->nama ?? 'Staf',
+                    'diajukan_oleh'      => (int) $item->diajukan_oleh,
                     'tanggal_permintaan' => $item->tanggal_permintaan?->format('Y-m-d') ?? '',
                     'urgensi'            => $item->urgensi,
                     'status'             => $item->status,
@@ -190,6 +191,7 @@ class DistribusiAmprahApiController extends ApiController
             'unit'               => $amprah->unit?->nama ?? '-',
             'gudang'             => $amprah->gudang?->nama ?? '-',
             'pengaju'            => $amprah->pengaju?->nama ?? '-',
+            'diajukan_oleh'      => (int) $amprah->diajukan_oleh,
             'tanggal_permintaan' => $amprah->tanggal_permintaan?->format('Y-m-d'),
             'urgensi'            => $amprah->urgensi,
             'status'             => $amprah->status,
@@ -334,6 +336,10 @@ class DistribusiAmprahApiController extends ApiController
 
         if (! $amprah) {
             return $this->jsonError('Data amprah tidak ditemukan.', 404);
+        }
+
+        if ($user->hasRole('kepala_unit') && (int) $amprah->diajukan_oleh !== (int) $user->id) {
+            return $this->jsonError('Kepala Ruangan tidak memiliki wewenang membatalkan permohonan staf unit. Gunakan aksi Tolak pada menu persetujuan.', 403);
         }
 
         if (! $this->canRequesterAct($user, $amprah->unit_id)) {
@@ -551,6 +557,10 @@ class DistribusiAmprahApiController extends ApiController
     private function canCancel(?User $user, PermintaanDistribusi $amprah): bool
     {
         if (! in_array($amprah->status, StatusPermintaanDistribusi::dapatDibatalkan(), true)) {
+            return false;
+        }
+
+        if ($user && $user->hasRole('kepala_unit') && (int) $amprah->diajukan_oleh !== (int) $user->id) {
             return false;
         }
 
