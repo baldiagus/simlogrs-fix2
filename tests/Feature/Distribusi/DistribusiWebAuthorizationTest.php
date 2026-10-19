@@ -64,7 +64,7 @@ class DistribusiWebAuthorizationTest extends TestCase
         return $user;
     }
 
-    protected function makePermintaan(Unit $unit, Gudang $gudang, string $status): PermintaanDistribusi
+    protected function makePermintaan(Unit $unit, Gudang $gudang, string $status, ?int $diajukanOleh = null): PermintaanDistribusi
     {
         return PermintaanDistribusi::create([
             'kode' => CodeGenerator::generate('REQ', PermintaanDistribusi::class, 'kode', 'Ym', 3),
@@ -73,7 +73,7 @@ class DistribusiWebAuthorizationTest extends TestCase
             'tanggal_permintaan' => now()->toDateString(),
             'urgensi' => 'REGULER',
             'status' => $status,
-            'diajukan_oleh' => User::where('email', 'superadmin@simlogrs.local')->value('id'),
+            'diajukan_oleh' => $diajukanOleh ?? User::where('email', 'superadmin@simlogrs.local')->value('id'),
         ]);
     }
 
@@ -170,23 +170,61 @@ class DistribusiWebAuthorizationTest extends TestCase
 
     public function test_cancel_requires_permission_and_own_unit(): void
     {
-        $own = $this->makePermintaan($this->unitA, $this->gudangA, 'DIAJUKAN');
+        $requester = $this->makeUser(['unit_id' => $this->unitA->id], [
+            'view_any_layanan_unit::permintaan::barang',
+            'create_layanan_unit::permintaan::barang',
+        ]);
+        $own = $this->makePermintaan($this->unitA, $this->gudangA, 'DIAJUKAN', $requester->id);
         $other = $this->makePermintaan($this->unitB, $this->gudangA, 'DIAJUKAN');
 
         $viewer = $this->makeUser(['unit_id' => $this->unitA->id], ['view_any_layanan_unit::permintaan::barang']);
         $this->actingAs($viewer);
         Livewire::test(PermintaanBarangIndex::class)->call('batal', $own->id)->assertForbidden();
 
-        $requester = $this->makeUser(['unit_id' => $this->unitA->id], [
-            'view_any_layanan_unit::permintaan::barang',
-            'create_layanan_unit::permintaan::barang',
-        ]);
         $this->actingAs($requester);
         Livewire::test(PermintaanBarangIndex::class)->call('batal', $other->id)->assertForbidden();
         Livewire::test(PermintaanBarangIndex::class)->call('batal', $own->id)->assertOk();
 
         $this->assertSame('DITOLAK', $own->fresh()->status);
         $this->assertSame('DIAJUKAN', $other->fresh()->status);
+    }
+    public function test_petugas_unit_cannot_cancel_approved_amprah_on_web(): void
+    {
+        $petugas = $this->makeUser(['unit_id' => $this->unitA->id], [
+            'view_any_layanan_unit::permintaan::barang',
+            'create_layanan_unit::permintaan::barang',
+        ], 'petugas_unit');
+
+        $approved = $this->makePermintaan($this->unitA, $this->gudangA, 'DISETUJUI_KARU', $petugas->id);
+
+        $this->actingAs($petugas);
+        Livewire::test(PermintaanBarangIndex::class)
+            ->call('batal', $approved->id)
+            ->assertForbidden();
+
+        $this->assertSame('DISETUJUI_KARU', $approved->fresh()->status);
+    }
+
+    public function test_petugas_unit_cannot_cancel_karu_amprah_on_web(): void
+    {
+        $karu = $this->makeUser(['unit_id' => $this->unitA->id], [
+            'view_any_layanan_unit::permintaan::barang',
+            'create_layanan_unit::permintaan::barang',
+        ], 'kepala_unit');
+
+        $petugas = $this->makeUser(['unit_id' => $this->unitA->id], [
+            'view_any_layanan_unit::permintaan::barang',
+            'create_layanan_unit::permintaan::barang',
+        ], 'petugas_unit');
+
+        $karuAmprah = $this->makePermintaan($this->unitA, $this->gudangA, 'DIAJUKAN', $karu->id);
+
+        $this->actingAs($petugas);
+        Livewire::test(PermintaanBarangIndex::class)
+            ->call('batal', $karuAmprah->id)
+            ->assertForbidden();
+
+        $this->assertSame('DIAJUKAN', $karuAmprah->fresh()->status);
     }
 
     // ---------- Otorisasi Karu (Meja 1) ----------

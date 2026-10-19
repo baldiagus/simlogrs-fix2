@@ -219,6 +219,8 @@ class PermintaanBarangIndex extends Component
             return;
         }
 
+        abort_unless($this->canCancel($permintaan), 403, 'Anda tidak memiliki hak akses untuk membatalkan permintaan ini.');
+
         $this->askConfirmation(
             target: $id,
             action: 'batal',
@@ -246,6 +248,8 @@ class PermintaanBarangIndex extends Component
             return;
         }
 
+        abort_unless($this->canCancel($permintaan), 403, 'Anda tidak memiliki hak akses untuk membatalkan permintaan ini.');
+
         $catatanAwal = $permintaan->catatan ? $permintaan->catatan . "\n" : '';
         $permintaan->update([
             'status' => StatusPermintaanDistribusi::Ditolak->value,
@@ -253,6 +257,31 @@ class PermintaanBarangIndex extends Component
         ]);
 
         $this->toast("Permintaan amprah '{$permintaan->kode}' berhasil dibatalkan.", 'info');
+    }
+
+    /**
+     * Pembatalan hanya oleh pembuat dokumen atau operator global; petugas_unit tidak boleh
+     * membatalkan setelah DIAJUKAN, kepala_unit tidak boleh membatalkan dokumen staf.
+     */
+    public function canCancel(PermintaanDistribusi $permintaan): bool
+    {
+        $user = auth()->user();
+
+        if (! $user
+            || ! in_array($permintaan->status, StatusPermintaanDistribusi::dapatDibatalkan(), true)
+            || ! $this->canRequesterAct($permintaan->unit_id)) {
+            return false;
+        }
+
+        if ($this->isGlobalOperator()) {
+            return true;
+        }
+
+        if ((int) $permintaan->diajukan_oleh !== (int) $user->id) {
+            return false;
+        }
+
+        return ! ($user->hasRole('petugas_unit') && $permintaan->status !== StatusPermintaanDistribusi::Diajukan->value);
     }
 
     /**

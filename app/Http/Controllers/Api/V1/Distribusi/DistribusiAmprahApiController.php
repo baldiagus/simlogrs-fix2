@@ -338,8 +338,8 @@ class DistribusiAmprahApiController extends ApiController
             return $this->jsonError('Data amprah tidak ditemukan.', 404);
         }
 
-        if ($user->hasRole('kepala_unit') && (int) $amprah->diajukan_oleh !== (int) $user->id) {
-            return $this->jsonError('Kepala Ruangan tidak memiliki wewenang membatalkan permohonan staf unit. Gunakan aksi Tolak pada menu persetujuan.', 403);
+        if ($message = $this->cancelDenial($user, $amprah)) {
+            return $this->jsonError($message, 403);
         }
 
         if (! $this->canRequesterAct($user, $amprah->unit_id)) {
@@ -560,7 +560,7 @@ class DistribusiAmprahApiController extends ApiController
             return false;
         }
 
-        if ($user && $user->hasRole('kepala_unit') && (int) $amprah->diajukan_oleh !== (int) $user->id) {
+        if ($this->cancelDenial($user, $amprah) !== null) {
             return false;
         }
 
@@ -575,6 +575,30 @@ class DistribusiAmprahApiController extends ApiController
         return ! PengirimanBarang::where('permintaan_distribusi_id', $amprah->id)
             ->where('status', '!=', 'DIBATALKAN')
             ->exists();
+    }
+
+    /**
+     * Alasan penolakan pembatalan berdasarkan kepemilikan dokumen; null jika lolos.
+     * Hanya pembuat dokumen atau super_admin yang boleh membatalkan; staf tidak boleh
+     * membatalkan setelah disetujui Kepala Ruangan.
+     */
+    private function cancelDenial(?User $user, PermintaanDistribusi $amprah): ?string
+    {
+        if (! $user || $user->hasRole('super_admin')) {
+            return null;
+        }
+
+        if ($user->hasRole('petugas_unit') && $amprah->status === StatusPermintaanDistribusi::DisetujuiKaru->value) {
+            return 'Permintaan amprah ini telah disetujui oleh Kepala Ruangan dan tidak dapat dibatalkan oleh staf.';
+        }
+
+        if ((int) $amprah->diajukan_oleh !== (int) $user->id) {
+            return $user->hasRole('kepala_unit')
+                ? 'Kepala Ruangan tidak memiliki wewenang membatalkan permohonan staf unit. Gunakan aksi Tolak pada menu persetujuan.'
+                : 'Anda hanya dapat membatalkan permohonan amprah yang Anda ajukan sendiri.';
+        }
+
+        return null;
     }
 
     /**

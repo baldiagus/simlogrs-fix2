@@ -112,7 +112,7 @@
                                     <flux:menu.item wire:click="showDetail({{ $item->id }})" icon="eye">
                                         Detail Amprah
                                     </flux:menu.item>
-                                    @if (in_array($item->status, StatusPermintaanDistribusi::dapatDibatalkan()) && $canRequesterAct && ($isGlobalAdmin || ($userUnitId && (int) $userUnitId === (int) $item->unit_id)))
+                                    @if ($this->canCancel($item))
                                         <flux:menu.separator />
                                         <flux:menu.item wire:click="confirmBatal({{ $item->id }})" icon="x-mark" variant="danger">
                                             Batalkan Permintaan

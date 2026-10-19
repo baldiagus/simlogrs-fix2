@@ -149,4 +149,45 @@ class DistribusiBatalScopeTest extends TestCase
 
         $this->assertSame(StatusPermintaanDistribusi::Ditolak->value, $amprah->fresh()->status);
     }
+
+    public function test_petugas_unit_cannot_cancel_amprah_submitted_by_karu(): void
+    {
+        $petugas = $this->makeUser('petugas_unit', $this->unit->id);
+        $karu = $this->makeUser('kepala_unit', $this->unit->id);
+        $amprah = $this->createAmprah($this->unit->id, $karu->id, StatusPermintaanDistribusi::Diajukan->value);
+
+        $this->assertCannotCancel($petugas, $amprah, 'Anda hanya dapat membatalkan permohonan amprah yang Anda ajukan sendiri.');
+    }
+
+    public function test_petugas_unit_cannot_cancel_own_amprah_after_disetujui_karu(): void
+    {
+        $petugas = $this->makeUser('petugas_unit', $this->unit->id);
+        $amprah = $this->createAmprah($this->unit->id, $petugas->id, StatusPermintaanDistribusi::DisetujuiKaru->value);
+
+        $this->assertCannotCancel($petugas, $amprah, 'Permintaan amprah ini telah disetujui oleh Kepala Ruangan dan tidak dapat dibatalkan oleh staf.');
+    }
+
+    public function test_petugas_unit_cannot_cancel_amprah_submitted_by_other_petugas(): void
+    {
+        $petugas = $this->makeUser('petugas_unit', $this->unit->id);
+        $lain = $this->makeUser('petugas_unit', $this->unit->id);
+        $amprah = $this->createAmprah($this->unit->id, $lain->id, StatusPermintaanDistribusi::Diajukan->value);
+
+        $this->assertCannotCancel($petugas, $amprah, 'Anda hanya dapat membatalkan permohonan amprah yang Anda ajukan sendiri.');
+    }
+
+    private function assertCannotCancel(User $user, PermintaanDistribusi $amprah, string $pesan): void
+    {
+        $statusAwal = $amprah->status;
+
+        $detailRes = $this->actingAs($user)->getJson("/api/v1/distribusi/amprah/{$amprah->id}");
+        $detailRes->assertOk();
+        $this->assertFalse($detailRes->json('data.can_cancel'));
+
+        $cancelRes = $this->actingAs($user)->postJson("/api/v1/distribusi/amprah/{$amprah->id}/batal");
+        $cancelRes->assertStatus(403);
+        $cancelRes->assertJsonFragment(['pesan' => $pesan]);
+
+        $this->assertSame($statusAwal, $amprah->fresh()->status);
+    }
 }
