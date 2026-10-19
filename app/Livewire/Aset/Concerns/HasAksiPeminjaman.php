@@ -86,6 +86,8 @@ trait HasAksiPeminjaman
             return;
         }
 
+        abort_unless($this->canCancelPeminjaman($pinjam), 403, 'Anda tidak memiliki wewenang untuk membatalkan pengajuan ini.');
+
         $this->askConfirmation(
             target: $id,
             action: 'batalkanPinjam',
@@ -101,20 +103,13 @@ trait HasAksiPeminjaman
      */
     public function batalkanPinjam(int $id): void
     {
-        abort_unless(auth()->user()?->can('create_layanan_unit::peminjaman::aset'), 403);
-
         $pinjam = PermintaanPeminjaman::findOrFail($id);
         if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
             $this->toast('Hanya peminjaman berstatus DIAJUKAN yang dapat dibatalkan.', 'error');
             return;
         }
 
-        $user = auth()->user();
-        $isGlobalAdmin = $user && $user->hasRole(['super_admin', 'admin_logistik']);
-
-        if (! $isGlobalAdmin && (int) $user?->unit_id !== (int) $pinjam->unit_id) {
-            abort(403, 'Anda tidak berwenang membatalkan permohonan peminjaman dari unit lain.');
-        }
+        abort_unless($this->canCancelPeminjaman($pinjam), 403, 'Anda tidak memiliki wewenang untuk membatalkan pengajuan ini.');
 
         $pinjam->update([
             'status'  => StatusPeminjaman::Dibatalkan->value,
@@ -122,6 +117,28 @@ trait HasAksiPeminjaman
         ]);
 
         $this->toast("Pengajuan peminjaman '{$pinjam->kode}' berhasil dibatalkan.", 'success');
+    }
+
+    /**
+     * Pembatalan hanya untuk status DIAJUKAN oleh pembuat dokumen atau admin global.
+     * Kepala unit tidak boleh membatalkan dokumen staf; non-admin wajib satu unit dan punya izin.
+     */
+    public function canCancelPeminjaman(PermintaanPeminjaman $pinjam): bool
+    {
+        $user = auth()->user();
+
+        if (! $user || $pinjam->status !== StatusPeminjaman::Diajukan->value) {
+            return false;
+        }
+
+        if ($user->hasRole(['super_admin', 'admin_logistik'])) {
+            return true;
+        }
+
+        return (int) $pinjam->diajukan_oleh === (int) $user->id
+            && $user->unit_id
+            && (int) $user->unit_id === (int) $pinjam->unit_id
+            && ($user->can('create_layanan_unit::peminjaman::aset') || $user->can('delete_layanan_unit::peminjaman::aset'));
     }
 
     /**

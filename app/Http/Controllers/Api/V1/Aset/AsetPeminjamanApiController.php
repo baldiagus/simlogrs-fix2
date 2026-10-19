@@ -9,6 +9,7 @@ use App\Models\Aset\Aset;
 use App\Models\Aset\PermintaanPeminjaman;
 use App\Models\Aset\PermintaanPeminjamanDetail;
 use App\Models\Master\Unit;
+use App\Models\User;
 use App\Support\Generator\CodeGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -64,12 +65,12 @@ class AsetPeminjamanApiController extends ApiController
         $list = $query->latest('id')
             ->limit(100)
             ->get()
-            ->map(fn ($p) => $this->formatBarisPeminjaman($p));
+            ->map(fn ($p) => $this->formatBarisPeminjaman($p, $user));
 
         return $this->jsonSuccess($list, 'Daftar peminjaman aset berhasil diambil.');
     }
 
-    private function formatBarisPeminjaman(PermintaanPeminjaman $p): array
+    private function formatBarisPeminjaman(PermintaanPeminjaman $p, ?User $user): array
     {
         $firstDetail = $p->detail->first();
         $aset = $firstDetail?->aset;
@@ -82,12 +83,14 @@ class AsetPeminjamanApiController extends ApiController
             'nama_penyedia'           => $p->tipe_penyedia === 'RUANGAN' ? ($p->unitPenyedia?->nama ?? '-') : ($p->gudangPenyedia?->nama ?? '-'),
             'unit_peminjam'           => $p->unitPeminjam?->nama ?? '-',
             'pengaju'                 => $p->pengaju?->nama ?? 'Staf',
+            'diajukan_oleh'           => (int) $p->diajukan_oleh,
             'tanggal_pinjam'          => $p->tanggal_pinjam?->format('Y-m-d') ?? '',
             'tanggal_kembali_rencana' => $p->tanggal_kembali_rencana?->format('Y-m-d') ?? '',
             'keperluan'               => $p->keperluan,
             'status'                  => $p->status,
             'catatan'                 => $p->catatan,
             'is_overdue'              => $isOverdue,
+            'can_cancel'              => $this->canCancelPeminjaman($user, $p),
             'jumlah_aset'             => $p->detail->count(),
             'aset_preview'            => $aset ? [
                 'id'             => $aset->id,
@@ -228,15 +231,22 @@ class AsetPeminjamanApiController extends ApiController
             return $this->jsonError('Data peminjaman tidak ditemukan.', 404);
         }
 
+        $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
+
+        if (! $isGlobalAdmin && (int) $pinjam->diajukan_oleh !== (int) $user->id) {
+            return $this->jsonError(
+                $user->hasRole('kepala_unit')
+                    ? 'Kepala Ruangan tidak memiliki wewenang membatalkan pengajuan peminjaman staf unit. Gunakan aksi Tolak pada menu persetujuan.'
+                    : 'Anda hanya dapat membatalkan pengajuan peminjaman yang Anda ajukan sendiri.',
+                403
+            );
+        }
+
         if ($pinjam->status !== StatusPeminjaman::Diajukan->value) {
             return $this->jsonError("Hanya peminjaman berstatus DIAJUKAN yang dapat dibatalkan (saat ini: {$pinjam->status}).", 422);
         }
 
-        $isGlobalAdmin = $user->hasRole(['super_admin', 'admin_logistik']);
-        $canCancel = $isGlobalAdmin ||
-            ((int) $pinjam->diajukan_oleh === (int) $user->id && $user->can('delete_layanan_unit::peminjaman::aset'));
-
-        if (! $canCancel) {
+        if (! $this->canCancelPeminjaman($user, $pinjam)) {
             return $this->jsonError('Anda tidak memiliki wewenang untuk membatalkan pengajuan ini.', 403);
         }
 
@@ -246,6 +256,26 @@ class AsetPeminjamanApiController extends ApiController
         ]);
 
         return $this->jsonSuccess(null, "Pengajuan peminjaman {$pinjam->kode} berhasil dibatalkan.");
+    }
+
+    /**
+     * Pembatalan hanya untuk status DIAJUKAN oleh pembuat dokumen atau admin global.
+     * Kepala unit tidak boleh membatalkan dokumen staf; non-admin wajib satu unit dan punya izin.
+     */
+    private function canCancelPeminjaman(?User $user, PermintaanPeminjaman $pinjam): bool
+    {
+        if (! $user || $pinjam->status !== StatusPeminjaman::Diajukan->value) {
+            return false;
+        }
+
+        if ($user->hasRole(['super_admin', 'admin_logistik'])) {
+            return true;
+        }
+
+        return (int) $pinjam->diajukan_oleh === (int) $user->id
+            && $user->unit_id
+            && (int) $user->unit_id === (int) $pinjam->unit_id
+            && ($user->can('create_layanan_unit::peminjaman::aset') || $user->can('delete_layanan_unit::peminjaman::aset'));
     }
 
     /**

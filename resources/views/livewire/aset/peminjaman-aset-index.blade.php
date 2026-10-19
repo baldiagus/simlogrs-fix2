@@ -219,13 +219,11 @@
                                             @endcan
                                         @endif
 
-                                        @if ($item->status === \App\Enums\Aset\StatusPeminjaman::Diajukan->value)
-                                            @can('create_layanan_unit::peminjaman::aset')
-                                                <flux:menu.separator />
-                                                <flux:menu.item wire:click="confirmBatal({{ $item->id }})" icon="x-mark" variant="danger">
-                                                    Batalkan Pengajuan
-                                                </flux:menu.item>
-                                            @endcan
+                                        @if ($this->canCancelPeminjaman($item))
+                                            <flux:menu.separator />
+                                            <flux:menu.item wire:click="confirmBatal({{ $item->id }})" icon="x-mark" variant="danger">
+                                                Batalkan Pengajuan
+                                            </flux:menu.item>
                                         @endif
                                     </flux:menu>
                                 </flux:dropdown>
