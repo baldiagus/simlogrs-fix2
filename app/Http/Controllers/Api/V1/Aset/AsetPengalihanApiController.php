@@ -159,6 +159,11 @@ class AsetPengalihanApiController extends ApiController
     public function simpanPengalihan(Request $request, PengalihanAsetService $service): JsonResponse
     {
         $user = $request->user();
+        $isGlobalAdmin = (bool) ($user && $user->hasRole(['super_admin', 'admin_logistik']));
+        $canCreate = $isGlobalAdmin || ($user && $user->can('create_layanan_unit::pengalihan::aset'));
+        if (! $canCreate) {
+            return $this->jsonError('Anda tidak memiliki wewenang untuk mengajukan pengalihan aset.', 403);
+        }
 
         $validator = Validator::make($request->all(), [
             'tipe_tujuan'        => 'required|in:RUANGAN,GUDANG',
@@ -175,7 +180,6 @@ class AsetPengalihanApiController extends ApiController
             return $this->jsonError('Validasi data gagal.', 422, $validator->errors());
         }
 
-        $isGlobalAdmin = (bool) ($user && ($user->hasRole(['super_admin', 'admin_logistik'])));
 
         // Di sistem SIMLOGRS, pengalihan aset adalah INBOUND (meminta aset dari fasilitas lain masuk ke fasilitas pemohon)
         if (! $isGlobalAdmin) {
