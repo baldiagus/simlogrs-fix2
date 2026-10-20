@@ -282,9 +282,7 @@
             </flux:table.rows>
         </flux:table>
 
-        <div class="p-3 border-t border-zinc-200 dark:border-zinc-800">
-            <x-ui.table-pagination :paginator="$items" />
-        </div>
+        <x-ui.table-pagination :paginator="$items" flush />
     </flux:card>
 
     @include('livewire.persediaan.partials.pengalihan-barang.modal-create')

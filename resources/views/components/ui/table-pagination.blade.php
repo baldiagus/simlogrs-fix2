@@ -1,6 +1,9 @@
-@props(['paginator'])
+@props(['paginator', 'flush' => false])
 
-<div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-3.5 -mx-6 -mb-6 mt-4 bg-zinc-50/90 dark:bg-zinc-800/60 border-t border-zinc-200/80 dark:border-zinc-700/80 rounded-b-xl">
+<div {{ $attributes->class([
+    'flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-3.5 bg-zinc-50/90 dark:bg-zinc-800/60 border-t border-zinc-200/80 dark:border-zinc-700/80 rounded-b-xl overflow-hidden',
+    '-mx-6 -mb-6 mt-4' => ! $flush,
+]) }}>
     {{-- Ujung Kiri: Showing info --}}
     <div class="text-zinc-500 dark:text-zinc-400 text-xs font-medium whitespace-nowrap">
         @if ($paginator->total() > 0)
@@ -24,7 +27,7 @@
     {{-- Ujung Kanan: Tombol Pagination Flux --}}
     <div class="flex justify-end min-w-[120px]">
         @if ($paginator->hasPages())
-            <flux:pagination :paginator="$paginator" class="border-t-0! pt-0! [&>div:first-child]:hidden!" />
+            <flux:pagination :paginator="$paginator" class="w-full! justify-end! border-t-0! pt-0! [&>div:first-child]:hidden!" />
         @endif
     </div>
 </div>
