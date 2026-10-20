@@ -4,10 +4,16 @@ namespace App\Livewire\Dashboard;
 
 use App\Livewire\Concerns\HasConfirmationModal;
 use App\Livewire\Concerns\HasToast;
+use App\Models\Audit\LogAudit;
 use App\Models\Master\Gudang;
 use App\Models\Master\Unit;
+use App\Models\User;
 use App\Support\Auth\ContextManager;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 use Livewire\Component;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class SuperAdminDashboard extends Component
 {
@@ -48,6 +54,7 @@ class SuperAdminDashboard extends Component
         $this->showUnitModal = false;
         $this->toast('Mode emulasi unit aktif: ' . Unit::find($id)?->nama, 'info');
     }
+
     /**
      * Tampilkan dialog konfirmasi untuk mereset konteks emulasi global.
      */
@@ -62,7 +69,6 @@ class SuperAdminDashboard extends Component
             variant: 'danger'
         );
     }
-
 
     /**
      * Kembalikan konteks pandangan Super Admin ke tampilan global tanpa filter unit/gudang.
@@ -85,10 +91,49 @@ class SuperAdminDashboard extends Component
         $daftarUnit = Unit::where('status', 'AKTIF')->get();
         $contextManager = app(ContextManager::class);
 
+        // 1. Akun Pegawai
+        $totalPengguna = User::count();
+        $penggunaAktif = User::where('status', 'AKTIF')->count();
+        $penggunaNonaktif = User::where('status', '!=', 'AKTIF')->count();
+
+        // 2. Wewenang RBAC
+        $totalPermission = Permission::count();
+        $totalRole = Role::count();
+
+        // 3. Log Audit Hari Ini
+        $totalLogHariIni = LogAudit::whereDate('dibuat_pada', today())->count();
+
+        // 4. Status Kesehatan Layanan (DB & Redis)
+        $dbStatus = true;
+        try {
+            DB::connection()->getPdo();
+        } catch (\Throwable $e) {
+            $dbStatus = false;
+        }
+
+        $redisStatus = true;
+        try {
+            Redis::connection()->ping();
+        } catch (\Throwable $e) {
+            $redisStatus = false;
+        }
+
+        // 5. Jejak Mutasi Audit Trail Terakhir
+        $logTerbaru = LogAudit::with(['pengguna', 'peran'])->latest('id')->take(5)->get();
+
         return view('livewire.dashboard.super-admin-dashboard', [
-            'daftarGudang' => $daftarGudang,
-            'daftarUnit' => $daftarUnit,
-            'contextManager' => $contextManager,
+            'daftarGudang'      => $daftarGudang,
+            'daftarUnit'        => $daftarUnit,
+            'contextManager'    => $contextManager,
+            'totalPengguna'     => $totalPengguna,
+            'penggunaAktif'     => $penggunaAktif,
+            'penggunaNonaktif'  => $penggunaNonaktif,
+            'totalPermission'   => $totalPermission,
+            'totalRole'         => $totalRole,
+            'totalLogHariIni'   => $totalLogHariIni,
+            'dbStatus'          => $dbStatus,
+            'redisStatus'       => $redisStatus,
+            'logTerbaru'        => $logTerbaru,
         ])->layout('layouts.portal', ['portal' => 'super-admin', 'title' => 'Dashboard Super Admin']);
     }
 }

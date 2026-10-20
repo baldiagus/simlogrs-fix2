@@ -3,7 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
         <div>
             <flux:heading size="xl" level="1">Pusat Kendali Super Administrator</flux:heading>
-            <flux:subheading>Tata kelola wewenang, parameter sistem, dan diagnostik multi-portal SIMLOG RS.</flux:subheading>
+            <flux:subheading>Tata kelola wewenang, parameter sistem, dan pengawasan operasional SIMLOG RS.</flux:subheading>
         </div>
 
         {{-- Emulasi Konteks Toolbar --}}
@@ -28,82 +28,119 @@
         </div>
     </div>
 
-    {{-- Kartu Metrik Ringkasan --}}
+    {{-- Grid 4 KPI Metrik Ringkasan Dinamis --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {{-- Card 1: Akun Pegawai --}}
         <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-            <div class="flex items-center justify-between">
-                <flux:text size="xs" class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Status Sistem</flux:text>
-                <flux:badge size="sm" color="emerald" inset="top bottom">Aktif</flux:badge>
+            <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
+                <span class="text-xs font-semibold uppercase tracking-wider">Akun Pegawai</span>
+                <flux:icon name="users" class="size-4 text-blue-600" />
             </div>
-            <div class="text-xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <span class="size-2.5 rounded-full bg-emerald-500"></span>
-                <span>Normal & Siap</span>
+            <div class="text-2xl font-bold font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">
+                {{ $totalPengguna }}
             </div>
-            <flux:text size="xs" class="text-zinc-500 dark:text-zinc-400">PostgreSQL 16 & Redis 7 Online</flux:text>
+            <div class="text-[11px] text-zinc-500">
+                <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ $penggunaAktif }} Aktif</span>
+                @if ($penggunaNonaktif > 0)
+                    &bull; <span class="text-rose-500 font-semibold">{{ $penggunaNonaktif }} Nonaktif</span>
+                @else
+                    &bull; 0 Nonaktif
+                @endif
+            </div>
         </flux:card>
 
+        {{-- Card 2: Wewenang RBAC --}}
         <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-            <div class="flex items-center justify-between">
-                <flux:text size="xs" class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Wewenang Terdaftar</flux:text>
-                <flux:badge size="sm" color="blue" inset="top bottom">RBAC</flux:badge>
+            <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
+                <span class="text-xs font-semibold uppercase tracking-wider">Wewenang RBAC</span>
+                <flux:icon name="shield-check" class="size-4 text-indigo-500" />
             </div>
-            <div class="text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono tabular-nums">275</div>
-            <flux:text size="xs" class="text-zinc-500 dark:text-zinc-400">100% Zero-Hardcode Standard</flux:text>
+            <div class="text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400 tabular-nums">
+                {{ $totalPermission }}
+            </div>
+            <div class="text-[11px] text-zinc-500">{{ $totalRole }} Peran resmi terdaftar</div>
         </flux:card>
 
+        {{-- Card 3: Log Audit Hari Ini --}}
         <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-            <div class="flex items-center justify-between">
-                <flux:text size="xs" class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Portal Kerja</flux:text>
-                <flux:badge size="sm" color="indigo" inset="top bottom">Multi-Portal</flux:badge>
+            <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
+                <span class="text-xs font-semibold uppercase tracking-wider">Log Audit Hari Ini</span>
+                <flux:icon name="finger-print" class="size-4 text-amber-500" />
             </div>
-            <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono tabular-nums">10 Peran</div>
-            <flux:text size="xs" class="text-zinc-500 dark:text-zinc-400">Isolasi Hak Akses via Middleware</flux:text>
+            <div class="text-2xl font-bold font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">
+                {{ $totalLogHariIni }}
+            </div>
+            <div class="text-[11px] text-zinc-500">Transaksi mutasi tercatat</div>
         </flux:card>
 
+        {{-- Card 4: Kesehatan Sistem --}}
         <flux:card class="space-y-2 p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-            <div class="flex items-center justify-between">
-                <flux:text size="xs" class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Integritas Stok</flux:text>
-                <flux:badge size="sm" color="emerald" inset="top bottom">FEFO Lock</flux:badge>
+            <div class="flex items-center justify-between text-zinc-500 dark:text-zinc-400">
+                <span class="text-xs font-semibold uppercase tracking-wider">Kesehatan Sistem</span>
+                <flux:icon name="cpu-chip" class="size-4 text-emerald-500" />
             </div>
-            <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400">Non-Negative</div>
-            <flux:text size="xs" class="text-zinc-500 dark:text-zinc-400">Database Constraint Aktif</flux:text>
+            <div class="text-2xl font-bold flex items-center gap-2 {{ $dbStatus && $redisStatus ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600' }}">
+                <span class="size-2.5 rounded-full {{ $dbStatus && $redisStatus ? 'bg-emerald-500' : 'bg-rose-500' }}"></span>
+                <span>{{ $dbStatus && $redisStatus ? 'Normal' : 'Gangguan' }}</span>
+            </div>
+            <div class="text-[11px] text-zinc-500">PostgreSQL & Redis terhubung</div>
         </flux:card>
     </div>
 
-    {{-- Akses Cepat Modul --}}
+    {{-- Panel Tunggal: 5 Aktivitas Mutasi Terakhir (Audit Trail) --}}
     <flux:card class="space-y-4 p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs">
-        <flux:heading size="md">Akses Cepat Pengaturan Sistem</flux:heading>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <a href="/super-admin/roles" class="p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-blue-950/20 transition-all flex items-start gap-3 group">
-                <div class="p-2.5 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg group-hover:scale-105 transition-transform">
-                    <flux:icon icon="shield-check" class="w-5 h-5" />
-                </div>
-                <div class="space-y-0.5">
-                    <div class="font-semibold text-xs text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 transition-colors">Matriks Wewenang (RBAC)</div>
-                    <flux:text size="xs" class="text-zinc-500">Konfigurasi dinamis permission peran sistem 5 kolom.</flux:text>
-                </div>
-            </a>
-
-            <a href="/auditor/dashboard" class="p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:border-rose-500 hover:bg-rose-50/30 dark:hover:bg-rose-950/20 transition-all flex items-start gap-3 group">
-                <div class="p-2.5 bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg group-hover:scale-105 transition-transform">
-                    <flux:icon icon="magnifying-glass" class="w-5 h-5" />
-                </div>
-                <div class="space-y-0.5">
-                    <div class="font-semibold text-xs text-zinc-900 dark:text-zinc-100 group-hover:text-rose-600 transition-colors">Audit Trail & Forensik</div>
-                    <flux:text size="xs" class="text-zinc-500">Inspeksi rekaman mutasi data sebelum vs sesudah (JSONB).</flux:text>
-                </div>
-            </a>
-
-            <a href="/admin-logistik/dashboard" class="p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:border-sky-500 hover:bg-sky-50/30 dark:hover:bg-sky-950/20 transition-all flex items-start gap-3 group">
-                <div class="p-2.5 bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400 rounded-lg group-hover:scale-105 transition-transform">
-                    <flux:icon icon="cube" class="w-5 h-5" />
-                </div>
-                <div class="space-y-0.5">
-                    <div class="font-semibold text-xs text-zinc-900 dark:text-zinc-100 group-hover:text-sky-600 transition-colors">Portal Admin Logistik</div>
-                    <flux:text size="xs" class="text-zinc-500">Katalog master barang, unit, gudang, dan distribusi.</flux:text>
-                </div>
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+            <div class="flex items-center gap-2">
+                <flux:icon name="clock" class="size-5 text-blue-600" />
+                <flux:heading size="md">5 Aktivitas Mutasi Terakhir (Audit Trail)</flux:heading>
+            </div>
+            <a href="/super-admin/audit-trail" class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                <span>Lihat Semua Audit Trail</span>
+                <span>&rarr;</span>
             </a>
         </div>
+
+        <flux:table bleed>
+            <flux:table.columns>
+                <flux:table.column class="w-36">Waktu</flux:table.column>
+                <flux:table.column class="w-48">Operator</flux:table.column>
+                <flux:table.column class="w-36">Peran</flux:table.column>
+                <flux:table.column class="w-44">Aksi</flux:table.column>
+                <flux:table.column>Entitas Target</flux:table.column>
+            </flux:table.columns>
+            <flux:table.rows>
+                @forelse ($logTerbaru as $log)
+                    <flux:table.row :key="$log->id">
+                        <flux:table.cell class="font-mono text-xs text-zinc-500">
+                            {{ $log->dibuat_pada?->format('H:i:s d/m/Y') }}
+                        </flux:table.cell>
+                        <flux:table.cell class="font-semibold text-xs text-zinc-900 dark:text-zinc-100">
+                            {{ $log->pengguna?->nama ?? 'Sistem' }}
+                        </flux:table.cell>
+                        <flux:table.cell>
+                            <flux:badge size="xs" color="zinc">
+                                {{ $log->peran?->name ? ucwords(str_replace('_', ' ', $log->peran->name)) : '-' }}
+                            </flux:badge>
+                        </flux:table.cell>
+                        <flux:table.cell class="font-mono text-xs text-blue-600 dark:text-blue-400 font-semibold">
+                            {{ $log->aksi }}
+                        </flux:table.cell>
+                        <flux:table.cell class="text-xs text-zinc-600 dark:text-zinc-300">
+                            <span class="font-semibold text-zinc-800 dark:text-zinc-200">{{ $log->referensi_jenis ?? 'Entitas' }}</span>
+                            @if ($log->referensi_id)
+                                <span class="font-mono text-zinc-400">#{{ $log->referensi_id }}</span>
+                            @endif
+                        </flux:table.cell>
+                    </flux:table.row>
+                @empty
+                    <flux:table.row>
+                        <flux:table.cell colspan="5" class="py-8 text-center text-xs text-zinc-500">
+                            Belum ada jejak audit trail yang tercatat.
+                        </flux:table.cell>
+                    </flux:table.row>
+                @endforelse
+            </flux:table.rows>
+        </flux:table>
     </flux:card>
 
     {{-- Modal Pilihan Emulasi Gudang --}}
@@ -122,10 +159,10 @@
                         class="w-full text-left p-2.5 text-xs font-medium rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-between transition-colors cursor-pointer"
                     >
                         <span>{{ $gudang->nama }}</span>
-                        <span class="font-mono text-zinc-400">{{ $gudang->kode }}</span>
+                        <flux:icon icon="chevron-right" class="w-4 h-4 text-zinc-400" />
                     </button>
                 @empty
-                    <flux:text size="xs" class="text-center py-4 text-zinc-400">Belum ada gudang terdaftar.</flux:text>
+                    <div class="text-xs text-zinc-500 py-2">Tidak ada gudang aktif.</div>
                 @endforelse
             </div>
         </div>
@@ -135,8 +172,8 @@
     <flux:modal name="modal-unit" class="md:w-96">
         <div class="space-y-4">
             <div>
-                <flux:heading size="lg">Pilih Ruangan / Unit Emulasi</flux:heading>
-                <flux:subheading>Simulasikan sudut pandang ruangan rumah sakit.</flux:subheading>
+                <flux:heading size="lg">Pilih Ruangan Emulasi</flux:heading>
+                <flux:subheading>Simulasikan sudut pandang unit pelayanan.</flux:subheading>
             </div>
             <div class="space-y-1 max-h-60 overflow-y-auto">
                 @forelse ($daftarUnit as $unit)
@@ -147,15 +184,16 @@
                         class="w-full text-left p-2.5 text-xs font-medium rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-between transition-colors cursor-pointer"
                     >
                         <span>{{ $unit->nama }}</span>
-                        <span class="font-mono text-zinc-400">{{ $unit->kode }}</span>
+                        <flux:icon icon="chevron-right" class="w-4 h-4 text-zinc-400" />
                     </button>
                 @empty
-                    <flux:text size="xs" class="text-center py-4 text-zinc-400">Belum ada unit terdaftar.</flux:text>
+                    <div class="text-xs text-zinc-500 py-2">Tidak ada unit aktif.</div>
                 @endforelse
             </div>
         </div>
     </flux:modal>
 
+    {{-- Modal Konfirmasi Operasi Sensitif --}}
     <x-ui.confirm-modal
         :title="$confirmTitle"
         :description="$confirmDescription"
