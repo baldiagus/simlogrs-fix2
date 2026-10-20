@@ -17,6 +17,38 @@ class PortalResolver
         'auditor',
     ];
 
+    public const ROLE_PORTAL_MAP = [
+        'super_admin'    => 'super-admin',
+        'admin_logistik' => 'admin-logistik',
+        'kepala_gudang'  => 'kepala-gudang',
+        'petugas_gudang' => 'petugas-gudang',
+        'pengadaan'      => 'pengadaan',
+        'kepala_unit'    => 'kepala-unit',
+        'petugas_unit'   => 'petugas-unit',
+        'kepala_teknisi' => 'teknisi',
+        'teknisi'        => 'teknisi',
+        'manajemen'      => 'manajemen',
+        'auditor'        => 'auditor',
+    ];
+
+    /**
+     * Mengambil portal resmi yang diizinkan untuk peran aktif pengguna.
+     */
+    public static function resolveUserPortal($user): ?string
+    {
+        if (! $user) {
+            return null;
+        }
+
+        foreach (self::ROLE_PORTAL_MAP as $roleName => $slug) {
+            if ($user->hasRole($roleName)) {
+                return $slug;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Resolves the current active portal slug reliably even during Livewire AJAX updates.
      */
@@ -46,23 +78,9 @@ class PortalResolver
         // Fallback based on user primary role if authenticated
         $user = auth()->user();
         if ($user) {
-            $rolePortalMap = [
-                'super_admin'    => 'super-admin',
-                'admin_logistik' => 'admin-logistik',
-                'kepala_gudang'  => 'kepala-gudang',
-                'petugas_gudang' => 'petugas-gudang',
-                'pengadaan'      => 'pengadaan',
-                'kepala_unit'    => 'kepala-unit',
-                'petugas_unit'   => 'petugas-unit',
-                'kepala_teknisi' => 'teknisi',
-                'teknisi'        => 'teknisi',
-                'manajemen'      => 'manajemen',
-                'auditor'        => 'auditor',
-            ];
-            foreach ($rolePortalMap as $roleName => $slug) {
-                if ($user->hasRole($roleName)) {
-                    return $slug;
-                }
+            $userPortal = self::resolveUserPortal($user);
+            if ($userPortal) {
+                return $userPortal;
             }
         }
 

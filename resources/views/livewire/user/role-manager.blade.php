@@ -140,14 +140,15 @@
                                 @php
                                     $permName = $mod['permission'];
                                     $isSuperAdminLocked = ($selectedRole->name === 'super_admin' && $permName === 'page_Dashboard');
+                                    $isSuperAdminOther = ($selectedRole->name === 'super_admin' && $permName !== 'page_Dashboard');
                                 @endphp
                                 <div class="p-2.5 rounded-lg border border-zinc-200/70 dark:border-zinc-800/70 bg-white dark:bg-zinc-900" wire:key="role-{{ $selectedRole->id }}-dash-{{ $permName }}">
                                     <flux:checkbox
                                         wire:model="state.dashboards.{{ $permName }}"
                                         wire:key="role-{{ $selectedRole->id }}-dashchk-{{ $permName }}"
                                         :label="$mod['label']"
-                                        :description="$permName"
-                                        :disabled="! $canManage || $isSuperAdminLocked"
+                                        :description="$isSuperAdminOther ? 'Terkunci khusus portal peran terkait (ADR 0006)' : $permName"
+                                        :disabled="! $canManage || $isSuperAdminLocked || $isSuperAdminOther"
                                     />
                                 </div>
                             @endforeach

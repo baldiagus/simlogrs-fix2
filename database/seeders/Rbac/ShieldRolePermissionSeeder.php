@@ -30,10 +30,21 @@ class ShieldRolePermissionSeeder extends Seeder
             $role->givePermissionTo('panel_user');
         }
 
-        // 4. Role: super_admin (Otoritas Penuh: Permission::all())
+        // 4. Role: super_admin (Otoritas Penuh Seluruh Modul & Data, Terisolasi di /super-admin - ADR 0006)
         $superAdmin = Role::findByName('super_admin', 'web');
-        $superAdmin->syncPermissions(Permission::all());
-
+        $otherPortalDashboards = [
+            'page_AdminLogistikDashboard',
+            'page_KepalaGudangDashboard',
+            'page_GudangDashboard',
+            'page_PengadaanDashboard',
+            'page_KepalaUnitDashboard',
+            'page_UnitDashboard',
+            'page_TeknisiDashboard',
+            'page_ManajemenDashboard',
+            'page_AuditorDashboard',
+        ];
+        $superAdminPerms = Permission::whereNotIn('name', $otherPortalDashboards)->pluck('name')->toArray();
+        $superAdmin->syncPermissions($superAdminPerms);
         // Build entity→page mapping from registry
         $entityPageMap = [];
         foreach (PagePermissionRegistry::getDomains() as $domain) {

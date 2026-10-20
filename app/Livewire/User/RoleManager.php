@@ -51,6 +51,13 @@ class RoleManager extends Component
         $role = Role::with('permissions')->findOrFail($roleId);
         $this->selectedRoleId = $role->id;
         $this->state = PagePermissionRegistry::fromRole($role);
+        if ($role->name === 'super_admin') {
+            foreach ($this->state['dashboards'] as $dashPerm => $val) {
+                if ($dashPerm !== 'page_Dashboard') {
+                    $this->state['dashboards'][$dashPerm] = false;
+                }
+            }
+        }
     }
 
     /**
@@ -143,7 +150,11 @@ class RoleManager extends Component
             if ($isSuperAdmin && in_array($modKey, ['user::role', 'user::pengguna'])) continue;
 
             if ($domainKey === 'dashboard_portal') {
-                $this->state['dashboards'][$mod['permission']] = true;
+                if ($isSuperAdmin) {
+                    $this->state['dashboards']['page_Dashboard'] = true;
+                } else {
+                    $this->state['dashboards'][$mod['permission']] = true;
+                }
             } else {
                 $entity = $mod['entity'];
                 $this->state['view_any'][$entity] = true;
@@ -153,7 +164,6 @@ class RoleManager extends Component
             }
         }
     }
-
     /**
      * Quick Action per Domain: Aktifkan hanya 'Lihat Data' (View Only).
      */
@@ -171,7 +181,11 @@ class RoleManager extends Component
             if ($isSuperAdmin && in_array($modKey, ['user::role', 'user::pengguna'])) continue;
 
             if ($domainKey === 'dashboard_portal') {
-                $this->state['dashboards'][$mod['permission']] = true;
+                if ($isSuperAdmin) {
+                    $this->state['dashboards']['page_Dashboard'] = true;
+                } else {
+                    $this->state['dashboards'][$mod['permission']] = true;
+                }
             } else {
                 $entity = $mod['entity'];
                 $this->state['view_any'][$entity] = true;
@@ -274,6 +288,25 @@ class RoleManager extends Component
         // Pertahankan izin non-matriks (kustom) yang sudah melekat pada peran di database
         $nonMatrixPermissions = PagePermissionRegistry::getNonMatrixPermissions($role);
         $finalPermissions = array_values(array_unique(array_merge($matrixPermissions, $nonMatrixPermissions)));
+
+        // Isolasi portal: Super Admin tidak memegang dashboard peran lain (ADR 0006)
+        if ($role->name === 'super_admin') {
+            $otherDashboards = [
+                'page_AdminLogistikDashboard',
+                'page_KepalaGudangDashboard',
+                'page_GudangDashboard',
+                'page_PengadaanDashboard',
+                'page_KepalaUnitDashboard',
+                'page_UnitDashboard',
+                'page_TeknisiDashboard',
+                'page_ManajemenDashboard',
+                'page_AuditorDashboard',
+            ];
+            $finalPermissions = array_values(array_diff($finalPermissions, $otherDashboards));
+            if (! in_array('page_Dashboard', $finalPermissions, true)) {
+                $finalPermissions[] = 'page_Dashboard';
+            }
+        }
 
         // Registrasi izin, sinkronisasi wewenang, dan audit dalam satu transaksi (ADR 0002 B)
         try {

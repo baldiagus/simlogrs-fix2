@@ -44,10 +44,14 @@ class PortalAccessMiddleware
         if ($user->wajib_ganti_password) {
             return redirect()->route('password.ganti-wajib')->with('warning', 'Demi keamanan, Anda wajib mengganti kata sandi sementara sebelum mengakses portal sistem.');
         }
+        // 3. Isolasi portal terikat peran: Setiap peran resmi hanya boleh mengakses ruang kerjanya sendiri (ADR 0006)
+        $userPortal = \App\Support\Portal\PortalResolver::resolveUserPortal($user);
+        if ($userPortal !== null && $userPortal !== $portal) {
+            abort(403, "Akses ke portal '{$portal}' ditolak. Ruang kerja resmi Anda adalah '{$userPortal}'.");
+        }
 
-        // 2. Ambil permission yang dibutuhkan untuk portal ini
+        // 4. Ambil permission yang dibutuhkan untuk portal ini
         $requiredPermission = $this->portalPermissionMap[$portal] ?? null;
-        // Portal access is a boundary; a module's registered page permission gates its route.
         $routePermission = $this->routePagePermission($request);
         if ($routePermission && ! $user->can($routePermission)) {
             abort(403, 'Anda tidak memiliki izin untuk mengakses halaman ini.');
