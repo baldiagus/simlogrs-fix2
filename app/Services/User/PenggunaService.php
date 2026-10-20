@@ -17,8 +17,7 @@ class PenggunaService
     {
         return DB::transaction(function () use ($payload, $role, $actor, $ip, $device) {
             $user = User::create($payload);
-            $user->assignRole([$role, 'panel_user']);
-
+            $user->assignRole($role);
             LogAudit::create([
                 'pengguna_id'     => $actor->id,
                 'peran_id'        => $actor->roles?->first()?->id,
@@ -35,7 +34,7 @@ class PenggunaService
                     'unit_id'    => $user->unit_id,
                     'gudang_id'  => $user->gudang_id,
                     'status'     => $user->status,
-                    'roles'      => [$role, 'panel_user'],
+                    'roles'      => [$role],
                 ],
                 'ip_address'      => $ip ?: request()->ip(),
                 'device'          => substr($device ?: (request()->userAgent() ?? 'Web Browser'), 0, 255),
@@ -69,9 +68,7 @@ class PenggunaService
             if (($payload['status'] ?? null) === 'NONAKTIF') {
                 $user->tokens()->delete();
             }
-
-            $user->syncRoles([$role, 'panel_user']);
-
+            $user->syncRoles($role);
             $newData = [
                 'nama'       => $user->nama,
                 'nip'        => $user->nip,
@@ -81,7 +78,7 @@ class PenggunaService
                 'unit_id'    => $user->unit_id,
                 'gudang_id'  => $user->gudang_id,
                 'status'     => $user->status,
-                'roles'      => [$role, 'panel_user'],
+                'roles'      => [$role],
             ];
 
             LogAudit::create([

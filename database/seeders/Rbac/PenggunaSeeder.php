@@ -270,8 +270,7 @@ class PenggunaSeeder extends Seeder
             );
 
             // Kaitkan role Spatie
-            $user->syncRoles([$u['role'], 'panel_user']);
-
+            $user->syncRoles([$u['role']]);
             // Kaitkan ke tabel pivot pengguna_peran
             $peran = Peran::where('kode', $u['role'])->first();
             if ($peran) {

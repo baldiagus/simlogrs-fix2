@@ -24,11 +24,6 @@ class ShieldRolePermissionSeeder extends Seeder
             Permission::findOrCreate($permName, 'web');
         }
 
-        // 3. Berikan permission dasar 'panel_user' ke seluruh role
-        $allRoles = Role::all();
-        foreach ($allRoles as $role) {
-            $role->givePermissionTo('panel_user');
-        }
 
         // 4. Role: super_admin (Otoritas Penuh Seluruh Modul & Data, Terisolasi di /super-admin - ADR 0006)
         $superAdmin = Role::findByName('super_admin', 'web');
@@ -80,8 +75,7 @@ class ShieldRolePermissionSeeder extends Seeder
                     }
                 }
             }
-
-            $all = array_unique(array_merge(['panel_user'], $matched, $pagePerms));
+            $all = array_unique(array_merge($matched, $pagePerms));
             $role->syncPermissions($all);
         };
 

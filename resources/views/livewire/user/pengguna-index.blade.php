@@ -126,7 +126,7 @@
             <flux:table.rows>
                     @forelse ($users as $userItem)
                         @php
-                            $primaryRole = $userItem->roles->firstWhere('name', '!=', 'panel_user');
+                            $primaryRole = $userItem->roles->first();
                             $roleLabel = $primaryRole ? ucwords(str_replace('_', ' ', $primaryRole->name)) : 'Pengguna';
                             $roleColor = match($primaryRole?->name) {
                                 'super_admin'    => 'blue',

@@ -9,7 +9,7 @@ use Spatie\Permission\Models\Role;
 class PeranSeeder extends Seeder
 {
     /**
-     * Menanam 12 role resmi sistem ke tabel peran dan Spatie roles.
+     * Menanam 11 role resmi sistem ke tabel peran dan Spatie roles.
      */
     public function run(): void
     {
@@ -25,7 +25,6 @@ class PeranSeeder extends Seeder
             ['kode' => 'teknisi', 'nama' => 'Teknisi Sarana & IPSRS', 'deskripsi' => 'Pelaksana SPK perbaikan, lembar kerja teknisi, dan pemeliharaan preventif'],
             ['kode' => 'manajemen', 'nama' => 'Manajemen Direksi', 'deskripsi' => 'Pemantau eksekutif realisasi anggaran, valuasi persediaan, dan CAPA'],
             ['kode' => 'auditor', 'nama' => 'Auditor Internal (SPI)', 'deskripsi' => 'Pengawas kepatuhan prosedur, forensik audit trail, dan register CAPA'],
-            ['kode' => 'panel_user', 'nama' => 'Pengguna Portal Terdaftar', 'deskripsi' => 'Role dasar seluruh pegawai untuk otorisasi login portal'],
         ];
 
         foreach ($roles as $r) {

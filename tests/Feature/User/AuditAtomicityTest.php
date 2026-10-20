@@ -36,8 +36,7 @@ class AuditAtomicityTest extends TestCase
             'password' => Hash::make('password123'),
             'status'   => 'AKTIF',
         ]);
-        $this->admin->assignRole(['super_admin', 'panel_user']);
-
+        $this->admin->assignRole('super_admin');
         $this->target = User::create([
             'nama'     => 'Pegawai Target Atomicity',
             'username' => 'targetatomicity',
@@ -46,7 +45,7 @@ class AuditAtomicityTest extends TestCase
             'status'   => 'AKTIF',
             'wajib_ganti_password' => false,
         ]);
-        $this->target->assignRole(['petugas_unit', 'panel_user']);
+        $this->target->assignRole('petugas_unit');
     }
 
     /**

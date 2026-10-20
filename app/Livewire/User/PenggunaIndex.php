@@ -172,8 +172,7 @@ class PenggunaIndex extends Component
             $this->penugasan_tipe = 'none';
         }
 
-        // Ambil peran pertama selain 'panel_user'
-        $primaryRole = $user->roles->firstWhere('name', '!=', 'panel_user');
+        $primaryRole = $user->roles->first();
         $this->selectedRole = $primaryRole ? $primaryRole->name : 'petugas_unit';
 
         $this->resetValidation();
@@ -305,9 +304,8 @@ class PenggunaIndex extends Component
 
         $daftarUnit = Unit::where('status', 'AKTIF')->orderBy('nama')->get();
         $daftarGudang = Gudang::where('status', 'AKTIF')->orderBy('nama')->get();
-        $daftarRoles = Role::whereNotIn('name', ['panel_user'])->orderBy('name')->get();
-        $assignableRoles = Role::whereNotIn('name', ['panel_user'])
-            ->when(! auth()->user()?->hasRole('super_admin'), fn ($q) => $q->where('name', '!=', 'super_admin'))
+        $daftarRoles = Role::orderBy('name')->get();
+        $assignableRoles = Role::when(! auth()->user()?->hasRole('super_admin'), fn ($q) => $q->where('name', '!=', 'super_admin'))
             ->orderBy('name')
             ->get();
 

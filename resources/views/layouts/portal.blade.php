@@ -38,7 +38,7 @@
         ];
         $currentPortal = $portalMeta[$portalKey] ?? $portalMeta['super-admin'];
 
-        $userRole = $user?->roles?->where('name', '!=', 'panel_user')->first();
+        $userRole = $user?->roles?->first();
         $userRoleLabel = match($userRole?->name) {
             'kepala_teknisi' => 'Kepala / Koordinator Teknisi IPSRS',
             'teknisi'        => 'Teknisi Sarana & IPSRS',

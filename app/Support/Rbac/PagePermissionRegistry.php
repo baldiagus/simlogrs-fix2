@@ -134,7 +134,7 @@ class PagePermissionRegistry
      */
     public static function getAllPermissions(): array
     {
-        $permissions = ['panel_user'];
+        $permissions = [];
         $domains = static::getDomains();
 
         foreach ($domains as $domainKey => $domain) {
@@ -164,7 +164,7 @@ class PagePermissionRegistry
      */
     public static function toPermissions(array $state): array
     {
-        $assigned = ['panel_user'];
+        $assigned = [];
         $domains = static::getDomains();
 
         // 1. Dashboard portal permissions
