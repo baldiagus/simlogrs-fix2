@@ -314,12 +314,24 @@ class AsetIndex extends Component
     public function showDetail(int $id): void
     {
         $this->selectedAset = Aset::with([
-            'barang',
+            'barang.kategori',
+            'barang.satuan',
             'unit',
             'gudang',
             'lokasiGudang',
+            'permintaanMaintenance.penugasan.teknisi',
+            'permintaanMaintenance.logMaintenance.teknisi',
+            'permintaanMaintenance.sukuCadang.barang.satuan',
+            'permintaanMaintenance.pelapor',
             'peminjamanDetail.permintaanPeminjaman.unitPeminjam',
-            'peminjamanDetail.pengembalianDetail.pengembalianPeminjaman',
+            'peminjamanDetail.permintaanPeminjaman.pengaju',
+            'peminjamanDetail.pengembalianDetail.pengembalianPeminjaman.pemeriksa',
+            'pengalihanDetail.pengalihanAset.unitAsal',
+            'pengalihanDetail.pengalihanAset.unitTujuan',
+            'pengalihanDetail.pengalihanAset.gudangAsal',
+            'pengalihanDetail.pengalihanAset.gudangTujuan',
+            'pengalihanDetail.pengalihanAset.pengaju',
+            'pengalihanDetail.pengalihanAset.penerima',
         ])
             ->withCount('permintaanMaintenance')
             ->findOrFail($id);
