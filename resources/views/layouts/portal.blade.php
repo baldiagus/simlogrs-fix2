@@ -326,7 +326,7 @@
 
                     @if ($canPage('layanan_unit::pengembalian::aset'))
                         <flux:sidebar.item icon="arrow-down-tray" href="/{{ $portalKey }}/pengembalian-aset" wire:navigate :current="request()->is('*/pengembalian-aset*')">
-                            Pengembalian & Inspeksi
+                            Pengembalian & Cek Fisik Aset
                         </flux:sidebar.item>
                     @endif
                 </flux:sidebar.group>

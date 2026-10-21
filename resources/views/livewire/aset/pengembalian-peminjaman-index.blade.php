@@ -1,8 +1,13 @@
 <div class="space-y-6">
-    {{-- Header Halaman --}}
-    <div class="space-y-1">
-        <flux:heading size="xl" level="1" class="font-bold tracking-tight">{{ $pageTitle }}</flux:heading>
-        <flux:subheading class="text-zinc-500 dark:text-zinc-400">Inspeksi fisik dan serah terima pengembalian aset inventaris rumah sakit yang sedang dipinjam.</flux:subheading>
+    {{-- Header Halaman & Sub-Navigasi --}}
+    <div class="space-y-3">
+        <div class="space-y-1">
+            <flux:heading size="xl" level="1" class="font-bold tracking-tight">{{ $pageTitle }}</flux:heading>
+            <flux:subheading class="text-zinc-500 dark:text-zinc-400">Inspeksi fisik dan serah terima pengembalian aset inventaris rumah sakit yang sedang dipinjam.</flux:subheading>
+        </div>
+
+        {{-- Navigasi Sub-Tab Hub Sirkulasi Aset --}}
+        <x-tabs.sirkulasi-peminjaman active="pengembalian" />
     </div>
 
     {{-- Workspace Card Utama --}}

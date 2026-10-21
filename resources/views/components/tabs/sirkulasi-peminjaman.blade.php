@@ -9,6 +9,8 @@
         && ($user->can('view_any_layanan_unit::peminjaman::aset') || $user->can('view_layanan_unit::peminjaman::aset'));
     $canApproval = $user?->can('page_ApprovalPeminjamanIndex')
         && ($user->can('view_any_layanan_unit::approval::peminjaman') || $user->can('view_layanan_unit::approval::peminjaman'));
+    $canPengembalian = $user?->can('page_PengembalianPeminjamanIndex')
+        && ($user->can('view_any_layanan_unit::pengembalian::aset') || $user->can('view_layanan_unit::pengembalian::aset'));
 
     // Hanya role global yang melihat antrean lintas unit/gudang; page_*Dashboard bukan bypass scope.
     $hasGlobalRead = $user && $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']);
@@ -26,7 +28,7 @@
             ->count();
     }
 
-    $totalTabs = ($canPinjam ? 1 : 0) + ($canApproval ? 1 : 0);
+    $totalTabs = ($canPinjam ? 1 : 0) + ($canApproval ? 1 : 0) + ($canPengembalian ? 1 : 0);
 @endphp
 
 @if ($totalTabs > 1)
@@ -55,6 +57,17 @@
                         {{ $pendingApprovalCount }}
                     </span>
                 @endif
+            </a>
+        @endif
+
+        @if ($canPengembalian)
+            <a
+                href="/{{ $portalKey }}/pengembalian-aset"
+                wire:navigate
+                class="px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 {{ $active === 'pengembalian' ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+            >
+                <flux:icon name="arrow-down-tray" class="size-3.5" />
+                <span>Pengembalian & Cek Fisik</span>
             </a>
         @endif
     </div>
