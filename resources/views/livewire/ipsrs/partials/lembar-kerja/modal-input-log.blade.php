@@ -119,27 +119,19 @@
                         <div class="space-y-2.5">
                             @foreach ($sparepartItems as $index => $row)
                                 @php
-                                    $selectedSp = $daftarSparepart->firstWhere('id', (int) ($row['barang_id'] ?? 0));
-                                    $maxStok = $selectedSp ? (int) ($selectedSp->stok_tersedia ?? 0) : null;
+                                    $selectedSp = collect($daftarSparepart)->firstWhere('id', (int) ($row['barang_id'] ?? 0));
+                                    $maxStok = $selectedSp ? (int) ($selectedSp['stok_tersedia'] ?? 0) : null;
                                 @endphp
                                 <div class="p-2.5 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 space-y-1.5" wire:key="sparepart-row-{{ $index }}">
                                     <div class="flex items-center gap-2">
-                                        <div class="flex-1">
-                                            <select
-                                                wire:model.live="sparepartItems.{{ $index }}.barang_id"
-                                                required
-                                                class="w-full text-xs rounded-lg border {{ $errors->has("sparepartItems.{$index}.barang_id") ? 'border-red-500 dark:border-red-500 ring-1 ring-red-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                            >
-                                                <option value="">-- Pilih Komoditas Suku Cadang --</option>
-                                                @foreach ($daftarSparepart as $sp)
-                                                    @php
-                                                        $stokAda = (int) ($sp->stok_tersedia ?? 0);
-                                                    @endphp
-                                                    <option value="{{ $sp->id }}" @disabled($stokAda <= 0)>
-                                                        [{{ $sp->kode }}] {{ $sp->nama }} &bull; Sisa: {{ number_format($stokAda, 0, ',', '.') }} {{ $sp->satuan?->simbol ?? 'Unit' }} {{ $stokAda <= 0 ? '(HABIS)' : '' }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
+                                        <div class="flex-1 min-w-0">
+                                            <x-ui.searchable-select
+                                                model="sparepartItems.{{ $index }}.barang_id"
+                                                placeholder="-- Cari Nama, Kode, atau Kategori Suku Cadang... --"
+                                                :options="$daftarSparepart"
+                                                :live="true"
+                                                :nullable="false"
+                                            />
                                         </div>
                                         <div class="w-28">
                                             <input
@@ -170,7 +162,7 @@
                                         @enderror
                                         @if ($maxStok !== null)
                                             <span class="font-mono text-zinc-500 dark:text-zinc-400">
-                                                Maksimal stok: <strong class="{{ $maxStok > 0 ? 'text-zinc-800 dark:text-zinc-200' : 'text-rose-600' }}">{{ number_format($maxStok, 0, ',', '.') }} {{ $selectedSp->satuan?->simbol ?? 'Unit' }}</strong>
+                                                Maksimal stok: <strong class="{{ $maxStok > 0 ? 'text-zinc-800 dark:text-zinc-200' : 'text-rose-600' }}">{{ number_format($maxStok, 0, ',', '.') }} {{ $selectedSp['satuan'] ?? 'Unit' }}</strong>
                                             </span>
                                         @endif
                                     </div>

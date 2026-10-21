@@ -154,4 +154,64 @@ class LembarKerjaTest extends TestCase
         $batchValid->refresh();
         $this->assertEquals(3, $batchValid->jumlah, 'Batch suku cadang valid harus terpotong sesuai kuantitas pemakaian.');
     }
+
+    public function test_daftar_sparepart_only_includes_sparepart_type_and_excludes_habis_pakai_atk(): void
+    {
+        $this->actingAs($this->userTeknisi);
+
+        $atkBarang = Barang::firstOrCreate(
+            ['kode' => 'BRG-ATK-TEST-99'],
+            [
+                'nama' => 'Kertas HVS ATK Non Sparepart',
+                'kategori_id' => 1,
+                'tipe' => 'HABIS_PAKAI',
+                'satuan_id' => 1,
+                'status' => 'AKTIF',
+            ]
+        );
+
+        $test = Livewire::test(LembarKerjaPengerjaanIndex::class)
+            ->call('openLembarKerja', $this->spk->id);
+
+        $daftarSparepart = $test->viewData('daftarSparepart');
+
+        $this->assertTrue(collect($daftarSparepart)->pluck('id')->contains($this->sparepart->id));
+        $this->assertFalse(collect($daftarSparepart)->pluck('id')->contains($atkBarang->id));
+
+        $itemSp = collect($daftarSparepart)->firstWhere('id', $this->sparepart->id);
+        $this->assertNotNull($itemSp);
+        $this->assertArrayHasKey('sub', $itemSp);
+        $this->assertStringContainsString('Kategori:', $itemSp['sub']);
+    }
+
+    public function test_validation_rejects_non_sparepart_commodity_in_lembar_kerja(): void
+    {
+        $this->actingAs($this->userTeknisi);
+
+        $atkBarang = Barang::firstOrCreate(
+            ['kode' => 'BRG-ATK-TEST-98'],
+            [
+                'nama' => 'Kertas ATK Ditolak',
+                'kategori_id' => 1,
+                'tipe' => 'HABIS_PAKAI',
+                'satuan_id' => 1,
+                'status' => 'AKTIF',
+            ]
+        );
+
+        Livewire::test(LembarKerjaPengerjaanIndex::class)
+            ->call('openLembarKerja', $this->spk->id)
+            ->set('diagnosa', 'Kerusakan power supply')
+            ->set('tindakan', 'Pergantian sparepart')
+            ->set('hasil', 'BERHASIL')
+            ->set('uji_fungsi_kelaikan', true)
+            ->set('sparepartItems', [
+                [
+                    'barang_id' => $atkBarang->id,
+                    'jumlah' => 1,
+                ]
+            ])
+            ->call('saveLembarKerja')
+            ->assertHasErrors(['sparepartItems.0.barang_id']);
+    }
 }

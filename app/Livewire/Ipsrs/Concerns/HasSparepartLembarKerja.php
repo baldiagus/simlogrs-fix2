@@ -62,7 +62,17 @@ trait HasSparepartLembarKerja
             }
 
             $stokTersedia = $this->getStokTersedia($barangId);
-            $barang = Barang::with('satuan')->find($barangId);
+            $barang = Barang::with(['satuan', 'kategori'])->find($barangId);
+            $isSparepart = $barang && (
+                $barang->tipe === 'SPAREPART' ||
+                str_contains(strtolower($barang->kategori?->nama ?? ''), 'sparepart')
+            );
+
+            if (! $isSparepart) {
+                $this->addError("sparepartItems.{$index}.barang_id", "Komoditas yang dipilih bukan merupakan suku cadang / sparepart.");
+                return false;
+            }
+
             $namaBarang = $barang?->nama ?? "Barang #{$barangId}";
             $satuan = $barang?->satuan?->simbol ?? 'Unit';
 

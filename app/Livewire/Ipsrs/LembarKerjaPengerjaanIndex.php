@@ -206,9 +206,13 @@ class LembarKerjaPengerjaanIndex extends Component
             ->paginate($this->perPage);
 
         // Komoditas suku cadang yang aktif untuk dropdown beserta stok fisik tersedia
-        $daftarSparepart = Barang::whereIn('tipe', ['SPAREPART', 'HABIS_PAKAI'])
+        $daftarSparepart = Barang::query()
             ->where('status', 'AKTIF')
-            ->with('satuan')
+            ->where(function ($q) {
+                $q->where('tipe', 'SPAREPART')
+                    ->orWhereHas('kategori', fn ($k) => $k->where('nama', 'ilike', '%sparepart%')->orWhere('kode', 'ilike', '%sparepart%'));
+            })
+            ->with(['satuan', 'kategori'])
             ->withSum(['stokBatch as stok_tersedia' => function ($q) {
                 $q->where('status', 'AKTIF')
                     ->where('jumlah', '>', 0)
@@ -218,7 +222,20 @@ class LembarKerjaPengerjaanIndex extends Component
                     });
             }], 'jumlah')
             ->orderBy('nama')
-            ->get();
+            ->get()
+            ->map(function ($b) {
+                $stok = (int) ($b->stok_tersedia ?? 0);
+                $satuan = $b->satuan?->simbol ?? 'Unit';
+                $kategori = $b->kategori?->nama ?? 'Suku Cadang';
+
+                return [
+                    'id'            => $b->id,
+                    'nama'          => "[{$b->kode}] {$b->nama}",
+                    'sub'           => "Kategori: {$kategori} • Sisa: {$stok} {$satuan}" . ($stok <= 0 ? ' (HABIS)' : ''),
+                    'stok_tersedia' => $stok,
+                    'satuan'        => $satuan,
+                ];
+            });
 
         return view('livewire.ipsrs.lembar-kerja-pengerjaan-index', [
             'daftarSpk'       => $daftarSpk,
