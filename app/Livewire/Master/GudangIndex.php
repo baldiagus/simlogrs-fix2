@@ -97,6 +97,21 @@ class GudangIndex extends Component
             'nama' => 'required|string|min:3|max:150',
             'jenis' => 'required|in:SENTRAL,TRANSIT,UNIT,DEPO',
             'status' => 'required|in:AKTIF,NONAKTIF',
+            'kepala_gudang_id' => [
+                'nullable',
+                'exists:pengguna,id',
+                function ($attribute, $value, $fail) {
+                    if (! $value) {
+                        return;
+                    }
+                    $user = User::with('roles')->find($value);
+                    $isValidRole = $user && $user->hasRole('kepala_gudang');
+                    $isSameGudang = $this->editingId && (int) $user?->gudang_id === (int) $this->editingId;
+                    if (! $isValidRole && ! $isSameGudang) {
+                        $fail('Penanggung jawab gudang harus memiliki role kepala gudang atau bertugas di fasilitas gudang ini.');
+                    }
+                },
+            ],
         ], [
             'kode.required' => 'Kode fasilitas gudang wajib diisi.',
             'kode.unique'   => 'Kode gudang sudah terdaftar.',
@@ -241,7 +256,15 @@ class GudangIndex extends Component
             ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
-        $daftarPengguna = User::where('status', 'AKTIF')->orderBy('nama')->get(['id', 'nama', 'nip']);
+        $daftarPengguna = User::query()
+            ->where('status', 'AKTIF')
+            ->where(function ($q) {
+                $q->whereHas('roles', fn ($r) => $r->where('name', 'kepala_gudang'))
+                    ->when($this->editingId, fn ($sub) => $sub->orWhere('gudang_id', $this->editingId))
+                    ->when($this->kepala_gudang_id, fn ($sub) => $sub->orWhere('id', $this->kepala_gudang_id));
+            })
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'nip']);
 
         return view('livewire.master.gudang-index', [
             'items' => $items,

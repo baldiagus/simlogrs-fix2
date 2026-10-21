@@ -99,6 +99,21 @@ class SchedulerNotifikasiIndex extends Component
             variant: 'primary'
         );
     }
+    /**
+     * Tampilkan konfirmasi pemeriksaan stok di bawah batas minimum.
+     */
+    public function confirmAlertStokMinimum(): void
+    {
+        $this->askConfirmation(
+            target: null,
+            action: 'triggerAlertStokMinimum',
+            title: 'Konfirmasi Cek Stok Minimum',
+            description: 'Jalankan pemeriksaan ketersediaan stok sekarang? Notifikasi stok di bawah batas minimum akan diterbitkan kepada staf gudang, logistik, dan pengadaan.',
+            buttonText: 'Ya, Jalankan Cek',
+            variant: 'primary'
+        );
+    }
+
 
     /**
      * Eksekusi manual scheduler pemeriksaan dan penyesuaian barang kedaluwarsa.
@@ -171,6 +186,30 @@ class SchedulerNotifikasiIndex extends Component
             $this->isProcessing = false;
         }
     }
+    /**
+     * Eksekusi manual scheduler pemeriksaan stok barang di bawah batas minimum.
+     */
+    public function triggerAlertStokMinimum(): void
+    {
+        abort_unless(
+            auth()->user()?->can('create_system::scheduler') ||
+            auth()->user()?->hasRole('super_admin'),
+            403,
+            'Akses ditolak: Hanya Super Admin yang berwenang mengeksekusi task scheduler.'
+        );
+
+        $this->isProcessing = true;
+        try {
+            Artisan::call('simlog:alert-stok-minimum');
+            $output = trim(Artisan::output());
+            $this->toast("Task Alert Stok Minimum berhasil dijalankan: {$output}", 'success');
+        } catch (\Throwable $e) {
+            $this->toast("Gagal menjalankan Alert Stok Minimum: {$e->getMessage()}", 'danger');
+        } finally {
+            $this->isProcessing = false;
+        }
+    }
+
 
     /**
      * Render tampilan blade komponen Livewire.
@@ -206,6 +245,14 @@ class SchedulerNotifikasiIndex extends Component
             'ringkasan' => 'Menunggu jadwal cron otomatis (01:00 WIB)',
             'created_count' => 0,
         ]);
+        $lastStokMin = Cache::get('simlog:last_run:alert_stok_minimum', [
+            'waktu' => 'Belum pernah dijalankan',
+            'status' => 'Pending',
+            'ringkasan' => 'Menunggu jadwal cron otomatis (06:30 WIB)',
+            'low_stock_count' => 0,
+            'notif_count' => 0,
+        ]);
+
         $jadwalSiapCount = \App\Models\Ipsrs\JadwalMaintenance::where('status', 'AKTIF')
             ->whereDate('tanggal_berikutnya', '<=', now()->toDateString())
             ->count();
@@ -230,6 +277,7 @@ class SchedulerNotifikasiIndex extends Component
             'lastOverdue' => $lastOverdue,
             'lastPreventive' => $lastPreventive,
             'jadwalSiapCount' => $jadwalSiapCount,
+            'lastStokMin' => $lastStokMin,
             'daftarNotifikasi' => $daftarNotifikasi,
             'statusPush' => $statusPush,
         ])->layout('layouts.portal', [

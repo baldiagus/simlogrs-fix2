@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Cache;
 use App\Enums\Audit\StatusCapa;
 use App\Models\Audit\TemuanAudit;
 use App\Services\Notifikasi\PenerimaResolver;
+use App\Models\Master\Barang;
+use App\Models\Distribusi\StokRuangan;
+use App\Models\Aset\Aset;
 
 /*
 |--------------------------------------------------------------------------
@@ -213,6 +216,83 @@ Artisan::command('simlog:alert-capa-jatuh-tempo', function () {
 
     $this->info("Pemeriksaan selesai: {$temuans->count()} CAPA jatuh tempo/terlambat, {$notifCount} notifikasi terkirim.");
 })->purpose('Mengingatkan auditee atas CAPA yang jatuh tempo besok (H-1) atau terlambat')->dailyAt('07:30');
+
+/**
+ * 2d. Alert Stok Minimum (Jadwal: Harian 06:30 WIB)
+ * Memindai persediaan fisik komoditas aktif. Jika total saldo fisik di bawah batas minimum (stok_minimum),
+ * otomatis menerbitkan notifikasi lonceng internal kepada staf gudang, admin logistik, dan pengadaan.
+ */
+Artisan::command('simlog:alert-stok-minimum', function () {
+    $this->info('[' . now()->toDateTimeString() . '] Memeriksa stok komoditas di bawah batas minimum...');
+
+    $barangs = Barang::with('satuan')
+        ->where('status', 'AKTIF')
+        ->where('stok_minimum', '>', 0)
+        ->get();
+
+    $notifService = app(NotifikasiService::class);
+    $resolver = app(PenerimaResolver::class);
+    $today = now()->toDateString();
+    $lowStockCount = 0;
+    $notifCount = 0;
+
+    $penerimaIds = array_values(array_unique([
+        ...$resolver->adminLogistik(),
+        ...$resolver->semuaGudangStaf(),
+        ...$resolver->role('pengadaan'),
+    ]));
+
+    foreach ($barangs as $b) {
+        $stokGudang = (int) StokBatch::where('barang_id', $b->id)
+            ->where('status', 'AKTIF')
+            ->where('jumlah', '>', 0)
+            ->sum('jumlah');
+
+        $stokRuangan = (int) StokRuangan::where('barang_id', $b->id)->sum('jumlah');
+
+        if ($b->tipe === 'ASET' && $stokGudang === 0) {
+            $stokGudang = Aset::where('barang_id', $b->id)
+                ->whereNotNull('gudang_id')
+                ->where('status', '!=', 'DIHAPUSKAN')
+                ->count();
+            $stokRuangan = Aset::where('barang_id', $b->id)
+                ->whereNotNull('unit_id')
+                ->where('status', '!=', 'DIHAPUSKAN')
+                ->count();
+        }
+
+        $totalStok = $stokGudang + $stokRuangan;
+
+        if ($totalStok < $b->stok_minimum) {
+            $lowStockCount++;
+            $dedupKey = "simlog:notif_stok_min:{$b->id}:{$today}";
+
+            if (! Cache::has($dedupKey) && ! empty($penerimaIds)) {
+                $satuan = $b->satuan?->simbol ?? $b->satuan?->kode ?? 'Unit';
+                $terbit = $notifService->kirim(
+                    $penerimaIds,
+                    'Stok di Bawah Minimum',
+                    "Stok {$b->nama} ({$b->kode}) tersisa {$totalStok} {$satuan}, di bawah batas minimum ({$b->stok_minimum} {$satuan}). Segera lakukan pengadaan.",
+                    'STOK_MINIMUM',
+                    (string) $b->id,
+                    '/pengadaan/permintaan-pengadaan'
+                );
+                $notifCount += $terbit->count();
+                Cache::put($dedupKey, true, now()->addDay());
+            }
+        }
+    }
+
+    Cache::put('simlog:last_run:alert_stok_minimum', [
+        'waktu' => now()->toDateTimeString(),
+        'status' => 'Sukses',
+        'ringkasan' => "{$lowStockCount} komoditas di bawah minimum terdeteksi, {$notifCount} notifikasi diterbitkan",
+        'low_stock_count' => $lowStockCount,
+        'notif_count' => $notifCount,
+    ]);
+
+    $this->info("Pemeriksaan selesai: {$lowStockCount} komoditas di bawah minimum terdeteksi, {$notifCount} notifikasi diterbitkan.");
+})->purpose('Mendeteksi stok barang di bawah batas minimum dan menerbitkan notifikasi ke staf logistik & pengadaan')->dailyAt('06:30');
 
 /**
  * 3. Generate Preventive Maintenance (Jadwal: Harian 01:00 WIB)

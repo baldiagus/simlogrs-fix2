@@ -77,15 +77,19 @@ class MonitoringStokFefoIndex extends Component
             ->whereBetween('tanggal_kedaluwarsa', [$date30, $date90])
             ->count();
 
-        $countRop = Barang::where('status', 'AKTIF')
-            ->where('titik_pesan', '>', 0)
-            ->whereHas('stokBatch', function ($q) {
-                $q->where('status', 'AKTIF');
-            }, '<=', 0)
-            ->orWhereRaw('(SELECT COALESCE(SUM(jumlah), 0) FROM stok_batch WHERE stok_batch.barang_id = barang.id AND stok_batch.status = \'AKTIF\') <= barang.titik_pesan')
-            ->where('titik_pesan', '>', 0)
+        $countDiBawahMinimum = Barang::where('status', 'AKTIF')
+            ->where(function ($q) {
+                $q->where(function ($b) {
+                    $b->where('stok_minimum', '>', 0)
+                        ->whereRaw('(SELECT COALESCE(SUM(jumlah), 0) FROM stok_batch WHERE stok_batch.barang_id = barang.id AND stok_batch.status = \'AKTIF\') + (SELECT COALESCE(SUM(jumlah), 0) FROM stok_ruangan WHERE stok_ruangan.barang_id = barang.id) < barang.stok_minimum');
+                })->orWhere(function ($b) {
+                    $b->where('titik_pesan', '>', 0)
+                        ->whereRaw('(SELECT COALESCE(SUM(jumlah), 0) FROM stok_batch WHERE stok_batch.barang_id = barang.id AND stok_batch.status = \'AKTIF\') <= barang.titik_pesan');
+                });
+            })
             ->count();
 
+        $countRop = $countDiBawahMinimum;
         $nilaiTertahanKritis = (float) StokBatch::where('status', 'AKTIF')
             ->where('jumlah', '>', 0)
             ->whereNotNull('tanggal_kedaluwarsa')
@@ -111,6 +115,18 @@ class MonitoringStokFefoIndex extends Component
             $query->whereNotNull('tanggal_kedaluwarsa')->whereBetween('tanggal_kedaluwarsa', [$date30, $date90]);
         } elseif ($this->filterKategoriKedaluwarsa === 'KEDALUWARSA') {
             $query->whereNotNull('tanggal_kedaluwarsa')->where('tanggal_kedaluwarsa', '<', $today);
+        } elseif ($this->filterKategoriKedaluwarsa === 'MINIMUM' || $this->filterKategoriKedaluwarsa === 'ROP') {
+            $query->whereHas('barang', function ($b) {
+                $b->where(function ($q) {
+                    $q->where(function ($sub) {
+                        $sub->where('stok_minimum', '>', 0)
+                            ->whereRaw('(SELECT COALESCE(SUM(jumlah), 0) FROM stok_batch WHERE stok_batch.barang_id = barang.id AND stok_batch.status = \'AKTIF\') + (SELECT COALESCE(SUM(jumlah), 0) FROM stok_ruangan WHERE stok_ruangan.barang_id = barang.id) < barang.stok_minimum');
+                    })->orWhere(function ($sub) {
+                        $sub->where('titik_pesan', '>', 0)
+                            ->whereRaw('(SELECT COALESCE(SUM(jumlah), 0) FROM stok_batch WHERE stok_batch.barang_id = barang.id AND stok_batch.status = \'AKTIF\') <= barang.titik_pesan');
+                    });
+                });
+            });
         }
 
         $items = $query->orderByRaw('tanggal_kedaluwarsa ASC NULLS LAST')
@@ -125,6 +141,7 @@ class MonitoringStokFefoIndex extends Component
             'countKritis30'        => $countKritis30,
             'countPeringatan90'    => $countPeringatan90,
             'countRop'             => $countRop,
+            'countDiBawahMinimum'  => $countDiBawahMinimum,
             'nilaiTertahanKritis'  => $nilaiTertahanKritis,
         ])->layout('layouts.portal', ['portal' => $this->getPortalName(), 'title' => 'Monitoring Kedaluwarsa FEFO & Buffer']);
     }

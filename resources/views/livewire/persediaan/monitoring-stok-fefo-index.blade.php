@@ -85,6 +85,16 @@
                 Kedaluwarsa
             </button>
             <button
+                wire:click="setFilter('MINIMUM')"
+                type="button"
+                class="px-3.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 {{ in_array($filterKategoriKedaluwarsa, ['MINIMUM', 'ROP']) ? 'bg-white dark:bg-zinc-900 text-amber-600 dark:text-amber-400 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"
+            >
+                Di Bawah Minimum / Buffer
+                @if (($countDiBawahMinimum ?? 0) > 0)
+                    <span class="ml-1 px-1.5 py-0.5 text-[10px] rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold font-mono">{{ $countDiBawahMinimum }}</span>
+                @endif
+            </button>
+            <button
                 wire:click="setFilter('SEMUA')"
                 type="button"
                 class="px-3.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 {{ $filterKategoriKedaluwarsa === 'SEMUA' ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-xs font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100' }}"

@@ -4,7 +4,7 @@
         <div>
             <flux:heading size="xl" class="font-bold tracking-tight">Task Scheduler & Cron Monitor</flux:heading>
             <flux:subheading class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                Pusat pemantauan tugas otomatis terjadwal (00:01, 01:00, 06:00 WIB) dan kontrol manual pemicu task.
+                Pusat pemantauan tugas otomatis terjadwal (00:01, 01:00, 06:00, 06:30 WIB) dan kontrol manual pemicu task.
             </flux:subheading>
         </div>
 
@@ -15,8 +15,8 @@
         </div>
     </div>
 
-    {{-- Grid 3 Kartu Task Cron Terjadwal --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    {{-- Grid Kartu Task Cron Terjadwal --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {{-- Task 1: Sweep Expired Batches --}}
         <flux:card class="space-y-4 shadow-sm flex flex-col justify-between">
             <div class="space-y-3">
@@ -131,6 +131,65 @@
                 >
                     <span wire:loading.remove wire:target="triggerAlertOverdue,confirmAlertOverdue">Jalankan Cek Overdue</span>
                     <span wire:loading wire:target="triggerAlertOverdue">Memeriksa...</span>
+                </flux:button>
+            </div>
+        </flux:card>
+
+        {{-- Task 3: Alert Stok Minimum --}}
+        <flux:card class="space-y-4 shadow-sm flex flex-col justify-between">
+            <div class="space-y-3">
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <flux:heading size="base" class="font-bold text-zinc-900 dark:text-zinc-100">
+                            Alert Stok Minimum
+                        </flux:heading>
+                        <div class="text-xs font-mono text-zinc-500 dark:text-zinc-400 mt-0.5">
+                            Harian &bull; 06:30 WIB
+                        </div>
+                    </div>
+                    <flux:badge size="sm" :color="($lastStokMin['status'] ?? '') === 'Sukses' ? 'emerald' : 'zinc'">
+                        {{ ($lastStokMin['status'] ?? '') === 'Sukses' ? 'Sukses' : 'Siap' }}
+                    </flux:badge>
+                </div>
+
+                <p class="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                    Memindai persediaan fisik komoditas aktif. Otomatis menerbitkan notifikasi lonceng internal kepada petugas gudang, logistik, dan pengadaan jika saldo di bawah batas minimum.
+                </p>
+
+                {{-- Metric Chips --}}
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80">
+                        <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Item &lt; Minimum</div>
+                        <div class="text-base font-bold font-mono text-rose-600 dark:text-rose-400">{{ $lastStokMin['low_stock_count'] ?? 0 }}</div>
+                    </div>
+                    <div class="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80">
+                        <div class="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Notifikasi Terbit</div>
+                        <div class="text-base font-bold font-mono text-blue-600 dark:text-blue-400">{{ $lastStokMin['notif_count'] ?? 0 }}</div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 text-xs space-y-1.5">
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span class="text-zinc-500 dark:text-zinc-400">Eksekusi Terakhir:</span>
+                        <span class="font-mono font-medium text-zinc-800 dark:text-zinc-200">{{ $lastStokMin['waktu'] }}</span>
+                    </div>
+                    <div class="pt-1 border-t border-zinc-200/60 dark:border-zinc-700/60 text-[11px] text-zinc-700 dark:text-zinc-300">
+                        <span class="font-medium">Hasil:</span> {{ $lastStokMin['ringkasan'] }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                <flux:button
+                    wire:click="confirmAlertStokMinimum"
+                    variant="filled"
+                    size="sm"
+                    icon="bell-alert"
+                    class="w-full justify-center text-xs font-semibold"
+                    wire:loading.attr="disabled"
+                >
+                    <span wire:loading.remove wire:target="triggerAlertStokMinimum,confirmAlertStokMinimum">Jalankan Cek Stok Min</span>
+                    <span wire:loading wire:target="triggerAlertStokMinimum">Memeriksa...</span>
                 </flux:button>
             </div>
         </flux:card>

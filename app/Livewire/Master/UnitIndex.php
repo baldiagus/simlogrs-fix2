@@ -98,6 +98,21 @@ class UnitIndex extends Component
             'nama' => 'required|string|min:3|max:150',
             'jenis' => 'required|in:PELAYANAN_MEDIS,PENUNJANG_MEDIS,ADMINISTRASI,OPERASIONAL',
             'status' => 'required|in:AKTIF,NONAKTIF',
+            'kepala_unit_id' => [
+                'nullable',
+                'exists:pengguna,id',
+                function ($attribute, $value, $fail) {
+                    if (! $value) {
+                        return;
+                    }
+                    $user = User::with('roles')->find($value);
+                    $isValidRole = $user && $user->hasAnyRole(['kepala_unit', 'kepala_teknisi']);
+                    $isSameUnit = $this->editingId && (int) $user?->unit_id === (int) $this->editingId;
+                    if (! $isValidRole && ! $isSameUnit) {
+                        $fail('Penanggung jawab unit harus memiliki role kepala unit, kepala teknisi, atau bertugas di unit ini.');
+                    }
+                },
+            ],
         ], [
             'kode.required' => 'Kode unit kerja wajib diisi.',
             'kode.unique'   => 'Kode unit kerja sudah digunakan.',
@@ -239,7 +254,15 @@ class UnitIndex extends Component
             ->orderBy($this->sortBy ?: 'id', $this->sortDirection === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
-        $daftarPengguna = User::where('status', 'AKTIF')->orderBy('nama')->get(['id', 'nama', 'nip']);
+        $daftarPengguna = User::query()
+            ->where('status', 'AKTIF')
+            ->where(function ($q) {
+                $q->whereHas('roles', fn ($r) => $r->whereIn('name', ['kepala_unit', 'kepala_teknisi']))
+                    ->when($this->editingId, fn ($sub) => $sub->orWhere('unit_id', $this->editingId))
+                    ->when($this->kepala_unit_id, fn ($sub) => $sub->orWhere('id', $this->kepala_unit_id));
+            })
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'nip']);
 
         return view('livewire.master.unit-index', [
             'items' => $items,
