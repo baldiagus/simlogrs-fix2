@@ -14,6 +14,10 @@ use App\Services\User\PenggunaService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use App\Mail\AkunPegawaiBaruMail;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -129,6 +133,8 @@ class PenggunaIndex extends Component
             'unit_id',
             'gudang_id',
         ]);
+        // Kata sandi sementara dibuat otomatis; dikirim ke email pegawai setelah akun tersimpan.
+        $this->password = Str::password(10, true, true, false);
         $this->selectedRole = 'petugas_unit';
         $this->status = 'AKTIF';
         $this->resetValidation();
@@ -205,11 +211,10 @@ class PenggunaIndex extends Component
             'status'       => 'required|in:AKTIF,NONAKTIF',
         ];
 
-        if (! $this->editingId) {
-            $rules['password'] = ['required', 'string', 'confirmed', Password::min(8)->letters()->numbers()];
-        } else {
-            $rules['password'] = ['nullable', 'string', 'confirmed', Password::min(8)->letters()->numbers()];
-        }
+        // Create: kata sandi dibuat sistem (tanpa konfirmasi). Edit: opsional, dengan konfirmasi.
+        $rules['password'] = $this->editingId
+            ? ['nullable', 'string', 'confirmed', Password::min(8)->letters()->numbers()]
+            : ['required', 'string', Password::min(8)->letters()->numbers()];
 
         $messages = [
             'nama.required'         => 'Nama lengkap pengguna wajib diisi.',
@@ -267,11 +272,43 @@ class PenggunaIndex extends Component
             app(PenggunaService::class)->updatePengguna($user, $payload, $this->selectedRole, auth()->user());
             $this->toast("Data pegawai {$user->nama} berhasil diperbarui.", 'success');
         } else {
-            $user = app(PenggunaService::class)->createPengguna($payload, $this->selectedRole, auth()->user());
-            $this->toast("Akun pegawai {$user->nama} berhasil dibuat.", 'success');
+            $passwordSementara = $this->password;
+            $user = app(PenggunaService::class)->createPengguna(
+                array_merge($payload, ['wajib_ganti_password' => true]),
+                $this->selectedRole,
+                auth()->user()
+            );
+
+            if ($this->kirimKredensial($user, $passwordSementara)) {
+                $this->toast("Akun pegawai {$user->nama} berhasil dibuat. Kredensial dikirim ke {$user->email}.", 'success');
+            } else {
+                $this->toast("Akun pegawai {$user->nama} berhasil dibuat, tetapi email kredensial gagal dikirim ke {$user->email}. Gunakan menu Reset Kata Sandi.", 'warning');
+            }
+
+            $this->reset(['password', 'password_confirmation']);
         }
 
         $this->showModal = false;
+    }
+
+    /**
+     * Kirim informasi akun dan kata sandi sementara ke email pegawai.
+     * Kegagalan pengiriman tidak membatalkan akun yang sudah tersimpan.
+     */
+    protected function kirimKredensial(User $user, string $passwordSementara): bool
+    {
+        try {
+            Mail::to($user->email)->send(new AkunPegawaiBaruMail($user, $passwordSementara));
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Email kredensial akun baru gagal dikirim.', [
+                'pengguna_id' => $user->id,
+                'galat'       => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     /**

@@ -70,8 +70,6 @@ class AuditAtomicityTest extends TestCase
             ->set('nama', 'Pegawai Baru Atomicity')
             ->set('username', $username)
             ->set('email', "{$username}@simlog.test")
-            ->set('password', 'rahasia123')
-            ->set('password_confirmation', 'rahasia123')
             ->set('selectedRole', 'auditor')
             ->set('status', 'AKTIF');
     }

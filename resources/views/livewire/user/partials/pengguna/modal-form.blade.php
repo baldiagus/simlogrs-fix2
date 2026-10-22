@@ -91,30 +91,40 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-                            Kata Sandi {{ $editingId ? '(Kosongkan jika tidak diubah)' : '*' }}
+                            {{ $editingId ? 'Kata Sandi (Kosongkan jika tidak diubah)' : 'Kata Sandi Sementara (Otomatis)' }}
                         </label>
-                        <input
-                            type="password"
-                            wire:model="password"
-                            {{ $editingId ? '' : 'required' }}
-                            placeholder="Minimal 8 karakter"
-                            class="w-full h-9 text-xs rounded-lg border {{ $errors->has('password') ? 'border-rose-500 dark:border-rose-500 ring-1 ring-rose-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
-                        />
+                        @if ($editingId)
+                            <input
+                                type="password"
+                                wire:model="password"
+                                placeholder="Minimal 8 karakter"
+                                class="w-full h-9 text-xs rounded-lg border {{ $errors->has('password') ? 'border-rose-500 dark:border-rose-500 ring-1 ring-rose-500/30' : 'border-zinc-300 dark:border-zinc-700' }} bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                            />
+                        @else
+                            <input
+                                type="text"
+                                wire:model="password"
+                                readonly
+                                class="w-full h-9 text-xs font-mono rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                            />
+                            <p class="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">Dikirim otomatis ke email pegawai. Pegawai wajib menggantinya saat login pertama.</p>
+                        @endif
                         @error('password') <p class="text-[10px] text-rose-500 mt-0.5">{{ $message }}</p> @enderror
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-                            Konfirmasi Kata Sandi {{ $editingId ? '' : '*' }}
-                        </label>
-                        <input
-                            type="password"
-                            wire:model="password_confirmation"
-                            {{ $editingId ? '' : 'required' }}
-                            placeholder="Ulangi kata sandi"
-                            class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
+                    @if ($editingId)
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                                Konfirmasi Kata Sandi
+                            </label>
+                            <input
+                                type="password"
+                                wire:model="password_confirmation"
+                                placeholder="Ulangi kata sandi"
+                                class="w-full h-9 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                    @endif
                 </div>
             </div>
 
