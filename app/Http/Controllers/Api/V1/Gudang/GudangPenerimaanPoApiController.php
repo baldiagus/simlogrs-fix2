@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class GudangPenerimaanPoApiController extends ApiController
 {
@@ -158,6 +159,8 @@ class GudangPenerimaanPoApiController extends ApiController
                 'kode_rcv' => $penerimaan->kode,
                 'status'   => $penerimaan->status,
             ], "Penerimaan fisik barang {$penerimaan->kode} berhasil disimpan ke gudang.", 201);
+        } catch (ValidationException $e) {
+            return $this->jsonError($e->getMessage(), 422, $e->errors());
         } catch (\Throwable $e) {
             return $this->jsonError('Gagal memproses penerimaan barang: ' . $e->getMessage(), 500);
         }
@@ -222,7 +225,7 @@ class GudangPenerimaanPoApiController extends ApiController
             $lockedPo = PesananPembelian::with('detail')->lockForUpdate()->findOrFail($po->id);
 
             if (! in_array($lockedPo->status, StatusPesananPembelian::bisaDiterima(), true)) {
-                throw new \Exception("PO {$lockedPo->kode} sudah tidak dalam status dapat diterima.");
+                throw ValidationException::withMessages(['po' => "PO {$lockedPo->kode} sudah tidak dalam status dapat diterima."]);
             }
 
             // Validasi sisa kuantitas pesanan yang belum diterima di bawah lock
@@ -233,18 +236,18 @@ class GudangPenerimaanPoApiController extends ApiController
 
                 $poDetail = $lockedPo->detail->firstWhere('barang_id', $row['barang_id']);
                 if (! $poDetail) {
-                    throw new \Exception("Barang ID {$row['barang_id']} tidak terdaftar dalam rincian PO {$lockedPo->kode}.");
+                    throw ValidationException::withMessages(['items' => "Barang ID {$row['barang_id']} tidak terdaftar dalam rincian PO {$lockedPo->kode}."]);
                 }
 
                 $rusak = (int) ($row['jumlah_rusak'] ?? 0);
                 if ($rusak < 0 || $rusak > $qty) {
-                    throw new \Exception("Jumlah rusak tidak valid untuk barang {$poDetail->barang?->nama}.");
+                    throw ValidationException::withMessages(['items' => "Jumlah rusak tidak valid untuk barang {$poDetail->barang?->nama}."]);
                 }
 
                 $terimaPerDetail[$poDetail->id] = ($terimaPerDetail[$poDetail->id] ?? 0) + $qty;
                 $sisaTerkunci = max(0, (int) $poDetail->jumlah_dipesan - (int) $poDetail->jumlah_diterima);
                 if ($terimaPerDetail[$poDetail->id] > $sisaTerkunci) {
-                    throw new \Exception("Jumlah penerimaan komoditas barang melebihi sisa pesanan terkini ({$sisaTerkunci}).");
+                    throw ValidationException::withMessages(['items' => "Jumlah penerimaan komoditas barang melebihi sisa pesanan terkini ({$sisaTerkunci})."]);
                 }
             }
 

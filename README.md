@@ -155,16 +155,9 @@ docker compose exec -T app php artisan test --compact
 docker compose exec -T app php artisan test --compact tests/Feature/Persediaan
 ```
 
-Hasil terakhir (22 Oktober 2026): **515 lulus, 22 gagal** (537 tes, 3745 assertion).
+Hasil terakhir (22 Oktober 2026): **539 lulus, 0 gagal** (3788 assertion).
 
-| Kelompok | Tes | Keterangan |
-|---|---|---|
-| Ekspektasi tes usang | `StatusStokOpnameTest` › *sesi yang bisa dihitung sesuai guard api* | Tes masih mengharapkan `MENUNGGU_APPROVAL`, sedangkan `StatusStokOpname::bisaDihitung()` kini tidak memuatnya |
-| Penerimaan PO via API | `AlurStokKritisTest` › *api receipt beyond ordered quantity is refused* | Mengembalikan 500, tes mengharapkan 422 |
-| Helper tes tidak tersedia | `NotifikasiWebTest` (2), `StatusAntreanTest` (1) | `assertSeeLivewire` tidak ada di versi Livewire terpasang |
-| Bergantung data seeder/dummy | `PemicuNotifikasiTest` (7), `NotifikasiApiTest` › *hapus token* | Membutuhkan baris dengan id tetap (pemasok, aset) dan basis data tanpa token FCM nyata |
-| Modal pencarian | `PeminjamanAsetTest` › *searching provider in loan modal* | Hasil pencarian menampilkan unit yang seharusnya tersaring |
-| Belum dianalisis | `CapaAksesTest` (3), `DistribusiAmprahWebParityTest` (2), `DistribusiKatalogApiTest` (2), `DistribusiWebAuthorizationTest` (1) | Penyebab belum diselidiki |
+Catatan penulisan tes: karena memakai database yang sama dengan aplikasi, tes tidak boleh bergantung pada id tetap atau baris pertama hasil seeder. Buat data referensi sendiri di `setUp()`, pakai akun seeder berdasarkan `username`, dan batasi assertion ke dokumen uji (mis. filter `referensi_id`), bukan ke seluruh tabel atau seluruh HTML halaman. Livewire 3.8 tidak menyediakan `assertSeeLivewire`; periksa snapshot komponen di HTML atau gunakan `Livewire::test()`.
 
 Keputusan arsitektur yang menjadi acuan tes:
 

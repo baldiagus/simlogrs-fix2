@@ -63,7 +63,7 @@ class NotifikasiApiTest extends TestCase
         $this->actingAs($this->a)->deleteJson('/api/v1/auth/fcm-token', ['token' => 't3'])->assertJsonPath('data.dihapus', 0);
         $this->actingAs($this->a)->deleteJson('/api/v1/auth/fcm-token', ['token' => 't1'])->assertJsonPath('data.dihapus', 1);
         $this->actingAs($this->a)->deleteJson('/api/v1/auth/fcm-token')->assertJsonPath('data.dihapus', 1);
-        $this->assertSame(['t3'], UserDeviceToken::pluck('fcm_token')->all());
+        $this->assertSame(['t3'], UserDeviceToken::whereIn('pengguna_id', [$this->a->id, $this->b->id])->pluck('fcm_token')->all());
     }
 
     public function test_index_hanya_milik_pengguna_dengan_paginasi_dan_belum_dibaca(): void

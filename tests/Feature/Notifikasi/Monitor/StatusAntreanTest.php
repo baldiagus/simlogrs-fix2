@@ -95,11 +95,13 @@ class StatusAntreanTest extends TestCase
         $admin = User::where('email', 'superadmin@simlogrs.local')->firstOrFail();
         $this->antre(3);
 
-        $this->actingAs($admin)->get('/super-admin/scheduler')
+        $response = $this->actingAs($admin)->get('/super-admin/scheduler')
             ->assertOk()
-            ->assertSeeLivewire(SchedulerNotifikasiIndex::class)
             ->assertSee('Status Pengiriman Push')
             ->assertSee('docker compose up -d queue');
+
+        // Livewire 3.8 tidak menyediakan assertSeeLivewire: periksa snapshot komponen di HTML.
+        $this->assertMatchesRegularExpression('/wire:snapshot="[^"]*&quot;name&quot;:&quot;system\.scheduler-notifikasi-index&quot;/', $response->getContent());
 
         Livewire::actingAs($admin)->test(SchedulerNotifikasiIndex::class)
             ->assertViewHas('statusPush', fn (array $s) => $s['tertunda'] === 3

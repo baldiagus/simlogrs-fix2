@@ -400,7 +400,7 @@ class DistribusiWebAuthorizationTest extends TestCase
 
     // ---------- Persediaan ruangan ----------
 
-    public function test_stok_ruangan_role_alone_cannot_change_asset_or_report_service(): void
+    public function test_stok_ruangan_role_alone_cannot_change_asset_status(): void
     {
         $aset = Aset::create([
             'barang_id' => $this->barang->id,
@@ -412,13 +412,40 @@ class DistribusiWebAuthorizationTest extends TestCase
             'kondisi' => 'BAIK',
         ]);
 
-        // Sebelumnya role petugas_gudang cukup untuk aksi ini
+        // Role petugas_gudang tanpa permission update persediaan ruangan tidak boleh mengubah status aset.
         $user = $this->makeUser(['gudang_id' => $this->gudangA->id], [], 'petugas_gudang');
         $this->actingAs($user);
 
         Livewire::test(StokRuanganIndex::class)->assertOk()
             ->call('openUbahStatusAset', $aset->id)->assertForbidden();
+    }
+
+    public function test_lapor_servis_requires_permission_and_own_facility(): void
+    {
+        $aset = Aset::create([
+            'barang_id' => $this->barang->id,
+            'gudang_id' => $this->gudangA->id,
+            'kode_aset' => 'AST-RBAC-' . uniqid(),
+            'nomor_seri' => 'SN-RBAC-2',
+            'tanggal_perolehan' => now()->toDateString(),
+            'status' => 'TERSEDIA',
+            'kondisi' => 'BAIK',
+        ]);
+
+        // Hanya boleh melihat halaman (komponen termuat), tanpa permission lapor servis: ditolak.
+        $tanpaIzin = $this->makeUser(['gudang_id' => $this->gudangA->id], ['view_any_layanan_unit::stok::ruangan']);
+        $this->actingAs($tanpaIzin);
         Livewire::test(StokRuanganIndex::class)->call('openLaporServis', $aset->id)->assertForbidden();
+
+        // Permission ada tetapi aset milik gudang lain: ditolak.
+        $gudangLain = $this->makeUser(['gudang_id' => $this->gudangB->id], ['view_any_layanan_unit::stok::ruangan', 'create_layanan_unit::lapor::servis']);
+        $this->actingAs($gudangLain);
+        Livewire::test(StokRuanganIndex::class)->call('openLaporServis', $aset->id)->assertForbidden();
+
+        // Permission ada dan aset di gudang sendiri: lolos.
+        $pemilik = $this->makeUser(['gudang_id' => $this->gudangA->id], ['view_any_layanan_unit::stok::ruangan', 'create_layanan_unit::lapor::servis']);
+        $this->actingAs($pemilik);
+        Livewire::test(StokRuanganIndex::class)->call('openLaporServis', $aset->id)->assertOk();
     }
 
     public function test_stok_ruangan_consumption_requires_permission_and_own_unit(): void

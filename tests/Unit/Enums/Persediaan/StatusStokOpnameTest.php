@@ -31,7 +31,7 @@ class StatusStokOpnameTest extends TestCase
 
     public function test_sesi_yang_bisa_dihitung_sesuai_guard_api(): void
     {
-        $this->assertSame(['BERJALAN', 'PROSES_COUNT', 'MENUNGGU_APPROVAL'], S::bisaDihitung());
+        $this->assertSame(['BERJALAN', 'PROSES_COUNT'], S::bisaDihitung());
     }
 
     public function test_nilai_enum_sama_dengan_nilai_kolom_database(): void

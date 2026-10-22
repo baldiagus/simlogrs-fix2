@@ -367,8 +367,8 @@ class RegisterTemuanCapaIndex extends Component
         $today = now()->toDateString();
 
         // Query dasar ber-scope: non-global hanya melihat temuan unit/gudangnya sendiri.
-        $isGlobal = $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen'])
-            || $user->can('view_any_audit_manajemen::temuan::capa');
+        // view_any_* saja tidak membuka scope lintas unit/gudang (ADR 0001).
+        $isGlobal = $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']);
 
         $scoped = TemuanAudit::query();
         if (! $isGlobal) {

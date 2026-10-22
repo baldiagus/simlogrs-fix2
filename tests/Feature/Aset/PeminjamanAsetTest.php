@@ -387,14 +387,17 @@ class PeminjamanAsetTest extends TestCase
             'kondisi' => 'BAIK',
         ]);
 
-        // Filter dengan nama unit yang cocok
+        // Daftar kartu penyedia dibaca dari data view; HTML halaman juga memuat nama unit di tabel dan dropdown lain.
+        $kunciPenyedia = "RUANGAN_{$this->unitPenyedia->id}";
+        $penyedia = fn (array $daftar) => collect($daftar)->pluck('key')->all();
+
         Livewire::test(PeminjamanAsetIndex::class)
             ->call('createPinjam')
             ->set('selected_barang_id', $this->barangAset->id)
             ->set('searchPenyedia', substr($this->unitPenyedia->nama, 0, 4))
-            ->assertSee($this->unitPenyedia->nama)
+            ->assertViewHas('daftarPenyediaAset', fn ($daftar) => in_array($kunciPenyedia, $penyedia($daftar), true))
             ->set('searchPenyedia', 'NAMA_TIDAK_ADA_XYZ')
-            ->assertDontSee($this->unitPenyedia->nama);
+            ->assertViewHas('daftarPenyediaAset', fn ($daftar) => $penyedia($daftar) === []);
     }
 
     public function test_quantity_is_clamped_to_selected_provider_stock(): void

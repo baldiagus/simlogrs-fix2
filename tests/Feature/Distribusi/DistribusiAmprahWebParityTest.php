@@ -161,10 +161,10 @@ class DistribusiAmprahWebParityTest extends TestCase
         $this->assertSame(4, (int) $detail->fresh()->jumlah_disetujui);
     }
 
-    public function test_batal_on_disetujui_karu_returns_200_status_ditolak(): void
+    public function test_batal_on_diajukan_returns_200_status_ditolak(): void
     {
         $requester = $this->makeUser([self::PERM_AMPRAH_CREATE], ['petugas_unit'], $this->unitA->id);
-        $req = $this->createPermintaan('DISETUJUI_KARU', $this->gudang1->id, $this->unitA->id, $requester->id);
+        $req = $this->createPermintaan('DIAJUKAN', $this->gudang1->id, $this->unitA->id, $requester->id);
 
         $response = $this->actingAs($requester)->postJson("/api/v1/distribusi/amprah/{$req->id}/batal");
         $response->assertOk();
@@ -174,10 +174,21 @@ class DistribusiAmprahWebParityTest extends TestCase
         $this->assertStringContainsString('[Dibatalkan oleh pemohon]', (string) $req->catatan);
     }
 
+    public function test_petugas_unit_cannot_batal_after_karu_approval_returns_403(): void
+    {
+        // Aturan sengaja: staf tidak boleh membatalkan setelah disetujui Kepala Ruangan (cancelDenial).
+        $requester = $this->makeUser([self::PERM_AMPRAH_CREATE], ['petugas_unit'], $this->unitA->id);
+        $req = $this->createPermintaan('DISETUJUI_KARU', $this->gudang1->id, $this->unitA->id, $requester->id);
+
+        $this->actingAs($requester)->postJson("/api/v1/distribusi/amprah/{$req->id}/batal")->assertStatus(403);
+
+        $this->assertSame('DISETUJUI_KARU', $req->fresh()->status);
+    }
+
     public function test_batal_after_an_sppb_exists_returns_422(): void
     {
         $requester = $this->makeUser([self::PERM_AMPRAH_CREATE], ['petugas_unit'], $this->unitA->id);
-        $req = $this->createPermintaan('DISETUJUI_KARU', $this->gudang1->id, $this->unitA->id, $requester->id);
+        $req = $this->createPermintaan('DIAJUKAN', $this->gudang1->id, $this->unitA->id, $requester->id);
 
         PengirimanBarang::create([
             'kode'                     => CodeGenerator::generate('SPPB', PengirimanBarang::class, 'kode', 'Ymd', 4),
@@ -192,8 +203,7 @@ class DistribusiAmprahWebParityTest extends TestCase
         $response = $this->actingAs($requester)->postJson("/api/v1/distribusi/amprah/{$req->id}/batal");
         $response->assertStatus(422);
 
-        $req->refresh();
-        $this->assertSame('DISETUJUI_KARU', $req->status);
+        $this->assertSame('DIAJUKAN', $req->fresh()->status);
     }
 
     public function test_tutup_sisa_on_dikirim_sebagian_by_requester_unit_returns_200_selesai(): void

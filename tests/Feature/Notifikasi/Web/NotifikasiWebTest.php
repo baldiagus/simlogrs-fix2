@@ -41,17 +41,28 @@ class NotifikasiWebTest extends TestCase
         }
     }
 
+    /** Livewire 3.8 tidak menyediakan assertSeeLivewire: periksa snapshot komponen di HTML. */
+    private function assertKomponenTerender($response, string $namaKomponen): void
+    {
+        $this->assertMatchesRegularExpression(
+            '/wire:snapshot="[^"]*&quot;name&quot;:&quot;' . preg_quote($namaKomponen, '/') . '&quot;/',
+            $response->getContent(),
+            "Komponen Livewire {$namaKomponen} tidak dirender."
+        );
+    }
+
     public function test_halaman_portal_merender_lonceng(): void
     {
         $this->notif($this->saya);
 
-        $this->actingAs($this->saya)->get('/kepala-unit/dashboard')
-            ->assertOk()->assertSeeLivewire(Lonceng::class)->assertSee('lonceng-badge', false);
+        $response = $this->actingAs($this->saya)->get('/kepala-unit/dashboard')->assertOk()->assertSee('lonceng-badge', false);
+        $this->assertKomponenTerender($response, 'notifikasi.lonceng');
     }
 
     public function test_rute_daftar_notifikasi_dapat_dibuka(): void
     {
-        $this->actingAs($this->saya)->get('/kepala-unit/notifikasi')->assertOk()->assertSeeLivewire(DaftarNotifikasi::class);
+        $response = $this->actingAs($this->saya)->get('/kepala-unit/notifikasi')->assertOk();
+        $this->assertKomponenTerender($response, 'notifikasi.daftar-notifikasi');
     }
 
     public function test_badge_hanya_menghitung_milik_sendiri(): void

@@ -21,7 +21,7 @@ class DistribusiKatalogApiTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = User::where('status', 'AKTIF')->firstOrFail();
+        $this->user = User::where('username', 'superadmin')->firstOrFail();
 
         $this->gudangAtk = Gudang::where('kode', 'GUD_ATK')->first()
             ?: Gudang::firstOrCreate(

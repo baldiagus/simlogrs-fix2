@@ -3,12 +3,15 @@
 namespace Tests\Feature\Notifikasi\Pemicu;
 
 use App\Models\Aset\PengalihanAset;
+use App\Models\Aset\Aset;
 use App\Models\Aset\PermintaanPeminjaman;
 use App\Models\Distribusi\PengirimanBarang;
 use App\Models\Distribusi\PermintaanDistribusi;
 use App\Models\Ipsrs\PenugasanMaintenance;
 use App\Models\Ipsrs\PermintaanMaintenance;
 use App\Models\Master\Notifikasi;
+use App\Models\Master\Barang;
+use App\Models\Master\Pemasok;
 use App\Models\Pengadaan\PermintaanPengadaan;
 use App\Models\Pengadaan\PesananPembelian;
 use App\Models\Persediaan\PenyesuaianStok;
@@ -32,10 +35,30 @@ class PemicuNotifikasiTest extends TestCase
     private const GUDANG_A = 1;
     private const GUDANG_B = 2;
 
+    private int $pemasokId;
+    private int $asetId;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->app->instance(PengirimPush::class, new FakePengirimPush());
+
+        // Data referensi dicari/dibuat sendiri agar tes tidak bergantung pada id tetap hasil seeder.
+        $this->pemasokId = Pemasok::query()->value('id')
+            ?? Pemasok::create(['kode' => $this->kode('VDR'), 'nama' => 'Pemasok Uji Notifikasi', 'status' => 'AKTIF'])->id;
+        $this->asetId = Aset::where('unit_id', self::UNIT_A)->value('id')
+            ?? Aset::create([
+                'barang_id' => Barang::where('tipe', 'ASET')->value('id') ?? Barang::query()->value('id'),
+                'unit_id' => self::UNIT_A, 'kode_aset' => $this->kode('AST'), 'tanggal_perolehan' => now()->toDateString(),
+                'nilai_perolehan' => 1000000, 'kondisi' => 'BAIK', 'status' => 'TERSEDIA',
+            ])->id;
+    }
+
+    /** Jumlah notifikasi seorang pengguna yang merujuk dokumen uji tertentu. */
+    private function notifUntuk(string $username, string $tipe, int $ref): int
+    {
+        return Notifikasi::where('pengguna_id', $this->u($username)->id)
+            ->where('tipe', $tipe)->where('referensi_id', (string) $ref)->count();
     }
 
     private function u(string $username): User
@@ -82,7 +105,7 @@ class PemicuNotifikasiTest extends TestCase
     private function tiket(array $o = []): PermintaanMaintenance
     {
         return PermintaanMaintenance::create(array_merge([
-            'kode' => $this->kode('MNT'), 'aset_id' => 1, 'unit_id' => self::UNIT_A,
+            'kode' => $this->kode('MNT'), 'aset_id' => $this->asetId, 'unit_id' => self::UNIT_A,
             'dilaporkan_oleh' => $this->u('petugasunit')->id, 'deskripsi_masalah' => 'Rusak', 'prioritas' => 'SEDANG',
             'status' => 'DILAPORKAN',
         ], $o));
@@ -153,7 +176,7 @@ class PemicuNotifikasiTest extends TestCase
         $pr = $this->pr(['unit_id' => null, 'gudang_id' => self::GUDANG_A, 'status' => 'DIPROSES']);
         $this->actingAs($this->u('pengadaan'));
         $po = PesananPembelian::create([
-            'kode' => $this->kode('PO'), 'pemasok_id' => 1, 'permintaan_pengadaan_id' => $pr->id, 'tanggal_po' => now()->toDateString(),
+            'kode' => $this->kode('PO'), 'pemasok_id' => $this->pemasokId, 'permintaan_pengadaan_id' => $pr->id, 'tanggal_po' => now()->toDateString(),
             'status' => 'DITERBITKAN', 'dibuat_oleh' => $this->u('pengadaan')->id,
         ]);
 
@@ -175,7 +198,7 @@ class PemicuNotifikasiTest extends TestCase
 
         // APPROVAL_AMPRAH juga berisi notifikasi Diajukan ke Karu; kepala gudang ikut menerima saat DISETUJUI_KARU.
         $this->assertSame($this->ids('kepalaunit', 'kepalagudang'), $this->penerima('APPROVAL_AMPRAH', $a->id));
-        $this->assertNull(Notifikasi::where('pengguna_id', $this->u('kagud_ipsrs')->id)->first());
+        $this->assertSame(0, $this->notifUntuk('kagud_ipsrs', 'APPROVAL_AMPRAH', $a->id));
     }
 
     public function test_amprah_ditolak_ke_pengaju(): void
@@ -197,7 +220,7 @@ class PemicuNotifikasiTest extends TestCase
         ]);
 
         $this->assertSame($this->ids('kepalaunit', 'petugasunit'), $this->penerima('SPPB_DIKIRIM', $sppb->id));
-        $this->assertNull(Notifikasi::where('pengguna_id', $this->u('karu_icu')->id)->first());
+        $this->assertSame(0, $this->notifUntuk('karu_icu', 'SPPB_DIKIRIM', $sppb->id));
     }
 
     public function test_tiket_baru_ke_kepala_teknisi_dan_admin_logistik_tanpa_pelapor(): void
@@ -206,7 +229,7 @@ class PemicuNotifikasiTest extends TestCase
         $t = $this->tiket();
 
         $this->assertSame($this->ids('adminlogistik', 'karu_ipsrs'), $this->penerima('TIKET_BARU', $t->id));
-        $this->assertNull(Notifikasi::where('pengguna_id', $this->u('petugasunit')->id)->first());
+        $this->assertSame(0, $this->notifUntuk('petugasunit', 'TIKET_BARU', $t->id));
     }
 
     public function test_spk_ditugaskan_ke_teknisi_dan_bukan_ke_penugas(): void
@@ -242,7 +265,7 @@ class PemicuNotifikasiTest extends TestCase
         $p = $this->pinjam();
 
         $this->assertSame($this->ids('karu_icu'), $this->penerima('PINJAM_BARU', $p->id));
-        $this->assertNull(Notifikasi::where('pengguna_id', $this->u('kepalaunit')->id)->first());
+        $this->assertSame(0, $this->notifUntuk('kepalaunit', 'PINJAM_BARU', $p->id));
     }
 
     public function test_pinjam_baru_dari_gudang_ke_kepala_gudang_penyedia(): void
@@ -289,7 +312,7 @@ class PemicuNotifikasiTest extends TestCase
         ]);
 
         $this->assertSame($this->ids('adminlogistik', 'kepalagudang'), $this->penerima('OTORISASI_STOK', $adj->id));
-        $this->assertNull(Notifikasi::where('pengguna_id', $this->u('kagud_ipsrs')->id)->first());
+        $this->assertSame(0, $this->notifUntuk('kagud_ipsrs', 'OTORISASI_STOK', $adj->id));
     }
 
     public function test_pengguna_nonaktif_tidak_menerima(): void

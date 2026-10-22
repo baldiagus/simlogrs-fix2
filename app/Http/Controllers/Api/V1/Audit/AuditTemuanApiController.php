@@ -107,10 +107,9 @@ class AuditTemuanApiController extends ApiController
         })
         ->latest('id');
         $user = $request->user();
-        $isGlobalAuditor = $user && (
-            $user->hasRole(['super_admin', 'admin_logistik']) ||
-            $user->can('view_any_audit_manajemen::temuan::capa')
-        );
+        // Pembaca global hanya super_admin, admin_logistik, auditor, manajemen (ADR 0001);
+        // view_any_* saja tidak membuka scope lintas unit/gudang.
+        $isGlobalAuditor = $user && $user->hasRole(['super_admin', 'admin_logistik', 'auditor', 'manajemen']);
 
         if (! $isGlobalAuditor) {
             if ($user->unit_id) {
