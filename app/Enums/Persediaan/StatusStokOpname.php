@@ -44,7 +44,7 @@ enum StatusStokOpname: string
     /** Sesi yang masih menerima input hitung fisik via API. @return list<string> */
     public static function bisaDihitung(): array
     {
-        return [self::Berjalan->value, self::ProsesCount->value, self::MenungguApproval->value];
+        return [self::Berjalan->value, self::ProsesCount->value];
     }
 
     /** Sesi yang masih berjalan. @return list<string> */

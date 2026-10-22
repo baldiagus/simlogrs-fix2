@@ -206,9 +206,15 @@ class PersediaanOpnameApiController extends ApiController
 
         $finalisasi = $request->boolean('finalisasi', false);
 
-        DB::transaction(function () use ($opname, $request, $user, $finalisasi) {
-            $selisihRows = $this->catatHasilHitung($opname, $request->input('items'));
-            $this->tetapkanStatusOpname($opname, $user, $finalisasi, $selisihRows);
+        DB::transaction(function () use ($id, $request, $user, $finalisasi) {
+            $lockedOpname = StokOpname::with('detail.stokBatch')->lockForUpdate()->findOrFail($id);
+
+            if (! in_array($lockedOpname->status, StatusStokOpname::bisaDihitung(), true)) {
+                throw new \Exception("Sesi opname telah ditutup atau diajukan dengan status {$lockedOpname->status}.");
+            }
+
+            $selisihRows = $this->catatHasilHitung($lockedOpname, $request->input('items'));
+            $this->tetapkanStatusOpname($lockedOpname, $user, $finalisasi, $selisihRows);
         });
 
         return $this->jsonSuccess([
@@ -262,9 +268,12 @@ class PersediaanOpnameApiController extends ApiController
         }
 
         if (empty($selisihRows)) {
+            $canAuthorize = $user->can('update_gudang_stok::otorisasi::penyesuaian') &&
+                ($user->hasRole(['super_admin', 'admin_logistik', 'kepala_gudang']));
+
             $opname->update([
-                'status'         => StatusStokOpname::Disetujui->value,
-                'disetujui_oleh' => $user->id,
+                'status'         => $canAuthorize ? StatusStokOpname::Disetujui->value : StatusStokOpname::MenungguApproval->value,
+                'disetujui_oleh' => $canAuthorize ? $user->id : null,
             ]);
 
             return;

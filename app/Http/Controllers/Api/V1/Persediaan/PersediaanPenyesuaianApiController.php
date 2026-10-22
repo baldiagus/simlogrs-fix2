@@ -116,18 +116,26 @@ class PersediaanPenyesuaianApiController extends ApiController
 
         try {
             DB::transaction(function () use ($adj, $user) {
-                foreach ($adj->detail as $detail) {
-                    $this->terapkanDetailPenyesuaian($adj, $detail, $user);
+                $lockedAdj = PenyesuaianStok::with(['stokOpname', 'detail.stokBatch', 'detail.barang'])
+                    ->lockForUpdate()
+                    ->findOrFail($adj->id);
+
+                if (! StatusPenyesuaianStok::tryFrom((string) $lockedAdj->status)?->bolehKe(StatusPenyesuaianStok::Disetujui)) {
+                    throw new Exception("Dokumen penyesuaian telah diproses sebelumnya dengan status {$lockedAdj->status}.");
+                }
+
+                foreach ($lockedAdj->detail as $detail) {
+                    $this->terapkanDetailPenyesuaian($lockedAdj, $detail, $user);
                 }
 
                 // Sahkan status penyesuaian dan sesi opname induk
-                $adj->update([
+                $lockedAdj->update([
                     'status'         => StatusPenyesuaianStok::Disetujui->value,
                     'disetujui_oleh' => $user->id,
                 ]);
 
-                if ($adj->stokOpname) {
-                    $adj->stokOpname->update([
+                if ($lockedAdj->stokOpname) {
+                    $lockedAdj->stokOpname->update([
                         'status'         => StatusStokOpname::Disetujui->value,
                         'disetujui_oleh' => $user->id,
                     ]);
@@ -147,13 +155,14 @@ class PersediaanPenyesuaianApiController extends ApiController
         $saldoSebelum = $batch->jumlah;
 
         if ($detail->jenis_penyesuaian === 'KURANG') {
-            $qtyPotong = min($saldoSebelum, $qty);
-            $saldoSesudah = $saldoSebelum - $qtyPotong;
+            if ($saldoSebelum < $qty) {
+                throw new Exception("Saldo stok batch '{$batch->nomor_batch}' ({$detail->barang?->nama}) saat ini tidak mencukupi untuk dikurangi {$qty} unit (Saldo riil saat ini: {$saldoSebelum}).");
+            }
+            $saldoSesudah = $saldoSebelum - $qty;
             $batch->update([
                 'jumlah' => $saldoSesudah,
                 'status' => $saldoSesudah == 0 ? 'HABIS' : 'AKTIF',
             ]);
-            $qty = $qtyPotong;
         } else {
             // TAMBAH
             $saldoSesudah = $saldoSebelum + $qty;
@@ -212,14 +221,20 @@ class PersediaanPenyesuaianApiController extends ApiController
         $alasan = $request->input('alasan', 'Penyesuaian stok ditolak oleh Kepala Gudang.');
 
         DB::transaction(function () use ($adj, $user, $alasan) {
-            $adj->update([
+            $lockedAdj = PenyesuaianStok::with('stokOpname')->lockForUpdate()->findOrFail($adj->id);
+
+            if (! StatusPenyesuaianStok::tryFrom((string) $lockedAdj->status)?->bolehKe(StatusPenyesuaianStok::Ditolak)) {
+                throw new Exception("Dokumen penyesuaian telah diproses sebelumnya dengan status {$lockedAdj->status}.");
+            }
+
+            $lockedAdj->update([
                 'status'         => StatusPenyesuaianStok::Ditolak->value,
                 'disetujui_oleh' => $user->id,
-                'alasan'         => $adj->alasan . " [DITOLAK: {$alasan}]",
+                'alasan'         => $lockedAdj->alasan . " [DITOLAK: {$alasan}]",
             ]);
 
-            if ($adj->stokOpname) {
-                $adj->stokOpname->update([
+            if ($lockedAdj->stokOpname) {
+                $lockedAdj->stokOpname->update([
                     'status' => StatusStokOpname::Ditolak->value,
                 ]);
             }

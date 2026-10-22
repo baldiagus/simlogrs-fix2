@@ -104,7 +104,7 @@ class DistribusiPengirimanApiController extends ApiController
             $ownGudangIds = PickingScope::ownGudangIds($user);
             $gudangId = ($isGlobal && $request->filled('gudang_id'))
                 ? (int) $request->input('gudang_id')
-                : ($user->gudang_id ?: ($permintaan->gudang_id ?: ($ownGudangIds[0] ?? null)));
+                : ($permintaan->gudang_id ?: ($user->gudang_id ?: ($ownGudangIds[0] ?? null)));
 
             if (! $permintaan->gudang_id && $gudangId) {
                 $permintaan->update(['gudang_id' => $gudangId]);
@@ -247,12 +247,17 @@ class DistribusiPengirimanApiController extends ApiController
      */
     private function perbaruiStatusPermintaanSetelahTerima(PengirimanBarang $sppb): void
     {
-        if ($sppb->permintaanDistribusi) {
-            $permintaan = $sppb->permintaanDistribusi;
+        if ($sppb->permintaan_distribusi_id) {
+            $permintaan = PermintaanDistribusi::lockForUpdate()->find($sppb->permintaan_distribusi_id);
+            if (! $permintaan) {
+                return;
+            }
             $permintaan->load('detail');
 
             if ($permintaan->semuaBarangDiterima()) {
                 $permintaan->update(['status' => StatusPermintaanDistribusi::Selesai->value]);
+            } elseif ($permintaan->semuaBarangDikirim()) {
+                $permintaan->update(['status' => StatusPermintaanDistribusi::SedangDikirim->value]);
             } else {
                 $permintaan->update(['status' => StatusPermintaanDistribusi::DikirimSebagian->value]);
             }
@@ -297,6 +302,7 @@ class DistribusiPengirimanApiController extends ApiController
             ->where('gudang_id', $sppb->gudang_id)
             ->whereNull('unit_id')
             ->where('status', 'TERSEDIA')
+            ->lockForUpdate()
             ->limit($qty)
             ->get();
 

@@ -219,15 +219,44 @@ class GudangPenerimaanPoApiController extends ApiController
     protected function eksekusiPenerimaanPo(Request $request, User $user, PesananPembelian $po, int $gudangId): PenerimaanBarang
     {
         return DB::transaction(function () use ($request, $user, $po, $gudangId) {
+            $lockedPo = PesananPembelian::with('detail')->lockForUpdate()->findOrFail($po->id);
+
+            if (! in_array($lockedPo->status, StatusPesananPembelian::bisaDiterima(), true)) {
+                throw new \Exception("PO {$lockedPo->kode} sudah tidak dalam status dapat diterima.");
+            }
+
+            // Validasi sisa kuantitas pesanan yang belum diterima di bawah lock
+            $terimaPerDetail = [];
+            foreach ($request->input('items') as $row) {
+                $qty = (int) ($row['jumlah_diterima'] ?? 0);
+                if ($qty <= 0) continue;
+
+                $poDetail = $lockedPo->detail->firstWhere('barang_id', $row['barang_id']);
+                if (! $poDetail) {
+                    throw new \Exception("Barang ID {$row['barang_id']} tidak terdaftar dalam rincian PO {$lockedPo->kode}.");
+                }
+
+                $rusak = (int) ($row['jumlah_rusak'] ?? 0);
+                if ($rusak < 0 || $rusak > $qty) {
+                    throw new \Exception("Jumlah rusak tidak valid untuk barang {$poDetail->barang?->nama}.");
+                }
+
+                $terimaPerDetail[$poDetail->id] = ($terimaPerDetail[$poDetail->id] ?? 0) + $qty;
+                $sisaTerkunci = max(0, (int) $poDetail->jumlah_dipesan - (int) $poDetail->jumlah_diterima);
+                if ($terimaPerDetail[$poDetail->id] > $sisaTerkunci) {
+                    throw new \Exception("Jumlah penerimaan komoditas barang melebihi sisa pesanan terkini ({$sisaTerkunci}).");
+                }
+            }
+
             $kodeRcv = CodeGenerator::generate('RCV', PenerimaanBarang::class, 'kode', 'Ym', 3);
 
             // 1. Update jumlah diterima di pesanan_pembelian_detail
-            $this->tambahJumlahDiterimaPoDetail($request, $po);
+            $this->tambahJumlahDiterimaPoDetail($request, $lockedPo);
 
             // 2. Evaluasi status PO
-            $po->refresh();
-            $po->load('detail');
-            $allReceived = $po->detail->every(fn ($d) => (int) $d->jumlah_diterima >= (int) $d->jumlah_dipesan);
+            $lockedPo->refresh();
+            $lockedPo->load('detail');
+            $allReceived = $lockedPo->detail->every(fn ($d) => (int) $d->jumlah_diterima >= (int) $d->jumlah_dipesan);
             $statusRcv = $allReceived ? StatusPenerimaanPo::Lengkap->value : StatusPenerimaanPo::Sebagian->value;
             $statusPo  = match (true) {
                 $allReceived => StatusPesananPembelian::DiterimaLengkap->value,
@@ -237,7 +266,7 @@ class GudangPenerimaanPoApiController extends ApiController
             // 3. Buat dokumen penerimaan barang
             $rcv = PenerimaanBarang::create([
                 'kode'                 => $kodeRcv,
-                'pesanan_pembelian_id' => $po->id,
+                'pesanan_pembelian_id' => $lockedPo->id,
                 'gudang_id'            => $gudangId,
                 'nomor_surat_jalan'    => $request->input('nomor_surat_jalan'),
                 'tanggal_terima'       => now()->toDateString(),
@@ -247,14 +276,14 @@ class GudangPenerimaanPoApiController extends ApiController
             ]);
 
             // 4. Catat detail & stok batch
-            $this->catatDetailDanStokBatch($request, $user, $po, $rcv, $gudangId);
+            $this->catatDetailDanStokBatch($request, $user, $lockedPo, $rcv, $gudangId);
 
             // 5. Update status PO
-            $po->update(['status' => $statusPo]);
+            $lockedPo->update(['status' => $statusPo]);
 
             // 6. Jika seluruh barang PO telah diterima lengkap, update status PR induk menjadi SELESAI
-            if ($statusPo === StatusPesananPembelian::DiterimaLengkap->value && $po->permintaan_pengadaan_id) {
-                $po->permintaanPengadaan()->update(['status' => StatusPermintaanPengadaan::Selesai->value]);
+            if ($statusPo === StatusPesananPembelian::DiterimaLengkap->value && $lockedPo->permintaan_pengadaan_id) {
+                $lockedPo->permintaanPengadaan()->update(['status' => StatusPermintaanPengadaan::Selesai->value]);
             }
             return $rcv;
         });
@@ -264,11 +293,15 @@ class GudangPenerimaanPoApiController extends ApiController
     {
         foreach ($request->input('items') as $row) {
             $qty = (int) $row['jumlah_diterima'];
+            $rusak = (int) ($row['jumlah_rusak'] ?? 0);
+            $net = max(0, $qty - $rusak);
             if ($qty <= 0) continue;
 
             $poDetail = $po->detail->firstWhere('barang_id', $row['barang_id']);
             if ($poDetail) {
-                $poDetail->increment('jumlah_diterima', $qty);
+                if ($net > 0) {
+                    $poDetail->increment('jumlah_diterima', $net);
+                }
 
                 if ((float) $poDetail->harga_satuan > 0) {
                     Barang::where('id', $row['barang_id'])->update([
